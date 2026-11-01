@@ -485,7 +485,7 @@ def _send_checks() -> None:
     r = SendRun(PROM, "--voice-ok", *ok_seen, at=reply_at, body="Perfect - steak and shrimp for everyone, it's on your order! 🥩🍤")
     check("  --voice-ok: sent, the hits still printed", r.sent and r.has("VOICE", "照发", "Perfect"), r)
     for body in (REPLY, "Yes, noon works. Your chef will get there around 11:30 to set up.", "Happy birthday! When's the party?",
-                 "30 people is $1,707 with tax if you pay cash.", "Got it, 7:30 then.", "Anytime. See you on the 17th.",
+                 "30 people is $1,707 with tax if you pay cash.", "Got it, 7:30 then.", "See you on the 17th.",
                  "Could you send me the street address when you have a minute?", "Your chef is Blu. He'll be there around 5 to set up. 🔥",
                  "Hi, it's Rowling from Real Hibachi. Saturday the 18th is open for the 15 of you in Palm Springs. What's the celebration?"):
         r = SendRun(PROM_LATER, "--seen", "2026-10-24T18:56:44-07:00", at="2026-10-26 12:00:00", body=body)
@@ -842,6 +842,13 @@ def main() -> int:
                  "You can pick how you're paying at the top.", "Text works too, whichever is easier.",
                  "See you Friday. Reply STOP to opt out."):
         check(f"voice passes: {text}", not rude(text))
+    said = lambda body, ago_h: [{"direction": "inbound", "body": body, "at": (now - datetime.timedelta(hours=ago_h)).isoformat()}]
+    lines = lambda text, msgs: [line for _, line in desk.voice_check(text, msgs, now, [])]
+    check("voice stops a courtesy sent a day late", any("客气话不补了" in x for x in lines("Anytime. See you on the 7th.", said("Thank you so much!", 11))))
+    check("  and lets it through right away", not any("客气话不补了" in x for x in lines("You're very welcome.", said("Thank you so much!", 0.1))))
+    check("voice notes good news left unanswered", any("替他高兴" in x for x in lines("Got it. What city will it be in?", said("my husbands 75th", 0.1))))
+    check("  and is quiet when we are glad for them", not any("替他高兴" in x for x in lines("Happy 75th to your husband! What city will it be in?", said("my husbands 75th", 0.1))))
+    check("voice notes a congratulation with a full stop", any("句号" in x for x in lines("Congratulations on the wedding. Is it an evening event?", said("Wedding", 0.1))))
 
     print()
     if FAILS:

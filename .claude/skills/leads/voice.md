@@ -35,7 +35,7 @@
 1. **第一句就答他问的**。他问价钱，第一句是数字；问几点到，第一句是时间；问能不能改，第一句是 `Yes` 或 `No`。他一次问了几件，每件都答到，没答的那件明说 `Let me check on the spring rolls`。
 2. **一条最多一个 ` - `**，而且不放在开头词后面。想停顿就用句号，拆成两句。`Perfect - steak and shrimp for everyone, it's on your order!` → `Steak and shrimp for everyone, got it.`
 3. **不用情绪词开头**：`Perfect`、`Absolutely`、`Of course`、`Totally`、`Great question`、`Good news`、`Love that`、`Yay`、`Certainly`。直接从答案开始：`Yes, noon works.`、`Sure.`、`Got it.`、`Sounds good.`（这几个也不要连着两条用同一个）。
-4. **`!` 一条最多一个，大概三条里一条有就够**。emoji 大概五条里一条，跟着内容走（客人说生日 🎂），客气收尾、确认类默认不带。
+4. **`!` 一条最多一个，大概三条里一条有**。emoji 大概五条里一条，跟着内容走（客人说生日 🎂），客气收尾、确认类默认不带。**不要压过头**（11-01）：改版后 `!` 从 49% 掉到 5%，emoji 从 27% 掉到 4%，读起来就冷了。恭喜、客人说高兴的事，一定带一个 `!`。
 5. **名字只报一次**：`Hi, it's Rowling` 只在第一条，或者隔了几天他没说话、我们重新开口时用。他一天内说过话，就直接接话。客人的名字也只在第一条或锁单时叫一次。
 6. **日期说得像人**：日期定下来以后，说 `Saturday`、`the 7th`、`Saturday the 7th`。全写（`Saturday, Nov 7 at 6:30 PM`）只在锁单确认、或者日期改了的时候用一次。聊天里不写邮编，城市他知道就不重复。
 7. **人数这样说**：`17 people`、`17 guests`、`the group`、`everyone`，不说 `your 17`、`for your 14`。
@@ -44,6 +44,8 @@
 10. **不写空话**：不写 `We'll make it a night to remember`、`it's going to be an amazing 30th! 🔥`、`It really is so fun: your chef brings the grill, the food and the whole show...`、`Is there anything else you'd like me to check?`、`Let me know if you have any questions`。没有具体的事就不写那半句。
 
 11. **请客人做事一定客气**（老板 11-01，D-1101-01：`tell me 这种是不是太不客气了 please 都不说`）。要他做事，写 `Could you ...?`、`Would you ...?`、`Please ...`；给他选择，写 `You can ...`；要给他做事，写 `Would you like me to ...?`。这些都不算客气：`Tell me if anyone needs something different.`、`Text me the list.`、`Pick how you're paying.`，`just` 也救不回来：`If anything looks off, just text me.`。换成 `Please tell me if anyone needs something different.`、`Could you text me the list?`、`You can pick how you're paying.`、`If anything looks off, please text me.`。`Reply STOP to opt out` 是法规句，不改。
+
+12. **客人说了喜事，第一句先替他高兴，用他自己的话接**（11-01，D-1101-02，盲评 58 段对话：改版前 29 段里 11 段有这句，改版后 3 段）。`Wedding` → `Congratulations on the wedding!`；`A meeting for an entire sorority` → `A whole sorority, that sounds like a great night!`；`My husband's 75th` → `Happy 75th to your husband!`。`Got it.` 接不住人家的喜事。他问了问题也一样：先一句高兴，马上答。说完再谈下一件事。
 
 **长度**：客人在闲聊（`Thank you!`、`Ok still trying to decide`），我们的回复不超过他那条的两倍长。客人问了正事，照 SKILL §1.2（≤3 句、≤320 字符）。
 
@@ -74,7 +76,7 @@
 
 | 客人 | 回 |
 |---|---|
-| `Thank you!` / `Thanks so much` | `Anytime.` / `You got it.` / `See you on the 17th.` |
+| `Thank you!` / `Thanks so much` | `You're very welcome.` / `You're very welcome. See you on the 17th.` |
 | `Ok sounds good` / `Cool` | `Great, talk soon.`（或者 tapback 规则，SKILL §1.6） |
 | `Still trying to decide` / `Not yet` | `No problem. Please text me when you know.` |
 | `Confirming with the team` / `I'll ask my wife` | `Sounds good, I'm here.` |
@@ -147,7 +149,7 @@
 ```
 客人：Thank you
 ✗ Our pleasure - see you on the 17th! 🔥
-✓ Anytime. See you on the 17th.
+✓ You're very welcome. See you on the 17th.
 ```
 
 ---
@@ -162,6 +164,8 @@
 
 - **✗ 拦**（不发，exit 2）：长破折号、2 个以上 `!`、2 个以上 emoji、情绪词开头（`Perfect`/`Absolutely`/`Of course`/`Totally`/`Good news`/`Love that`…）、光秃秃的 `your 17`、§3 和 SKILL §8 的词、不带 please 的命令句（§2 第 11 条：句首或 `If ...,` 后面直接是 `Tell`、`Text`、`Send`、`Reply`、`Pick`、`Add`、`Lock`、`Let me know` 这类动词，`, just text me` 也算）、已经报过名字还在对话中间 `Hi, it's Rowling`、同一句（`nothing is charged today` 等）对这个客人说第二次（网站自动报价那条不算）。改了再发；这句确实就该这么写（比如引用客人的话），带 `--voice-ok`。
 - **· 提醒**（照发）：2 个以上 ` - `、`No rush - ` 这类反应词 + 短横开头、括号、和我上一条开头一样（打招呼的 Hi 不算）、`Want me to`（写 `Would you like me to`）。偶尔可以，条条都这样就像机器。
+- **✗ 拦，11-01 加**：隔了 2 小时以上才回的客气话（`Anytime`、`You're welcome` 开头）。SKILL §1.6 早就写了不补，这几天我还是发了，隔天的 `Anytime.` 读起来像机器在清队列。
+- **· 提醒，11-01 加**（照发）：`Anytime` 开头（写 `You're very welcome`）；他刚说了喜事，我们第一句没接（§2 第 12 条）；`Happy ...`、`Congratulations ...` 后面是句号。
 - **· 提醒，10-29 加**（照发，不拦）：
   - **同一个开头发给多位客人**：去掉打招呼和名字后的前三个词，24 小时内本机已经发给 2 位别的客人（读本机的 `~/.realhibachi/desk-voice.jsonl`）。上周 `figured you're still` 发了 22 次。看到就换一个从他最后那句话写起的开头。
   - **第一句没答他问的**：上次我们说话之后他问了问题，而我们第一句是客套（`You're welcome!`、`Good morning, Matthew!`、`No apology needed!`），或者是一句不沾他问题的短句（问桌椅，答 `5:30 works great!`）。首条的自我介绍那句不算，看它后面那句。上周 90 条答问里会出 13 条，逐条看都是真没先答。它只看字面，第一句长、在答别的说法的不会报。

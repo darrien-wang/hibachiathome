@@ -662,6 +662,12 @@ VOICE_IMPERATIVE = re.compile(
     r"(?:^|[.!?:]\s+|\n\s*)(?:(?:hi|hey|hello)\b[^.!?,]{0,30},\s*|(?:if|when|once|whenever)\b[^.!?]{0,80}?,\s*)?(?:just\s+)?"
     + VOICE_VERB + r"|,\s*just\s+" + VOICE_VERB, re.I)
 VOICE_CASUAL = re.compile(rf"\b(?:{_alt('casualAsks')})\b", re.I)
+# 10-29 took the warmth out with the tells (a customer's-eye read of 58 threads, 2026-11-01): a real reaction
+# to their news fell from 11 threads in 29 to 3, and a day-late "Anytime." reads like a machine clearing a queue.
+VOICE_GOOD_NEWS = re.compile(r"\b(?:birthday|bday|\d{1,3}(?:st|nd|rd|th)\b|wedding|anniversary|graduat\w*|retire\w*|shower|bridal|bachelorette|engage\w*|quincea\w*|reunion|sorority)", re.I)
+VOICE_REACTION = re.compile(r"!|\b(?:happy|congrat\w*|fun|great|wonderful|exciting|sweet|lovely|beautiful|special)\b", re.I)
+VOICE_THANKS_REPLY = re.compile(r"^(?:anytime|you're (?:very |so )?welcome|you got it)\b", re.I)
+VOICE_THANKS_H = 2  # SKILL §1.6: a courtesy this late is not sent, ack instead
 # Two more notes after the 10-22..10-28 backtest (owner 2026-10-29); neither stops a send.
 # One mold for many people: 22 follow-ups that week opened "Hi, it's Rowling - figured you're still ..."
 # (5 replies). An opening - the first three words once the greeting and our name are off - that this
@@ -827,6 +833,17 @@ def voice_check(body: str, msgs: list[dict], now: _dt.datetime, others: list[dic
     miss = voice_unanswered(b, msgs)
     if miss:
         note(f"他问了「{miss[0][:60]}」，你第一句是「{miss[1][:60]}」：第一句先答他问的（voice.md §2 第 1 条）")
+    first = re.split(r"(?<=[.!?])\s", b, maxsplit=1)[0]
+    if re.match(r"(?:happy|congrat)", first, re.I) and first.endswith("."):
+        note("恭喜的话用 !，句号读起来是冷的（voice.md §2 第 4 条）")
+    if theirs:
+        newest = max(theirs, key=lambda m: _at(m["at"]))
+        if VOICE_THANKS_REPLY.match(b) and (now - _at(newest["at"])).total_seconds() > VOICE_THANKS_H * 3600:
+            stop(f"隔了 {VOICE_THANKS_H} 小时以上的客气话不补了（SKILL §1.6）：desk ack")
+        if VOICE_GOOD_NEWS.search(newest.get("body") or "") and not VOICE_REACTION.search(first):
+            note("他刚说了喜事，第一句先替他高兴，用他的话接（voice.md §2 第 12 条）")
+    if re.match(r"anytime\b", b, re.I):
+        note("「Anytime」太随便：写 You're very welcome")
     return hits
 
 

@@ -23,6 +23,7 @@
 只在短信里说，官网照旧不写（`config/sourcing.ts`）。
 3. 不提别家。客人自己报了低价或提了别家，才用 §4 那句 `At that price it's usually frozen`。
 4. 讲完他还卡在价上，才走 §2 的小赢，只让一次。
+5. **他已经说了再见就停**（11-01，D-1101-02）：`Thank you but it's over our budget. Have a nice day!`、`We'll pass`、`No thanks` 这种是客气地结束，不是还价。回一条得体的话，可以带一句周中价，然后挂 14 天，不讲料、不再跟进。那位 714-334 说完 Have a nice day，隔两天我们又发了一段牛肉，站在客人那边就是不放手。
 
 ## 2. 小赢的顺序（按我们的真实成本从低到高）
 
