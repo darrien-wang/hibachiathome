@@ -613,10 +613,10 @@ export async function POST(request: NextRequest) {
         if (!isUuid(body.id)) return NextResponse.json({ error: "id required" }, { status: 400 })
         const f = (body.fields ?? {}) as Record<string, unknown>
         const patch: Record<string, unknown> = { updated_at: now }
-        if ("display_name" in f) {
-          patch.display_name = str(f.display_name, 80) || null
-          patch.full_name = str(f.display_name, 80) || null
-        }
+        // Two names since 2026-11-01: the one the team uses, and the real one a
+        // gated community asks for. Saving the short name used to overwrite it.
+        if ("display_name" in f) patch.display_name = str(f.display_name, 80) || null
+        if ("full_name" in f) patch.full_name = str(f.full_name, 80) || null
         if ("phone" in f) patch.phone = str(f.phone, 30) || null
         if ("email" in f) patch.email = str(f.email, 120) || null
         if ("wechat" in f) patch.wechat = str(f.wechat, 60) || null

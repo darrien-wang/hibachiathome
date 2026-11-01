@@ -91,7 +91,7 @@ export function ChefDialog({
       const r = await adminJson<ChefDetail & { ok: boolean }>(adminKey, `/api/admin/chefs?id=${encodeURIComponent(chefId)}`)
       setD(r)
       const c = r.chef
-      setProfile({ display_name: c.display_name ?? c.full_name ?? "", phone: c.phone ?? "", email: c.email ?? "", wechat: c.wechat ?? "", base: String((c.base_pay_cents ?? 0) / 100), head_from: String(c.head_from ?? 0), per_head: String((c.per_head_cents ?? 0) / 100), billing_cycle: c.billing_cycle ?? "weekly", notes: c.notes ?? "", status: c.status, role: c.role ?? "chef", pay_start_date: c.pay_start_date ?? "" })
+      setProfile({ display_name: c.display_name ?? c.full_name ?? "", full_name: c.full_name ?? "", phone: c.phone ?? "", email: c.email ?? "", wechat: c.wechat ?? "", base: String((c.base_pay_cents ?? 0) / 100), head_from: String(c.head_from ?? 0), per_head: String((c.per_head_cents ?? 0) / 100), billing_cycle: c.billing_cycle ?? "weekly", notes: c.notes ?? "", status: c.status, role: c.role ?? "chef", pay_start_date: c.pay_start_date ?? "" })
       // 后勤没有场次和评价这两页。
       if (c.role === "logistics") setTab((t) => (t === "shifts" || t === "perf" ? (r.sensitive === false ? "profile" : "settle") : t))
       setSkills(c.skills ?? [])
@@ -186,7 +186,7 @@ export function ChefDialog({
     post("profile", {
       action: "update_profile",
       id: chefId,
-      fields: { display_name: profile.display_name, phone: profile.phone, email: profile.email, wechat: profile.wechat, notes: profile.notes, base_pay_cents: Math.round(Number(profile.base) * 100) || 0, head_from: Number(profile.head_from) || 0, per_head_cents: Math.round(Number(profile.per_head) * 100) || 0, billing_cycle: profile.billing_cycle, status: profile.status, skills, areas, role: profile.role, },
+      fields: { display_name: profile.display_name, full_name: profile.full_name, phone: profile.phone, email: profile.email, wechat: profile.wechat, notes: profile.notes, base_pay_cents: Math.round(Number(profile.base) * 100) || 0, head_from: Number(profile.head_from) || 0, per_head_cents: Math.round(Number(profile.per_head) * 100) || 0, billing_cycle: profile.billing_cycle, status: profile.status, skills, areas, role: profile.role, },
     }, "已保存")
   const saveDocs = () => post("docs", { action: "update_docs", id: chefId, fields: docs }, "已保存")
   // Not through post(): the dialog has nothing to reload once the chef is gone.
@@ -581,6 +581,9 @@ export function ChefDialog({
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 <Field label="名字">
                   <input className="input" value={profile.display_name ?? ""} disabled={!owner} onChange={(e) => setProfile({ ...profile, display_name: e.target.value })} />
+                </Field>
+                <Field label="全名（门禁小区给客人）">
+                  <input className="input" value={profile.full_name ?? ""} disabled={!owner} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} />
                 </Field>
                 <Field label="电话">
                   <input className="input" value={profile.phone ?? ""} disabled={!owner} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} />
