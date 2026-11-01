@@ -74,7 +74,7 @@ python scripts/desk/desk.py order hold <单号> --why "寿星出城，另挑日�
 python scripts/desk/desk.py order redate <单号> --date 2026-11-14 [--time 18:00]   # 待定的单定了新日期
 python scripts/desk/desk.py order preview <单号>
 python scripts/desk/desk.py order remind <单号> --dry              # 前一天提醒，先 --dry；有 !! 缺项不发，核过才 --force
-python scripts/desk/desk.py order send <单号>                      # 发票：邮件 PDF + 短信请回 confirm（先自查、老板看过）
+python scripts/desk/desk.py order send <单号>                      # 发票：邮件 PDF + 短信发链接，不用客人回（先自查、老板看过）
 python scripts/desk/desk.py order email <单号> [--notes-reviewed]
 ```
 - 改之前先 `--dry` 看 TOTAL；每次 `order set` 会自己拿 TOTAL 和 `desk price`（同样的大人/小孩/日期/桌椅餐具，加上订单自己的加购、优惠和路费）对一遍：对上打 `✓ total check`，差 $1 以上打一大段 `!!! TOTAL CHECK FAILED`，并写出可能的改法（`--retier`、`--promo official_weekday=…`）。存的时候订单在你读之后被改过会 409 `STALE`，什么都没存，重看再改。

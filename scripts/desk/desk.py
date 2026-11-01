@@ -43,7 +43,7 @@
                                    every set checks its TOTAL against desk price
   python scripts/desk/desk.py order preview <orderNo>      totals from the invoice engine, nothing saved
   python scripts/desk/desk.py order email <orderNo> [--notes-reviewed]   customer invoice email (+PDF, archived)
-  python scripts/desk/desk.py order send  <orderNo>   email the PDF AND text the invoice link asking them to reply "confirm" (the normal way)
+  python scripts/desk/desk.py order send  <orderNo>   email the PDF AND text the invoice link, no reply needed (the normal way)
   python scripts/desk/desk.py order remind <orderNo> [--dry]   day before / morning of: the balance by how they pay (cash to the chef / card)
   python scripts/desk/desk.py calls <phone|leadId>          recordings on the lead (date, length, sid)
   python scripts/desk/desk.py transcribe <phone|leadId> [--last 2] [--sid RE..] [--model small|medium] [--note] [--swap]
@@ -2536,7 +2536,7 @@ def cmd_order(a):
         # customers for real (the owner had said send, so no harm - but a preview must never send).
         if a.dry:
             print(f"DRY   would email the invoice PDF to {prefill.get('contactInfo', {}).get('email') or '?'}"
-                  + (" and text the invoice link + 'reply confirm'" if a.op == "send" else "") + " - nothing sent")
+                  + (" and text the invoice link" if a.op == "send" else "") + " - nothing sent")
             return
         payload = {"invoiceData": prefill, "orderNo": order_no}
         if a.notes_reviewed:
@@ -2554,10 +2554,12 @@ def cmd_order(a):
         if res.get("notesPrinted") is not None:
             print(f"      notes printed: {res.get('notesPrinted')}")
         if a.op == "send":
-            # Owner 2026-09-30: the email carries the PDF; the text carries the
-            # link and the ask, and the customer confirms in the text thread.
-            # (The invoice email's sender, notify@, has no mailbox - Daria's
-            # emailed "confirm" bounced.)
+            # The email carries the PDF, the text carries the link. No reply is
+            # asked for (owner 2026-10-31, D-1031-03): we go whether or not they
+            # answer, and 5 of 21 "reply confirm" texts got nothing back. The 72h
+            # text is what checks we can reach them. Questions come back to the
+            # text thread because the invoice email's sender, notify@, has no
+            # mailbox (Daria's emailed "confirm" bounced).
             detail = site_get("/api/admin/orders", {"id": order["id"]})
             row = detail.get("order") if isinstance(detail.get("order"), dict) else {}
             lead_id = ((row.get("source_metadata") or {}).get("lead_id")) or a.lead
@@ -2571,8 +2573,8 @@ def cmd_order(a):
             if re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
                 import datetime as _dt
                 day = _dt.date.fromisoformat(date).strftime("%A")
-            body = (f"Here's your invoice{' for ' + day if day else ''}: {short} Please look it over and reply "
-                    f"\"confirm\" here if it's all right. A PDF copy is in your email too.")
+            body = (f"Here's your invoice{' for ' + day if day else ''}: {short} You're all set, no need to reply. "
+                    f"If anything looks off, just text me here. A PDF copy is in your email too.")
             # The session id lets the just_answered brake tell this desk from
             # another one. Without it Tonia 10-13 got the invoice email but not
             # the text: our own "updated invoice coming" two minutes earlier
