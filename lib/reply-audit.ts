@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { CHANNEL_OUT } from "@/lib/channel-messages"
 import { notAQuestion } from "@/lib/courtesy-text"
 import { CUSTOMER_FORM_TYPES } from "@/lib/customer-forms"
 import { toE164, type LastByPeer } from "@/lib/sms-thread"
@@ -108,7 +109,7 @@ export const AUDIT_MIN_AGE_MS = 15 * 60_000
 const IN_TYPES = ["sms_inbound", "email_inbound", ...CUSTOMER_FORM_TYPES]
 // Anything that reached the customer from us. Twilio's newest outbound per
 // number is added on top, so a text sent from anywhere counts.
-const OUT_TYPES = ["sms_outbound", "email_outbound", "agent_first_response", "landing_quote_text"]
+const OUT_TYPES = ["sms_outbound", "email_outbound", "agent_first_response", "landing_quote_text", CHANNEL_OUT]
 const TEST_NAME = /not a customer|auto-test|claude|test ignore/i
 const isTestNumber = (e164: string | null) => Boolean(e164 && /^\+1\d{3}555\d{4}$/.test(e164))
 

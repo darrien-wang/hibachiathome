@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { loadQuiet } from "@/lib/lead-hold"
 import { instantToWallIso, shortDate, wallTime } from "@/lib/first-response"
 import { fetchLastByPeer, prettyPhone, toE164 } from "@/lib/sms-thread"
+import { CHANNEL_OUT } from "@/lib/channel-messages"
 import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-forms"
 import { payloadColumns, payloadFrom } from "@/lib/payload-select"
 import { findOpenTurns, shouldRing } from "@/lib/reply-audit"
@@ -371,13 +372,13 @@ export async function computeInbox(
   // ---- customer emails nobody answered ----------------------------------------
   // support@ mail is filed on the lead by /api/admin/email-inbound (Gmail
   // script, 2026-10-07). An inbound newer than anything we sent that lead -
-  // an email from the desk or a text - is waiting, under the same hold /
-  // "no reply needed" rules as a text.
+  // an email from the desk, a text, or a reply on Yelp or Facebook - is
+  // waiting, under the same hold / "no reply needed" rules as a text.
   const emailSince = new Date(now - EMAIL_LOOKBACK_MS).toISOString()
   const { data: mailRows } = await supabase
     .from("lead_touchpoints")
     .select(`lead_id, touchpoint_type, occurred_at, ${payloadColumns(MAIL_KEYS)}`)
-    .in("touchpoint_type", ["email_inbound", "email_outbound", "sms_outbound"])
+    .in("touchpoint_type", ["email_inbound", "email_outbound", "sms_outbound", CHANNEL_OUT])
     .gte("occurred_at", emailSince)
     .order("occurred_at", { ascending: false })
     .limit(400)
