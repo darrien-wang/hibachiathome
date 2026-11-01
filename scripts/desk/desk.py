@@ -82,6 +82,7 @@ SETUP_PRICES = {"tables_chairs": 10.0, "utensils": 5.0}  # invoice lib/pricing.t
 SETUP_LABELS = {"tables_chairs": "Tables & Chairs", "utensils": "Utensils & Tableware"}  # same, as the customer reads them
 # Billed per cloth, not per guest, so not a SETUP_PRICES item. $5 in black or white (owner 10-31).
 CLOTH_PRICES = {"white_linen": 5.0}  # invoice lib/pricing.ts PARTY_EXTRAS
+RICE_ADDIN_PRICES = {"diy_rice_chicken": 10.0, "diy_rice_shrimp": 10.0}  # same list; one order is enough for about 10 guests (owner 2026-11-01)
 ADULT_PRICE, CHILD_PRICE = 59.90, 29.90  # invoice ADULT_BASE_PRICE / CHILD_BASE_PRICE, what a deal's rate is cut from
 WEEKDAY_ADULT_OFF, WEEKDAY_CHILD_OFF = 5.0, 2.45  # invoice WEEKDAY_SPECIAL adultOff / childOff, the official_weekday line's per-head part
 DEAL_PROMO_IDS = ("deal_rate", "deal_free_extras", "deal_extra_rates", "deal_flat")  # invoice isCustomDealPromoId, in its order
@@ -2214,17 +2215,18 @@ def cmd_order(a):
             has_rows = data.get("mode") == "detailed" and bool(data.get("guests"))
             for pair in a.add_extra:
                 m = re.fullmatch(r"([a-z_]+)=(\d+)", pair)
-                if not m or m.group(1) not in {**APPETIZER_PRICES, **SETUP_PRICES, **PROTEIN_SIDE_PRICES, **CLOTH_PRICES}:
-                    raise SystemExit(f"--add-extra {pair!r}: use id=N with id in {sorted({**APPETIZER_PRICES, **SETUP_PRICES, **PROTEIN_SIDE_PRICES, **CLOTH_PRICES})}")
+                if not m or m.group(1) not in {**APPETIZER_PRICES, **SETUP_PRICES, **PROTEIN_SIDE_PRICES, **CLOTH_PRICES, **RICE_ADDIN_PRICES}:
+                    raise SystemExit(f"--add-extra {pair!r}: use id=N with id in {sorted({**APPETIZER_PRICES, **SETUP_PRICES, **PROTEIN_SIDE_PRICES, **CLOTH_PRICES, **RICE_ADDIN_PRICES})}")
                 app_id, n = m.group(1), int(m.group(2))
                 row = next((e for e in extras if e.get("id") == app_id), None)
-                if app_id in CLOTH_PRICES:
+                if app_id in CLOTH_PRICES or app_id in RICE_ADDIN_PRICES:
                     was = int(row.get("qty") or 0) if row else 0
                     if row:
                         row["qty"] = n
                     else:
                         extras.append({"id": app_id, "qty": n})
-                    changes.append(f"tablecloths: {was} -> {n} at {money(CLOTH_PRICES[app_id])} each")
+                    what = "tablecloths" if app_id in CLOTH_PRICES else f"fried rice add-in {app_id}"
+                    changes.append(f"{what}: {was} -> {n} at {money({**CLOTH_PRICES, **RICE_ADDIN_PRICES}[app_id])} each")
                     continue
                 if app_id in SETUP_PRICES:
                     if has_rows:
