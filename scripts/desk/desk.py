@@ -44,7 +44,7 @@
   python scripts/desk/desk.py order preview <orderNo>      totals from the invoice engine, nothing saved
   python scripts/desk/desk.py order email <orderNo> [--notes-reviewed]   customer invoice email (+PDF, archived)
   python scripts/desk/desk.py order send  <orderNo>   email the PDF AND text the invoice link, no reply needed (the normal way)
-  python scripts/desk/desk.py order remind <orderNo> [--dry]   day before / morning of: the balance by how they pay (cash to the chef / card)
+  python scripts/desk/desk.py order remind <orderNo> [--dry]   day before / morning of: email the invoice and text its link, no amounts in the text
   python scripts/desk/desk.py calls <phone|leadId>          recordings on the lead (date, length, sid)
   python scripts/desk/desk.py transcribe <phone|leadId> [--last 2] [--sid RE..] [--model small|medium] [--note] [--swap]
                                    local faster-whisper, customer/us on separate channels; --note files it on the lead
@@ -1783,6 +1783,26 @@ def _print_plan(row: dict, staffing: dict | None) -> None:
             print(f"         ! 计划 {plan.get('chefs')} 位师傅，只派了 {len(cooks)} 位")
 
 
+def _email_invoice(order_no: str, data: dict, notes_reviewed: bool) -> dict:
+    """Email the customer the invoice PDF. The reply's invoiceUrl lasts 30 days; /api/invoice links die in 30 minutes."""
+    payload = {"invoiceData": data, "orderNo": order_no}
+    if notes_reviewed:
+        payload["notesReviewed"] = True
+    try:
+        res = invoice_post("/api/invoice/email", payload, timeout=180)
+    except ApiError as e:
+        if e.status == 409 and isinstance(e.payload, dict) and e.payload.get("error") == "notes_need_review":
+            print("HOLD  notes_need_review - 发票 NOTES 里有内部内容。会印给客户的行 / 会被丢掉的行：")
+            print(dump({k: v for k, v in e.payload.items() if k != "error"})[:2000])
+            print("      看完再决定：改干净备注（order set --notes-file），或 --notes-reviewed 发过滤后的版本。")
+            sys.exit(3)
+        raise
+    print(f"OK    emailed {res.get('email')}  pdf={res.get('pdfAttached')}  archive={res.get('archiveId')}")
+    if res.get("notesPrinted") is not None:
+        print(f"      notes printed: {res.get('notesPrinted')}")
+    return res
+
+
 def _print_invoice(order_no: str, data: dict) -> None:
     c = data.get("contactInfo") or {}
     print(f"{order_no} · {c.get('clientName') or '-'} · {c.get('phone') or '-'} · {c.get('email') or '-'}")
@@ -2465,12 +2485,8 @@ def cmd_order(a):
         _print_lint(res.get("lint") if isinstance(res.get("lint"), dict) else None)
         return
     if a.op == "remind":
-        # Owner 2026-10-05: the text before the party says what is left to pay.
-        # v2 orders (from 10-06, D-1006-05/06): the two bills itemised - cash to
-        # the chef, card with the party's sales tax and card processing - plus
-        # the one gratuity question. v1 orders: the old line.
-        # Every number comes from the invoice engine, the same ones the chef's
-        # sheet and /pay use; nothing is recomputed here.
+        # The text before the party. The numbers live on the invoice, from the
+        # same engine as the chef's sheet and /pay; this emails it and links it.
         import datetime as _dt
         from zoneinfo import ZoneInfo
         c = prefill.get("contactInfo") or {}
@@ -2492,20 +2508,14 @@ def cmd_order(a):
         else:
             raise SystemExit(f"the party is {days} days away - this goes out the day before (or the morning of)")
         at = f"{(hh + 11) % 12 + 1}{f':{mm:02d}' if mm else ''}"
-        if inv.get("pricingTerms") == "v2_by_method":
-            # Never "no tax" / "tax-free".
-            if inv.get("salesTaxRateSource") != "address":
-                raise SystemExit("the invoice's sales-tax rate is still the default (estimated) - Re-rate it by the party address in the invoice tool before quoting the card bill")
-            cash = float(inv.get("cashBalanceDue") or 0)
-            card = float(inv.get("cardBalanceDue") or 0)
-            tax = float(inv.get("salesTax") or 0)
-            fee = float(inv.get("cardProcessingFee") or 0)
-            # Wording per leads voice.md (owner 2026-10-29): no parenthesis, no "charged by Stripe".
-            body = (f"See you {when} at {at}. Your balance is {money(cash)} cash to your chef, "
-                    f"or {money(card)} by card, since {money(tax)} sales tax and a {money(fee)} card fee get added. "
-                    f"Want the 20% gratuity for your chef on the card too, or will you tip in person?")
-        else:
-            body = f"See you {when} at {at}. Your balance is {money(balance)}, and cash to your chef at the end is easiest, no fees."
+        if inv.get("pricingTerms") == "v2_by_method" and inv.get("salesTaxRateSource") != "address":
+            raise SystemExit("the invoice's sales-tax rate is still the default (estimated) - Re-rate it by the party address in the invoice tool before sending the card bill")
+        # Owner 2026-10-31 (D-1031-04): a customer shown one balance figure adds a flat
+        # tip on top of it. So the text quotes no number and sends them to the invoice,
+        # whose gratuity table has the total at each percent, for cash and card.
+        shows = "your total with gratuity" if prefill.get("selectedGratuityRate") else "your total at each gratuity level"
+        remind_text = lambda link: f"See you {when} at {at}. Your invoice shows {shows}, for cash or card: {link} A PDF copy is in your email too."
+        body = remind_text("<invoice link>")
         # The day-before text goes out only on an order that carries what the
         # customer is owed (D-1017-02) - the same check that holds the prep sheet.
         lint = _order_lint(order)
@@ -2526,7 +2536,12 @@ def cmd_order(a):
         phone = e164(row.get("customer_phone") or order.get("customer_phone") or "")
         if not phone:
             raise SystemExit("no phone on the order")
-        sent = site_post("/api/admin/sms-thread", {"phone": phone, "body": body, **({"leadId": lead_id} if lead_id else {})})
+        url = _email_invoice(order_no, prefill, a.notes_reviewed).get("invoiceUrl")
+        if not url:
+            raise SystemExit("emailed, but no text sent: the invoice email returned no link")
+        short = site_post("/api/admin/short-link", {"url": url, **({"leadId": lead_id} if lead_id else {})}).get("shortUrl") or url
+        body = remind_text(short)
+        sent = site_post("/api/admin/sms-thread", {"phone": phone, "body": body, "session": desk_session(), **({"leadId": lead_id} if lead_id else {})})
         print(f"OK    texted {phone}  {sent.get('sid', '')}\n      {body}")
         return
     if a.op in ("email", "send"):
@@ -2538,21 +2553,7 @@ def cmd_order(a):
             print(f"DRY   would email the invoice PDF to {prefill.get('contactInfo', {}).get('email') or '?'}"
                   + (" and text the invoice link" if a.op == "send" else "") + " - nothing sent")
             return
-        payload = {"invoiceData": prefill, "orderNo": order_no}
-        if a.notes_reviewed:
-            payload["notesReviewed"] = True
-        try:
-            res = invoice_post("/api/invoice/email", payload, timeout=180)
-        except ApiError as e:
-            if e.status == 409 and isinstance(e.payload, dict) and e.payload.get("error") == "notes_need_review":
-                print("HOLD  notes_need_review - 发票 NOTES 里有内部内容。会印给客户的行 / 会被丢掉的行：")
-                print(dump({k: v for k, v in e.payload.items() if k != "error"})[:2000])
-                print("      看完再决定：改干净备注（order set --notes-file），或 --notes-reviewed 发过滤后的版本。")
-                sys.exit(3)
-            raise
-        print(f"OK    emailed {res.get('email')}  pdf={res.get('pdfAttached')}  archive={res.get('archiveId')}")
-        if res.get("notesPrinted") is not None:
-            print(f"      notes printed: {res.get('notesPrinted')}")
+        res = _email_invoice(order_no, prefill, a.notes_reviewed)
         if a.op == "send":
             # The email carries the PDF, the text carries the link. No reply is
             # asked for (owner 2026-10-31, D-1031-03): we go whether or not they

@@ -65,7 +65,7 @@ python scripts/desk/desk.py scan --no-write   # 只看不写
 |---|---|
 | 老板问"有新回复/新线索吗" | A、C（`desk next` 也行，它只看在等的） |
 | 每天 10:00、16:00 PT | 全池扫描，所有桶；旗标顺手修 |
-| 每天 16:00 | 明天派对逐单 `desk order remind <单号> --dry` 看一眼尾款再发 |
+| 每天 16:00 | 明天派对逐单 `desk order remind <单号> --dry` 看一眼再发（邮件发票 + 短信链接，短信不报数） |
 
 扫描由处理线索的会话手动跑。机器那边由 Supabase pg_cron 管（首响 A/B、派对前 72/48/24 小时确认、收件箱提醒），见 leads `tools.md`。
 

@@ -37,11 +37,12 @@
 ## 税、付款、小费（D-1006-05、D-1006-07、D-1013-04）
 
 - **标价 = 现金价，含税**。定下来之前一个字不提税和付款方式，只报标价。
-- **算总账时**（发票、派对前提醒）才列两张账，数字全由系统出：现金给师傅 = 标价；刷卡 = 标价 + 派对地址实际销售税 + Stripe 3%（借记卡不加）+ 可选 20% 小费。固定问一句 `Would you like to add the 20% gratuity for your chef to the card, or tip them in person on the day?`
+- **两张账只列在发票上**，数字全由系统出：现金给师傅 = 标价；刷卡 = 标价 + 派对地址实际销售税 + Stripe 3%（借记卡不加）+ 可选 20% 小费。客人说要刷卡时问一句 `Would you like to add the 20% gratuity for your chef to the card, or tip them in person on the day?`
 - **Zelle/Venmo**：客人不问不提。问了才说可以直接给师傅本人，金额 = 现金价 × 1.04（`desk price`、订单弹窗有这个数）。公司的 Zelle/Venmo 账号**永不对客**。
 - **PayPal 也收**（老板 10-24）：和 Venmo/Zelle 一样直接给师傅本人，现金价 × 1.04。客人问到"现金价包不包括 PayPal/Venmo"这类问题时，把不付现金的价差一次说清：`Here's how it comes out. Cash is $X, PayPal, Venmo or Zelle to your chef is $Y, and card is $Z, since that one includes sales tax and card processing.`（三个数都从 `desk order show` 那行抄。）
 - **公司客户**（要 W-9、公司付款）：标价 + 派对地址销售税；刷卡再加 3%。支票、ACH 收不收没定，问老板。W-9 和保险证明在 `D:\desktop\RealHibachi\company-docs`，客人要了才发。
 - **小费**：不含；20–25% 惯例，100% 给厨师。不淡化，问了就直说 `Not included - 20-25% is customary, and 100% of it goes to the chefs.`
+- **聊天不以尾款为中心，让客人自己看发票**（老板 10-31，D-1031-04）：客人只看到一个尾款数，就在上面随手加个固定金额，不按百分比给，师傅小费就低。发票上有各档小费的总额，现金、刷卡都算好了。所以：对客不说 `your balance`（`desk send` 会拦）；派对前提醒发发票，不报数（`desk order remind`）；改人数、加东西回一句确认，再 `desk order send` 发新发票；客人问要付多少，也是 `desk order send`，再回 `It's all on your invoice, with your total at each gratuity level, for cash or card.` 客人看过还要数字才报，报发票上的数。锁单前的报价照常报。
 - **口径是 optional，展示里不说 optional**（老板 10-23，D-1023-01）：发票、派对前提醒、邮件、主动开口都不写这个词（发票小费栏 10-23 已删 "Optional —"，只留它是给什么的）。客人直接问"是不是必须给"才答 `It's optional - 20-25% is customary, and 100% of it goes to your chef.`
 - **"是不是全包"**：`$X covers the food, the chef and the show, and that's the cash price with sales tax included. Gratuity isn't included - 20-25% is customary, and all of it goes to the chefs.` 客人提刷卡才补一句刷卡另加税和手续费，菜单定了给逐行明细。
 - 不说 "no tax / tax-free"，不报 ×1.10 的整数。

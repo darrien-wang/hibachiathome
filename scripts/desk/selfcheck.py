@@ -180,8 +180,10 @@ class Run:
             return {"found": True, "order": {"orderNo": ORDER_NO, "updatedAt": "2030-01-01T00:00:00Z", "version": "v-selfcheck"},
                     "prefill": copy.deepcopy(self.prefill)}
         if path == "/api/invoice":
-            # remind quotes the card bill only off an address-rated invoice
+            # remind sends the card bill only off an address-rated invoice
             return {"invoice": {**fake_invoice(payload), **({"salesTaxRateSource": "address"} if self.lint is not None else {})}}
+        if path == "/api/invoice/email" and self.lint is not None:
+            return {"email": "guest@example.com", "pdfAttached": True, "invoiceUrl": "https://party.example/api/invoice/pdf?token=selfcheck"}
         if path == "/api/self-service/orders/save-invoice":
             self.saved = payload
             return {"orderNo": ORDER_NO, "plannerSynced": False, **self.reply}
@@ -198,6 +200,8 @@ class Run:
         raise RuntimeError(f"selfcheck: unexpected site read {path}")
 
     def site_post(self, path, payload, method="POST", timeout=90):
+        if path == "/api/admin/short-link" and self.lint is not None:
+            return {"shortUrl": "https://www.realhibachi.com/d/selfcheck"}
         if path == "/api/admin/sms-thread" and self.lint is not None:
             self.texted = payload
             return {"sid": "SMselfcheck"}
@@ -823,6 +827,8 @@ def main() -> int:
     check("  --force sends it anyway", bool(r.texted) and r.has("OK    texted"), r)
     r = Run(party, op="remind", lint={"ok": True, "blocking": [], "warnings": []})
     check("  a clean order is texted as before", bool(r.texted) and r.has("✓ 缺项：无"), r)
+    body = (r.texted or {}).get("body", "")
+    check("  the text links the invoice and quotes no amount", "/d/selfcheck" in body and "$" not in body and "balance" not in body.lower(), r)
 
     send_checks()
 
