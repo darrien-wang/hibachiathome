@@ -186,8 +186,8 @@ export async function POST(request: NextRequest) {
   const smsBody = [
     `Real Hibachi: your party is saved. ${guestsLine}${eventDate ? `, ${dateLine}` : ""} - exact price ${money(total)}${weekday ? " (Weekday Special)" : ""}.`,
     discountLine,
-    `Keep planning, or send this to your guests so they pick their own seats and proteins: ${plannerUrl}`,
-    "Reply here with any question - we answer fast. Reply STOP to opt out.",
+    `You can keep planning, or send this to your guests so they can pick their own seats and proteins: ${plannerUrl}`,
+    "Please reply here with any questions, we answer fast. Reply STOP to opt out.",
   ]
     .filter((line): line is string => Boolean(line))
     .join(" ")
@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
     plannerUrl,
     "",
     "Included: chef, mobile teppanyaki grill, 2 proteins per guest, fried rice, vegetables, salad and the live show.",
-    "Questions? Reply to this email or text (213) 770-7788 - we answer fast.",
+    "If you have any questions, please reply to this email or text (213) 770-7788. We answer fast.",
     "",
     "Real Hibachi",
   ]

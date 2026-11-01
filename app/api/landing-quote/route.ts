@@ -438,7 +438,7 @@ export async function POST(request: NextRequest) {
           // The travel line is only repeated when it did not just get explained.
           previous && previous.travelFee !== travelFee ? null : travelLine,
           `Same deposit link locks your date: ${depositUrl}`,
-          "Reply here with questions - we answer fast. Reply STOP to opt out.",
+          "Please reply here with any questions, we answer fast. Reply STOP to opt out.",
         ]
       : [
           // The listed price. Nothing about tax or payment method is brought up
@@ -449,12 +449,12 @@ export async function POST(request: NextRequest) {
           `Real Hibachi: your ${cityLabel} hibachi price is ${money(total)} for ${guestsLine} (${planLabel}${eventDate ? `, ${dateLine}` : ""})${minimum ? ` - ${minimum}` : ""}.`,
           discountLine,
           travelLine,
-          `Lock your date here - card on file, nothing charged today: ${depositUrl}`,
+          `You can lock your date here, with a card on file and nothing charged today: ${depositUrl}`,
           // The single most-asked question in the 09-13..09-27 audit (10+ threads),
           // and the one that cost a corporate customer his plates on the day: say it
           // before they have to ask. Numbers come from config/pricing-rules.
           RENTALS_LINE,
-          "Reply here with questions - we answer fast. Reply STOP to opt out.",
+          "Please reply here with any questions, we answer fast. Reply STOP to opt out.",
         ]
   )
     .filter((line): line is string => Boolean(line))
@@ -484,11 +484,11 @@ export async function POST(request: NextRequest) {
           ? `Travel: first ${TRAVEL_FREE_RADIUS_MILES} miles free, then $1 per mile - we confirm it from your address.`
           : "No travel fee for your area.",
       "",
-      `Lock your date here - card on file, nothing charged today: ${depositUrl}`,
+      `You can lock your date here, with a card on file and nothing charged today: ${depositUrl}`,
       "",
       "Included: chef, mobile teppanyaki grill, 2 proteins per guest, fried rice, vegetables, salad and the live show.",
       RENTALS_LINE,
-      "Questions? Reply to this email or text (213) 770-7788.",
+      "If you have any questions, please reply to this email or text (213) 770-7788.",
     ]
     await sendCustomerEmail({
       to: email,

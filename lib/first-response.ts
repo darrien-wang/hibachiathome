@@ -303,7 +303,7 @@ export function partyContactFirstText(i: PartyContactInput): string {
   const where = shortAddress(i.address)
   return (
     `Hi${name ? ` ${name}` : ""}, it's ${i.signer ?? "Rowling"} from Real Hibachi. Your party is ${when}${where ? ` at ${where}` : ""}. ` +
-    `Reply YES if everything's still set, or tell me what changed.`
+    `Please reply YES if everything's still set, or let me know what changed.`
   )
 }
 

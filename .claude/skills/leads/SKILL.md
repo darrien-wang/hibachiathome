@@ -70,8 +70,8 @@ description: >-
 - **名字**：只用工作台 `full_name` 里的，没有就 `Hi!`；邮箱前缀不算名字。客人在电话、落款、邮件里报了名字，当场 `desk fields <lead> full_name=...` 回写。
 - **问候按发信时的钟点**：上午 Morning、下午 Afternoon、晚上 Evening，拿不准就不写。
 - **语言**：默认英文；客人写西语就全程西语（`templates.md` §西语）；中文客群≈0。
-- **口吻**：口语、温暖、有底气，最多一个 emoji；不用 "Dear"、"Please do not hesitate"、"our team will get back to you"。怎么写才不像 AI 客服见 `voice.md`。
-- **姿态**：像谈恋爱，靠吸引不靠乞求（09-14、09-18）。我们是给人带来快乐的一方，在发出邀请，不是在追单子。邀请句 `Want me to check Saturday for you?`，不说 `Are you still interested?`。
+- **口吻**：口语、温暖、有底气、**非常客气**（老板 11-01，请客人做事一定带 `Could you` / `Would you` / `Please`，`desk send` 会拦没礼貌的命令句，见 `voice.md` §2 第 11 条），最多一个 emoji；不用 "Dear"、"Please do not hesitate"、"our team will get back to you"。怎么写才不像 AI 客服见 `voice.md`。
+- **姿态**：像谈恋爱，靠吸引不靠乞求（09-14、09-18）。我们是给人带来快乐的一方，在发出邀请，不是在追单子。邀请句 `Would you like me to check Saturday for you?`，不说 `Are you still interested?`。
 - **自称老顾客的一律认**（09-28）：`Welcome back!` 然后接着谈，不查证、不问"上次用的谁的名字"。
 
 ---
@@ -147,7 +147,7 @@ A、B 由机器发（§3 表）。人要手发的首条：机器让出来的（�
 **总量 3 条**：自动报价 + 首条（B 或人工）+ **一条** f_one。之后 `desk hold <lead> 14`，不再主动发。
 
 - **f_one**（第 2 天，≥20 小时后）：**台阶句 + 一个真理由 + 一个好答的问题**，≤200 字符，不重复价格，不带链接（他手上有）。台阶要替他说出真实处境（`figured you've got a lot going on`），不是 `just checking in`。真理由要是新的、对他有用的事实（20 人以上送前菜、人数可以改到前一天这类真话）。有日期的问"定了没"，不再问哪天。句式见 `templates.md` §跟进。
-- **不写"最后一条"的口气**：`Last note from me`、`last check-in so I don't crowd your texts` 都不用（09-27 审计：5 次零回复）。f_one 就是普通的一条，发完挂起。也不说 `Saturday is still open`（等于告诉他没人订，也像在求）；想提档期就问 `Want me to check [date] for you?`，查了再说开着。
+- **不写"最后一条"的口气**：`Last note from me`、`last check-in so I don't crowd your texts` 都不用（09-27 审计：5 次零回复）。f_one 就是普通的一条，发完挂起。也不说 `Saturday is still open`（等于告诉他没人订，也像在求）；想提档期就问 `Would you like me to check [date] for you?`，查了再说开着。
 - **数据**（10/11–10/17 周报）：f_one 71 条，48 小时回 23%，14 天锁单 3%；首响 82 条，43% 回、7% 锁；客人自己往前迈一步后递的锁单链接 9 条，89% 回、56% 锁。**跟进的价值有限，力气要花在正在说话、正在往前迈的人身上。**
 - **例外 f_deadline**：派对 7 天内、有新信息（他重算过报价、打过电话、打开过锁单页），用他自己的时钟（`Saturday's 3 days out. If you lock it by Thursday, we shop fresh on Friday.`），一条为限；满 3 条的要老板点头才 force。
 - **B 桶（他说过回话时间）**：到点接着他自己的话问 `You said you'd check with your daughter. Did the 7th get the thumbs up?`，不走阶梯。
@@ -208,7 +208,7 @@ A、B 由机器发（§3 表）。人要手发的首条：机器让出来的（�
 
 ## 8. 禁区
 
-- **乞求词**：`just checking in`、`touching base`、`haven't heard back from you`、`sorry to bother you`、`please let me know`、`whenever you get a chance`、`are you still interested`、`any update?`、`we'd love to have your business`、`hope to hear from you`、`take your time`。它们把**我们的等待**摆到客人面前；台阶留给他，问句落在他的派对上，不落在我们的报价上（09-14）。道歉只在我们真出错时说一次，不为跟进道歉。
+- **乞求词**：`just checking in`、`touching base`、`haven't heard back from you`、`sorry to bother you`、`whenever you get a chance`、`are you still interested`、`any update?`、`we'd love to have your business`、`hope to hear from you`、`take your time`。它们把**我们的等待**摆到客人面前；台阶留给他，问句落在他的派对上，不落在我们的报价上（09-14）。道歉只在我们真出错时说一次，不为跟进道歉。
 - **假话**：假档期、假竞争客户、假到期、编评价数和单量。姿态可以演（不急、要和后厨核一下），事实不能编；判据是客人有没有因此吃亏（09-18）。
 - **酒**：不主动提；客人问饮料时可以说 `We bring sake for the adults, it's included.`，泛称 alcohol/liquor/beer/wine 不写（运营商 30955）。
 - **押金**：公开页面和评论不写押金、不写 "no deposit"；私聊递链接时一句话说它做什么即可，不当卖点（D-1006-04）。

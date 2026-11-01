@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
   const ctx = await loadPayContext(orderId)
   if (!ctx) {
     return NextResponse.json(
-      { ok: false, error: "We couldn't load your party. Text us and we'll sort it." },
+      { ok: false, error: "We couldn't load your party. Please text us and we'll sort it." },
       { status: 502 },
     )
   }

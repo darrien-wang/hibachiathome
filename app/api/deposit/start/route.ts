@@ -359,7 +359,7 @@ async function withLeadName(payload: NormalizedDepositStartPayload): Promise<Nor
 function missingDateProblem(payload: NormalizedDepositStartPayload): string | null {
   if (isLikelyUuid(payload.bookingId ?? "")) return null
   const date = payload.eventDate ?? ""
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "Pick your party date first - that is the date the deposit locks."
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "Please pick your party date first. That is the date the deposit locks."
   const todayLA = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date())
   if (date < todayLA) return "That date has already passed - pick the party date."
   return null

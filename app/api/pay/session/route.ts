@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
 
   const raw = typeof body.amount === "number" ? body.amount : Number.parseFloat(String(body.amount ?? ""))
   if (!Number.isFinite(raw) || raw < MIN_AMOUNT) {
-    return NextResponse.json({ ok: false, error: "Enter the amount you're paying." }, { status: 400 })
+    return NextResponse.json({ ok: false, error: "Please enter the amount you're paying." }, { status: 400 })
   }
   if (raw > MAX_AMOUNT) {
     return NextResponse.json({ ok: false, error: "That's more than we can take online — text us." }, { status: 400 })
@@ -124,13 +124,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, url: session.url })
     } catch (error) {
       console.error("[pay/session] universal checkout failed", error)
-      return NextResponse.json({ ok: false, error: "We couldn't open checkout. Text us and we'll sort it." }, { status: 502 })
+      return NextResponse.json({ ok: false, error: "We couldn't open checkout. Please text us and we'll sort it." }, { status: 502 })
     }
   }
 
   const ctx = await loadPayContext(orderId)
   if (!ctx) {
-    return NextResponse.json({ ok: false, error: "We couldn't load your party. Text us and we'll sort it." }, { status: 502 })
+    return NextResponse.json({ ok: false, error: "We couldn't load your party. Please text us and we'll sort it." }, { status: 502 })
   }
   if (!ctx.found) {
     return NextResponse.json({ ok: false, error: "We couldn't find that party." }, { status: 404 })
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
   // 归属（pay-link 路由踩过这个坑）。
   const order = ctx.order
   if (!order?.sourceRef) {
-    return NextResponse.json({ ok: false, error: "We couldn't load your party. Text us and we'll sort it." }, { status: 409 })
+    return NextResponse.json({ ok: false, error: "We couldn't load your party. Please text us and we'll sort it." }, { status: 409 })
   }
 
   try {

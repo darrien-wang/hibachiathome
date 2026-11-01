@@ -832,6 +832,17 @@ def main() -> int:
 
     send_checks()
 
+    # A request with no "please" stops a send (owner 2026-11-01). Same samples as tests/voice-check.test.ts.
+    now = datetime.datetime(2026, 11, 1, 12, 0, tzinfo=datetime.timezone.utc)
+    rude = lambda text: any("命令口气" in line for _, line in desk.voice_check(text, [], now, []))
+    for text in ("Got it. Tell me if anyone needs something different.", "Hi Irene, pick your proteins on the party page.",
+                 "If anything looks off, just text me here.", "No rush, just let me know."):
+        check(f"voice stops: {text}", rude(text))
+    for text in ("Please tell me if anyone needs something different.", "Could you tell me which appetizer you'd like?",
+                 "You can pick how you're paying at the top.", "Text works too, whichever is easier.",
+                 "See you Friday. Reply STOP to opt out."):
+        check(f"voice passes: {text}", not rude(text))
+
     print()
     if FAILS:
         print(f"{len(FAILS)} FAILED")

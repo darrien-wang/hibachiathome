@@ -32,6 +32,32 @@ test("voice: the 10-28/29 texts that read like a bot are stopped, by the same ru
   }
 })
 
+test("voice: a request with no please is stopped, a courteous one passes (owner 2026-11-01)", () => {
+  for (const text of [
+    "Got it, edamame on us and steak and shrimp for everyone. Tell me if anyone needs something different.",
+    "Text me the list or use your party page.",
+    "Hi Irene, pick your proteins on the party page.",
+    "If anything looks off, just text me here.",
+    "No rush, just let me know.",
+    "Quick recap: send us everyone's 2 picks.",
+  ]) {
+    assert.ok(voiceHits(text).some((h) => h.level === "stop" && h.rule === "imperative"), text)
+  }
+  for (const text of [
+    "Please tell me if anyone needs something different.",
+    "Could you tell me which appetizer you'd like?",
+    "You can pick how you're paying at the top.",
+    "If anything looks off, please text me here.",
+    "Please let me know what changed.",
+    "Text works too, whichever is easier.",
+    "Add-ons are $10 an order.",
+    "See you Friday. Reply STOP to opt out.",
+  ]) {
+    assert.deepEqual(voiceHits(text).filter((h) => h.rule === "imperative"), [], text)
+  }
+  assert.deepEqual(voiceHits("Want me to check Saturday for you?").map((h) => h.rule), ["casual"])
+})
+
 test("voice: ordinary English is left alone", () => {
   for (const text of [
     "Yes, noon works. Your chef will get there around 11:30 to set up.",

@@ -42,7 +42,7 @@
 - **PayPal 也收**（老板 10-24）：和 Venmo/Zelle 一样直接给师傅本人，现金价 × 1.04。客人问到"现金价包不包括 PayPal/Venmo"这类问题时，把不付现金的价差一次说清：`Here's how it comes out. Cash is $X, PayPal, Venmo or Zelle to your chef is $Y, and card is $Z, since that one includes sales tax and card processing.`（三个数都从 `desk order show` 那行抄。）
 - **公司客户**（要 W-9、公司付款）：标价 + 派对地址销售税；刷卡再加 3%。支票、ACH 收不收没定，问老板。W-9 和保险证明在 `D:\desktop\RealHibachi\company-docs`，客人要了才发。
 - **小费**：不含；20–25% 惯例，100% 给厨师。不淡化，问了就直说 `Not included - 20-25% is customary, and 100% of it goes to the chefs.`
-- **聊天不以尾款为中心，让客人自己看发票**（老板 10-31，D-1031-04）：客人只看到一个尾款数，就在上面随手加个固定金额，不按百分比给，师傅小费就低。发票链接默认是现金版，客人在顶部自己切到 Venmo / Zelle 或刷卡，每一版都有各档小费的总额（D-1031-05）。所以：对客不说 `your balance`（`desk send` 会拦）；派对前提醒发发票，不报数（`desk order remind`）；改人数、加东西回一句确认，再 `desk order send` 发新发票；客人问要付多少，也是 `desk order send`，再回 `It's all on your invoice, with your total at each gratuity level. Pick how you're paying at the top.` 客人看过还要数字才报，报发票上的数。锁单前的报价照常报。
+- **聊天不以尾款为中心，让客人自己看发票**（老板 10-31，D-1031-04）：客人只看到一个尾款数，就在上面随手加个固定金额，不按百分比给，师傅小费就低。发票链接默认是现金版，客人在顶部自己切到 Venmo / Zelle 或刷卡，每一版都有各档小费的总额（D-1031-05）。所以：对客不说 `your balance`（`desk send` 会拦）；派对前提醒发发票，不报数（`desk order remind`）；改人数、加东西回一句确认，再 `desk order send` 发新发票；客人问要付多少，也是 `desk order send`，再回 `It's all on your invoice, with your total at each gratuity level. You can pick how you're paying at the top.` 客人看过还要数字才报，报发票上的数。锁单前的报价照常报。
 - **口径是 optional，展示里不说 optional**（老板 10-23，D-1023-01）：发票、派对前提醒、邮件、主动开口都不写这个词（发票小费栏 10-23 已删 "Optional —"，只留它是给什么的）。客人直接问"是不是必须给"才答 `It's optional - 20-25% is customary, and 100% of it goes to your chef.`
 - **"是不是全包"**：`$X covers the food, the chef and the show, and that's the cash price with sales tax included. Gratuity isn't included - 20-25% is customary, and all of it goes to the chefs.` 客人提刷卡才补一句刷卡另加税和手续费，菜单定了给逐行明细。
 - 不说 "no tax / tax-free"，不报 ×1.10 的整数。
@@ -69,7 +69,7 @@
 - **素/纯素**：豆腐 + 蔬菜，同价。
 - **无麸质**：可以。**师傅带无麸质酱油和照烧**，单独台面先做；姜汁酱含酱油，无麸质客人的沙拉不放；春卷做不了无麸质。写进订单备注让师傅知道。
 - **鸡蛋过敏**：两种自制酱（yum yum、姜汁）都含蛋，不放。
-- **坚果/芝麻**：不承诺（饺子含芝麻和小麦）。答法：`Tell me the exact allergy and I'll check the labels for that day and tell you honestly whether we can serve them safely.`
+- **坚果/芝麻**：不承诺（饺子含芝麻和小麦）。答法：`Could you tell me the exact allergy? I'll check the labels for that day and tell you honestly whether we can serve them safely.`
 - **坚果（老板 10-24 确认）**：我们的用料里**没有任何坚果**——油、yum yum、姜汁酱、饺子、炒饭调料都不含花生和树坚果。客人问坚果可以直接答没有，再加一句过敏的客人师傅先在擦干净的铁板上做：`No peanuts or tree nuts in any of it, including the oil, the sauces, the gyoza and the fried rice. Your chef will also cook their plates first on a clean grill, just to be safe.` 写进订单备注让师傅知道。芝麻照旧：饺子含芝麻，问到照实说；整个场地无过敏原仍不承诺。
 - **酱料**（10-11 起都自制）：yum yum = 美乃滋、橙汁、菠萝汁、柠檬汁、糖、蒜粉、红椒粉、黑胡椒；姜汁酱含酱油、蛋、大豆、小麦。师傅把酱直接挤在盘子上，不用备碗（问了才说）。另外带 sriracha 辣酱。没有 Benihana 那种芥末酱（mustard sauce），客人问了照实说没有、提 sriracha（老板 10-21）。客人要蒜香黄油当蘸料：可以把姜汁酱换成蒜香黄油，不加钱，直接答应（老板 10-26；师傅本来就带蒜香黄油，每人 0.5 oz），锁单后订单备注写"蘸酱：蒜香黄油代替姜汁酱"。
 - **Kosher**：能做"买 kosher 认证的肉，不加价"。铁板餐具没有拉比监督——客人问到才说。
@@ -81,8 +81,8 @@
 - **厨师人数**：每位厨师 28 人以内，刚过一点也一位（老板 10-13），客人自己要求加人再问老板。**60 人左右两位师傅 + 一位助手、两台灶就够**，不一定要三台（老板 10-26，Temecula 婚礼场地放不下三台时这么答的）。**短信里写了 "two chefs / each chef / two stations" 就是承诺**，系统会记到派工计划里，没打算派两位就别写复数。
 - **到达**：开席前 10–30 分钟（人多早到）；订了桌椅的提前 1 小时摆台。
 - **多久**：表演加吃饭约 90 分钟，师傅边做边上（网站城市页同口径），客人之后可以接着聚。**最早开场**：做过中午 12 点的；网站写 10 月到 5 月适合办午饭场。比中午更早的，老板还没定口径。
-- **"当天要准备什么 / 要不要插座"**：这是在担心，答一个轻松具体的场景（09-19），分两条发：`Here's the day: your chef arrives 10-30 min before start, lays a waterproof mat, sets the grill and hooks up the propane. No outlet or power needed.` / `If you booked tables and dishes, we set them and you just host. If you're using your own, have them set before we arrive.`
-- **场地**：只在户外做（patio、deck、balcony、车道、帐篷下），座位可以在室内。用比喻不报尺寸：`A flat spot about the size of a king-size bed, outdoors, with nothing low right over the grill. Send me a photo if you're not sure.` 铺防水防油垫，走前清理。不用插座、不用电，用丙烷。**草地只要平也可以放灶**；客人坐自己的圆桌、不围着灶坐也可以（婚礼这种摆法）——老板 10-26 确认（Temecula 婚礼 60 人发平面图问三台灶放哪）。
+- **"当天要准备什么 / 要不要插座"**：这是在担心，答一个轻松具体的场景（09-19），分两条发：`Here's the day: your chef arrives 10-30 min before start, lays a waterproof mat, sets the grill and hooks up the propane. No outlet or power needed.` / `If you booked tables and dishes, we set them and you just host. If you're using your own, please have them set before we arrive.`
+- **场地**：只在户外做（patio、deck、balcony、车道、帐篷下），座位可以在室内。用比喻不报尺寸：`A flat spot about the size of a king-size bed, outdoors, with nothing low right over the grill. If you're not sure, you're welcome to send me a photo.` 铺防水防油垫，走前清理。不用插座、不用电，用丙烷。**草地只要平也可以放灶**；客人坐自己的圆桌、不围着灶坐也可以（婚礼这种摆法）——老板 10-26 确认（Temecula 婚礼 60 人发平面图问三台灶放哪）。
 - **灯**：我们不带灯，师傅戴头灯；客人那边太暗要自己备串灯。被问才答。
 - **下雨、大风**（D-1019-03，老板待最终确认，现在照此答）：下雨在带顶的露台或客人备的 10×10 帐篷下做（我们不带帐篷）；大风或红旗预警不安全时，免费改期或取消，48 小时内也不收 $99（以官方 NWS 预警为准）。
 - **最晚几点开场**：不报"最晚"，问他打算几点 `What time do you have in mind? Later starts usually work.` 半夜 12 点以后要先问师傅（这一层不对客说）。

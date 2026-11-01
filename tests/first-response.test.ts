@@ -190,12 +190,12 @@ test("first party-contact text: name, day, wall time, street only", () => {
     address: "452 North Monterey Road, Palm Springs, CA 92262",
     now: Date.parse("2026-10-07T20:00:00Z"),
   })
-  assert.equal(text, "Hi Ellen, it's Bling from Real Hibachi. Your party is Saturday the 10th at 6:30 PM at 452 North Monterey Road. Reply YES if everything's still set, or tell me what changed.")
+  assert.equal(text, "Hi Ellen, it's Bling from Real Hibachi. Your party is Saturday the 10th at 6:30 PM at 452 North Monterey Road. Please reply YES if everything's still set, or let me know what changed.")
 })
 
 test("first party-contact text without a usable name or address", () => {
   const text = partyContactFirstText({ customerName: "+1 (310) 555-0100", eventStart: "2026-10-11T17:00:00+00:00", address: "", now: 0 })
-  assert.equal(text, "Hi, it's Rowling from Real Hibachi. Your party is Sunday, Oct 11 at 5 PM. Reply YES if everything's still set, or tell me what changed.")
+  assert.equal(text, "Hi, it's Rowling from Real Hibachi. Your party is Sunday, Oct 11 at 5 PM. Please reply YES if everything's still set, or let me know what changed.")
 })
 
 test("second text says tomorrow or today by the PT calendar", () => {

@@ -27,7 +27,7 @@ export const LIVECHAT_FIRST_REPLY_TIMEOUT_MESSAGE = [
   "Get your exact price and send a booking request in about a minute:",
   "https://www.realhibachi.com/quote",
   "",
-  `Prefer to talk it through? Call ${phone.voice.dashed} or text ${phone.sms.dashed}.`,
+  `Prefer to talk it through? You're welcome to call ${phone.voice.dashed} or text ${phone.sms.dashed}.`,
 ].join("\n")
 
 const AUTO_BUSY_REPLY_SENDER_ID = "auto_busy_callback"

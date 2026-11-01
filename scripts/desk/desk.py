@@ -653,6 +653,14 @@ VOICE_ONCE = [
 VOICE_SYSTEM_TEXT = re.compile(r"^Real Hibachi:")
 VOICE_GREETING = set(VOICE_RULES["greetings"])
 VOICE_BANNED = re.compile(rf"\b(?:{_alt('banned')})\b", re.I)
+# A request with no "please" (owner 2026-11-01: "Tell me if anyone needs something different" is not
+# how we speak to a customer). "Please tell me", "Could you tell me" and "You can text me" pass;
+# "Reply STOP" is the law. Same pattern as lib/voice-check.ts.
+VOICE_VERB = rf"(?:{_alt('bareImperatives')})\b(?![-'])(?!\s+(?:stop|works?|is|was)\b)"
+VOICE_IMPERATIVE = re.compile(
+    r"(?:^|[.!?:]\s+|\n\s*)(?:(?:hi|hey|hello)\b[^.!?,]{0,30},\s*|(?:if|when|once|whenever)\b[^.!?]{0,80}?,\s*)?(?:just\s+)?"
+    + VOICE_VERB + r"|,\s*just\s+" + VOICE_VERB, re.I)
+VOICE_CASUAL = re.compile(rf"\b(?:{_alt('casualAsks')})\b", re.I)
 # Two more notes after the 10-22..10-28 backtest (owner 2026-10-29); neither stops a send.
 # One mold for many people: 22 follow-ups that week opened "Hi, it's Rowling - figured you're still ..."
 # (5 replies). An opening - the first three words once the greeting and our name are off - that this
@@ -782,6 +790,12 @@ def voice_check(body: str, msgs: list[dict], now: _dt.datetime, others: list[dic
     m = VOICE_BANNED.search(b)
     if m:
         stop(f"「{m.group(0)}」：voice.md §3 / SKILL §8 的词，不写")
+    m = VOICE_IMPERATIVE.search(b)
+    if m:
+        stop(f"「{m.group(0).strip(' .!?:,')}」：命令口气，不客气。请客人做事写 Could you ...? / Would you ...? / Please ...，给选择写 You can ...")
+    m = VOICE_CASUAL.search(b)
+    if m:
+        note(f"「{m.group(0)}」：太随便，写 Would you like me to ...")
     said = [o for o in ours if not VOICE_SYSTEM_TEXT.match(o.strip())]
     # The first text a person sends still gives the name (SKILL §2), even when the customer wrote first.
     if VOICE_REINTRO.match(b) and theirs and any(VOICE_NAMED.search(o) for o in said):
@@ -2514,7 +2528,7 @@ def cmd_order(a):
         # tip on top of it. So the text quotes no number and sends them to the invoice,
         # whose gratuity table has the total at each percent, for cash and card.
         shows = "your total with gratuity" if prefill.get("selectedGratuityRate") else "your total at each gratuity level"
-        remind_text = lambda link: f"See you {when} at {at}. Your invoice shows {shows}. Pick how you're paying at the top: {link} A PDF copy is in your email too."
+        remind_text = lambda link: f"See you {when} at {at}. Your invoice shows {shows}. You can pick how you're paying at the top: {link} A PDF copy is in your email too."
         body = remind_text("<invoice link>")
         # The day-before text goes out only on an order that carries what the
         # customer is owed (D-1017-02) - the same check that holds the prep sheet.
@@ -2575,7 +2589,7 @@ def cmd_order(a):
                 import datetime as _dt
                 day = _dt.date.fromisoformat(date).strftime("%A")
             body = (f"Here's your invoice{' for ' + day if day else ''}: {short} You're all set, no need to reply. "
-                    f"If anything looks off, just text me here. A PDF copy is in your email too.")
+                    f"If anything looks off, please text me here. A PDF copy is in your email too.")
             # The session id lets the just_answered brake tell this desk from
             # another one. Without it Tonia 10-13 got the invoice email but not
             # the text: our own "updated invoice coming" two minutes earlier

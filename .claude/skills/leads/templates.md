@@ -29,7 +29,7 @@ Hi, it's Rowling from Real Hibachi. Here's the link Bling mentioned on the phone
 
 **未接、秒挂的陌生号**（只发一条）
 ```
-Hi, it's Rowling from Real Hibachi. Sorry we missed your call. If you're planning a party, text me the date, how many people and the city, and I'll send you a price right here.
+Hi, it's Rowling from Real Hibachi. Sorry we missed your call. If you're planning a party, please text me the date, how many people and the city, and I'll send you a price right here.
 ```
 
 **61+ 大单**
@@ -63,10 +63,10 @@ Real Hibachi · (213) 770-7788
 - **报城市后给价 + 链接 + 问时间**：`Tustin is inside our free 50 miles, so 18 people on Saturday the 7th is $1,018.20. The headcount can change up to the day before. Here's the link to lock the date. It just saves a card, nothing is charged today: <link> What time are you thinking?`
 - **人数在涨**：`Congrats on the bigger crowd! Hibachi scales well. The group discount grows with the headcount, 20+ gets a free appetizer, and past 28 we send a second chef so everyone eats at once. Roughly how many are you expecting now?`
 - **改了时间地点、马上要锁**：`Yes to both. [Saturday the 24th at 3:30 at your place in Granada Hills] works, and it's still $[988.50]. Here's the link with [3:30] and [Granada Hills] filled in: <link>`
-- **问桌椅**（照价答，D-1029-02）：`We do. Tables, chairs and linens are $10 a guest, and plates and silverware are $5.` 要总价就过 `desk price --tables N --utensils N` 报一个数。客人拿别家比价或说超预算时，桌椅才是最后一张牌（周五–日最多半价、周一–四最多免费、节假日不给）：`If it helps, lock the date and I'll do the tables at half price.`
+- **问桌椅**（照价答，D-1029-02）：`We do. Tables, chairs and linens are $10 a guest, and plates and silverware are $5.` 要总价就过 `desk price --tables N --utensils N` 报一个数。客人拿别家比价或说超预算时，桌椅才是最后一张牌（周五–日最多半价、周一–四最多免费、节假日不给）：`If it helps, I can do the tables at half price once you lock the date.`
 - **模板 L · 他以为要等人数定了才能订**（10-01）：`You don't need the final number to lock [the 7th]. The link just saves a card to hold the date, nothing is charged today, and the headcount can change later: <link>` 发完挂 3–5 天，之后不追。
 - **模板 I · 第二轮介绍自己**（10-30，D-1030-09，一位客人一次）：`Everything's cooked right in front of your guests, with USDA Choice beef we buy the day before and sauces we make ourselves. Each chef has their own style, and our [69] Google reviews are all five stars. [What time are you thinking for dinner?]`
-- **模板 S · 他要和家人商量**（10-30，D-1030-05）：`Here's a note you can forward: "Hibachi chef at our place on [Saturday, Nov 14]. $[1,138] for [20] of us covers the food and the chef[, plus a free appetizer]. The headcount can change up to the day before." Text me once you've talked it over.` 不带链接；价格先过 `desk price`；有送的才写 free appetizer；小费、桌椅、税不问不提。
+- **模板 S · 他要和家人商量**（10-30，D-1030-05）：`Here's a note you can forward: "Hibachi chef at our place on [Saturday, Nov 14]. $[1,138] for [20] of us covers the food and the chef[, plus a free appetizer]. The headcount can change up to the day before." Please text me once you've talked it over.` 不带链接；价格先过 `desk price`；有送的才写 free appetizer；小费、桌椅、税不问不提。
 - **问预算**（10-30，D-1030-06，一条线索只问一次）：`Is there a budget you're trying to stay under?`
 - **确认类，一句话**：`Done, 7:30.` / `Got it, 7:30 then.`（`X it is` 一个客人最多用一次）
 - **客气收尾**：`You too, enjoy your night.` / `Anytime.` / `You got it.` / `Sounds good, talk soon.`（大多不带 emoji，见 `voice.md` §4）
@@ -82,7 +82,7 @@ Real Hibachi · (213) 770-7788
 Hi, it's Rowling from Real Hibachi. Figured you've got a lot going on. Is [the 7th] still the plan, or is it moving?          ← 有日期
 Hi, it's Rowling. Has the group landed on a weekend yet?                  ← 没日期
 Hi, it's Rowling. Something I didn't mention: with [20] guests you also get a free appetizer, gyoza, edamame or spring rolls. Is [Saturday the 14th] still the plan?   ← 有新的真事实
-Hi, it's Rowling. [April 24] is a ways off, so no rush. The link holds the date with just a card whenever you're ready. Want me to check back in the new year?   ← 远期
+Hi, it's Rowling. [April 24] is a ways off, so no rush. The link holds the date with just a card whenever you're ready. Would you like me to check back in the new year?   ← 远期
 ```
 **f_intro · 从没回过话的人**（10-30，D-1030-09，对比到 11/27）：号码末位单数发这条，双数发上面的 f_one，不挑人。记 `[SOP:f_intro]`，批量发时开头在这两句里换：
 ```
@@ -103,21 +103,21 @@ Hi, it's Rowling. One thing a quote leaves out: everything's cooked right in fro
 - **祝福收尾**：`Sounds like a good plan. Hope everyone has a blast!`
 - 说贵、超预算：先讲料，不先降价，见 `negotiation.md` §1.5。
 - 原因是别家更便宜：`negotiation.md` §7 挽留一次。
-- **送 $50 下次用**（老板 10-26）：客人明说不订、**而且说了清楚真实的原因**（钱改买了礼物、家里出事、换了安排、选了别家并说了为什么），收尾之后单发一条；敷衍的不算（"no thanks"、"maybe later"、不说原因、已读不回）。`One more thing. Thanks for being so honest with us. Here's $50 off your next hibachi party whenever you're ready. Just text this number and mention it, and we'll take it off. 🎁` 线索记 `[credit] $50 off next booking`；客人回来时报价用 `desk link deposit ... --flat-off 50 --deal-note "goodwill credit <日期>" --est <减完的总价>`。一次一用，和别的让价叠加时仍守让价底线。
+- **送 $50 下次用**（老板 10-26）：客人明说不订、**而且说了清楚真实的原因**（钱改买了礼物、家里出事、换了安排、选了别家并说了为什么），收尾之后单发一条；敷衍的不算（"no thanks"、"maybe later"、不说原因、已读不回）。`One more thing. Thanks for being so honest with us. Here's $50 off your next hibachi party whenever you're ready. Please text this number and mention it, and we'll take it off. 🎁` 线索记 `[credit] $50 off next booking`；客人回来时报价用 `desk link deposit ... --flat-off 50 --deal-note "goodwill credit <日期>" --est <减完的总价>`。一次一用，和别的让价叠加时仍守让价底线。
 
 ---
 
 ## 锁单之后
 
-- **派对页 + 二选一**：`Here's your party page for everyone to pick their proteins: <link> Or just text me the list and I'll fill it in, whichever's easier.`
-- **锁单后接一句**：`You're all set for [Saturday at 3:30], thank you! [Shrimp is already on everyone's plate as the third protein, so] just add each guest's 2 on the party page, or text me the list and I'll fill it in.`
+- **派对页 + 二选一**：`Here's your party page for everyone to pick their proteins: <link> You can also text me the list and I'll fill it in, whichever's easier.`
+- **锁单后接一句**：`You're all set for [Saturday at 3:30], thank you! [Shrimp is already on everyone's plate as the third protein, so] you can add each guest's 2 on the party page, or text me the list and I'll fill it in.`
 - **问气氛**（10-30，D-1030-10，锁单后一次，搭在问菜单或问地址那条）：`Is this more of a lively crowd or a laid-back dinner? I'll let your chef know.` 答案写进订单备注 `Crowd: lively` / `Crowd: laid-back`，师傅的备料单上看得到。
 - **问地址**：`Could you send me the street address when you have a minute?`
 - **问小孩年龄**：见 `answers.md` §吃什么。
 - **免费小孩确认**：`Quick check for tomorrow: are [three] of the kids 3-4 (those eat free), or are all [8] between 5 and 12?`
-- **师傅名字（前一天）**：`Your chef is [Blu]. [He]'ll be there around [5] to set up. I'm still your contact, so text me anytime.`
+- **师傅名字（前一天）**：`Your chef is [Blu]. [He]'ll be there around [5] to set up. I'm still your contact, so please text me anytime.`
 - **请已锁单的客人挪一下时间**（同一位师傅两场接不上，老板 10-22）：问法中性、可选，不提另一场、不提排班；客人说不行就照旧。`Quick question for Saturday. Would [3:00] work just as well for your group as [3:30]? If [3:30] is better, we'll keep it, no problem at all.` 客人问为什么，照实说"多一点时间把布置做好"这类对他有用的真话，不编理由。
-- **发票**（`desk order send` 自带，D-1031-03）：`Here's your invoice for [Friday]: <link> You're all set, no need to reply. If anything looks off, just text me here. A PDF copy is in your email too.` 客人不回不跟进，订单和总价照发票，师傅照去。总价里有客人没同意过的费用时另发一条问清楚，不靠这条。
+- **发票**（`desk order send` 自带，D-1031-03）：`Here's your invoice for [Friday]: <link> You're all set, no need to reply. If anything looks off, please text me here. A PDF copy is in your email too.` 客人不回不跟进，订单和总价照发票，师傅照去。总价里有客人没同意过的费用时另发一条问清楚，不靠这条。
 - **问来源**（只问系统归不了因的、锁单后一次，搭在客气话后）：`Got it, thanks! Just curious, how did you find us?`
 
 ---

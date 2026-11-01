@@ -52,7 +52,7 @@
    - 另外：到场承诺；持证有保险。
    例句：`Since you mentioned $45 a plate: our beef is USDA Choice from Costco, bought fresh the day before and never frozen. At that price it's usually frozen, and you can taste it. Our yum yum sauce and ginger dressing are made here every week, and we bring a full 2 gallons of sake for the adults - few parties ever finish it.`
 3. **还要价再让**，底线之上自己定；低于底线问老板，一句话说清别家价和包含项。
-4. **说法主动、干脆、带条件**：`I'll match that - $54.90/adult for your Saturday if we lock it today. Want me to send the link?` 不说 please、不说 we really want your business。
+4. **说法主动、干脆、带条件**：`I'll match that - $54.90/adult for your Saturday if we lock it today. Would you like me to send the link?` 不说 we really want your business。
 5. **记情报**：`[COMP] 竞品名 / 报价 / 包含项 / 客人最后怎么定`，汇报里单列一行。价目表不因为一次让价改。
 
 ## 5. 61+ 大单（老板 10-10：我自己谈）
@@ -81,7 +81,7 @@
 | 欣然接受 | 最后留一个看得见的小赢（送前菜、`I'll take care of it`） | — |
 | 黑脸 | 黑脸只能是后厨、成本、排班这类抽象的东西 | `I'd love to, but the kitchen won't let me go below $52.99 for two chefs.` |
 
-**识别客人的招**：说不出包含项的"别家 $45" → `Send me their quote and I'll match what's apples to apples.`；"咱们 $50 怎么样" → 不接，换条件；"要问老公/老板" → 钉住决策权；"今天定不了就找别家" → 平静报期限，不加价不降价。
+**识别客人的招**：说不出包含项的"别家 $45" → `Could you send me their quote? I'll match what's apples to apples.`；"咱们 $50 怎么样" → 不接，换条件；"要问老公/老板" → 钉住决策权；"今天定不了就找别家" → 平静报期限，不加价不降价。
 
 每次让价备注 `[concession]`（或 `[NEGO] 让了什么 / 换了什么 / 第几步`）。
 
@@ -93,9 +93,9 @@
 
 1. `Appreciate you telling me, no hard feelings at all. One thing worth knowing before it's locked in: our beef and chicken are bought fresh the day before your party, never frozen, and everything's cooked in real butter.`
 2. `Seafood is the one exception. Shrimp and salmon come in frozen, ours and everyone's, because that's the only way they travel safely. I'd rather say that than pretend otherwise.`
-3. `If you're open to it, send me what they quoted and what the upgrades are, and I'll see whether I can get there for [his 59th / your party]. Our food costs more, so I may not be able to match it, but I'd rather check than assume.`
+3. `If you're open to it, could you send me what they quoted and what the upgrades are? I'll see whether I can get there for [his 59th / your party]. Our food costs more, so I may not be able to match it, but I'd rather check than assume.`
 
-客人还在比、还没拒绝的，用前两条 + `If someone quotes you lower, send me what they're offering and I'll see what I can do on my end.` 他回了数再动：先用交换（周中价、桌椅让价、送前菜），底线之上自己定，匹配不了就照实说、留好印象，不第二次挽留。记 `[compete]`。
+客人还在比、还没拒绝的，用前两条 + `If someone quotes you lower, please send me what they're offering and I'll see what I can do on my end.` 他回了数再动：先用交换（周中价、桌椅让价、送前菜），底线之上自己定，匹配不了就照实说、留好印象，不第二次挽留。记 `[compete]`。
 
 ## 8. 心理学，落到动作上
 

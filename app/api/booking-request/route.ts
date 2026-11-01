@@ -249,7 +249,7 @@ async function sendCustomerBookingConfirmationEmail(params: {
     `Pricing Tier: ${params.pricingTierLabel}`,
     `Estimated Range: $${params.estimateLow.toFixed(0)} - $${params.estimateHigh.toFixed(0)}`,
     "",
-    "If you need anything in the meantime, reply to this email or contact support@realhibachi.com.",
+    "If you need anything in the meantime, please reply to this email or contact support@realhibachi.com.",
     "",
     "Real Hibachi",
   ].join("\n")
@@ -267,7 +267,7 @@ async function sendCustomerBookingConfirmationEmail(params: {
         <p><strong>Pricing Tier:</strong> ${escapeHtml(params.pricingTierLabel)}</p>
         <p><strong>Estimated Range:</strong> $${params.estimateLow.toFixed(0)} - $${params.estimateHigh.toFixed(0)}</p>
       </div>
-      <p>If you need anything in the meantime, reply to this email or contact <a href="mailto:support@realhibachi.com">support@realhibachi.com</a>.</p>
+      <p>If you need anything in the meantime, please reply to this email or contact <a href="mailto:support@realhibachi.com">support@realhibachi.com</a>.</p>
       <p>Real Hibachi</p>
     </div>
   `

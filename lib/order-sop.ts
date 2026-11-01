@@ -49,7 +49,7 @@ export const ORDER_SOP_STEPS: OrderSopStep[] = [
     title: "厨师实名确认",
     when: "开席前 1–2 天,师傅定下来就发",
     build: ({ chefName }) =>
-      `Hi! Confirming your hibachi party 🎊 Your chef is ${chefName?.trim() || "Bling"}, arriving about 10 minutes before start time with the grill and fresh ingredients. Reply to confirm you're all set — see you soon!`,
+      `Hi! Confirming your hibachi party 🎊 Your chef is ${chefName?.trim() || "Bling"}, arriving about 10 minutes before start time with the grill and fresh ingredients. Please reply to confirm you're all set. See you soon!`,
   },
   {
     id: "w_review",

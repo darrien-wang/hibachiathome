@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   const orderId = typeof body.o === "string" ? body.o.trim() : ""
   const message = typeof body.message === "string" ? body.message.trim().slice(0, 2000) : ""
   if (!UUID.test(orderId) || message.length < 2) {
-    return NextResponse.json({ ok: false, error: "Tell us a little about what happened." }, { status: 400 })
+    return NextResponse.json({ ok: false, error: "Please tell us a little about what happened." }, { status: 400 })
   }
 
   const supabase = getSupabaseAdmin()

@@ -276,7 +276,7 @@ export async function POST(request: Request) {
         message:
           supportNotification.skippedReason === "development_mode_logged"
             ? "Your message has been received. In local development, support emails are logged unless ALLOW_DEV_EMAIL_SEND=true."
-            : "Your message has been received and our team will follow up soon. Check your email for a confirmation.",
+            : "Your message has been received and our team will follow up soon. Please check your email for a confirmation.",
       },
       { status: isOpsEmailEffectivelyHandled(supportNotification) ? 200 : 202 },
     )
@@ -320,7 +320,7 @@ async function sendCustomerAcknowledgement(params: {
     "Thanks for reaching out to Real Hibachi - your message is in, and we'll get back to you within one business day.",
     ...(details.length > 0 ? ["", "Here's what we have:", ...details.map(([k, v]) => `${k}: ${v}`)] : []),
     "",
-    `Need us sooner? Text or call ${phone.sms.dashed} - that reaches us fastest.`,
+    `Need us sooner? Please text or call ${phone.sms.dashed}, that reaches us fastest.`,
     "",
     "Want numbers right now? Our instant quote prices your party in about a minute: https://www.realhibachi.com/quote",
     "",

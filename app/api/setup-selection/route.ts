@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 
   if (pkg === "full") {
     const theme = findTheme(typeof body.themeId === "string" ? body.themeId : "")
-    if (!theme) return bad("Pick a table theme first.")
+    if (!theme) return bad("Please pick a table theme first.")
     const variant = findVariant(theme, typeof body.variantId === "string" ? body.variantId : "")
     selection.themeId = theme.id
     selection.variantId = variant?.id
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     .select("id, full_name")
     .eq("id", leadId)
     .maybeSingle()
-  if (leadErr) return bad("Could not save that. Text us and we'll set it by hand.", 500)
+  if (leadErr) return bad("Could not save that. Please text us and we'll set it by hand.", 500)
   if (!lead) return bad("We couldn't tell which party this is for.", 404)
 
   const sentence = describeSetup(selection)

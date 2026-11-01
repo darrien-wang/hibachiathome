@@ -373,13 +373,13 @@ async function sendDepositConfirmationEmail(params: {
     lead,
     `Booking Number: ${bookingId}`,
     `Update invoice details here: ${selfServiceLink}`,
-    "Reply to this email if you need help.",
+    "If you need help, please reply to this email.",
   ].join("\n")
   const html = [
     `<p>${lead}</p>`,
     `<p><strong>Booking Number:</strong> ${bookingId}</p>`,
     `<p><a href=\"${selfServiceLink}\">Update invoice details</a></p>`,
-    "<p>Reply to this email if you need help.</p>",
+    "<p>If you need help, please reply to this email.</p>",
   ].join("")
 
   const result = await sendEmail({
@@ -475,7 +475,7 @@ function getSmsProviderPreference(): SmsProviderPreference {
   return "auto"
 }
 
-const TIME_FOLLOW_UP = " Reply with your start time and we'll add it."
+const TIME_FOLLOW_UP = " Please reply with your start time and we'll add it."
 
 async function sendDepositConfirmationSmsViaSendly(params: {
   /** Locked with a card on file, nothing charged (D-1006-04): the copy says so. */
@@ -506,8 +506,8 @@ async function sendDepositConfirmationSmsViaSendly(params: {
       body: JSON.stringify({
         to: params.recipientPhone,
         text: params.cardOnFile
-          ? `Real Hibachi: your date is locked and booking ${params.bookingId} is confirmed - nothing was charged today. Add your menu and party details here: ${params.selfServiceLink}${params.timeUnknown ? TIME_FOLLOW_UP : ""}`
-          : `Real Hibachi: deposit confirmed for booking number ${params.bookingId}. Update invoice details: ${params.selfServiceLink}${params.timeUnknown ? TIME_FOLLOW_UP : ""}`,
+          ? `Real Hibachi: your date is locked and booking ${params.bookingId} is confirmed - nothing was charged today. Please add your menu and party details here: ${params.selfServiceLink}${params.timeUnknown ? TIME_FOLLOW_UP : ""}`
+          : `Real Hibachi: deposit confirmed for booking number ${params.bookingId}. You can update your invoice details here: ${params.selfServiceLink}${params.timeUnknown ? TIME_FOLLOW_UP : ""}`,
       }),
       cache: "no-store",
     })
@@ -567,8 +567,8 @@ async function sendDepositConfirmationSmsViaTwilio(params: {
   const body = new URLSearchParams({
     To: params.recipientPhone,
     Body: params.cardOnFile
-      ? `Real Hibachi: your date is locked and booking ${params.bookingId} is confirmed - nothing was charged today. Add your menu and party details here: ${params.selfServiceLink} — reply to this text any time with questions.${params.timeUnknown ? TIME_FOLLOW_UP : ""}`
-      : `Real Hibachi: your deposit is confirmed and booking ${params.bookingId} is locked in. Add your menu and party details here: ${params.selfServiceLink} — reply to this text any time with questions.${params.timeUnknown ? TIME_FOLLOW_UP : ""}`,
+      ? `Real Hibachi: your date is locked and booking ${params.bookingId} is confirmed - nothing was charged today. Please add your menu and party details here: ${params.selfServiceLink} You're welcome to reply to this text any time with questions.${params.timeUnknown ? TIME_FOLLOW_UP : ""}`
+      : `Real Hibachi: your deposit is confirmed and booking ${params.bookingId} is locked in. Please add your menu and party details here: ${params.selfServiceLink} You're welcome to reply to this text any time with questions.${params.timeUnknown ? TIME_FOLLOW_UP : ""}`,
   })
   if (messagingServiceSid) {
     body.set("MessagingServiceSid", messagingServiceSid)

@@ -29,9 +29,15 @@
     "exceptional", "an amazing \\w+", "we're (?:so )?excited", "so happy too", "can't wait to cook",
     "additionally", "furthermore", "moreover", "that being said", "please note that", "not just (?:a |an )?\\w+, it's",
     "whether you're", "here's what you need to know", "one nice thing about", "quick heads-up",
-    "just checking in", "touching base", "haven't heard back", "sorry to bother", "please let me know",
+    "just checking in", "touching base", "haven't heard back", "sorry to bother",
     "whenever you get a chance", "still interested", "any update", "love to have your business", "hope to hear from you",
     "take your time", "your balance"
   ],
+  "bareImperatives": [
+    "tell", "text", "send", "reply", "give", "call", "pick", "choose", "confirm", "fill", "tap", "click", "let me know",
+    "add", "select", "submit", "enter", "book", "share", "go ahead", "make sure", "check", "use", "bring", "put", "pay",
+    "keep", "lock"
+  ],
+  "casualAsks": ["want me to", "wanna", "gonna"],
   "greetings": ["hi", "hey", "hello", "morning", "afternoon", "evening", "good"]
 }

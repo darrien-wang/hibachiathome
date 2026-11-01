@@ -20,6 +20,15 @@ const YOUR_N = new RegExp(
   "i",
 )
 const BANNED = new RegExp(`\\b(?:${alt(rules.banned)})\\b`, "i")
+// A request with no "please" (owner 2026-11-01: "Tell me if anyone needs
+// something different" is not how we speak to a customer). "Please tell me",
+// "Could you tell me" and "You can text me" pass; "Reply STOP" is the law.
+const VERB = String.raw`(?:${alt(rules.bareImperatives)})\b(?![-'])(?!\s+(?:stop|works?|is|was)\b)`
+const IMPERATIVE = new RegExp(
+  String.raw`(?:^|[.!?:]\s+|\n\s*)(?:(?:hi|hey|hello)\b[^.!?,]{0,30},\s*|(?:if|when|once|whenever)\b[^.!?]{0,80}?,\s*)?(?:just\s+)?${VERB}|,\s*just\s+${VERB}`,
+  "i",
+)
+const CASUAL = new RegExp(`\\b(?:${alt(rules.casualAsks)})\\b`, "i")
 const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu
 
 export type VoiceHit = { level: "stop" | "note"; rule: string; detail: string }
@@ -41,6 +50,10 @@ export function voiceHits(body: string): VoiceHit[] {
   if (yourN) add("stop", "your_n", yourN[0])
   const banned = BANNED.exec(b)
   if (banned) add("stop", "banned", banned[0])
+  const imperative = IMPERATIVE.exec(b)
+  if (imperative) add("stop", "imperative", imperative[0].trim())
+  const casual = CASUAL.exec(b)
+  if (casual) add("note", "casual", casual[0])
   if (count(b, " - ") > rules.limits.splices) add("note", "splices", `${count(b, " - ")} " - "`)
   const splice = SPLICE_OPENER.exec(b)
   if (splice) add("note", "splice_opener", splice[0].trim())
