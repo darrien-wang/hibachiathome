@@ -364,7 +364,7 @@ export async function POST(request: NextRequest) {
       whyLines.push(
         est.partySizeDiscountApplied > 0
           ? `The party-size discount is ${dollars(est.partySizeDiscountApplied)} at ${tierRange ?? `${adults + kids} guests`} (it was ${dollars(previous.discount)} for ${previous.guests}).`
-          : `Under 10 guests there is no party-size discount (it was ${dollars(previous.discount)} for ${previous.guests}).`,
+          : `Under 15 guests there is no party-size discount (it was ${dollars(previous.discount)} for ${previous.guests}).`,
       )
     }
     if (previous.travelFee !== travelFee) {

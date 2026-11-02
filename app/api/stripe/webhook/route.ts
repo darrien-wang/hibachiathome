@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import type Stripe from "stripe"
+import { quotedBeforeTierClosed } from "@/config/pricing-rules"
 import { sendEmail } from "@/lib/email/send-email"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { getStripeServerClient } from "@/lib/stripe-server"
@@ -810,6 +811,27 @@ async function lockTravelForSession(
   }
 }
 
+/**
+ * Whether this lead came in before the 10-14 tier closed: its quote had the
+ * tier, so it locks at that price (D-1102-01). A failed read costs a hand fix on
+ * the invoice, never the lock.
+ */
+async function leadQuotedClosedTier(
+  supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
+  session: Stripe.Checkout.Session,
+): Promise<boolean> {
+  const leadId = asNonEmptyString(session.metadata?.lead_id)
+  if (!leadId) return false
+  try {
+    const { data, error } = await supabase.from("leads").select("created_at").eq("id", leadId).maybeSingle()
+    if (error) throw error
+    return quotedBeforeTierClosed((data as { created_at?: string | null } | null)?.created_at)
+  } catch (error) {
+    console.error("[stripe/webhook] Could not read the lead's quote date:", { leadId, error })
+    return false
+  }
+}
+
 /** The settled address, ZIP and travel fee onto the booking row the CRM snapshot is read from. */
 async function persistLockTravel(
   supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
@@ -1559,6 +1581,7 @@ export async function POST(request: NextRequest) {
         depositAmount: result.depositAmount,
         cardOnFile: result.cardOnFile ?? undefined,
         travel: result.lockTravel ?? undefined,
+        quotedClosedTier: await leadQuotedClosedTier(supabase, session),
       })
 
       let crmForwarded = false

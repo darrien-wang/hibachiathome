@@ -141,14 +141,45 @@ def tier_heads(adults: int, kids: int) -> int:
     return math.floor(max(0, adults) + max(0, kids) * party_tiers()[2])
 
 
+def _tier_line(tier: dict) -> dict:
+    amount = int(tier["amount"]) if tier["amount"].is_integer() else tier["amount"]
+    return {"id": f"official_party{tier['min']}", "label": f"Party Size Discount ({tier['min']}–{tier['max']} adults): ${amount} off", "amount": amount}
+
+
 def party_line(heads: int) -> dict | None:
     """The official_party* line for this many paying heads, as the invoice
     writes it (partySizePromoFor + OFFICIAL_PROMOS); None outside the ladder."""
     tier = next((t for t in party_tiers()[0] if t["min"] <= heads <= t["max"]), None)
-    if not tier:
-        return None
-    amount = int(tier["amount"]) if tier["amount"].is_integer() else tier["amount"]
-    return {"id": f"official_party{tier['min']}", "label": f"Party Size Discount ({tier['min']}–{tier['max']} adults): ${amount} off", "amount": amount}
+    return _tier_line(tier) if tier else None
+
+
+@functools.lru_cache(maxsize=None)
+def closed_tier() -> dict:
+    """CLOSED_PARTY_TIER from config/pricing-rules.ts: new parties no longer earn
+    it, a party that was told it keeps it (D-1102-01)."""
+    m = re.search(r'export const CLOSED_PARTY_TIER = \{ minGuests: (\d+), maxGuests: (\d+), amount: (\d+(?:\.\d+)?), closedAt: "([^"]+)"',
+                  PRICING_RULES.read_text(encoding="utf-8"))
+    if not m:
+        raise SystemExit(f"could not read CLOSED_PARTY_TIER from {PRICING_RULES} - desk will not guess it")
+    return {"min": int(m[1]), "max": int(m[2]), "amount": float(m[3]), "closed_at": m[4]}
+
+
+def closed_line() -> dict:
+    return _tier_line(closed_tier())
+
+
+def in_closed_tier(heads: int) -> bool:
+    return closed_tier()["min"] <= heads <= closed_tier()["max"]
+
+
+def quoted_closed_tier(lead_id: str) -> bool:
+    """The lead came in before the tier closed, so its quote had the tier."""
+    cards = site_get("/api/admin/desk", {"lead": lead_id}).get("cards") or []
+    created = ((cards[0].get("lead") or {}).get("created_at") if cards else None) or ""
+    if not created:
+        return False
+    at = _dt.datetime.fromisoformat(re.sub(r"Z$", "+00:00", re.sub(r"\.\d+", "", created)))
+    return at < _dt.datetime.fromisoformat(closed_tier()["closed_at"])
 
 
 def is_tapback(body: str) -> bool:
@@ -444,6 +475,9 @@ def cmd_price(a):
         print(f"{date or '(any day)'}: {a.adults} 大人 + {a.kids} 小孩 → ${pr['total']:,.2f}  [{pr['plan']}]  "
               f"食 ${pr['foodSubtotal']:,.2f}{rent} − 人数折扣 ${pr['partySizeDiscount']:,.0f} + 路费 ${pr['travelFee']:,.2f}"
               f"{'  (最低消费生效)' if pr.get('minimumApplied') else ''}")
+        if in_closed_tier(tier_heads(a.adults, a.kids)):
+            old = max(pr["total"] - closed_tier()["amount"], MINIMUM_SPEND + (pr.get("travelFee") or 0))
+            print(f"   11/02 前来的线索已报过含 ${closed_tier()['amount']:.0f} 的价，照旧报 ${old:,.2f}（D-1102-01）")
         if a.json:
             print(dump(p))
 
@@ -1227,7 +1261,11 @@ def cmd_link(a):
             pr = p["price"]
             # A waived drive is not in the price the customer sees either.
             waived = (pr.get("travelFee") or 0) if a.waive_travel else 0
-            est = round(max(pr["total"] - cut - waived, MINIMUM_SPEND + (pr.get("travelFee") or 0) - waived))
+            floor = MINIMUM_SPEND + (pr.get("travelFee") or 0) - waived
+            est = round(max(pr["total"] - cut - waived, floor))
+            if a.lead and in_closed_tier(tier_heads(a.adults, a.kids)) and quoted_closed_tier(a.lead):
+                est = round(max(est - closed_tier()["amount"], floor))
+                print(f"   11/02 前来的线索：链接照旧报 ${est:,}（含 ${closed_tier()['amount']:.0f} 人数折扣，D-1102-01）")
     q = {"source": "workbench", "location": a.city, "adults": str(a.adults), "kids": str(a.kids)}
     if est is not None:
         q["estimate_low"] = q["estimate_high"] = str(est)
@@ -1434,6 +1472,8 @@ def _retier_party_size(data: dict, changes: list, removed_by_hand: bool, asked: 
         print(f"   ⚠ party size: {who} is a custom quote ({party_tiers()[1]}+) - desk leaves the party-size line as it is ({old}); price it by hand")
         return
     new = party_line(heads)
+    if not new and in_closed_tier(heads) and any(p.get("id") == closed_line()["id"] for p in stored):
+        new = closed_line()  # D-1102-01: closed to new parties, a party that has it keeps it
     if removed_by_hand and not stored:
         if new:
             print(f"   party size: {who} earns {new['id']} {money(new['amount'])} - not put back, the line came off with --remove-promo in this command")
@@ -1548,6 +1588,8 @@ def _price_check(data: dict, inv: dict) -> None:
             tier = float(line["amount"]) if line else 0.0
         else:
             tier = float(pr.get("partySizeDiscount") or 0)
+        if not tier and in_closed_tier(tier_heads(adults, kids)) and any(x.get("id") == closed_line()["id"] for x in party):
+            tier = closed_tier()["amount"]  # D-1102-01: this party keeps it
         stand_in = None
         if tier and not party:
             stand_in = next((x for x in promos if str(x.get("id") or "").startswith("appreciation")), None)

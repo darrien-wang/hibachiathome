@@ -144,7 +144,7 @@ def prot(**counts) -> list[dict]:
     return [{"itemId": k, "category": "protein", "qty": a, **({"childQty": c} if c else {})} for k, (a, c) in counts.items()]
 
 
-PARTY = {n: desk.party_line(n) for n in (10, 15, 41)}
+PARTY = {10: desk.closed_line(), **{n: desk.party_line(n) for n in (15, 41)}}  # 10: the closed tier, on the invoices that keep it
 FREE_GYOZA = {"id": "gyoza_1", "label": "FREE: Gyoza (10 pcs) x1", "amount": 15.0}
 WEEKDAY_LINE = {"id": "official_weekday", "label": "Weekday Special (Mon–Thu): $5 off per adult, $2.45 per child + FREE appetizer: Gyoza",
                 "amount": 75.0}  # 12 adults: $15 gyoza + 12 x $5
@@ -566,26 +566,29 @@ def _send_checks() -> None:
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     tiers_match_the_ts_export()
-    check("tiers: 8+2 is 9 paying heads (no tier), 11+1 is 11 (official_party10 $30), 14+2 is 15 (official_party15 $60)",
+    check("tiers: 8+2 is 9 paying heads (no tier), 11+1 is 11 (no tier, 10-14 closed), 14+2 is 15 (official_party15 $60)",
           desk.party_line(desk.tier_heads(8, 2)) is None
           and PARTY[10] == {"id": "official_party10", "label": "Party Size Discount (10–14 adults): $30 off", "amount": 30}
-          and desk.party_line(desk.tier_heads(11, 1)) == PARTY[10] and desk.party_line(desk.tier_heads(14, 2))["id"] == "official_party15")
+          and desk.party_line(desk.tier_heads(11, 1)) is None and desk.party_line(desk.tier_heads(14, 2))["id"] == "official_party15")
 
     # RH-20261022-0063 (2026-10-22): quick mode, 8 adults + 2 kids -> 11 + 1.
     quick_8_2 = invoice(adults=8, kids=2, proteins=prot(chicken=(8, 2), steak=(8, 2)),
                         extras=[{"id": "tables_chairs", "qty": 10}, {"id": "utensils", "qty": 10}])
-    args = ["--headcount", "11/1", "--proteins", "chicken=11/1", "steak=11/1", "--add-extra", "tables_chairs=12", "utensils=12"]
+    args = ["--headcount", "15/1", "--proteins", "chicken=15/1", "steak=15/1", "--add-extra", "tables_chairs=16", "utensils=16"]
     r = Run(quick_8_2, *args, "--dry")
-    check("--headcount 11/1 on a quick-mode order: counts set, official_party10 added, TOTAL $838.80 = desk price, --dry saves nothing",
-          r.exit is None and r.saved is None and r.has("adultCount/childCount: 8/2 -> 11/1", "none -> official_party10 $30.00",
-                                                       "✓ total check: TOTAL $838.80", "DRY   not saved"), r)
+    check("--headcount 15/1 on a quick-mode order: counts set, official_party15 added, TOTAL $1,108.40 = desk price, --dry saves nothing",
+          r.exit is None and r.saved is None and r.has("adultCount/childCount: 8/2 -> 15/1", "none -> official_party15 $60.00",
+                                                       "✓ total check: TOTAL $1,108.40", "DRY   not saved"), r)
     r = Run(quick_8_2, *args)
     d = r.data
-    check("  saved: 11/1, the menu, tables/utensils for 12, and exactly the official party10 line",
-          d.get("adultCount") == 11 and d.get("childCount") == 1 and d.get("mode") == "quick" and d.get("promotions") == [PARTY[10]]
-          and {q["itemId"]: (q["qty"], q.get("childQty")) for q in d.get("quickCountItems") or []} == {"chicken": (11, 1), "steak": (11, 1)}
-          and {e["id"]: e["qty"] for e in d.get("partyExtras") or []} == {"tables_chairs": 12, "utensils": 12}
+    check("  saved: 15/1, the menu, tables/utensils for 16, and exactly the official party15 line",
+          d.get("adultCount") == 15 and d.get("childCount") == 1 and d.get("mode") == "quick" and d.get("promotions") == [PARTY[15]]
+          and {q["itemId"]: (q["qty"], q.get("childQty")) for q in d.get("quickCountItems") or []} == {"chicken": (15, 1), "steak": (15, 1)}
+          and {e["id"]: e["qty"] for e in d.get("partyExtras") or []} == {"tables_chairs": 16, "utensils": 16}
           and r.saved.get("baseVersion") == "v-selfcheck", r)
+    r = Run(quick_8_2, "--headcount", "11/1", "--proteins", "chicken=11/1", "steak=11/1", "--add-extra", "tables_chairs=12", "utensils=12", "--dry")
+    check("--headcount 11/1: 10-14 earns no line now, TOTAL $868.80 = desk price",
+          r.has("✓ total check: TOTAL $868.80") and "official_party" not in r.out, r)
     r = Run(quick_8_2, "--headcount", "11/1", "--dry")
     check("--headcount alone says the menu and the per-guest setup still count the old party",
           r.has("the menu is still chicken=8/2 steak=8/2", "pass --proteins", "tables_chairs is still billed for 10 guests, the party is now 12"), r)
@@ -598,29 +601,37 @@ def main() -> int:
     check("--headcount works on a fresh order (detailed, no rows yet)", r.data.get("adultCount") == 6 and r.data.get("mode") == "detailed", r)
 
     # The stored order after the 10-22 rewrite, before the tier was added by hand.
-    rewritten = invoice(mode="detailed", adults=11, kids=1, guests=rows(11, 1, setup=True))
+    rewritten = invoice(mode="detailed", adults=15, kids=1, guests=rows(15, 1, setup=True))
     r = Run(rewritten, "--time", "18:30", "--dry")
-    check("a stored order missing its tier: TOTAL CHECK FAILED, $868.80 vs desk price $838.80, $30.00 too much, fix named",
-          r.has("TOTAL CHECK FAILED", "$868.80", "$838.80", "$30.00 too much", "party size: order no line; desk price -$30.00 for 11 paying heads",
-                "likely fix: --retier (puts official_party10 $30.00 on for 11 paying heads)"), r)
+    check("a stored order missing its tier: TOTAL CHECK FAILED, $1,168.40 vs desk price $1,108.40, $60.00 too much, fix named",
+          r.has("TOTAL CHECK FAILED", "$1,168.40", "$1,108.40", "$60.00 too much", "party size: order no line; desk price -$60.00 for 15 paying heads",
+                "likely fix: --retier (puts official_party15 $60.00 on for 15 paying heads)"), r)
     r = Run(rewritten, "--retier")
-    check("  --retier on it: official_party10 added, nothing else, ✓ $838.80",
-          r.data.get("promotions") == [PARTY[10]] and r.data.get("guests") == rewritten["guests"] and r.has("✓ total check: TOTAL $838.80"), r)
-    r = Run(invoice(mode="detailed", adults=11, kids=1, guests=rows(11, 1, setup=True), promos=[PARTY[10]]), "--time", "18:30", "--dry")
-    check("  the same order with official_party10: ✓", r.has("✓ total check: TOTAL $838.80") and "TOTAL CHECK FAILED" not in r.out, r)
-    r = Run(invoice(mode="detailed", adults=11, kids=1, guests=rows(11, 1, setup=True), promos=[PARTY[15]]), "--retier", "--dry")
-    check("  --retier on a wrong tier (official_party15 for 11 heads) replaces it",
-          r.has("official_party15 $60.00 -> official_party10 $30.00", "✓ total check: TOTAL $838.80"), r)
-    r = Run(invoice(mode="detailed", adults=11, kids=1, guests=rows(11, 1, setup=True), promos=[PARTY[10]]), "--retier", "--dry")
+    check("  --retier on it: official_party15 added, nothing else, ✓ $1,108.40",
+          r.data.get("promotions") == [PARTY[15]] and r.data.get("guests") == rewritten["guests"] and r.has("✓ total check: TOTAL $1,108.40"), r)
+    r = Run(invoice(mode="detailed", adults=15, kids=1, guests=rows(15, 1, setup=True), promos=[PARTY[15]]), "--time", "18:30", "--dry")
+    check("  the same order with official_party15: ✓", r.has("✓ total check: TOTAL $1,108.40") and "TOTAL CHECK FAILED" not in r.out, r)
+    r = Run(invoice(mode="detailed", adults=15, kids=1, guests=rows(15, 1, setup=True), promos=[PARTY[10]]), "--retier", "--dry")
+    check("  --retier on a wrong tier (official_party10 for 15 heads) replaces it",
+          r.has("official_party10 $30.00 -> official_party15 $60.00", "✓ total check: TOTAL $1,108.40"), r)
+    r = Run(invoice(mode="detailed", adults=15, kids=1, guests=rows(15, 1, setup=True), promos=[PARTY[15]]), "--retier", "--dry")
     check("  --retier when the line is right: says so, nothing to change", r.has("is already right") and "nothing to change" in str(r.exit), r)
+    # D-1102-01: an order that has the closed tier keeps it, and desk's checks agree.
+    kept = invoice(mode="detailed", adults=11, kids=1, guests=rows(11, 1, setup=True), promos=[PARTY[10]])
+    r = Run(kept, "--time", "18:30", "--dry")
+    check("  an order keeping official_party10: ✓ $838.80", r.has("✓ total check: TOTAL $838.80") and "TOTAL CHECK FAILED" not in r.out, r)
+    r = Run(kept, "--retier", "--dry")
+    check("  --retier leaves the kept line alone", r.has("is already right") and "nothing to change" in str(r.exit), r)
+    r = Run(invoice(adults=12, promos=[PARTY[10]]), "--headcount", "13/0", "--dry")
+    check("  a headcount inside 10-14 keeps the line, ✓ $748.70", r.has("✓ total check: TOTAL $748.70") and "-> none" not in r.out, r)
 
     # Re-tier on rows: --remove-guest / --add-adult / --guests-file. Only the party line moves, in place.
     courtesy = {"id": "courtesy_1", "label": "Courtesy credit", "amount": 10.0}
     fifteen = invoice(mode="detailed", adults=15, guests=rows(15), extras=[{"id": "gyoza", "qty": 1}], promos=[FREE_GYOZA, PARTY[15], courtesy])
     r = Run(fifteen, "--remove-guest", "Guest 15")
-    check("--remove-guest 15 -> 14: official_party15 $60 becomes official_party10 $30 in place, the other lines untouched, ✓",
-          r.data.get("promotions") == [FREE_GYOZA, PARTY[10], courtesy]
-          and r.has("official_party15 $60.00 -> official_party10 $30.00", "✓ total check: TOTAL $798.60"), r)
+    check("--remove-guest 15 -> 14: official_party15 $60 comes off, the other lines untouched, ✓",
+          r.data.get("promotions") == [FREE_GYOZA, courtesy]
+          and r.has("official_party15 $60.00 -> none (under 15)", "✓ total check: TOTAL $828.60"), r)
     r = Run(invoice(mode="detailed", adults=14, guests=rows(14), promos=[PARTY[10]]), "--add-adult", "1")
     check("--add-adult 14 -> 15: official_party10 becomes official_party15", r.data.get("promotions") == [PARTY[15]] and r.data.get("adultCount") == 15, r)
     with tempfile.TemporaryDirectory() as tmp:
@@ -639,21 +650,21 @@ def main() -> int:
 
     # The edges of the ladder.
     r = Run(invoice(adults=10, proteins=prot(chicken=(10, 0), steak=(10, 0)), promos=[PARTY[10]]), "--headcount", "9/0")
-    check("under 10 paying heads: the party line comes off, and the $599 minimum check still matches",
-          r.data.get("promotions") == [] and r.has("official_party10 $30.00 -> none (under 10)", "✓ total check: TOTAL $599.00", "minimum"), r)
+    check("under 10 paying heads: the kept line comes off too, and the $599 minimum check still matches",
+          r.data.get("promotions") == [] and r.has("official_party10 $30.00 -> none (under 15)", "✓ total check: TOTAL $599.00", "minimum"), r)
     r = Run(invoice(adults=50, promos=[PARTY[41]]), "--headcount", "61/0")
     check("61+ is a custom quote: line left as it is, said so, check skipped",
           r.data.get("promotions") == [PARTY[41]] and r.has("custom quote (61+)", "(total check skipped"), r)
 
     # Appreciation stands in for the tier (leads skill: they do not stack unless the owner says so).
     teacher = {"id": "appreciation_teacher", "label": "Teacher Appreciation: $50 off", "amount": 50.0}
-    r = Run(invoice(adults=9, promos=[teacher]), "--headcount", "12/0")
+    r = Run(invoice(adults=9, promos=[teacher]), "--headcount", "15/0")
     check("appreciation on the order: no party line added, said why, ✓ with the stand-in noted",
-          r.data.get("promotions") == [teacher] and r.has("not added - appreciation_teacher", "✓ total check: TOTAL $668.80", "stands in"), r)
-    r = Run(invoice(adults=12, promos=[PARTY[10]]), "--remove-promo", "official_party10", "--add-promo", "appreciation_teacher=50",
-            "--promo-label", "Teacher Appreciation: $50 off", "--headcount", "13/0", "--dry")
-    check("--remove-promo official_party10 in the same command: not put back",
-          r.has("not put back", "✓ total check: TOTAL $728.70") and "-> official_party10" not in r.out, r)
+          r.data.get("promotions") == [teacher] and r.has("not added - appreciation_teacher", "✓ total check: TOTAL $848.50", "stands in"), r)
+    r = Run(invoice(adults=15, promos=[PARTY[15]]), "--remove-promo", "official_party15", "--add-promo", "appreciation_teacher=50",
+            "--promo-label", "Teacher Appreciation: $50 off", "--headcount", "16/0", "--dry")
+    check("--remove-promo official_party15 in the same command: not put back",
+          r.has("not put back", "✓ total check: TOTAL $908.40") and "-> official_party15" not in r.out, r)
 
     # Free 3-4 year olds: kept on top of --headcount's kids, never in the tier.
     r = Run(invoice(adults=10, kids=3, promos=[LITTLE_LINE, PARTY[10]]), "--headcount", "14/2")
@@ -703,10 +714,10 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         r = Run({**quick_8_2, "partyExtras": []}, "--guests-file", guests_file(tmp, 12, 1, 1))
         mia = next((g for g in r.data.get("guests") or [] if g.get("name") == "Mia0"), {})
-        check("--guests-file with a little: true row: a child row with no proteins, the Little kids ×1 line added, ✓ $718.70",
+        check("--guests-file with a little: true row: a child row with no proteins, the Little kids ×1 line added, ✓ $748.70",
               mia.get("isChild") is True and mia.get("isLittle") is True and mia.get("proteins") == [] and r.data.get("childCount") == 2
-              and r.data.get("promotions") == [LITTLE_LINE, PARTY[10]]
-              and r.has("little kids: none -> Little kids (3-4) @ $0 ×1 $29.90", "✓ total check: TOTAL $718.70"), r)
+              and r.data.get("promotions") == [LITTLE_LINE]
+              and r.has("little kids: none -> Little kids (3-4) @ $0 ×1 $29.90", "✓ total check: TOTAL $748.70"), r)
         two_toddlers = invoice(mode="detailed", adults=12, kids=3, guests=rows(12, 1, little=2), promos=[little_2, PARTY[10]])
         r = Run(two_toddlers, "--guests-file", guests_file(tmp, 12, 1, 1), "--replace-guests")
         check("  a list with one toddler on an order whose line said ×2: the line becomes ×1 in place, ✓ $718.70",

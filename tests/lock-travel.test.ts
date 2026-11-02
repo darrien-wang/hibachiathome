@@ -237,4 +237,10 @@ test("without a lock-travel result the event is exactly what it was before", () 
   assert.ok(built.ok)
   const raw = JSON.parse(JSON.stringify(built.envelope.order.invoice_details)) as Record<string, unknown>
   assert.deepEqual(raw, { total_cost: 0, travel_fee: 0 })
+
+test("a lead quoted before the 10-14 tier closed says so on the deposit event (D-1102-01)", () => {
+  const built = buildDepositPaidEventEnvelope({ stripeEventId: "evt_kept", session: session({}), booking: { ...booking, travel_fee: 0 }, cardOnFile, quotedClosedTier: true })
+  assert.ok(built.ok)
+  assert.equal(built.envelope.order.invoice_details?.quoted_closed_tier, true)
+})
 })

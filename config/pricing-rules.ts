@@ -334,9 +334,12 @@ export function setupPerGuest(): number {
 // stopped, the same cliff the Weekday Special's old 15-guest gate had (see
 // GUEST_TIERS.adult.weekdayPrice). Custom quoting now starts at 61, where a
 // third chef comes on and the logistics stop being a template.
+//
+// 2026-11-02 (owner, D-1102-01): 10–14 no longer earns a discount, "人数太少了
+// 利润太薄了". The ladder starts at 15 with $60, so the 15th adult comes in free
+// and bills ten cents under 14 ($838.50 against $838.60); nobody is punished.
 // ---------------------------------------------------------------
 export const PARTY_SIZE_DISCOUNT_TIERS = [
-  { minGuests: 10, maxGuests: 14, amount: 30 },
   { minGuests: 15, maxGuests: 24, amount: 60 },
   { minGuests: 25, maxGuests: 30, amount: 90 },
   { minGuests: 31, maxGuests: 40, amount: 120 },
@@ -344,6 +347,19 @@ export const PARTY_SIZE_DISCOUNT_TIERS = [
   { minGuests: 51, maxGuests: 60, amount: 180 },
 ] as const
 export const PARTY_SIZE_CUSTOM_FROM = 61
+
+/**
+ * The tier that closed. A lead from before closedAt was quoted with it, in
+ * writing, so it locks at that price: the deposit event says so
+ * (quoted_closed_tier) and the invoice repo's keepsClosedTier does the rest.
+ * desk reads this too.
+ */
+export const CLOSED_PARTY_TIER = { minGuests: 10, maxGuests: 14, amount: 30, closedAt: "2026-11-02T10:00:00-08:00" } as const
+
+export function quotedBeforeTierClosed(leadCreatedAt: string | null | undefined): boolean {
+  const ms = leadCreatedAt ? Date.parse(leadCreatedAt) : NaN
+  return Number.isFinite(ms) && ms < Date.parse(CLOSED_PARTY_TIER.closedAt)
+}
 
 /** 收半价的小孩，在阶梯里算半个成人。 */
 export const KID_TIER_WEIGHT = 0.5
@@ -357,8 +373,8 @@ export type TierHeads = { adults: number; kids: number }
  *   - **收半价的小孩算半个成人**。阶梯是按这一单的分量给的，半价的人头按整个算
  *     等于白送一档。
  *
- * 往下取整：14 个成人 + 1 个小孩 = 14.5 → 14，落在 10–14 档。不取整会掉进档与档
- * 之间的缝里（14.5 既不 ≤14 也不 ≥15），一分折扣都拿不到。
+ * 往下取整：24 个成人 + 1 个小孩 = 24.5 → 24，落在 15–24 档。不取整会掉进档与档
+ * 之间的缝里（24.5 既不 ≤24 也不 ≥25），一分折扣都拿不到。
  *
  * 参数收成一个对象是故意的：以前这几个函数收一个 number，调用处各自写
  * `adults + kids`，改规则时漏掉一处编译器也不会吭声。
@@ -460,7 +476,8 @@ export function calcSimpleEstimate(args: { adults: number; kids: number; weekday
     subtotal,
     partySizeDiscount: partySize,
     partySizeDiscountApplied,
-    minApplied: afterDiscount < MINIMUM_SPEND,
+    // <=: ten adults at $59.90 land on $599 exactly, and that is still the minimum's price.
+    minApplied: afterDiscount <= MINIMUM_SPEND,
     base,
     travelFee,
     total,

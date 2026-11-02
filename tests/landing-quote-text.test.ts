@@ -42,13 +42,13 @@ test("landing quote · every party of up to 10 pays exactly the minimum, any mix
 })
 
 test("landing quote · no note once the food clears the minimum", () => {
-  assert.equal(note(11, 0), null, "11 x $59.90 - $30 = $628.90")
+  assert.equal(note(11, 0), null, "11 x $59.90 = $658.90")
   assert.equal(note(15, 0), null)
   assert.equal(note(30, 4, true, 20), null)
 })
 
 test("landing quote · more than 10 on the minimum (kids, or the Mon-Thu rate): it covers them all", () => {
-  assert.equal(note(11, 0, true), "our $599 minimum, which covers all 11 guests", "11 x $54.90 - $30 = $573.90")
+  assert.equal(note(10, 1, true), "our $599 minimum, which covers all 11 guests", "10 x $54.90 + $27.45 = $576.45")
   assert.equal(note(2, 9), "our $599 minimum, which covers all 11 guests")
 })
 

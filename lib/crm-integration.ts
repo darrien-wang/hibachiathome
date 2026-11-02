@@ -60,6 +60,8 @@ export type CrmDepositPaidEventEnvelope = {
       agreed_total?: number
       /** Per-party deal rules; the order system re-prices them on every change. */
       custom_deal?: CustomDeal
+      /** The lead was quoted before the 10-14 tier closed: the order keeps it (D-1102-01). */
+      quoted_closed_tier?: boolean
     }
     notes?: string
     /** D-1006-04: the date was locked with a card on file ($0 charged); the CRM order keeps it for the day-of charge. */
@@ -506,6 +508,8 @@ export function buildDepositPaidEventEnvelope(params: {
   cardOnFile?: CrmCardOnFile
   /** Travel and the standard address, settled as the lock completed (lib/lock-travel.ts). */
   travel?: LockTravel
+  /** The lead came in before the 10-14 tier closed, so its quote had the tier (D-1102-01). */
+  quotedClosedTier?: boolean
 }): BuildCrmEnvelopeResult<CrmDepositPaidEventEnvelope> {
   const source = resolveSource(params.source)
   const travel = params.travel
@@ -596,7 +600,8 @@ export function buildDepositPaidEventEnvelope(params: {
           typeof params.booking?.travel_fee === "number" ||
           travel !== undefined ||
           agreedTotal !== undefined ||
-          customDeal !== undefined
+          customDeal !== undefined ||
+          params.quotedClosedTier === true
             ? {
                 total_cost: params.booking?.total_cost ?? undefined,
                 // Measured at lock when there is a travel result: its fee is
@@ -610,6 +615,7 @@ export function buildDepositPaidEventEnvelope(params: {
                 // order system turns it into a "Special rate" line on the invoice.
                 agreed_total: agreedTotal,
                 custom_deal: customDeal,
+                quoted_closed_tier: params.quotedClosedTier ? true : undefined,
               }
             : undefined,
         notes:
