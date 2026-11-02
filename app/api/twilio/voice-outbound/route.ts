@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
   // On an outbound leg the person who must be told is the one we called, so the
   // notice rides on <Number url=...> — Twilio plays it to them the moment they
   // pick up, before the two legs are bridged. See lib/twilio-recording.ts.
-  const recording = recordingAttributes()
+  const recording = recordingAttributes(to)
   const whisper = recording
     ? ` url="${escapeXml((process.env.NEXT_PUBLIC_BASE_URL ?? "") + "/api/twilio/voice-notice")}"`
     : ""

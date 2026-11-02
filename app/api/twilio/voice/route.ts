@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
   // the bridge, and recording starts only once someone answers, so the notice
   // always precedes the recorded audio. Do not make recording conditional
   // without making this notice conditional in exactly the same way.
-  const recording = recordingAttributes()
+  const recording = recordingAttributes(from)
   const notice = recording ? `<Say>${escapeXml(RECORDING_NOTICE)}</Say>` : ""
 
   // When the legs finish, /api/twilio/voice-status decides what the caller

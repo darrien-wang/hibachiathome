@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       await markCallbackDone(supabase, leadId, "connected", params.CallSid)
       // Same as any outbound call from the App (voice-outbound): the customer hears the recording
       // notice the moment they pick up, before the legs are bridged (Penal Code 632).
-      const recording = recordingAttributes()
+      const recording = recordingAttributes(to)
       const whisper = recording ? ` url="${escapeXml(`${base}/api/twilio/voice-notice`)}"` : ""
       return twiml(
         say("正在接通客人。") +
