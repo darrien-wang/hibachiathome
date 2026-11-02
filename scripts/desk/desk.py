@@ -61,6 +61,7 @@ import copy
 import datetime as _dt
 import difflib
 import functools
+import hashlib
 import json
 import math
 import pathlib
@@ -70,7 +71,7 @@ import time
 import urllib.parse
 from zoneinfo import ZoneInfo
 
-from _api import ROOT, ApiError, dump, e164, invoice_post, is_uuid, pt, read_text_arg, site_get, site_post
+from _api import ROOT, ApiError, _supabase, dump, e164, invoice_post, is_uuid, pt, read_text_arg, site_get, site_post
 
 TAPBACK = re.compile(r"^(liked|loved|laughed at|emphasized|disliked|questioned)\s", re.I)
 THUMB = re.compile(r"^\U0001F44D[\U0001F3FB-\U0001F3FF]?️?[\s.!]*$")
@@ -1867,6 +1868,47 @@ def _print_invoice(order_no: str, data: dict) -> None:
     print(f"   NOTES(客户会看到): {notes or '(空)'}")
 
 
+def _party_plan(order: dict) -> dict | None:
+    """The party page's live plan for a booking (invoice lib/party-plan-store.ts), found by the
+    anchors save-invoice tries: booking number, phone, email. None = no page yet."""
+    phone = order.get("customer_phone") or ""
+    read = lambda token: _supabase("GET", f"/rest/v1/invoice_tokens?select=invoice_data&token=eq.{token}", None, "application/json")
+    for anchor in (order.get("order_no"), re.sub(r"\D", "", phone)[-10:], phone, order.get("customer_email")):
+        if not anchor:
+            continue
+        got = read("la_" + hashlib.sha256(anchor.strip().lower().encode()).hexdigest()[:24])
+        live = (got[0].get("invoice_data") or {}).get("liveId") if got else None
+        plan = read(live) if live else None
+        if plan:
+            return (plan[0].get("invoice_data") or {}).get("state") or {}
+    return None
+
+
+def _plan_rows(state: dict) -> list[dict]:
+    """The party page's guests as --guests-file rows. A baby is not a row; one protein is that protein twice."""
+    extras = state.get("extras") or {}
+    rows = []
+    for g in state.get("guests") or []:
+        if g.get("kind") == "baby":
+            continue
+        prots = list(g.get("proteins") or [])
+        row = {"name": (g.get("name") or "").strip(), "proteins": prots * 2 if len(prots) == 1 else prots}
+        if g.get("kind") == "child":
+            row["child"] = True
+        if g.get("kind") == "under5":
+            row["little"] = True
+        if g.get("foodAllergy"):
+            row["allergy"] = g["foodAllergy"]
+        if g.get("noodles"):
+            row["noodles"] = True
+        if extras.get("utensils"):
+            row["utensils"] = True
+        if extras.get("tablesChairs"):
+            row["tables"] = True
+        rows.append(row)
+    return rows
+
+
 def cmd_order(a):
     if a.op == "find":
         for c in _search(a.ident):
@@ -1877,6 +1919,23 @@ def cmd_order(a):
         return
     order = _order_row(a.ident)
     order_no = order.get("order_no")
+    if a.op == "plan":
+        # A customer can fill the party page and never press confirm: the order still reads
+        # 菜单空 and we chase them (Jere 2026-11-01: "I filled it out online"). Look here first.
+        state = _party_plan(order)
+        if state is None:
+            print(f"{order_no}  no party page yet")
+            return
+        rows = _plan_rows(state)
+        picked = [r for r in rows if r["proteins"]]
+        print(f"{order_no}  party page: {len(rows)} guests · {sum(1 for r in rows if r['name'])} named · {len(picked)} picked")
+        for r in picked:
+            print(f"   {r['name'] or '-'}: {', '.join(r['proteins'])}" + (f" · ALLERGY: {r['allergy']}" if r.get("allergy") else "")
+                  + (" · noodles" if r.get("noodles") else "") + (" · utensils" if r.get("utensils") else "") + (" · tables" if r.get("tables") else ""))
+        if a.rows_out:
+            pathlib.Path(a.rows_out).write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
+            print(f"   rows written: order set {order_no} --guests-file {a.rows_out}  (check the plates and tables on the order first)")
+        return
     if a.op == "hold":
         # 日期待定 (owner 2026-10-04): the party is still on, the date is not -
         # e.g. Yvette 10-21, the birthday boy left town. The order keeps its
@@ -2176,6 +2235,11 @@ def cmd_order(a):
             # billed twice.
             setup_lines = [e for e in (data.get("partyExtras") or []) if e.get("id") in SETUP_PRICES]
             if setup_lines:
+                on_rows = {"tables_chairs": "tablesChairs", "utensils": "utensils"}
+                lost = [e.get("id") for e in setup_lines if not any(g.get(on_rows[e.get("id")]) for g in new_rows)]
+                if lost:
+                    # Jere 2026-11-01: 7 plates came off the order, the $599 minimum hid it.
+                    raise SystemExit(f"--guests-file: the order has {', '.join(lost)} and no row carries it - add \"utensils\": true / \"tables\": true to the rows that get it")
                 data["partyExtras"] = [e for e in (data.get("partyExtras") or []) if e.get("id") not in SETUP_PRICES]
                 changes.append("partyExtras: dropped " + ", ".join(f"{e.get('id')}={e.get('qty')}" for e in setup_lines)
                                + " (the rows carry tables/utensils now)")
@@ -2729,7 +2793,8 @@ def main(argv=None):
     p = sp.add_parser("report"); p.add_argument("kind", choices=["day", "week"])
     p.add_argument("--date", help="YYYY-MM-DD (Pacific). day: default today; week: any day in the week, default the last full Sun-Sat week")
     p.set_defaults(fn=_report)
-    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "set", "preview", "email", "send", "remind", "hold", "redate"]); p.add_argument("ident")
+    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "plan", "set", "preview", "email", "send", "remind", "hold", "redate"]); p.add_argument("ident")
+    p.add_argument("--rows-out", help="plan: write the party page's guests as a --guests-file list")
     p.add_argument("--why", help="hold: why the date is off, kept on the order (e.g. birthday boy out of town, picking a new date)")
     p.add_argument("--dry", action="store_true", help="remind: print the text, do not send")
     p.add_argument("--force", action="store_true", help="remind: send even though the order lint lists what the order is missing (checked by a person)")

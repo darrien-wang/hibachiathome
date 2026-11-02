@@ -631,6 +631,11 @@ def main() -> int:
     check("--guests-file 16 adults on an 8+2 order: official_party15 $60 added, rows carry the setup, ✓ $1,138.40",
           r.data.get("promotions") == [PARTY[15]] and r.data.get("mode") == "detailed" and not r.data.get("partyExtras")
           and r.has("✓ total check: TOTAL $1,138.40"), r)
+    with tempfile.TemporaryDirectory() as tmp:
+        f = pathlib.Path(tmp) / "rows.json"
+        f.write_text(json.dumps([{"name": f"G{i}", "proteins": ["chicken", "steak"]} for i in range(16)]), encoding="utf-8")
+        r = Run(quick_8_2, "--guests-file", str(f))
+    check("--guests-file with no setup on the rows stops: the order's plates and tables do not fall off", "no row carries it" in str(r.exit), r)
 
     # The edges of the ladder.
     r = Run(invoice(adults=10, proteins=prot(chicken=(10, 0), steak=(10, 0)), promos=[PARTY[10]]), "--headcount", "9/0")
@@ -696,7 +701,7 @@ def main() -> int:
 
     little_2 = dict(LITTLE_LINE, label="Little kids (3-4) @ $0 ×2", amount=59.8)
     with tempfile.TemporaryDirectory() as tmp:
-        r = Run(quick_8_2, "--guests-file", guests_file(tmp, 12, 1, 1))
+        r = Run({**quick_8_2, "partyExtras": []}, "--guests-file", guests_file(tmp, 12, 1, 1))
         mia = next((g for g in r.data.get("guests") or [] if g.get("name") == "Mia0"), {})
         check("--guests-file with a little: true row: a child row with no proteins, the Little kids ×1 line added, ✓ $718.70",
               mia.get("isChild") is True and mia.get("isLittle") is True and mia.get("proteins") == [] and r.data.get("childCount") == 2

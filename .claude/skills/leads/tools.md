@@ -84,7 +84,7 @@ python scripts/desk/desk.py order email <单号> [--notes-reviewed]
 - 几样加购可以写在同一个 `--add-extra` 后面（`--add-extra tables_chairs=10 utensils=10`），也可以分开写几遍；10-21 之前分开写只留最后一个（Yunnie 差点只加上餐具），已改成会累加。改完照样看 `--dry` 的 TOTAL。
 - 客人回短信挑免费前菜：`--free-appetizer edamame`（gyoza / edamame / spring_rolls）。托盘和优惠行（周中特价 / 20 人以上 / 全套那条，连同同一种的 `--free-item`）一起换；edamame 一盘便宜 $5，差价记在优惠行上，总价不变，引擎换前换后各算一次，总价动了就不存。同一种托盘不止一盘时按优惠行金额认送了多少（按人头后可以是 2.6 盘 = 26 个），认不出来会让你先 `--promo` 重设金额；保存时引擎再按新前菜的人头数量调到位，总价同样不变。
 - 3–4 岁免费小孩：名单里写 `{"name": "Mia", "little": true}`（自动算小孩行，可以不写蛋白），desk 按名单里 little 行的个数自动加 / 改 / 删 `Little kids (3-4) @ $0 ×N`（under5_auto）那行；`--remove-guest` 拿掉一个 little 行，那行跟着减一。没有逐人名单（快速模式、还没菜单的新单）用 `--headcount` 的第三个数：`--headcount 11/1/1` = 11 大人 + 1 个 5–12 岁 + 1 个 3–4 岁，那行自动设成 ×1（`11/1/0` 拿掉；只写 `11/1` 那行不动）。只改 3–4 岁人数也这样写，大人小孩照填。不再手打 `--add-promo under5_auto=…`（× 经过命令行会乱码）。少了这行每人多收 $29.90，total check 会报；3–4 岁不算进人数折扣。
-- 名单只在派对页（`lp_` 计划）、订单 0 行时，师傅备料单是空的：派对前用 `--guests-file` 灌进订单（10-21 Stephanie 那单）。
+- 名单只在派对页（`lp_` 计划）、订单 0 行时，师傅备料单是空的，扫描还报 `菜单空`：**催菜单前先 `desk order plan <单号>` 看派对页**，客人填好了就别催（11-01 Jere：`I filled it out online`）。`desk order plan <单号> --rows-out rows.json`，再 `order set <单号> --guests-file rows.json` 灌进去。订单上有桌椅、餐具的，行里没带会被拦下，补上 `"utensils": true` / `"tables": true`。
 - 存完多出 `WARN  Planner has …, the invoice counts …. Kept …: <名字>`（10-24 起）：客人派对页上有人填过名字或点过菜，这张发票的人数没算他们；存的时候留下了，没删（只删空位）。人真来就补进发票（比如 5 岁以下的照上面加 `under5_auto` 那行），不来就请客人在派对页删掉。
 - 订单 NOTES 会原样印在客人发票上：过程记录写 `orders.internal_notes`，不写 NOTES。
 
