@@ -467,6 +467,9 @@ def cmd_price(a):
         if not p or not p.get("ok"):
             print(f"{date or '(no date)'}: 引擎没算出来（zip 对吗？）")
             continue
+        if p.get("customQuote"):
+            print(f"{date or '(any day)'}: {a.adults} 大人 + {a.kids} 小孩 → 61+ 定制，引擎不出总价（negotiation §5）")
+            continue
         pr = p["price"]
         rent = f" + 租赁 ${pr['rentals']['amount']:,.2f}" if pr.get("rentals") else ""
         # The listed price only (owner 2026-10-06): tax and payment method are not
