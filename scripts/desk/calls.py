@@ -59,9 +59,11 @@ def recordings_for(ident: str) -> list[dict]:
         phone = e164(ident)
         for direction in ("From", "To"):
             for c in _twilio_get(f"/Calls.json?{direction}={urllib.request.quote(phone)}&PageSize=20").get("calls", []):
-                for r in _twilio_get(f"/Calls/{c['sid']}/Recordings.json").get("recordings", []):
-                    out.append({"at": r.get("date_created"), "recording_sid": r["sid"], "call_sid": c["sid"],
-                                "duration": int(r.get("duration") or 0), "lead_id": None, "phone": phone})
+                # A call dialed from the App records on the parent leg, not the leg to the customer.
+                for sid in filter(None, (c["sid"], c.get("parent_call_sid"))):
+                    for r in _twilio_get(f"/Calls/{sid}/Recordings.json").get("recordings", []):
+                        out.append({"at": r.get("date_created"), "recording_sid": r["sid"], "call_sid": sid,
+                                    "duration": int(r.get("duration") or 0), "lead_id": None, "phone": phone})
     out.sort(key=lambda r: r.get("at") or "", reverse=True)
     return out
 
