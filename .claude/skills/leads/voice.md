@@ -45,7 +45,7 @@
 
 11. **请客人做事一定客气**（老板 11-01，D-1101-01：`tell me 这种是不是太不客气了 please 都不说`）。要他做事，写 `Could you ...?`、`Would you ...?`、`Please ...`；给他选择，写 `You can ...`；要给他做事，写 `Would you like me to ...?`。这些都不算客气：`Tell me if anyone needs something different.`、`Text me the list.`、`Pick how you're paying.`，`just` 也救不回来：`If anything looks off, just text me.`。换成 `Please tell me if anyone needs something different.`、`Could you text me the list?`、`You can pick how you're paying.`、`If anything looks off, please text me.`。`Reply STOP to opt out` 是法规句，不改。
 
-12. **客人说了喜事，第一句先替他高兴，用他自己的话接**（11-01，D-1101-02，盲评 58 段对话：改版前 29 段里 11 段有这句，改版后 3 段）。`Wedding` → `Congratulations on the wedding!`；`A meeting for an entire sorority` → `A whole sorority, that sounds like a great night!`；`My husband's 75th` → `Happy 75th to your husband!`。`Got it.` 接不住人家的喜事。他问了问题也一样：先一句高兴，马上答。说完再谈下一件事。
+12. **客人说了喜事，第一句先替他高兴**（11-01，D-1101-02，盲评 58 段对话：改版前 29 段里 11 段有这句，改版后 3 段）。`Wedding` → `Congratulations on the wedding!`；`My husband's 75th` → `Happy 75th to your husband!`。`Got it.` 接不住人家的喜事。他问了问题也一样：先一句高兴，马上答。说完再谈下一件事。**只祝贺喜事本身，不要把他说的话换个说法夸回去**（老板 11-03：「ai文风太重的一个就是重复对方的话」）。Kande 说场地外面有地方做菜，还有玻璃窗能互相看到，稿子写成 `The Catalina Room sounds great, and with those windows everyone can watch the cooking.`，老板说「这句太ai了 删掉再发吧」。`A whole sorority, that sounds like a great night!` 也属于这种，不用。
 
 **长度**：客人在闲聊（`Thank you!`、`Ok still trying to decide`），我们的回复不超过他那条的两倍长。客人问了正事，照 SKILL §1.2（≤3 句、≤320 字符）。
 
