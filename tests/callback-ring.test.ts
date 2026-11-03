@@ -4,7 +4,7 @@
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { spokenName, wantsCall, withinRingHours } from "../lib/callback-ring"
+import { LIVE_PARTY_RING_HOURS_PT, isLivePartyAlarm, spokenName, wantsCall, withinRingHours } from "../lib/callback-ring"
 
 test("callback · Jose's two texts on 10-09 ring", () => {
   assert.equal(wantsCall("If you can call me that'd be great. I'm driving."), true)
@@ -46,4 +46,13 @@ test("callback · rings 8 AM to 10 PM Pacific only", () => {
   assert.equal(withinRingHours(Date.parse("2026-10-10T05:30:00Z")), false) // 22:30 PDT
   assert.equal(withinRingHours(Date.parse("2026-10-10T14:59:00Z")), false) // 07:59 PDT
   assert.equal(withinRingHours(Date.parse("2026-10-10T15:00:00Z")), true) // 08:00 PDT
+})
+
+test("callback · a live party alarm (why 现场…) rings until midnight", () => {
+  assert.equal(isLivePartyAlarm("现场投诉：上菜慢，小孩没吃上"), true)
+  assert.equal(isLivePartyAlarm("I'm driving"), false)
+  assert.equal(isLivePartyAlarm(""), false)
+  assert.equal(withinRingHours(Date.parse("2026-11-03T06:40:00Z"), LIVE_PARTY_RING_HOURS_PT), true) // 22:40 PST
+  assert.equal(withinRingHours(Date.parse("2026-11-03T06:40:00Z")), false) // a plain request stays quiet then
+  assert.equal(withinRingHours(Date.parse("2026-11-03T14:30:00Z"), LIVE_PARTY_RING_HOURS_PT), false) // 06:30 PST
 })

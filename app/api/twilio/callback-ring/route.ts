@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { markCallbackDone, openCallback, snoozeCallback, spokenName } from "@/lib/callback-ring"
+import { isLivePartyAlarm, markCallbackDone, openCallback, snoozeCallback, spokenName } from "@/lib/callback-ring"
 import { toE164 } from "@/lib/sms-thread"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { escapeXml } from "@/lib/twilio-identity"
@@ -80,7 +80,9 @@ export async function POST(request: NextRequest) {
     return twiml(`<Redirect method="POST">${escapeXml(here("prompt"))}</Redirect>`)
   }
 
-  const line = `客人${spokenName(open)}想跟你通电话。按 1，现在接通；按 2，十分钟后再提醒；按 3，不用回电。`
+  const line = isLivePartyAlarm(open.why)
+    ? `客人${spokenName(open)}的派对现场有情况，请看 Claude 的消息。按 1，现在接通客人；按 2，十分钟后再提醒；按 3，不用回电。`
+    : `客人${spokenName(open)}想跟你通电话。按 1，现在接通；按 2，十分钟后再提醒；按 3，不用回电。`
   return twiml(
     `<Gather input="dtmf" numDigits="1" timeout="8" action="${escapeXml(here("key"))}" method="POST">${say(line)}<Pause length="1"/>${say(line)}</Gather>` +
       say("没有按键。十分钟后会再响一次。"),

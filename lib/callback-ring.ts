@@ -18,6 +18,10 @@ import { toE164 } from "@/lib/sms-thread"
 import { agentIdentities, identityForActor } from "@/lib/twilio-identity"
 
 export const RING_HOURS_PT: [number, number] = [8, 22]
+// A problem at a party going on right now is not handled by the desk: it rings the owner, and a
+// dinner runs past 10 PM (owner 2026-11-02, Jenna). The desk marks it with a why that starts 现场.
+export const LIVE_PARTY_RING_HOURS_PT: [number, number] = [7, 24]
+export const LIVE_PARTY_WHY = "现场"
 export const RING_EVERY_MS = 10 * 60_000
 export const SNOOZE_MS = 10 * 60_000
 export const MAX_RINGS = 3
@@ -55,9 +59,13 @@ function ptHour(ms: number): number {
   return Number(h) % 24
 }
 
-export function withinRingHours(ms: number): boolean {
+export function withinRingHours(ms: number, hours: [number, number] = RING_HOURS_PT): boolean {
   const h = ptHour(ms)
-  return h >= RING_HOURS_PT[0] && h < RING_HOURS_PT[1]
+  return h >= hours[0] && h < hours[1]
+}
+
+export function isLivePartyAlarm(why: string | null | undefined): boolean {
+  return (why ?? "").trim().startsWith(LIVE_PARTY_WHY)
 }
 
 export type OpenCallback = {
@@ -164,7 +172,7 @@ export async function ringIfDue(supabase: SupabaseClient, leadId: string, now = 
   const open = await openCallback(supabase, leadId)
   if (!open) return { rang: false, skipped: "none_open" }
   if (now - open.requestedAt > REQUEST_TTL_MS) return { rang: false, skipped: "stale" }
-  if (!withinRingHours(now)) return { rang: false, skipped: "quiet_hours" }
+  if (!withinRingHours(now, isLivePartyAlarm(open.why) ? LIVE_PARTY_RING_HOURS_PT : RING_HOURS_PT)) return { rang: false, skipped: "quiet_hours" }
   if (open.rings >= MAX_RINGS) return { rang: false, skipped: "max_rings" }
   if (open.lastRingAt !== null && now - open.lastRingAt < RING_EVERY_MS) return { rang: false, skipped: "rang_recently" }
   if (open.snoozeUntil !== null && now < open.snoozeUntil) return { rang: false, skipped: "snoozed" }
@@ -213,7 +221,8 @@ export async function requestCallback(
 
 /** lead-watch's 10-minute sweep: ring every open request that is due again. */
 export async function ringOpenCallbacks(supabase: SupabaseClient, now = Date.now()): Promise<Array<RingOutcome & { leadId: string }>> {
-  if (!withinRingHours(now)) return []
+  // The widest window here; ringIfDue holds each request to its own.
+  if (!withinRingHours(now, LIVE_PARTY_RING_HOURS_PT)) return []
   const { data } = await supabase
     .from("lead_touchpoints")
     .select("lead_id")
