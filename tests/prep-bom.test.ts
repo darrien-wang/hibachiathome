@@ -66,3 +66,10 @@ test("prep · cloths bought for the customer's own tables are a setup row of the
     ["tablecloths", 3, "条"],
   ])
 })
+
+test("prep · white cloths on their own ($8 from 2026-11-03) are a row of their own, packed from the white stock", () => {
+  assert.deepEqual(setupRows({ mode: "quick", adultCount: 18, childCount: 0, partyExtras: [{ id: "white_tablecloth", qty: 4 }, { id: "white_linen", qty: 2 }] }), [
+    ["tablecloths", 2, "条"],
+    ["white_tablecloths", 4, "条"],
+  ])
+})
