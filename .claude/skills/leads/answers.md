@@ -69,7 +69,7 @@
 - **5–12 岁有的单要问大概几岁**（10-05）：`Quick one on the kids: roughly how old are they? Kids' plates are half portions. That's plenty for little ones, but if any are big eaters I'd count them as adults so nobody leaves hungry.`
 - **素/纯素**：豆腐 + 蔬菜，同价。
 - **无麸质**（老板 11-02，D-1102-03）：可以。对客只说这句：`Yes. Gluten-free plates are cooked first and seasoned with salt and gluten-free soy sauce.` 问清是谁，写进订单备注让师傅知道。**不主动提酱料**（姜汁酱、yum yum、照烧），客人主动问了才答，问到就如实说：姜汁酱含麸质，无麸质客人的沙拉不放；姜汁酱和 yum yum 不单做无麸质版；照烧不是无麸质，不承诺；春卷和饺子含麸质。师傅的无麸质酱油是大瓶分装，瓶上没标签，客人问就这么说。
-- **派对现场有人问过敏、食材，或师傅说法和我们对不上**（老板 11-02：「这里你的问题 导致了我们的客诉」）：先回 `Let me check with the owner right now.`，马上问老板，拿到原话再答。不自己下结论，不叫客人去验（看标签之类），不说"当作不是无麸质"。11-02 Jenna：我叫客人看酱油标签，分装小瓶本来没标签，我又说"当作不是无麸质"，客诉就是这么来的。
+- **派对进行中客人提的任何问题，一律算投诉，desk 不处理**（老板 11-02：「这种现场party 发生时的问题，你以后禁止处理 这种都算是投诉了」「你越解释越乱」）：过敏、食材、师傅、上菜快慢、几点到、缺东西都算。只回一句 `I've got your message, and I'm passing it to the owner right now.`，把原话转老板，之后这单所有对客消息等老板原话。不解释、不下结论、不叫客人去验。11-02 Jenna：我叫客人看酱油标签，分装小瓶本来没标签，我又说"当作不是无麸质"，其实无麸质酱油带了，客诉就是这么来的。
 - **鸡蛋过敏**：两种自制酱（yum yum、姜汁）都含蛋，不放。
 - **坚果/芝麻**：不承诺（饺子含芝麻和小麦）。答法：`Could you tell me the exact allergy? I'll check the labels for that day and tell you honestly whether we can serve them safely.`
 - **坚果（老板 10-24 确认）**：我们的用料里**没有任何坚果**——油、yum yum、姜汁酱、饺子、炒饭调料都不含花生和树坚果。客人问坚果可以直接答没有，再加一句过敏的客人师傅先在擦干净的铁板上做：`No peanuts or tree nuts in any of it, including the oil, the sauces, the gyoza and the fried rice. Your chef will also cook their plates first on a clean grill, just to be safe.` 写进订单备注让师傅知道。芝麻照旧：饺子含芝麻，问到照实说；整个场地无过敏原仍不承诺。
