@@ -99,7 +99,7 @@ Want the fried rice loaded? Add shrimp or chicken to it for $10 each, and extra 
   {
     question: "Can I change the headcount after I book?",
     answer:
-      "Yes. Locking the date holds the date, not a number — you can change your headcount up to the day before your party, and your total adjusts to match (the $599 minimum still applies). Need to cancel or reschedule instead? Tell us at least 48 hours before and there's no charge.",
+      "Yes. Locking the date holds the date, not a number — you can change your headcount freely up to the day before your party, and your total adjusts to match (the $599 minimum still applies). On the day of the party we can add guests but not remove them, because the food is already prepped. Need to cancel or reschedule instead? Tell us at least 48 hours before and there's no charge.",
   },
   {
     question: "What is your cancellation policy?",

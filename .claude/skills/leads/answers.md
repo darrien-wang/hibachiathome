@@ -51,8 +51,8 @@
 ## 锁日期、改人数、取消
 
 - **锁日期 = 留一张卡，当天 $0**（D-1006-04）；尾款派对当天付。61+ 也一样留卡，不收押金。
-- **人数可以改到派对前一天**，总价跟人数走，$599 最低消费不变。
-- **派对当天只能加人，不能减人**（老板 10-31，D-1031-02：货已经备好了）。客人当天说少人，总价不减，一句话说清，并告诉师傅照原单收：`Sorry, your food is already prepped, so at this point we can only add guests, not remove them. Your total stays at $[1,001].` 客人没提到减人就不主动说。
+- **人数可以改到派对前一天，自由调整**，总价跟人数走，$599 最低消费不变。**说这句就要带上当天规则**（老板 11-02，D-1102-02）：`You can change the headcount freely up to the day before. On the day of the party we can add guests but not take any off, since the food's already prepped.`
+- **派对当天只能加人，不能减人**（老板 10-31，D-1031-02：货已经备好了）。客人当天说少人，总价不减，一句话说清，并告诉师傅照原单收：`Sorry, your food is already prepped, so at this point we can only add guests, not remove them. Your total stays at $[1,001].`
 - **取消/改期**：提前 48 小时以上免费，48 小时内 $99（从留存卡扣）。
 - **"押金能退吗"**：没收押金，没有可退的；规则就是上一条。
 - **卡在锁日期页被拒**：请他换一张卡；换卡也不行就不锁，不人工建单、不改收 Zelle/Venmo、不口头占位。

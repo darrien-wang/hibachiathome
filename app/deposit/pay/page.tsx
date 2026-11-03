@@ -816,7 +816,7 @@ function DepositPaymentPageInner() {
               </div>
             </div>
             <p className="mt-2 text-xs text-clay-600">
-              {tierLabel ? `Party-size discount included: ${tierLabel}. ` : ""}Headcount can still change until the day before.
+              {tierLabel ? `Party-size discount included: ${tierLabel}. ` : ""}Headcount can still change until the day before; on the day we can add guests but not remove them.
               {repriced?.weekday ? " Mon–Thu rate applied." : null}
             </p>
           </div>
