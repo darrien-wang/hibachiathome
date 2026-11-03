@@ -21,6 +21,10 @@
 //   5. 桌椅半价（周六的派对，D-1017-01）签成 extraRates { tables_chairs: 5 }：
 //      发票照收 $10/人、再减 $5/人一行，人头变了跟着变。客人要付的这 $5/人和
 //      发票一样算在 $599 起订之内、进总价。
+//   6. 协议价只有答应的东西（老板 2026-11-03）：填了每人特价，默认不叠人数折扣、
+//      送前菜、周中价，签 onlyAgreed，发票引擎也一条自动规则都不加——总价就是
+//      人数 × 协议价。"可以先不加之后再加，但是加了就很难取消了"：真要叠，勾
+//      stackPromos 才按老算法叠。
 
 import {
   calcSimpleEstimate,
@@ -83,6 +87,8 @@ export type QuoteInput = {
    */
   tablesRate?: number | null
   freeUtensils?: boolean
+  /** With a special rate: stack the usual promos (tier, free appetizer, Weekday Special) on it. Off by default (owner 2026-11-03). */
+  stackPromos?: boolean
 }
 
 export type QuoteBreakdown = {
@@ -140,8 +146,10 @@ export type QuoteBreakdown = {
   tablesRate: number | null
   /** What those tables add to the bill - inside the $599 minimum, as the invoice bills them. */
   tablesCharge: number
+  /** A special rate with nothing the rules add on top: heads × the rate (owner 2026-11-03). */
+  agreedOnly: boolean
   /** custom-deal rules to sign into the deposit link; null when nothing needs signing. */
-  deal: { adultRate?: number; flatOff?: number; freeExtraIds?: string[]; extraRates?: Record<string, number> } | null
+  deal: { adultRate?: number; flatOff?: number; freeExtraIds?: string[]; extraRates?: Record<string, number>; onlyAgreed?: boolean } | null
 }
 
 const r2 = (n: number) => Math.round(n * 100) / 100
@@ -153,19 +161,23 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
   const adults = Math.max(0, Math.floor(q.adults || 0))
   const kids = Math.max(0, Math.floor(q.kids || 0))
   const heads = adults + kids
-  const est = calcSimpleEstimate({ adults, kids, weekdaySpecial: q.weekdaySpecial, travelFee: 0 })
-  const listAdultPrice = q.weekdaySpecial ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price
-  const childPrice = q.weekdaySpecial ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price
-
   const rate = r2(pos(q.adultRate))
-  const special = rate > 0 && rate < listAdultPrice
+  // A rate is a deal when it is under the day's price; it is then the whole
+  // price unless the owner chose to stack the usual promos on it.
+  const special = rate > 0 && rate < (q.weekdaySpecial ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price)
+  const agreedOnly = special && !q.stackPromos
+  const weekdaySpecial = q.weekdaySpecial && !agreedOnly
+  const est = calcSimpleEstimate({ adults, kids, weekdaySpecial, travelFee: 0 })
+  const listAdultPrice = weekdaySpecial ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price
+  const childPrice = weekdaySpecial ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price
+
   const adultPrice = special ? rate : listAdultPrice
   const rateCut = special ? r2((listAdultPrice - adultPrice) * adults) : 0
   const flatOff = r2(pos(q.flatOff))
 
-  const partySize = partySizeDiscount({ adults, kids })
+  const partySize = agreedOnly ? 0 : partySizeDiscount({ adults, kids })
   const count = tierHeadcount({ adults, kids })
-  const tier = PARTY_SIZE_DISCOUNT_TIERS.find((t) => count >= t.minGuests && count <= t.maxGuests)
+  const tier = agreedOnly ? undefined : PARTY_SIZE_DISCOUNT_TIERS.find((t) => count >= t.minGuests && count <= t.maxGuests)
   const partySizeTier = tier ? `${tier.minGuests}–${tier.maxGuests} 人档` : partySize > 0 ? `${PARTY_SIZE_CUSTOM_FROM} 人以上` : null
 
   // Tables at a set price (D-1017-01 half price) are billed like any rental:
@@ -204,7 +216,8 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
   const today = new Date().toISOString().slice(0, 10)
   const autoAppetizer =
     heads > 0 &&
-    (q.weekdaySpecial || (earnsLargePartyAppetizer({ adults, kids }) && (LARGE_PARTY_APPETIZER_UNTIL === null || (q.eventDate || today) <= LARGE_PARTY_APPETIZER_UNTIL)))
+    !agreedOnly &&
+    (weekdaySpecial || (earnsLargePartyAppetizer({ adults, kids }) && (LARGE_PARTY_APPETIZER_UNTIL === null || (q.eventDate || today) <= LARGE_PARTY_APPETIZER_UNTIL)))
   // The party gets it by the head (owner 2026-10-30, invoice freeAppetizerQty:
   // one piece a guest, a serving of edamame per five), set when the order saves.
   // This count is only the floor under a deal's trays.
@@ -241,8 +254,10 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
   }
 
   const deal: NonNullable<QuoteBreakdown["deal"]> = {}
-  // The invoice measures the rate from $59.90 and stacks the Weekday Special on top.
+  // The invoice measures the rate from $59.90 and stacks the Weekday Special on top
+  // - unless the deal is only what was agreed, when nothing goes on top at all.
   if (special) deal.adultRate = r2(adultPrice + (GUEST_TIERS.adult.price - listAdultPrice))
+  if (agreedOnly) deal.onlyAgreed = true
   // Above the tier table the invoice gives no automatic discount, so sign it.
   const signedFlat = r2(flatOff + (count >= PARTY_SIZE_CUSTOM_FROM ? partySize : 0))
   if (signedFlat > 0) deal.flatOff = signedFlat
@@ -279,6 +294,7 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
     freebiesZh,
     tablesRate,
     tablesCharge,
+    agreedOnly,
     deal: Object.keys(deal).length > 0 ? deal : null,
   }
 }

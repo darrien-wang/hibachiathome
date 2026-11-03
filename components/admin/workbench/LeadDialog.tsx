@@ -107,6 +107,8 @@ export function LeadDialog({
   // 桌椅换锁日期（D-1017-01）：周六最多半价 $5/人，周日到周五最多免费。
   const [tables, setTables] = useState<"" | "half" | "free">("")
   const [freeUtensils, setFreeUtensils] = useState(false)
+  // 协议价默认只有答应的东西（2026-11-03）；勾了才叠人数折扣/送前菜/周中价。
+  const [stackPromos, setStackPromos] = useState(false)
   // Below the owner's floor (D-1006-06) the quote only goes out once the owner has said yes.
   const [floorOk, setFloorOk] = useState(false)
   // The last generated quote: it goes into 承诺 only once a text carrying its link is sent.
@@ -194,8 +196,9 @@ export function LeadDialog({
         freeTables: tables === "free",
         tablesRate: tables === "half" ? TABLES_HALF_PRICE : null,
         freeUtensils,
+        stackPromos,
       }),
-    [adults, kids, weekday, qDate, lead.event_hint, travel, rate, flatOff, appId, appTrays, tables, freeUtensils],
+    [adults, kids, weekday, qDate, lead.event_hint, travel, rate, flatOff, appId, appTrays, tables, freeUtensils, stackPromos],
   )
   const qLabel = quoteDateLabel(qDate || lead.event_hint, qTime)
   const linked = useMemo(() => ordersForLead(lead, orders), [lead, orders])
@@ -608,7 +611,7 @@ export function LeadDialog({
           </div>
 
           <div>
-            <Kicker>报价 {weekday ? "· 周中价" : ""}</Kicker>
+            <Kicker>报价 {weekday && !quote.agreedOnly ? "· 周中价" : ""}{quote.agreedOnly ? "· 协议价" : ""}</Kicker>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr", gap: 8, fontSize: 13 }}>
               <label className="field">
                 <span className="label">大人 × ${quote.listAdultPrice.toFixed(2)}</span>
@@ -655,6 +658,12 @@ export function LeadDialog({
                 <input type="checkbox" checked={freeUtensils} onChange={(e) => setFreeUtensils(e.target.checked)} />
                 餐具
               </label>
+              {Number(rate) > 0 ? (
+                <label style={{ display: "flex", alignItems: "center", gap: 4 }} title="叠了就很难再收回，默认不叠">
+                  <input type="checkbox" checked={stackPromos} onChange={(e) => setStackPromos(e.target.checked)} />
+                  叠加平常优惠（人数折扣 / 送前菜 / 周中价）
+                </label>
+              ) : null}
               {quote.autoAppetizerTrays ? <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{weekday ? "周中" : "20 人以上"}本来就送前菜（按人头，毛豆每 5 人 1 份）</span> : null}
             </div>
             <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.65, color: "var(--color-neutral-700)" }}>
@@ -671,6 +680,7 @@ export function LeadDialog({
                 ]
                   .filter(Boolean)
                   .join(" · ") || "没有折扣"}
+                {quote.agreedOnly ? "（协议价：不叠人数折扣、送前菜、周中价）" : ""}
                 {quote.minApplied ? " → 不到 $599，按 $599 起订" : ""}
               </div>
               {quote.adults + quote.kids > 0 ? (

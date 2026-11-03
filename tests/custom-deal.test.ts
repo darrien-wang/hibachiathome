@@ -110,3 +110,11 @@ test("signing · an old free-tables link still verifies and decodes the same", (
   const sig = signDeal(LEAD, encoded)!
   assert.deepEqual(verifyDeal(LEAD, encoded, sig), { freeExtraIds: ["tables_chairs"] })
 })
+
+test("onlyAgreed · kept only when really true, signs byte-for-byte as before without it", () => {
+  assert.deepEqual(normalizeDeal({ adultRate: 50, onlyAgreed: true }), { adultRate: 50, onlyAgreed: true })
+  assert.deepEqual(normalizeDeal({ adultRate: 50, onlyAgreed: "true" }), { adultRate: 50 })
+  assert.equal(normalizeDeal({ onlyAgreed: true }), null)
+  assert.notEqual(encodeDeal({ adultRate: 50, onlyAgreed: true }), encodeDeal({ adultRate: 50 }))
+  assert.equal(decodeDeal(encodeDeal({ adultRate: 50, onlyAgreed: true }))?.onlyAgreed, true)
+})

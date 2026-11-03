@@ -25,6 +25,12 @@ export interface CustomDeal {
    * travel on purpose and still records the driving miles for chef pay.
    */
   travelWaived?: boolean
+  /**
+   * The agreed price is the whole price (owner 2026-11-03): the order system
+   * adds none of its automatic rules - no Party Size tier, no free appetizer,
+   * no Weekday Special. Only what was promised is on the invoice.
+   */
+  onlyAgreed?: boolean
   note?: string
 }
 
@@ -88,6 +94,7 @@ export function normalizeDeal(input: unknown): CustomDeal | null {
   if (Object.keys(extraRates).length > 0) deal.extraRates = extraRates
   if (flatOff !== undefined && flatOff > 0) deal.flatOff = flatOff
   if (source.travelWaived === true) deal.travelWaived = true
+  if (source.onlyAgreed === true) deal.onlyAgreed = true
   const note = typeof source.note === "string" ? source.note.trim().slice(0, 80) : ""
   if (note) deal.note = note
   const hasRule =
@@ -102,7 +109,8 @@ export function normalizeDeal(input: unknown): CustomDeal | null {
 
 /**
  * Canonical JSON (fixed key order) so the same deal always signs the same.
- * `extraRates` (2026-10-17) and `travelWaived` (2026-10-21) are appended only
+ * `extraRates` (2026-10-17), `travelWaived` (2026-10-21) and `onlyAgreed`
+ * (2026-11-03) are appended only
  * when the deal has them, so every deal from before them encodes byte for
  * byte as it always did.
  */
@@ -117,6 +125,7 @@ export function encodeDeal(deal: CustomDeal): string {
   const rateIds = Object.keys(deal.extraRates ?? {}).sort()
   if (rateIds.length > 0) canonical.extraRates = Object.fromEntries(rateIds.map((id) => [id, deal.extraRates![id]]))
   if (deal.travelWaived === true) canonical.travelWaived = true
+  if (deal.onlyAgreed === true) canonical.onlyAgreed = true
   return Buffer.from(JSON.stringify(canonical), "utf8").toString("base64url")
 }
 
