@@ -885,7 +885,7 @@ export const EXTRA_OCCASIONS: OccasionPage[] = [
       {
         question: "What about dietary needs on a big crew?",
         answer:
-          "Each person picks their own 2 proteins — chicken, steak, shrimp, salmon, or tofu — cooked to order in front of them. Vegetarian and vegan plates are the same per-person rate. For gluten-free guests, bring your preferred gluten-free soy and teriyaki and we prepare their meal on a separate station. We can't promise a nut-free or sesame-free table, so tell us about any allergy when you book and we'll check the labels for your date and tell you honestly what we can serve safely.",
+          "Each person picks their own 2 proteins — chicken, steak, shrimp, salmon, or tofu — cooked to order in front of them. Vegetarian and vegan plates are the same per-person rate. For gluten-free guests, we cook their plates first, seasoned with salt and gluten-free soy sauce. We can't promise a nut-free or sesame-free table, so tell us about any allergy when you book and we'll check the labels for your date and tell you honestly what we can serve safely.",
       },
     ],
   },

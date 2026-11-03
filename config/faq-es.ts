@@ -77,7 +77,7 @@ Los niños de 5 a 12 años reciben media porción. ¿Quieren más? Las porciones
   {
     question: "¿Pueden atender a invitados sin gluten?",
     answer:
-      "Claro que sí. Hemos servido a muchos comensales sin gluten. Avísanos al reservar y tu chef lleva salsa de soya y teriyaki sin gluten, y prepara ese plato en una estación aparte, sin costo extra. Su ensalada va sin el aderezo de jengibre, que lleva salsa de soya normal; la salsa yum yum no lleva ingredientes con gluten. Necesitamos que nos avises con anticipación, porque nuestra salsa de soya normal sí lleva gluten.",
+      "Claro que sí. Hemos servido a muchos comensales sin gluten. Avísanos al reservar y tu chef prepara primero ese plato, sazonado con sal y salsa de soya sin gluten, sin costo extra. Su ensalada va sin el aderezo de jengibre, que lleva salsa de soya normal. Necesitamos que nos avises con anticipación, porque nuestra salsa de soya normal sí lleva gluten.",
   },
   {
     question: "¿Y los vegetarianos o veganos?",

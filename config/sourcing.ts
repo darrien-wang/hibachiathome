@@ -56,8 +56,8 @@ export const sourcing: SourcingSpec[] = [
 ]
 
 export const sourcingAllergenNote =
-  "Our standard soy sauce is not gluten free, so a gluten-free guest should have their own gluten-free soy and " +
-  "teriyaki on hand and we'll cook their portion with it; our ginger dressing is made with regular soy sauce, " +
+  "Our standard soy sauce is not gluten free, so a gluten-free guest's portion is cooked first and seasoned " +
+  "with salt and gluten-free soy sauce; our ginger dressing is made with regular soy sauce, " +
   "so their salad comes without it. We can't promise a nut- or sesame-free table — the gyoza are a commercial " +
   "product and contain sesame, and our house-made sauces use store-bought ingredients. Both sauces contain egg. " +
   "Tell us the allergy when you book and we'll check the labels in use for your date."

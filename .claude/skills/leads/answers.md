@@ -68,7 +68,7 @@
 - **12–14 岁**：一般按大人订 `Kids that age usually eat like adults. Our kids' plates have half the protein, so I'd book them as adults.`
 - **5–12 岁有的单要问大概几岁**（10-05）：`Quick one on the kids: roughly how old are they? Kids' plates are half portions. That's plenty for little ones, but if any are big eaters I'd count them as adults so nobody leaves hungry.`
 - **素/纯素**：豆腐 + 蔬菜，同价。
-- **无麸质**：可以。**师傅带无麸质酱油和照烧**，单独台面先做；姜汁酱含酱油，无麸质客人的沙拉不放；春卷做不了无麸质。写进订单备注让师傅知道。
+- **无麸质**（老板 11-02，D-1102-03）：可以。对客只说这句：`Yes. Gluten-free plates are cooked first and seasoned with salt and gluten-free soy sauce.` 问清是谁，写进订单备注让师傅知道。**不主动提酱料**（姜汁酱、yum yum、照烧），客人主动问了才答，问到就如实说：姜汁酱含麸质，无麸质客人的沙拉不放；姜汁酱和 yum yum 不单做无麸质版；照烧不是无麸质，不承诺；春卷和饺子含麸质。师傅的无麸质酱油是大瓶分装，瓶上没标签，客人问就这么说。
 - **鸡蛋过敏**：两种自制酱（yum yum、姜汁）都含蛋，不放。
 - **坚果/芝麻**：不承诺（饺子含芝麻和小麦）。答法：`Could you tell me the exact allergy? I'll check the labels for that day and tell you honestly whether we can serve them safely.`
 - **坚果（老板 10-24 确认）**：我们的用料里**没有任何坚果**——油、yum yum、姜汁酱、饺子、炒饭调料都不含花生和树坚果。客人问坚果可以直接答没有，再加一句过敏的客人师傅先在擦干净的铁板上做：`No peanuts or tree nuts in any of it, including the oil, the sauces, the gyoza and the fried rice. Your chef will also cook their plates first on a clean grill, just to be safe.` 写进订单备注让师傅知道。芝麻照旧：饺子含芝麻，问到照实说；整个场地无过敏原仍不承诺。

@@ -80,7 +80,7 @@ Want the fried rice loaded? Add shrimp or chicken to it for $10 each, and extra 
   {
     question: "Can you handle gluten-free guests?",
     answer:
-      "Absolutely. We've served many gluten-free diners. Tell us when you book and your chef brings gluten-free soy and teriyaki and cooks that guest's plate on a separate station — no extra charge. Their salad comes without the ginger dressing, which is made with regular soy sauce; the yum yum sauce has no gluten ingredients. We do need the heads-up in advance, since our standard soy sauce is not gluten free.",
+      "Absolutely. We've served many gluten-free diners. Tell us when you book and your chef cooks that guest's plate first, seasoned with salt and gluten-free soy sauce — no extra charge. Their salad comes without the ginger dressing, which is made with regular soy sauce. We do need the heads-up in advance, since our standard soy sauce is not gluten free.",
   },
   {
     question: "What about vegetarians or vegans?",
