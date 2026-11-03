@@ -53,7 +53,7 @@ test("prep · a free appetizer goes by the head: 2.6 trays are 26 rolls, 1.1 tra
 const setupRows = (inv: Record<string, unknown>) =>
   orderPrep(inv as never, "2026-10-20T00:00:00Z", 0, 0).items.filter((i) => i.group === "setup").map((i) => [i.id, i.qty, i.unit])
 
-test("prep · cloths bought for the customer's own tables are a setup row of their own, on top of the rented tables' (2026-11-03)", () => {
+test("prep · cloths rented on their own for the customer's tables are a setup row of their own, on top of the rented tables' (2026-11-03)", () => {
   // RH-20261020-4480: place settings on all 28 rows, 5 cloths, no tables.
   const guests = Array.from({ length: 28 }, () => ({ proteins: ["chicken", "steak"], utensils: true }))
   assert.deepEqual(setupRows({ mode: "detailed", adultCount: 28, childCount: 0, guests, partyExtras: [{ id: "white_linen", qty: 5 }] }), [

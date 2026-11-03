@@ -339,10 +339,11 @@ export function orderPrep(
     })
     items.push({ id: "chairs", label: "椅子", qty: tcPersons, unit: "把", group: "setup" })
   }
-  // 单买的桌布（客人自己的桌子用）：租的桌子自带一张，这些另算。white_linen 一张
-  // $5，颜色看订单备注；white_tablecloth 是白的，一张 $8（老板 2026-11-03），从白
-  // 桌布那批里拿。镜像发票仓库 calcBom（2026-11-03 同天改：RH-20261020-4480 的
-  // 5 张桌布在发票上，装车单上没有）。
+  // 单租的桌布（客人自己的桌子用）：租桌椅送黑桌布，不租桌椅桌布才收钱，两码事
+  //（老板 2026-11-03），所以这些在租的桌子自带的那张之外另算。white_linen 黑的一张
+  // $5（11-03 以前的单颜色看订单备注）；white_tablecloth 白的一张 $8，从白桌布那批
+  // 里拿。镜像发票仓库 calcBom（2026-11-03 同天改：RH-20261020-4480 的 5 张桌布在
+  // 发票上，装车单上没有）。
   const linen = extras.find((e) => e.id === "white_linen")?.qty ?? 0
   const whiteCloths = extras.find((e) => e.id === "white_tablecloth")?.qty ?? 0
   if (linen > 0) items.push({ id: "tablecloths", label: "桌布（客人自己的桌子）", qty: linen, unit: "条", group: "setup" })

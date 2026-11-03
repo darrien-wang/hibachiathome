@@ -275,6 +275,11 @@ export const TABLES_CONCESSION_PER_GUEST = 4
  *
  * Charged per CLOTH, one per table (owner, 2026-09-30). It had been $5 per
  * guest, which quoted 18 guests $90 for five cloths. We seat 4 to a table.
+ *
+ * Only for the cloths that come with rented tables & chairs (black ones come
+ * free). Tablecloths rented on their own, for the customer's own tables, are a
+ * different thing (owner, 2026-11-03): $5 a cloth, $8 in white, the invoice's
+ * white_linen / white_tablecloth lines.
  */
 export const WHITE_CLOTH_PER_TABLE = 5
 export const GUESTS_PER_TABLE = 4
