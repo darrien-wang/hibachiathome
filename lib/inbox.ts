@@ -620,9 +620,6 @@ export async function computeInbox(
       const who = (lead.full_name ?? "").trim() || prettyPhone(n.peer)
       const blocked = Boolean(lead.sms_blocked_at)
       const waited = minutesSince(n.at, now)
-      // A brand-new lead whose only way in is email is a first response, not a
-      // data chore: ring like a new lead does.
-      const fresh = Boolean(lead.created_at && now - Date.parse(lead.created_at) < LEAD_LOOKBACK_MS)
       events.push({
         key: `undelivered:${n.peer}:${n.at}`,
         kind: "undelivered",
@@ -633,7 +630,7 @@ export async function computeInbox(
         url: `/admin?tab=leads&lead=${lead.id}`,
         at: n.at,
         waitedMinutes: waited,
-        ring: fresh && shouldRing(waited, now),
+        ring: undeliveredRings(lead, now, waited),
         leadId: lead.id,
         phone: n.peer,
       })
@@ -803,6 +800,24 @@ export function undeliveredStillOpen(
   if (lead.status === "lost" && !(lead.sms_blocked_at && (lead.email ?? "").trim())) return false
   if (emailedAt && Date.parse(emailedAt) >= Date.parse(lastOutAt)) return false
   return true
+}
+
+/**
+ * Whether a text that never arrived rings the phone. A brand-new lead whose
+ * only way in is email is a first response, not a data chore, so it rings
+ * like a new lead does - but only when there is an email to send. With none
+ * there is nothing left to do from the phone, and it stays on the list
+ * quietly: 11-03 626-819 called, the owner's call back went unanswered, both
+ * texts came back 30005, no email, and the app rang every 15 minutes for
+ * three hours.
+ */
+export function undeliveredRings(
+  lead: Pick<PhoneLead, "email" | "created_at">,
+  nowMs: number,
+  waitedMin: number,
+): boolean {
+  const fresh = Boolean(lead.created_at && nowMs - Date.parse(lead.created_at) < LEAD_LOOKBACK_MS)
+  return fresh && Boolean((lead.email ?? "").trim()) && shouldRing(waitedMin, nowMs)
 }
 
 const PT_STAMP = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })

@@ -5,7 +5,7 @@
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { undeliveredStillOpen } from "../lib/inbox"
+import { undeliveredRings, undeliveredStillOpen } from "../lib/inbox"
 
 const LAST_OUT = "2026-10-12T00:03:00Z"
 const blockedLost = { status: "lost", email: "guest@example.com", sms_blocked_at: "2026-10-12T00:03:05Z", sms_blocked_reason: "30006 landline" }
@@ -39,4 +39,14 @@ test("undelivered · an opt-out never comes back, a disqualified lead never show
 test("undelivered · an open lead with no receipt shows until it is emailed", () => {
   const open = { status: "qualified", email: null, sms_blocked_at: null, sms_blocked_reason: null }
   assert.equal(undeliveredStillOpen(open, LAST_OUT, null), true)
+})
+
+// 11-03: 626-819, no email, both texts 30005 - the phone rang every 15 minutes for three hours.
+test("undelivered · rings only for a lead from the last day that has an email to send instead", () => {
+  const now = Date.parse("2026-11-03T20:20:00Z")
+  const fresh = { email: "guest@example.com", created_at: "2026-11-03T19:59:00Z" }
+  assert.equal(undeliveredRings(fresh, now, 15), true)
+  assert.equal(undeliveredRings({ ...fresh, email: null }, now, 15), false)
+  assert.equal(undeliveredRings({ ...fresh, email: "  " }, now, 15), false)
+  assert.equal(undeliveredRings({ ...fresh, created_at: "2026-11-01T19:59:00Z" }, now, 15), false)
 })
