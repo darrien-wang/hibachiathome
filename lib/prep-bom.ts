@@ -339,6 +339,11 @@ export function orderPrep(
     })
     items.push({ id: "chairs", label: "椅子", qty: tcPersons, unit: "把", group: "setup" })
   }
+  // 单买的桌布（white_linen，客人自己的桌子用，颜色看订单备注）：租的桌子自带
+  // 一张，这些另算。镜像发票仓库 calcBom（2026-11-03 同天改：RH-20261020-4480
+  // 的 5 张桌布在发票上，装车单上没有）。
+  const linen = extras.find((e) => e.id === "white_linen")?.qty ?? 0
+  if (linen > 0) items.push({ id: "tablecloths", label: "桌布（客人自己的桌子）", qty: linen, unit: "条", group: "setup" })
   if (utPersons > 0) {
     // 客户在 /rentals 选过主题就写具体哪箱，没选过还是笼统一行（存量订单不变）。
     const theme = setup?.pkg === "full" ? findTheme(setup.themeId) : undefined

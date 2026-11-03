@@ -276,7 +276,7 @@ function ConsumeRow({ adminKey, owner, date, consumed, totals, onDone }: { admin
 
 // ---- 装备库存盘点：桌椅桌布餐具气罐，需求 vs 在库，一眼看够不够 ----
 
-const NEED_KEY: Record<string, string> = { tables: "tables", chairs: "chairs", utensils: "utensils" }
+const NEED_KEY: Record<string, string> = { tables: "tables", chairs: "chairs", utensils: "utensils", tablecloths: "tablecloths" }
 
 function StockSection({ adminKey, owner, stock, need, onSaved }: { adminKey: string; owner: boolean; stock: StockRow[]; need: PrepItem[]; onSaved: () => Promise<void> | void }) {
   const [edit, setEdit] = useState<Record<string, string>>({})
