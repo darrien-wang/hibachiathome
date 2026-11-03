@@ -53,6 +53,53 @@ export function MonthlyHeads({ adminKey, isMobile }: { adminKey: string; isMobil
       {error ? <div className="notice">{error}</div> : null}
       {!months ? (
         <div className="empty">读取中…</div>
+      ) : isMobile ? (
+        // Phone: one block per month. The 10-column table needed a sideways
+        // scroll and usually sat scrolled past the month names (2026-11-03).
+        <div>
+          {rows.map((r) => {
+            const future = r.month > thisMonth
+            const partial = r.month === thisMonth
+            return (
+              <div key={r.month} style={{ padding: "9px 0", borderBottom: "1px solid var(--color-line)", color: future ? "var(--color-neutral-600)" : undefined, fontVariantNumeric: "tabular-nums" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
+                  <span style={{ fontWeight: 700 }}>
+                    {monthLabel(r.month)}
+                    {partial ? <span style={{ fontWeight: 400, color: "var(--color-neutral-600)" }}> · 本月（已办 {r.done}）</span> : future ? <span style={{ fontWeight: 400 }}> · 已订</span> : null}
+                  </span>
+                  <span style={{ whiteSpace: "nowrap" }}>
+                    {r.parties} 场 · <strong>{r.countOnly ? "—" : `${r.openParties ? "约 " : ""}${headsText(r.heads)} 人`}</strong>
+                  </span>
+                </div>
+                {r.countOnly ? (
+                  <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", marginTop: 3 }}>只有场次（2025 导入，无人数金额）</div>
+                ) : (
+                  <>
+                    <div style={{ height: 6, background: "var(--color-neutral-200)", marginTop: 6 }}>
+                      <div style={{ height: "100%", width: `${Math.round((100 * r.heads) / maxHeads)}%`, background: future ? "var(--color-neutral-500)" : "var(--color-text)" }} />
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--color-neutral-700)", marginTop: 5, display: "flex", flexWrap: "wrap", columnGap: 10, rowGap: 2 }}>
+                      <span>
+                        大人 {r.adults} · 收费小孩 {r.kids} · 免费 {r.littles}
+                      </span>
+                      {withMoney && r.revenueCents != null ? (
+                        <span>
+                          营业额 <strong>{money0(r.revenueCents)}</strong>
+                          {r.heads > 0 ? ` · 每位 ${money0(Math.round(r.revenueCents / r.heads))}` : ""}
+                        </span>
+                      ) : null}
+                    </div>
+                    {r.openParties ? (
+                      <div style={{ fontSize: 12, color: "var(--color-accent-700)", marginTop: 2 }}>
+                        其中待定 {r.openParties} 场 · 约 {headsText(r.openHeads)} 人{r.openRevenueCents != null ? ` · ${money0(r.openRevenueCents)}` : ""}
+                      </div>
+                    ) : null}
+                  </>
+                )}
+              </div>
+            )
+          })}
+        </div>
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table style={{ borderCollapse: "collapse", fontSize: 13, width: "100%", minWidth: isMobile ? 520 : 0 }}>

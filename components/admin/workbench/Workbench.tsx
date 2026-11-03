@@ -315,7 +315,7 @@ export default function Workbench() {
       </main>
 
       {isMobile ? (
-        <nav style={{ position: "fixed", left: 0, right: 0, bottom: 0, display: "flex", borderTop: "2px solid var(--color-divider)", background: "var(--color-bg)", zIndex: 20, paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <nav className="wb-mnav" style={{ position: "fixed", left: 0, right: 0, bottom: 0, display: "flex", borderTop: "2px solid var(--color-divider)", background: "var(--color-bg)", zIndex: 20, paddingBottom: "env(safe-area-inset-bottom)" }}>
           {tabs.map(([t, label]) => (
             <button key={t} type="button" className="wb-mtab" aria-current={tab === t && !searching ? "page" : undefined} onClick={() => go(t)}>
               {label}

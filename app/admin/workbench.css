@@ -185,6 +185,12 @@
   color: var(--color-text); font-weight: 600; flex: 1; display: inline-flex; justify-content: center; gap: 4px;
 }
 .wb-mtab[aria-current="page"] { color: var(--color-accent); border-top-color: var(--color-accent); }
+/* Ten tabs on a 400px phone: labels stay on one line ("员工 20" used to break
+   into two), and the bar scrolls sideways instead of squeezing (2026-11-03). */
+.wb-mnav { overflow-x: auto; scrollbar-width: none; }
+.wb-mnav::-webkit-scrollbar { display: none; }
+.wb-mnav .wb-mtab { flex: 1 0 auto; padding-left: 6px; padding-right: 6px; white-space: nowrap; gap: 2px; }
+.wb-mnav .wb-badge { font-size: 10.5px; }
 .wb-badge { color: var(--color-accent); font-weight: 800; }
 .wb-search {
   display: flex; align-items: center; gap: 8px; border: 1px solid var(--color-divider); padding: 0 10px; height: 36px;

@@ -315,10 +315,13 @@ export function BoardTab({
 
       <MonthlyHeads adminKey={adminKey} isMobile={isMobile} />
 
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 3fr) minmax(0, 2fr)", gap: 28, alignItems: "start" }}>
+      {/* minmax(0, …) on mobile too: a bare 1fr track grows to its widest
+          table, which pushed the channel cards' CPA and every right-hand
+          column off a 400px phone screen (2026-11-03). */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "minmax(0, 3fr) minmax(0, 2fr)", gap: 28, alignItems: "start" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, gap: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, gap: 12, flexWrap: "wrap" }}>
               <h4>渠道 · 每个环节</h4>
               <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>CPA = 花费 ÷ 押金单 · n&lt;10 别下结论</span>
             </div>
@@ -404,10 +407,39 @@ export function BoardTab({
 
           {campaigns.length > 0 ? (
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, gap: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, gap: 12, flexWrap: "wrap" }}>
                 <h4>广告系列 · 花费</h4>
                 <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>留资按 utm_campaign 对上的算 · {lastSync ? `Google 最近同步 ${ptDateOf(lastSync)}` : "Google 未同步过"} · {lastMetaSync ? `Meta 最近同步 ${ptDateOf(lastMetaSync)}` : "Meta 本期无同步"}</span>
               </div>
+              {isMobile ? (
+                <div className="wb-list">
+                  {campaigns.map((c) => (
+                    <div key={c.name} className="wb-line" style={{ opacity: c.cost === 0 ? 0.5 : 1 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 600 }}>{c.name}</div>
+                          <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{channelLabel(c.channel)}</div>
+                        </div>
+                        <div style={{ fontWeight: 800, whiteSpace: "nowrap" }}>{money0(c.cost)}</div>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,minmax(0,1fr))", gap: 6, fontSize: 12, marginTop: 8 }}>
+                        {[
+                          ["展示", num(c.impr)],
+                          ["点击", num(c.clicks)],
+                          ["CPC", c.clicks ? money(c.cost / c.clicks) : "–"],
+                          ["留资", c.leads ? String(c.leads) : "–"],
+                          ["成单", c.won ? String(c.won) : "–"],
+                        ].map(([k, v]) => (
+                          <div key={k}>
+                            <div style={{ color: "var(--color-neutral-600)", fontSize: 10 }}>{k}</div>
+                            {v}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
               <table className="table">
                 <thead>
                   <tr>
@@ -439,13 +471,14 @@ export function BoardTab({
                   ))}
                 </tbody>
               </table>
+              )}
             </div>
           ) : null}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, gap: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, gap: 12, flexWrap: "wrap" }}>
               <h4>按天 · {md(since)} 之后有什么变化</h4>
               <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>条 = 花费</span>
             </div>
@@ -453,7 +486,7 @@ export function BoardTab({
               {daily.map(({ d, t }) => {
                 const after = d >= since
                 return (
-                  <div key={d} style={{ display: "grid", gridTemplateColumns: "70px 1fr 120px", gap: 10, alignItems: "center", padding: "6px 0 6px 8px", borderBottom: "1px solid var(--color-line)", borderLeft: `3px solid ${d === since ? "var(--color-accent)" : "transparent"}`, background: after ? "var(--color-surface)" : "transparent" }}>
+                  <div key={d} style={{ display: "grid", gridTemplateColumns: "64px minmax(0, 1fr) auto", gap: 10, alignItems: "center", padding: "6px 0 6px 8px", borderBottom: "1px solid var(--color-line)", borderLeft: `3px solid ${d === since ? "var(--color-accent)" : "transparent"}`, background: after ? "var(--color-surface)" : "transparent" }}>
                     <div style={{ fontSize: 12, fontWeight: after ? 600 : 400 }}>
                       {md(d)} <span style={{ color: "var(--color-neutral-600)", fontWeight: 400 }}>{dowZh(d).slice(1)}</span>
                     </div>
@@ -492,7 +525,7 @@ export function BoardTab({
           </div>
 
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, gap: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, gap: 12, flexWrap: "wrap" }}>
               <h4>月度 · 按下单月</h4>
               <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>洛杉矶时间切月 · 不含已取消</span>
             </div>
@@ -575,10 +608,10 @@ function SupplyCostCard({ adminKey }: { adminKey: string }) {
 
   const line = (label: string, st: SupplyStats | undefined) =>
     st ? (
-      <div style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "6px 0", borderBottom: "1px solid var(--color-line)" }}>
-        <span style={{ width: 88, flex: "none", color: "var(--color-neutral-600)", fontSize: 13 }}>{label}</span>
-        <strong style={{ fontVariantNumeric: "tabular-nums" }}>{st.perGuestExBulkCents != null ? `$${(st.perGuestExBulkCents / 100).toFixed(2)} /人` : "—"}</strong>
-        <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", columnGap: 10, rowGap: 2, alignItems: "baseline", padding: "6px 0", borderBottom: "1px solid var(--color-line)" }}>
+        <span style={{ width: 72, flex: "none", color: "var(--color-neutral-600)", fontSize: 13 }}>{label}</span>
+        <strong style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{st.perGuestExBulkCents != null ? `$${(st.perGuestExBulkCents / 100).toFixed(2)} /人` : "—"}</strong>
+        <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)", flex: "1 1 220px", minWidth: 0 }}>
           不含大宗
           {st.perGuestWithSakeCents != null && st.sakePerGuestCents ? ` · 加清酒（按用量 $${(st.sakePerGuestCents / 100).toFixed(2)}/人）$${(st.perGuestWithSakeCents / 100).toFixed(2)}` : ""}
           {" · "}全口径 {st.perGuestCents != null ? `$${(st.perGuestCents / 100).toFixed(2)}` : "—"} · 花 {money(st.spendCents)}
@@ -592,7 +625,7 @@ function SupplyCostCard({ adminKey }: { adminKey: string }) {
   const shown = showAll ? rows : rows.slice(0, 5)
   return (
     <div className="card" style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
         <h3 style={{ margin: 0 }}>食材成本 · 每人平均</h3>
         <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>采购流水 ÷ 已办场次人数。主数字不含大宗（米/酱油/油/清酒——能用几个月，落在哪天纯属偶然）；师傅多拿少拿属正常波动，看 30 天线的趋势就行</span>
       </div>
