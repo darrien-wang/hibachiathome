@@ -120,7 +120,7 @@ async function record(supabase: SupabaseClient, leadId: string, type: string, pa
   })
 }
 
-export async function markCallbackDone(supabase: SupabaseClient, leadId: string, how: "connected" | "dismissed" | "called", detail?: string) {
+export async function markCallbackDone(supabase: SupabaseClient, leadId: string, how: "connected" | "dismissed" | "called" | "heard", detail?: string) {
   await record(supabase, leadId, "callback_done", { how, detail: detail ?? null })
 }
 

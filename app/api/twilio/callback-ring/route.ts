@@ -80,9 +80,15 @@ export async function POST(request: NextRequest) {
     return twiml(`<Redirect method="POST">${escapeXml(here("prompt"))}</Redirect>`)
   }
 
-  const line = isLivePartyAlarm(open.why)
-    ? `客人${spokenName(open)}的派对现场有情况，请看 Claude 的消息。按 1，现在接通客人；按 2，十分钟后再提醒；按 3，不用回电。`
-    : `客人${spokenName(open)}想跟你通电话。按 1，现在接通；按 2，十分钟后再提醒；按 3，不用回电。`
+  // A live party alarm needs no key: the App has no keypad (owner 2026-11-02), and picking up is
+  // the answer. The summary is in the desk's message, so the ring only says where to look.
+  if (isLivePartyAlarm(open.why)) {
+    await markCallbackDone(supabase, leadId, "heard", params.CallSid)
+    const alarm = `客人${spokenName(open)}的派对现场有情况，请看 Claude 的消息。`
+    return twiml(`${say(alarm)}<Pause length="1"/>${say(alarm)}`)
+  }
+
+  const line = `客人${spokenName(open)}想跟你通电话。按 1，现在接通；按 2，十分钟后再提醒；按 3，不用回电。`
   return twiml(
     `<Gather input="dtmf" numDigits="1" timeout="8" action="${escapeXml(here("key"))}" method="POST">${say(line)}<Pause length="1"/>${say(line)}</Gather>` +
       say("没有按键。十分钟后会再响一次。"),
