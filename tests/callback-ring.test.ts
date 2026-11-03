@@ -4,7 +4,7 @@
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { LIVE_PARTY_RING_HOURS_PT, isLivePartyAlarm, spokenName, wantsCall, withinRingHours } from "../lib/callback-ring"
+import { LIVE_PARTY_RING_HOURS_PT, isLivePartyAlarm, openFromRows, spokenName, wantsCall, withinRingHours } from "../lib/callback-ring"
 
 test("callback · Jose's two texts on 10-09 ring", () => {
   assert.equal(wantsCall("If you can call me that'd be great. I'm driving."), true)
@@ -46,6 +46,23 @@ test("callback · rings 8 AM to 10 PM Pacific only", () => {
   assert.equal(withinRingHours(Date.parse("2026-10-10T05:30:00Z")), false) // 22:30 PDT
   assert.equal(withinRingHours(Date.parse("2026-10-10T14:59:00Z")), false) // 07:59 PDT
   assert.equal(withinRingHours(Date.parse("2026-10-10T15:00:00Z")), true) // 08:00 PDT
+})
+
+test("callback · a ring written in the same instant as its request still counts", () => {
+  // 11-02: the database handed back the ring before the request, the ring was dropped and the
+  // owner was rung again 27 seconds later.
+  const at = "2026-11-03T07:44:33.000Z"
+  const open = openFromRows("lead", [
+    { touchpoint_type: "callback_ring", occurred_at: at, raw_payload_json: { attempt: 1 } },
+    { touchpoint_type: "callback_request", occurred_at: at, raw_payload_json: { phone: "+13105550143", name: "Jenna", why: "现场：测试" } },
+  ])
+  assert.equal(open?.rings, 1)
+  assert.equal(open?.lastRingAt, Date.parse(at))
+  const done = openFromRows("lead", [
+    { touchpoint_type: "callback_done", occurred_at: "2026-11-03T07:50:00.000Z", raw_payload_json: { how: "heard" } },
+    { touchpoint_type: "callback_request", occurred_at: at, raw_payload_json: { phone: "+13105550143" } },
+  ])
+  assert.equal(done, null)
 })
 
 test("callback · a live party alarm (why 现场…) rings until midnight", () => {

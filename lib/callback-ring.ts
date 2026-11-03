@@ -79,7 +79,7 @@ export type OpenCallback = {
   snoozeUntil: number | null
 }
 
-type Row = { touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> | null }
+export type Row = { touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> | null }
 
 export async function openCallback(supabase: SupabaseClient, leadId: string): Promise<OpenCallback | null> {
   const { data } = await supabase
@@ -89,8 +89,20 @@ export async function openCallback(supabase: SupabaseClient, leadId: string): Pr
     .in("touchpoint_type", ["callback_request", "callback_ring", "callback_snooze", "callback_done"])
     .order("occurred_at", { ascending: true })
     .limit(200)
+  return openFromRows(leadId, (data ?? []) as Row[])
+}
+
+// A request and its first ring are written with the same timestamp (requestCallback hands its `now`
+// to ringIfDue), and the database returns ties in any order. Read the request first, or the ring is
+// dropped and the next sweep rings again at once (11-02: a second ring 27 seconds after the first).
+const ROW_ORDER: Record<string, number> = { callback_request: 0, callback_ring: 1, callback_snooze: 2, callback_done: 3 }
+
+export function openFromRows(leadId: string, rows: Row[]): OpenCallback | null {
+  const sorted = rows
+    .slice()
+    .sort((a, b) => Date.parse(a.occurred_at) - Date.parse(b.occurred_at) || (ROW_ORDER[a.touchpoint_type] ?? 9) - (ROW_ORDER[b.touchpoint_type] ?? 9))
   let open: OpenCallback | null = null
-  for (const r of (data ?? []) as Row[]) {
+  for (const r of sorted) {
     const at = Date.parse(r.occurred_at)
     const p = r.raw_payload_json ?? {}
     if (r.touchpoint_type === "callback_request") {
