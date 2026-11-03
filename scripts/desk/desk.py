@@ -1600,14 +1600,15 @@ def _price_check(data: dict, inv: dict) -> None:
                 tier = 0.0  # appreciation in place of the tier (they do not stack)
         amt = lambda x: float(x.get("amount") or 0)
         appetizers = sum(_weekday_appetizer(x, data) for x in weekday)
-        own = [x for x in promos if not (_is_party_line(x) or x in weekday or x in little)]
+        after = round(sum(amt(x) for x in promos if x.get("afterMinimum")), 2)  # off after the minimum
+        own = [x for x in promos if not (_is_party_line(x) or x in weekday or x in little or x.get("afterMinimum"))]
         other = round(sum(amt(x) for x in own) + appetizers, 2)
         extras = round(float(inv.get("subtotal") or 0) - float(inv.get("baseCost") or 0)
                        - tables * SETUP_PRICES["tables_chairs"] - utensils * SETUP_PRICES["utensils"], 2)
         travel = float(inv.get("travelFee") or 0)
         floor = float(p.get("minimum") or MINIMUM_SPEND)
         raw = food + rentals - tier + extras - other
-        expected = round(max(raw, floor) + travel, 2)
+        expected = round(max(0.0, max(raw, floor) - after) + travel, 2)
         total = float(inv["cashTotal"]) if inv.get("cashTotal") is not None else float(inv.get("finalTotal") or 0) - float(inv.get("creditCardFee") or 0)
         gap = round(total - expected, 2)
         party_s = (_party_s(adults, kids)
@@ -1616,7 +1617,8 @@ def _price_check(data: dict, inv: dict) -> None:
         tier_s = f"-{money(tier)}" if tier else "none"
         sums = (f"desk price {party_s} → {money(pr.get('total'))} [{pr.get('plan')}, party size {tier_s}]"
                 f" + extras {money(extras)} - other promos {money(other)} + travel {money(travel)}"
-                + (f", at the {money(floor)} minimum" if raw < floor else ""))
+                + (f", at the {money(floor)} minimum" if raw < floor else "")
+                + (f", then {money(after)} off after the minimum" if after else ""))
         notes = ([f"no usable date - compared at the {pr.get('plan')} rate the order's promotions imply"] if not usable else []) + (
             [f"{stand_in.get('id')} stands in for the party-size discount"] if stand_in else [])
         if abs(gap) <= 1:
@@ -2305,8 +2307,16 @@ def cmd_order(a):
                     raise SystemExit("--add-promo ID=AMOUNT needs --promo-label \"what the customer sees\"")
                 if any(x.get("id") == m.group(1) for x in promos):
                     raise SystemExit(f"--add-promo {m.group(1)}: that line already exists - use --promo to change its amount")
-                promos.append({"id": m.group(1), "label": a.promo_label[:80], "amount": float(m.group(2))})
-                changes.append(f"promo added: {m.group(1)} '{a.promo_label[:80]}' {money(float(m.group(2)))}")
+                # Owner 2026-11-02 (Jenna): "$50 off" on a party at the minimum
+                # came to $3.45, so an apology can ride after the minimum.
+                line = {"id": m.group(1), "label": a.promo_label[:80], "amount": float(m.group(2))}
+                if a.after_minimum:
+                    line["afterMinimum"] = True
+                promos.append(line)
+                changes.append(f"promo added: {m.group(1)} '{a.promo_label[:80]}' {money(float(m.group(2)))}"
+                               + (" (after the minimum)" if a.after_minimum else ""))
+            elif a.after_minimum:
+                raise SystemExit("--after-minimum goes with --add-promo")
         if a.free_item:
             # Appetizer trays promised free (20+ guests, the full setup, a
             # concession): the trays go into partyExtras and a fixed "FREE:"
@@ -2891,6 +2901,7 @@ def main(argv=None):
     p.add_argument("--remove-promo", nargs="+", action="extend", metavar="ID", help="drop stored promotion lines by id")
     p.add_argument("--add-promo", metavar="ID=AMOUNT", help="add a promotion line, e.g. appreciation_teacher=50 (with --promo-label)")
     p.add_argument("--promo-label", help="label for --add-promo, as the customer reads it")
+    p.add_argument("--after-minimum", action="store_true", help="with --add-promo: the line comes off after the $599 minimum, so it can take the bill under it - an owner's apology (the minimum swallows a plain line)")
     p.add_argument("--deal-note", help="why the deal (80 chars, shown after the label)")
     p.add_argument("--promo", nargs="+", action="extend", metavar="ID=AMOUNT", help="set a stored promotion's dollar amount, e.g. official_weekday=89.80. "
                    "Promotions are frozen numbers on the invoice, not rules, so a per-head one (the Weekday Special) has to be re-stated "
