@@ -2,16 +2,20 @@
 
 import { useEffect, useState } from "react"
 import { geoLocationName } from "@/config/geo-locations"
+import { adCityName } from "@/config/ad-city-names"
 
 // Ads clicks arrive with ?loc=<geo target id> (account final URL suffix). When the
 // visitor's city is known and differs from the page's city, show theirs — the
 // headline they clicked already said it. Server-renders the fallback so there is
 // no hydration mismatch; swaps after mount.
 //
-// Resolution order: the small static table (top SoCal cities, ships with the
-// page) → /api/geo-name (full California table incl. postal codes, server-side).
-// Google sends a postal-code id for most phone clicks, so the API path is the
-// common one; one cached fetch per page view.
+// Resolution order: the city the ad itself named (utm_content of a "LA Cities"
+// group, config/ad-city-names — the headline was "Hibachi at Home in Downey",
+// so the card says Downey even when the phone is in Norwalk; 2026-11-04) → the
+// small static table (top SoCal cities, ships with the page) → /api/geo-name
+// (full California table incl. postal codes, server-side). Google sends a
+// postal-code id for most phone clicks, so the API path is the common one; one
+// cached fetch per page view.
 
 const resolved = new Map<string, Promise<string | null>>()
 
@@ -35,7 +39,13 @@ export function useLocCity(fallback: string, enabled = true): string {
     if (!enabled) return
     let alive = true
     try {
-      const loc = new URLSearchParams(window.location.search).get("loc")
+      const params = new URLSearchParams(window.location.search)
+      const adCity = adCityName(params.get("utm_content"))
+      if (adCity) {
+        setCity(adCity)
+        return
+      }
+      const loc = params.get("loc")
       if (!loc || !/^\d{1,12}$/.test(loc)) return
       resolveLoc(loc).then((name) => {
         if (alive && name) setCity(name)
