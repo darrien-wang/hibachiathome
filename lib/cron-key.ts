@@ -25,6 +25,9 @@ export const CRON_PURPOSE_REDDIT_WATCH = "reddit-watch"
 /** 每周一早上的同行周报：Meta 广告库 / Google 广告透明中心 / 同行 Google 新差评（2026-10-21） */
 export const CRON_PURPOSE_COMPETITOR_WATCH = "competitor-watch"
 
+/** 每小时把 Google（服务账号）/ Meta 最近几天的花费同步进 ad_spend_daily（2026-11-04 起由 pg_cron 调，取代只在电脑开着时跑的桌面任务 ads-spend-sync） */
+export const CRON_PURPOSE_AD_SPEND = "ad-spend"
+
 export function cronKeyFor(purpose: string, base = process.env.LEAD_WATCH_CRON_KEY): string | null {
   const k = (base ?? "").trim()
   return k ? createHmac("sha256", k).update(purpose).digest("hex") : null

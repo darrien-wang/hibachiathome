@@ -1,11 +1,43 @@
 // Google Ads over REST for serverless routes. The gRPC SDK drags native deps
 // and cold-start time into a Vercel function; three fetches do the job.
-// Env (Vercel project only, not in .env.local): GOOGLE_ADS_CLIENT_ID /
-// CLIENT_SECRET / REFRESH_TOKEN / DEVELOPER_TOKEN / CUSTOMER_ID / LOGIN_CUSTOMER_ID.
+// Env (Vercel project only, not in .env.local): GOOGLE_ADS_DEVELOPER_TOKEN /
+// CUSTOMER_ID, plus one of two ways to get a token:
+//   - GOOGLE_ADS_SERVICE_ACCOUNT_JSON: the service-account key file's contents
+//     (2026-11-04). The account has direct access, no expiry, and must NOT be
+//     sent with login-customer-id (the MCC header turns into a 403). Preferred.
+//   - GOOGLE_ADS_CLIENT_ID / CLIENT_SECRET / REFRESH_TOKEN (+ LOGIN_CUSTOMER_ID):
+//     the OAuth refresh token Google kept revoking under the 7-day testing rule.
+import { JWT } from "google-auth-library"
 
 const API_VERSION = "v22"
 
+type ServiceAccount = { client_email: string; private_key: string }
+
+function serviceAccount(): ServiceAccount | null {
+  const raw = process.env.GOOGLE_ADS_SERVICE_ACCOUNT_JSON?.trim()
+  if (!raw) return null
+  let parsed: { client_email?: string; private_key?: string }
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    throw new Error("GOOGLE_ADS_SERVICE_ACCOUNT_JSON is not valid JSON (paste the key file's contents as-is)")
+  }
+  if (!parsed.client_email || !parsed.private_key) throw new Error("GOOGLE_ADS_SERVICE_ACCOUNT_JSON missing client_email/private_key")
+  return { client_email: parsed.client_email, private_key: parsed.private_key }
+}
+
+export function googleAdsAuthMode(): "service_account" | "oauth" {
+  return serviceAccount() ? "service_account" : "oauth"
+}
+
 export async function getGoogleAdsAccessToken(): Promise<string> {
+  const sa = serviceAccount()
+  if (sa) {
+    const jwt = new JWT({ email: sa.client_email, key: sa.private_key, scopes: ["https://www.googleapis.com/auth/adwords"] })
+    const r = await jwt.getAccessToken()
+    if (!r?.token) throw new Error("service account returned no access token")
+    return r.token
+  }
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -39,8 +71,9 @@ export async function googleAdsSearch<T = Record<string, unknown>>(query: string
     "developer-token": developerToken,
     "Content-Type": "application/json",
   }
-  // Direct child-account access must not carry login-customer-id (MCC → 403).
-  if (loginCustomerId) headers["login-customer-id"] = loginCustomerId
+  // Direct child-account access must not carry login-customer-id (MCC → 403);
+  // the service account is direct access, so it never sends the header.
+  if (loginCustomerId && googleAdsAuthMode() === "oauth") headers["login-customer-id"] = loginCustomerId
   const res = await fetch(`https://googleads.googleapis.com/${API_VERSION}/customers/${customerId}/googleAds:searchStream`, {
     method: "POST",
     headers,

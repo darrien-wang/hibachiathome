@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { can, resolveAdminActor } from "@/lib/admin-auth"
-import { fetchGoogleCampaignDays, googleAdsCustomerId } from "@/lib/google-ads-rest"
+import { CRON_PURPOSE_AD_SPEND, isCronCall } from "@/lib/cron-key"
+import { fetchGoogleCampaignDays, googleAdsAuthMode, googleAdsCustomerId } from "@/lib/google-ads-rest"
 import { fetchMetaAccountStatus, fetchMetaCampaignDays, metaAdAccountId, metaConfigured } from "@/lib/meta-ads-rest"
 import { PAID_CHANNELS, isPaidChannel } from "@/lib/channels"
 
@@ -14,11 +15,14 @@ export const dynamic = "force-dynamic"
 //   POST ?action=sync_google&days=N  pull campaign×day from the Google Ads API
 //   POST ?action=sync_meta&days=N    pull campaign×day from the Meta Marketing API
 //   POST ?action=meta_status         is the ad account restricted, or is it our token? (read-only)
+//   POST ?action=sync_*&consumer=cron  pg_cron every hour with the derived key
+//                                      "ad-spend" (2026-11-04); only the two syncs
 // The workbench calls sync_google from the 看板. The ads-analytics repo pushes
 // the same campaign×day rows with source "api" through its service account
-// (`sync-spend.ts --google-sa`), which does not depend on the OAuth refresh
-// token that Google revokes; both writers share the upsert key, so whichever
-// runs last simply refreshes the row. Other channels arrive as CSV.
+// (`sync-spend.ts --google-sa`); since 2026-11-04 the site can use the same
+// service account (GOOGLE_ADS_SERVICE_ACCOUNT_JSON) instead of the OAuth
+// refresh token that Google revokes; all writers share the upsert key, so
+// whichever runs last simply refreshes the row. Other channels arrive as CSV.
 
 type SpendRowInput = {
   channel: string
@@ -77,12 +81,19 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const actor = await resolveAdminActor(request)
-  if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (!can(actor, "board")) return NextResponse.json({ error: "没有看板权限" }, { status: 403 })
+  const action = request.nextUrl.searchParams.get("action")
+  // The hourly pg_cron job carries the derived key "ad-spend" and may only run
+  // the two API syncs; hand-entered rows still need a workbench actor.
+  const cron = (action === "sync_google" || action === "sync_meta") && isCronCall(request, CRON_PURPOSE_AD_SPEND)
+  let alias = "cron"
+  if (!cron) {
+    const actor = await resolveAdminActor(request)
+    if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+    if (!can(actor, "board")) return NextResponse.json({ error: "没有看板权限" }, { status: 403 })
+    alias = actor.alias
+  }
   const supabase = createServerSupabaseClient()
   if (!supabase) return NextResponse.json({ ok: false, error: "supabase not configured" }, { status: 500 })
-  const action = request.nextUrl.searchParams.get("action")
 
   if (action === "sync_google") {
     const days = Math.min(400, Math.max(1, int(request.nextUrl.searchParams.get("days") ?? 14)))
@@ -106,7 +117,7 @@ export async function POST(request: NextRequest) {
         platform_conversions: r.conversions,
         platform_conversion_value_cents: r.conversionValueCents,
         source: "api",
-        created_by: `sync:${actor.alias}`,
+        created_by: `sync:${alias}`,
         updated_at: now,
       }))
       if (upserts.length) {
@@ -114,7 +125,7 @@ export async function POST(request: NextRequest) {
         if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
       }
       const cost = upserts.reduce((a, r) => a + r.cost_cents, 0)
-      return NextResponse.json({ ok: true, channel: "google_ads", from, to, rows: upserts.length, costCents: cost })
+      return NextResponse.json({ ok: true, channel: "google_ads", auth: googleAdsAuthMode(), from, to, rows: upserts.length, costCents: cost })
     } catch (error) {
       return NextResponse.json({ ok: false, error: String(error) }, { status: 200 })
     }
@@ -156,7 +167,7 @@ export async function POST(request: NextRequest) {
         platform_conversion_value_cents: 0,
         source: "api",
         note: r.clicks !== r.linkClicks ? `all_clicks=${r.clicks}` : null,
-        created_by: `sync:${actor.alias}`,
+        created_by: `sync:${alias}`,
         updated_at: now,
       }))
       if (upserts.length) {
@@ -206,7 +217,7 @@ export async function POST(request: NextRequest) {
         platform_conversion_value_cents: int(r.platformConversionValueCents),
         source: r.source === "csv" ? "csv" : r.source === "api" ? "api" : "manual",
         note: r.note?.trim() || null,
-        created_by: actor.alias,
+        created_by: alias,
         updated_at: now,
       },
     ]
