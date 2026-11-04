@@ -9,7 +9,9 @@
 //     the OAuth refresh token Google kept revoking under the 7-day testing rule.
 import { JWT } from "google-auth-library"
 
-const API_VERSION = "v22"
+// v22 was sunset by Google in Oct 2026 (UNSUPPORTED_VERSION, found 2026-11-04);
+// keep this on a version the Python client in ads-analytics also uses.
+const API_VERSION = "v25"
 
 type ServiceAccount = { client_email: string; private_key: string }
 
@@ -80,7 +82,11 @@ export async function googleAdsSearch<T = Record<string, unknown>>(query: string
     body: JSON.stringify({ query }),
     cache: "no-store",
   })
-  if (!res.ok) throw new Error(`google ads query failed: ${res.status} ${(await res.text()).slice(0, 300)}`)
+  if (!res.ok) {
+    // Keep the errorCode (deep in the JSON) visible; 300 chars cut it off.
+    const text = (await res.text()).replace(/\s+/g, " ")
+    throw new Error(`google ads query failed: ${res.status} ${text.slice(0, 800)}`)
+  }
   const chunks = (await res.json()) as Array<{ results?: T[] }>
   return chunks.flatMap((c) => c.results ?? [])
 }
