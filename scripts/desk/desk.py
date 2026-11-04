@@ -204,6 +204,38 @@ def money(v) -> str:
         return "?"
 
 
+def last_invoice_line(order_id: str | None, balance_cents) -> str:
+    """What the customer was last emailed for this order, and whether the order still matches it.
+
+    2026-11-03 (Neha, RH-20261020-4480): an old card said $1,416.20 while the
+    order said $1,581.20 - the customer had added plates and tablecloths that
+    afternoon and been sent three invoices since. Quoting a figure means quoting
+    the last invoice sent, so the card shows it; when the unpaid balance has
+    moved since, the customer is holding a stale invoice.
+    Only invoices sent by email are logged (invoice_emailed, plus the one
+    backfilled invoice_sent); the party-page link always shows the live order.
+    """
+    if not order_id:
+        return ""
+    try:
+        rows = _supabase("GET", f"/rest/v1/order_events?select=created_at,metadata&order_id=eq.{order_id}"
+                         "&action=in.(invoice_emailed,invoice_sent)&order=created_at.desc&limit=1", None, "application/json")
+    except (ApiError, SystemExit) as e:
+        return f"   发票: 查不到发送记录 ({getattr(e, 'status', e)})"
+    if not rows:
+        return "   发票: 还没用邮件发过（派对页链接上一直是最新的）"
+    m = rows[0].get("metadata") or {}
+    sent = m.get("balance_due")
+    line = (f"   最后发给客人的发票 {pt(rows[0].get('created_at'))} → {m.get('to') or m.get('email') or '?'}"
+            f"  总额 {money(m.get('total'))}  尾款 {money(sent)}")
+    # A paid order's balance drops to 0 after the party; that is not a stale invoice.
+    if isinstance(balance_cents, (int, float)) and balance_cents > 0 and sent is not None and round(float(sent) * 100) != int(balance_cents):
+        warn = (f"   ⚠ 订单尾款 ${balance_cents / 100:,.2f} ≠ 最后发出的 {money(sent)}："
+                "客人手上那张是旧的，报数前先重发（desk order email）或说清差在哪")
+        line += "\n" + (f"\033[31m{warn}\033[0m" if sys.stdout.isatty() else warn)
+    return line
+
+
 # ---------------------------------------------------------------- renderers --
 def fmt_msg(m: dict, seconds: bool = False) -> str:
     who = "客" if m.get("direction") == "inbound" else "我"
@@ -311,6 +343,7 @@ def render_card(c: dict) -> None:
               f"  {when or '未定'}{'（时间待定）' if isinstance(meta, dict) and meta.get('event_time_tbd') else ''}  {o.get('event_address') or '-'}"
               f"  {o.get('guest_adult_count') or '?'}大{o.get('guest_child_count') or 0}小"
               f"{f'  尾款 ${bal / 100:,.2f}' if isinstance(bal, (int, float)) else ''}")
+        print(last_invoice_line(o.get("id"), bal))
     thread = c.get("thread") or []
     # Forms the customer filled on the site are their lines in the conversation
     # ("客 … [网站·报价页点了在线订] …"): a reply through the site is a reply.
@@ -2018,6 +2051,7 @@ def cmd_order(a):
         if not data:
             data = row.get("invoice_data") or {}
         _print_invoice(order_no, data)
+        print(last_invoice_line(order["id"], row.get("balance_due_cents", order.get("balance_due_cents"))))
         _print_plan(row, detail.get("staffing"))
         _print_lint(_order_lint(order))
         if row.get("internal_notes"):
