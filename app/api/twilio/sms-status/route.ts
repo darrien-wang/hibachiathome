@@ -20,6 +20,8 @@ function describe(errorCode: string): string {
     case "30006": return "landline or unreachable carrier"
     case "30007": return "carrier flagged the message as spam"
     case "21610": return "this number replied STOP — they are opted out"
+    case "21211": return "not a valid phone number"
+    case "21614": return "not a mobile number"
     case "21704": return "the Messaging Service has no sending number attached"
     default: return "carrier did not deliver it"
   }
@@ -63,7 +65,9 @@ export async function POST(request: NextRequest) {
     // block lifts by itself the day that number texts us. 30005 is not here on
     // purpose - that one was our own brand registration, not their phone.
     // 21610 = they opted out; that block only lifts when they text START.
-    if (errorCode === "30003" || errorCode === "30006" || errorCode === "21610") {
+    // 21211 / 21614 = not a real or not a mobile number (2026-11-04: a form
+    // typed +1 852-... got template B every minute for 13 minutes).
+    if (["30003", "30006", "21610", "21211", "21614"].includes(errorCode)) {
       await supabase
         .from("leads")
         .update({ sms_blocked_at: new Date().toISOString(), sms_blocked_reason: `${errorCode} ${describe(errorCode)}` })

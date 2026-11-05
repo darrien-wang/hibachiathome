@@ -33,7 +33,7 @@ import { MISSED_CALL_TEXT, missedCallTouchpointId } from "@/lib/missed-call"
 import { isBlockedNumber, loadBlockedDigits } from "@/lib/blocked-callers"
 import { sendCustomerEmail } from "@/lib/ops-notifications"
 import { blockingLine, fetchOrderLints } from "@/lib/order-lint-client"
-import { ourSmsNumber, sendSms, toE164 } from "@/lib/sms-thread"
+import { ourSmsNumber, sendSms, smsRefusedForGood, toE164, type SendSmsResult } from "@/lib/sms-thread"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import { getWorkbenchSettings } from "@/lib/workbench-settings"
 
@@ -371,6 +371,21 @@ async function releaseFirstResponse(supabase: AnySupabase, claimId: string | num
   await supabase.from("lead_touchpoints").delete().eq("id", claimId)
 }
 
+/**
+ * Twilio refused the number itself (21211 not a valid number, ...). Releasing
+ * the claim alone made the next per-minute run text it again: 2026-11-04 a form
+ * typed +1 852-367-1235 got template B 13 times, 23:12-23:24. Blocking the
+ * line sends every later run down the "needs a person" path instead.
+ */
+async function blockRefusedLine(supabase: AnySupabase, leadId: string, sms: SendSmsResult) {
+  if (!smsRefusedForGood(sms) || sms.ok) return
+  await supabase
+    .from("leads")
+    .update({ sms_blocked_at: new Date().toISOString(), sms_blocked_reason: `twilio ${sms.httpStatus}: ${sms.error}`.slice(0, 200) })
+    .eq("id", leadId)
+    .is("sms_blocked_at", null)
+}
+
 async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: boolean, stage: WatchStage = "full"): Promise<WatchResult> {
   const now = Date.now()
   const watch = (await getWorkbenchSettings()).lead_watch
@@ -445,6 +460,7 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
           })
         : null
       const reached = sms.ok || Boolean(email?.delivered)
+      await blockRefusedLine(supabase, lead.id, sms)
       if (!reached) await releaseFirstResponse(supabase, claimA)
       if (reached) {
         await supabase
@@ -550,7 +566,10 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
       const claimB = await claimFirstResponse(supabase, lead.id, { via: "sms", auto: true, template: "B" })
       if (claimB == null) continue
       const sms = await sendSms(phone, plan.text)
-      if (!sms.ok) await releaseFirstResponse(supabase, claimB)
+      if (!sms.ok) {
+        await blockRefusedLine(supabase, lead.id, sms)
+        await releaseFirstResponse(supabase, claimB)
+      }
       if (sms.ok) {
         const at = new Date().toISOString()
         await supabase

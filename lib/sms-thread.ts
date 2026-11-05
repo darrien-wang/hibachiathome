@@ -183,7 +183,16 @@ export async function fetchLastByPeer(limit = 800, maxAgeMs = 60_000): Promise<M
   return map
 }
 
-export type SendSmsResult = { ok: true; sid: string; status: string } | { ok: false; error: string }
+export type SendSmsResult = { ok: true; sid: string; status: string } | { ok: false; error: string; httpStatus?: number }
+
+/**
+ * Twilio turned the number itself down (a 4xx: not a valid number, not a
+ * mobile, opted out). Sending again will not change that answer, so a caller
+ * that retries must not.
+ */
+export function smsRefusedForGood(result: SendSmsResult): boolean {
+  return !result.ok && typeof result.httpStatus === "number" && result.httpStatus >= 400 && result.httpStatus < 500
+}
 
 /** Send from the business line (Messaging Service when configured). */
 export async function sendSms(peer: string, body: string, mediaUrl?: string | null): Promise<SendSmsResult> {
@@ -214,7 +223,7 @@ export async function sendSms(peer: string, body: string, mediaUrl?: string | nu
     body: form,
   })
   const data = (await res.json().catch(() => ({}))) as { sid?: string; status?: string; message?: string }
-  if (!res.ok || !data.sid) return { ok: false, error: data.message ?? `twilio_${res.status}` }
+  if (!res.ok || !data.sid) return { ok: false, error: data.message ?? `twilio_${res.status}`, httpStatus: res.status }
   return { ok: true, sid: data.sid, status: data.status ?? "queued" }
 }
 
