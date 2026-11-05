@@ -133,7 +133,7 @@ async function priceFor(row: LeadRow, hint: LeadEventHint | null) {
   }
   const one = (weekday: boolean) => {
     const est = calcSimpleEstimate({ adults, kids: 0, weekdaySpecial: weekday, travelFee })
-    return { plan: weekday ? "Weekday Special (Mon-Thu)" : "Standard", total: est.total, foodSubtotal: est.subtotal, partySizeDiscount: est.partySizeDiscountApplied, minimumApplied: est.minApplied, travelFee: est.travelFee }
+    return { plan: weekday ? "Weekday Special (Mon-Thu)" : "Standard", total: est.total, foodSubtotal: est.subtotal, minimumApplied: est.minApplied, travelFee: est.travelFee }
   }
   const eligibility = date ? checkWeekdayEligibility(date, { adult: adults, child: 0, toddler: 0 }) : null
   return {

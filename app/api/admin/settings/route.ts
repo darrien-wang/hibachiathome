@@ -12,7 +12,8 @@ import {
   GUEST_TIERS,
   LATE_CANCEL_FEE,
   MINIMUM_SPEND,
-  PARTY_SIZE_DISCOUNT_TIERS,
+  CLOSED_PARTY_LADDER,
+  PARTY_LADDER_CLOSED_AT,
   PRICING_RULES_VERSION,
   PRICING_TERMS_V2_FROM,
   CARD_PROCESSING_RATE,
@@ -68,7 +69,9 @@ function codeConfig() {
     guests_per_chef: GUESTS_PER_CHEF,
     weekday_special_days: WEEKDAY_SPECIAL.eligibleWeekdays,
     weekday_platter_value: WEEKDAY_SPECIAL.appetizerPlatter.value,
-    party_size_tiers: PARTY_SIZE_DISCOUNT_TIERS,
+    // D-1105-01: closed to new business; orders and leads from before keep it.
+    party_size_tiers: CLOSED_PARTY_LADDER,
+    party_size_closed_at: PARTY_LADDER_CLOSED_AT,
     blackouts: WEEKDAY_SPECIAL_BLACKOUTS,
   }
 }

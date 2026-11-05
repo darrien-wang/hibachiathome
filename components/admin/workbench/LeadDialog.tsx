@@ -107,7 +107,7 @@ export function LeadDialog({
   // 桌椅换锁日期（D-1017-01）：周六最多半价 $5/人，周日到周五最多免费。
   const [tables, setTables] = useState<"" | "half" | "free">("")
   const [freeUtensils, setFreeUtensils] = useState(false)
-  // 协议价默认只有答应的东西（2026-11-03）；勾了才叠人数折扣/送前菜/周中价。
+  // 协议价默认只有答应的东西（2026-11-03）；勾了才叠送前菜/周中价。
   const [stackPromos, setStackPromos] = useState(false)
   // Below the owner's floor (D-1006-06) the quote only goes out once the owner has said yes.
   const [floorOk, setFloorOk] = useState(false)
@@ -661,7 +661,7 @@ export function LeadDialog({
               {Number(rate) > 0 ? (
                 <label style={{ display: "flex", alignItems: "center", gap: 4 }} title="叠了就很难再收回，默认不叠">
                   <input type="checkbox" checked={stackPromos} onChange={(e) => setStackPromos(e.target.checked)} />
-                  叠加平常优惠（人数折扣 / 送前菜 / 周中价）
+                  叠加平常优惠（送前菜 / 周中价）
                 </label>
               ) : null}
               {quote.autoAppetizerTrays ? <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{weekday ? "周中" : "20 人以上"}本来就送前菜（按人头，毛豆每 5 人 1 份）</span> : null}
@@ -674,13 +674,12 @@ export function LeadDialog({
               </div>
               <div>
                 {[
-                  quote.partySize > 0 ? `人数折扣${quote.partySizeTier ? `（${quote.partySizeTier}）` : ""} −$${quote.partySize}` : null,
                   quote.rateCut > 0 ? `每人 $${quote.adultPrice.toFixed(2)} 让 −${usd(quote.rateCut)}` : null,
                   quote.flatOff > 0 ? `再减 −${usd(quote.flatOff)}` : null,
                 ]
                   .filter(Boolean)
                   .join(" · ") || "没有折扣"}
-                {quote.agreedOnly ? "（协议价：不叠人数折扣、送前菜、周中价）" : ""}
+                {quote.agreedOnly ? "（协议价：不叠送前菜、周中价）" : ""}
                 {quote.minApplied ? " → 不到 $599，按 $599 起订" : ""}
               </div>
               {quote.adults + quote.kids > 0 ? (

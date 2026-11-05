@@ -1,20 +1,16 @@
 // The 10-14 tier closed on 2026-11-02 (owner, D-1102-01). New quotes do not
 // have it; a lead from before was quoted with it and locks at that price.
+// The rest of the ladder followed on 2026-11-05 (tests/closed-ladder.test.ts).
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { CLOSED_PARTY_TIER, PARTY_SIZE_DISCOUNT_TIERS, calcSimpleEstimate, partySizeDiscount, partySizeDiscountLabel, quotedBeforeTierClosed } from "../config/pricing-rules"
+import { CLOSED_PARTY_LADDER, CLOSED_PARTY_TIER, calcSimpleEstimate, quotedBeforeTierClosed } from "../config/pricing-rules"
 
 const total = (adults: number, weekdaySpecial = false) => calcSimpleEstimate({ adults, kids: 0, weekdaySpecial }).total
 
-test("the ladder starts at 15 with $60", () => {
-  assert.equal(PARTY_SIZE_DISCOUNT_TIERS[0].minGuests, 15)
-  assert.equal(PARTY_SIZE_DISCOUNT_TIERS[0].amount, 60)
-  for (const adults of [10, 11, 12, 13, 14]) {
-    assert.equal(partySizeDiscount({ adults, kids: 0 }), 0, `${adults}`)
-    assert.equal(partySizeDiscountLabel({ adults, kids: 0 }), null, `${adults}`)
-  }
-  assert.equal(partySizeDiscount({ adults: 15, kids: 0 }), 60)
+test("the closed 10-14 tier sits just under the closed ladder", () => {
+  assert.deepEqual(CLOSED_PARTY_TIER, { minGuests: 10, maxGuests: 14, amount: 30, closedAt: "2026-11-02T10:00:00-08:00" })
+  assert.equal(CLOSED_PARTY_LADDER[0].minGuests, CLOSED_PARTY_TIER.maxGuests + 1)
 })
 
 test("what a party of 10-15 bills now", () => {
@@ -22,7 +18,7 @@ test("what a party of 10-15 bills now", () => {
   assert.equal(total(12), 718.8)
   assert.equal(total(12, true), 658.8)
   assert.equal(total(14), 838.6)
-  assert.equal(total(15), 838.5, "the 15th adult comes in free: ten cents under 14")
+  assert.equal(total(15), 898.5, "no ladder at 15 either since 2026-11-05")
 })
 
 test("a lead from before the tier closed was quoted with it, a later one was not", () => {

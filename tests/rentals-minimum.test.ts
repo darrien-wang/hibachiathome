@@ -1,7 +1,6 @@
-// Layer-2 self-test: rented tables / tableware count inside the $599 minimum
-// and before the party-size discount, the way the invoice bills them
-// (audit item 18, D-1009-04; 10 adults + full setup was $719 until the 10-14
-// tier closed, D-1102-01).
+// Layer-2 self-test: rented tables / tableware count inside the $599 minimum,
+// the way the invoice bills them (audit item 18, D-1009-04; 10 adults + full
+// setup was $719 until the 10-14 tier closed, D-1102-01).
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"

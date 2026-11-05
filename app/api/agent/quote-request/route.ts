@@ -161,7 +161,6 @@ export async function POST(request: NextRequest) {
     ok: true,
     total: data.total,
     weekdaySpecial: data.weekday,
-    partySizeDiscount: data.discount,
     textedToCustomer: data.smsDelivered,
     emailedToCustomer: data.emailed,
     depositUrl: data.depositUrl,

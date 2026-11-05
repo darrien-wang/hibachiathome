@@ -39,7 +39,8 @@
                                    [--proteins chicken=10 steak=10 shrimp=10]   totals texted by the customer
   python scripts/desk/desk.py order set  <orderNo> --headcount 11/1[/1] [--proteins chicken=11/1 steak=11/1] --dry
                                    headcount of an order without guest rows (adults/kids 5-12[/free 3-4s]). Any headcount change
-                                   re-tiers the official_party* line (--retier on its own fixes one already wrong);
+                                   re-tiers the official_party* line of an order that keeps the old ladder (booked before
+                                   11/05 or carrying the line, D-1105-01; --retier on its own fixes one already wrong);
                                    every set checks its TOTAL against desk price
   python scripts/desk/desk.py order preview <orderNo>      totals from the invoice engine, nothing saved
   python scripts/desk/desk.py order email <orderNo> [--notes-reviewed]   customer invoice email (+PDF, archived)
@@ -113,18 +114,20 @@ def tray_qty(x) -> int | float:
 PROTEIN_SIDE_PRICES = {"side_chicken": 10.0, "side_steak": 10.0, "side_shrimp": 10.0, "side_salmon": 10.0,
                        "side_tofu": 10.0, "side_scallops": 16.0, "side_filet_mignon": 18.0, "side_lobster_tail": 22.0}
 # The Party Size Discount ladder is the site's (config/pricing-rules.ts, which
-# the invoice engine mirrors). Read from that file, never copied here, so a new
-# tier reaches desk with the site.
+# the invoice engine mirrors). Read from that file, never copied here. It is
+# closed to new business since 2026-11-05 (D-1105-01): desk only uses it for
+# the orders that keep it and the leads that were quoted with it.
 PRICING_RULES = ROOT / "config" / "pricing-rules.ts"
 
 
 @functools.lru_cache(maxsize=None)
 def party_tiers() -> tuple[tuple[dict, ...], int, float]:
-    """(tiers, custom quote from, kid weight): PARTY_SIZE_DISCOUNT_TIERS,
-    PARTY_SIZE_CUSTOM_FROM and KID_TIER_WEIGHT from config/pricing-rules.ts.
-    Refuses rather than guesses when the file stops reading that way."""
+    """(tiers, custom quote from, kid weight): CLOSED_PARTY_LADDER, the ladder
+    as it stood until it closed, PARTY_SIZE_CUSTOM_FROM and KID_TIER_WEIGHT from
+    config/pricing-rules.ts. Refuses rather than guesses when the file stops
+    reading that way."""
     text = PRICING_RULES.read_text(encoding="utf-8")
-    body = re.search(r"export const PARTY_SIZE_DISCOUNT_TIERS = \[(.*?)\]", text, re.S)
+    body = re.search(r"export const CLOSED_PARTY_LADDER = \[(.*?)\]", text, re.S)
     custom = re.search(r"export const PARTY_SIZE_CUSTOM_FROM = (\d+)", text)
     weight = re.search(r"export const KID_TIER_WEIGHT = (\d+(?:\.\d+)?)", text)
     tiers = []
@@ -134,9 +137,37 @@ def party_tiers() -> tuple[tuple[dict, ...], int, float]:
             tiers.append({"min": int(v["minGuests"]), "max": int(v["maxGuests"]), "amount": float(v["amount"])})
     ordered = all(t["min"] <= t["max"] for t in tiers) and all(b["min"] > a["max"] for a, b in zip(tiers, tiers[1:]))
     if not (tiers and ordered and custom and weight):
-        raise SystemExit(f"could not read the party-size tiers from {PRICING_RULES} (PARTY_SIZE_DISCOUNT_TIERS / PARTY_SIZE_CUSTOM_FROM / "
+        raise SystemExit(f"could not read the party-size tiers from {PRICING_RULES} (CLOSED_PARTY_LADDER / PARTY_SIZE_CUSTOM_FROM / "
                          "KID_TIER_WEIGHT) - desk will not guess them; fix party_tiers() for the file's new shape")
     return tuple(tiers), int(custom.group(1)), float(weight.group(1))
+
+
+@functools.lru_cache(maxsize=None)
+def ladder_closed_at() -> _dt.datetime:
+    """PARTY_LADDER_CLOSED_AT from config/pricing-rules.ts: an order booked before
+    it keeps the ladder, a lead from before was quoted with it (D-1105-01)."""
+    m = re.search(r'export const PARTY_LADDER_CLOSED_AT = "([^"]+)"', PRICING_RULES.read_text(encoding="utf-8"))
+    if not m:
+        raise SystemExit(f"could not read PARTY_LADDER_CLOSED_AT from {PRICING_RULES} - desk will not guess it")
+    return _dt.datetime.fromisoformat(m[1])
+
+
+def _when(at: _dt.datetime) -> str:
+    """'11/05 13:00' on the Pacific clock, for the old-price lines."""
+    local = at.astimezone(PACIFIC)
+    return f"{local.month:02d}/{local.day:02d} {local.hour:02d}:{local.minute:02d}"
+
+
+def _instant(value) -> _dt.datetime | None:
+    """A stored timestamp ('2026-11-04T18:00:00.123+00:00', '...Z') as an aware datetime; None when there is none."""
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        at = _dt.datetime.fromisoformat(re.sub(r"Z$", "+00:00", re.sub(r"(\.\d+)", "", text)))
+    except ValueError:
+        return None
+    return at if at.tzinfo else at.replace(tzinfo=_dt.timezone.utc)
 
 
 def tier_heads(adults: int, kids: int) -> int:
@@ -150,8 +181,9 @@ def _tier_line(tier: dict) -> dict:
 
 
 def party_line(heads: int) -> dict | None:
-    """The official_party* line for this many paying heads, as the invoice
-    writes it (partySizePromoFor + OFFICIAL_PROMOS); None outside the ladder."""
+    """The official_party* line the old ladder gives this many paying heads, as
+    the invoice writes it (partySizePromoFor + OFFICIAL_PROMOS); None outside
+    the ladder. Only an order that keeps the ladder gets it: kept_party_line."""
     tier = next((t for t in party_tiers()[0] if t["min"] <= heads <= t["max"]), None)
     return _tier_line(tier) if tier else None
 
@@ -173,6 +205,36 @@ def closed_line() -> dict:
 
 def in_closed_tier(heads: int) -> bool:
     return closed_tier()["min"] <= heads <= closed_tier()["max"]
+
+
+def booked_before(created_at, cutoff: _dt.datetime) -> bool:
+    """The row (order or lead) was created before the cutoff; False when its time is unknown."""
+    at = _instant(created_at)
+    return at is not None and at < cutoff
+
+
+def keeps_ladder(promos: list, created_at=None) -> bool:
+    """The order keeps the old ladder (D-1105-01): booked before it closed, or
+    its invoice carries a party-size line already. Mirrors the invoice repo's keptTiers."""
+    return any(_is_party_line(p) for p in promos) or booked_before(created_at, ladder_closed_at())
+
+
+def keeps_closed_tier(promos: list, created_at=None) -> bool:
+    """The order keeps 10-14 too (D-1102-01): booked before it closed, or it carries that line."""
+    return any(p.get("id") == closed_line()["id"] for p in promos) or booked_before(created_at, _dt.datetime.fromisoformat(closed_tier()["closed_at"]))
+
+
+def kept_party_line(heads: int, promos: list, created_at=None) -> dict | None:
+    """The party-size line an order carries for these paying heads: the old
+    ladder's for an order that keeps it, the 10-14 one for an order that keeps
+    that; None for a party booked after the ladder closed (and above the table,
+    61+ is priced by hand)."""
+    if not keeps_ladder(promos, created_at):
+        return None
+    line = party_line(heads)
+    if not line and in_closed_tier(heads) and keeps_closed_tier(promos, created_at):
+        line = closed_line()
+    return line
 
 
 def quoted_closed_tier(lead_id: str) -> bool:
@@ -511,8 +573,10 @@ def cmd_price(a):
         # The listed price only (owner 2026-10-06): tax and payment method are not
         # part of a quote. The two bills come from the invoice engine once the
         # menu and headcount are set (`desk order totals` / /pay).
+        # No party-size discount since 2026-11-05 (D-1105-01); only a site deployed before that still answers with one.
+        off = f" − 人数折扣 ${pr['partySizeDiscount']:,.0f}" if pr.get("partySizeDiscount") else ""
         print(f"{date or '(any day)'}: {a.adults} 大人 + {a.kids} 小孩 → ${pr['total']:,.2f}  [{pr['plan']}]  "
-              f"食 ${pr['foodSubtotal']:,.2f}{rent} − 人数折扣 ${pr['partySizeDiscount']:,.0f} + 路费 ${pr['travelFee']:,.2f}"
+              f"食 ${pr['foodSubtotal']:,.2f}{rent}{off} + 路费 ${pr['travelFee']:,.2f}"
               f"{'  (最低消费生效)' if pr.get('minimumApplied') else ''}")
         if in_closed_tier(tier_heads(a.adults, a.kids)):
             old = max(pr["total"] - closed_tier()["amount"], MINIMUM_SPEND + (pr.get("travelFee") or 0))
@@ -1495,12 +1559,14 @@ def _party_s(adults: int, kids: int) -> str:
     return f"{adults} adult{'' if adults == 1 else 's'} + {kids} kid{'' if kids == 1 else 's'}"
 
 
-def _retier_party_size(data: dict, changes: list, removed_by_hand: bool, asked: bool = False) -> None:
+def _retier_party_size(data: dict, changes: list, removed_by_hand: bool, asked: bool = False, created_at=None) -> None:
     """The party-size line follows the headcount. It is a stored amount like
     every promotion, so a headcount desk moved kept the old tier: RH-20261022-0063
     went from 8+2 to 11+1 and kept no line, $30 too much (owner 2026-10-24).
     Replaces the official_party* line(s) with the tier for the new paying heads
-    and touches no other line. `asked` (--retier) also says when it is right."""
+    and touches no other line. `asked` (--retier) also says when it is right.
+    Only an order that keeps the ladder has a tier at all (D-1105-01): one
+    booked before it closed (`created_at`, the order row's) or carrying a line."""
     promos = data.get("promotions") or []
     stored = [p for p in promos if _is_party_line(p)]
     adults, kids = _paid_heads(data)
@@ -1510,9 +1576,8 @@ def _retier_party_size(data: dict, changes: list, removed_by_hand: bool, asked: 
     if heads >= party_tiers()[1]:
         print(f"   ⚠ party size: {who} is a custom quote ({party_tiers()[1]}+) - desk leaves the party-size line as it is ({old}); price it by hand")
         return
-    new = party_line(heads)
-    if not new and in_closed_tier(heads) and any(p.get("id") == closed_line()["id"] for p in stored):
-        new = closed_line()  # D-1102-01: closed to new parties, a party that has it keeps it
+    kept = keeps_ladder(promos, created_at)
+    new = kept_party_line(heads, promos, created_at)  # D-1102-01 / D-1105-01: a party that was told it keeps it
     if removed_by_hand and not stored:
         if new:
             print(f"   party size: {who} earns {new['id']} {money(new['amount'])} - not put back, the line came off with --remove-promo in this command")
@@ -1527,7 +1592,8 @@ def _retier_party_size(data: dict, changes: list, removed_by_hand: bool, asked: 
             return
     if [(p.get("id"), float(p.get("amount") or 0)) for p in stored] == ([(new["id"], float(new["amount"]))] if new else []):
         if asked:
-            print(f"   party size: {who} - {old} is already right")
+            print(f"   party size: {who} - {old} is already right"
+                  + ("" if kept else f" (no party-size discount on an order booked from {_when(ladder_closed_at())} on, D-1105-01)"))
         return
     keep = [p for p in promos if not _is_party_line(p)]
     at = sum(1 for p in promos[:promos.index(stored[0])] if not _is_party_line(p)) if stored else len(keep)
@@ -1583,7 +1649,7 @@ def _weekday_appetizer(line: dict, data: dict) -> float:
     return min(trays, max(0, free)) * price
 
 
-def _price_check(data: dict, inv: dict) -> None:
+def _price_check(data: dict, inv: dict, created_at=None) -> None:
     """The order's TOTAL against desk price for the same party (owner
     2026-10-24): RH-20261022-0063 stood at $868.80 with no party-size line
     while desk price said $838.80, and nothing on the dry run showed it.
@@ -1593,7 +1659,9 @@ def _price_check(data: dict, inv: dict) -> None:
     sides) - its own promotions (free appetizers, deals, appreciation, FREE:
     trays) + its travel, at the $599 minimum like the invoice. The lines desk
     price stands for are the party-size tier, the Weekday Special's per-head
-    cut and the free 3-4 year olds, so a wrong one of those is the gap."""
+    cut and the free 3-4 year olds, so a wrong one of those is the gap. Desk
+    price has no tier since 2026-11-05 (D-1105-01); the tier an order keeps is
+    kept_party_line's (`created_at` is the order row's)."""
     try:
         adults, kids = _paid_heads(data)
         if adults + kids < 1:
@@ -1620,15 +1688,9 @@ def _price_check(data: dict, inv: dict) -> None:
         pr = p["price"] if usable or not weekday else (p.get("ifMondayToThursday") or p["price"])
         food = float(pr.get("foodSubtotal") or 0)
         rentals = float((pr.get("rentals") or {}).get("amount") or 0)
-        if pr.get("minimumApplied"):
-            # The engine's discount is what the minimum left of it; the invoice
-            # takes the whole tier before its own minimum.
-            line = party_line(tier_heads(adults, kids))
-            tier = float(line["amount"]) if line else 0.0
-        else:
-            tier = float(pr.get("partySizeDiscount") or 0)
-        if not tier and in_closed_tier(tier_heads(adults, kids)) and any(x.get("id") == closed_line()["id"] for x in party):
-            tier = closed_tier()["amount"]  # D-1102-01: this party keeps it
+        # The whole tier the order keeps, before the minimum, as the invoice takes it.
+        line = kept_party_line(tier_heads(adults, kids), promos, created_at)
+        tier = float(line["amount"]) if line else 0.0
         stand_in = None
         if tier and not party:
             stand_in = next((x for x in promos if str(x.get("id") or "").startswith("appreciation")), None)
@@ -1669,7 +1731,7 @@ def _price_check(data: dict, inv: dict) -> None:
             print(f"   !!!   {n}")
         heads = tier_heads(adults, kids)
         stored_party = ", ".join(f"{x.get('id')} -{money(amt(x))}" for x in party) or "no line"
-        print(f"   !!!   party size: order {stored_party}; desk price {tier_s} for {heads} paying heads")
+        print(f"   !!!   party size: order {stored_party}; it should carry {tier_s} for {heads} paying heads")
         for x in weekday:
             a_ = _weekday_appetizer(x, data)
             print(f"   !!!   weekday: {x.get('id')} -{money(amt(x))}" + (f" (of which {money(a_)} is the free appetizer)" if a_ else "")
@@ -1678,7 +1740,7 @@ def _price_check(data: dict, inv: dict) -> None:
             print(f"   !!!   little kids: {x.get('label')} -{money(amt(x))}")
         print("   !!!   a stored discount is probably wrong (party size / Weekday Special / little kids) - fix it before this goes out")
         if not stand_in and abs(sum(amt(x) for x in party) - tier) > 0.005:
-            right = party_line(heads)
+            right = kept_party_line(heads, promos, created_at)
             print(f"   !!!   likely fix: --retier (puts {right['id']} {money(right['amount'])} on for {heads} paying heads)" if right
                   else f"   !!!   likely fix: --retier (takes the party-size line off: {heads} paying heads earn none)")
         elif len(weekday) == 1:
@@ -2532,7 +2594,8 @@ def cmd_order(a):
         if moved:
             _warn_frozen_weekday(data)
         if moved or a.retier:
-            _retier_party_size(data, changes, any(str(x).startswith("official_party") for x in (a.remove_promo or [])), asked=a.retier)
+            _retier_party_size(data, changes, any(str(x).startswith("official_party") for x in (a.remove_promo or [])), asked=a.retier,
+                               created_at=order.get("created_at"))
         # The deal lines are stored amounts as well, but the order keeps the deal
         # itself as rules (customDeal), so they follow whatever moved what they
         # count: the guest rows, the switch between rows and counts, or the
@@ -2624,7 +2687,7 @@ def cmd_order(a):
             print(f"   totals: 引擎暂时算不了（{(e.payload.get('errors') if isinstance(e.payload, dict) else e.payload)}）- 菜单录进来后再看")
         if inv:
             _print_totals(inv)
-            _price_check(data, inv)
+            _price_check(data, inv, order.get("created_at"))
         # --dry used to be ignored here: `order set ... --dry` saved for real
         # (Stacy's notes, 2026-10-09). It is a preview now, like `remind --dry`.
         if a.dry:
@@ -2668,7 +2731,7 @@ def cmd_order(a):
                 saved = _lookup(order)[1]
                 after = _totals(saved)
                 _print_totals(after)
-                _price_check(saved, after)
+                _price_check(saved, after, order.get("created_at"))
             except (ApiError, SystemExit) as e:
                 print(f"   (保存后的总价没取到：{e})")
         _print_lint(res.get("lint") if isinstance(res.get("lint"), dict) else None)
@@ -2913,10 +2976,12 @@ def main(argv=None):
     p.add_argument("--headcount", metavar="ADULTS/KIDS[/LITTLE]", help="the headcount of an order without guest rows (quick mode, or a fresh "
                    "order before the menu): 11/1 = 11 adults + 1 kid 5-12, as desk price counts them. 11/1/2 adds two free 3-4 year olds and "
                    "sets the order's Little kids (3-4) @ $0 ×N line to them (11/1/0 takes it off); 11/1 leaves that line as it is. "
-                   "The party-size line follows, as it does for --guests-file / --add-adult / --add-child / --remove-guest.")
+                   "The party-size line follows, as it does for --guests-file / --add-adult / --add-child / --remove-guest "
+                   "(only an order that keeps the old ladder has one, D-1105-01).")
     p.add_argument("--retier", action="store_true", help="put the party-size line (official_party*) right for the headcount the order has "
                    "now. Every headcount change does this by itself; this is for an order that was already wrong (the total check "
-                   "names it). Leaves 61+ and an appreciation line standing in for the tier alone.")
+                   "names it). Leaves 61+ and an appreciation line standing in for the tier alone. An order booked after the "
+                   "ladder closed (D-1105-01) and carrying no line gets none.")
     p.add_argument("--add-adult", type=int, metavar="N", help="add N adults to a party whose guests are already picked. The new rows copy "
                    "the last adult's proteins and their tables/utensils flags, so a late 'can I bring one more' keeps billing the same way "
                    "as everyone else. Check the printed rows before sending - proteins are a guess until the guest says otherwise.")

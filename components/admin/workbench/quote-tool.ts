@@ -12,8 +12,8 @@
 //      让，而且和周中价叠加，所以周中那天签进链接的 adultRate 要把周中让的 $5 加
 //      回去，两边才是同一个数。
 //   2. $599 起订在所有折扣之后兜底，路费在兜底之后另加。
-//   3. 61 人以上发票不自动给人数折扣（那是定制单），这里算进去的 $180 就签进
-//      flatOff，不然付押金后的订单比报价贵。
+//   3. 人数阶梯 11-05 取消（D-1105-01）：报价不再按人数自动减。老板要让价就填
+//      「再减」，签进 flatOff，发票上是一行 Special discount。
 //   4. 送桌椅、餐具签进链接：发票上"加一行再减一行"，按人头算，总价不变。
 //      送前菜**不签**：发票的 freeExtraIds 会把这一类前菜全部退钱——客人在
 //      planner 里多点几盘也白送，还会和周中 / 20 人以上自带的那几盘重复退。
@@ -21,8 +21,8 @@
 //   5. 桌椅半价（周六的派对，D-1017-01）签成 extraRates { tables_chairs: 5 }：
 //      发票照收 $10/人、再减 $5/人一行，人头变了跟着变。客人要付的这 $5/人和
 //      发票一样算在 $599 起订之内、进总价。
-//   6. 协议价只有答应的东西（老板 2026-11-03）：填了每人特价，默认不叠人数折扣、
-//      送前菜、周中价，签 onlyAgreed，发票引擎也一条自动规则都不加——总价就是
+//   6. 协议价只有答应的东西（老板 2026-11-03）：填了每人特价，默认不叠送前菜、
+//      周中价，签 onlyAgreed，发票引擎也一条自动规则都不加——总价就是
 //      人数 × 协议价。"可以先不加之后再加，但是加了就很难取消了"：真要叠，勾
 //      stackPromos 才按老算法叠。
 
@@ -31,9 +31,6 @@ import {
   earnsLargePartyAppetizer,
   GUEST_TIERS,
   MINIMUM_SPEND,
-  PARTY_SIZE_CUSTOM_FROM,
-  PARTY_SIZE_DISCOUNT_TIERS,
-  partySizeDiscount,
   LARGE_PARTY_FLOOR,
   PRICE_FLOOR_KID_WEIGHT,
   PRICE_FLOOR_PER_HEAD,
@@ -77,7 +74,7 @@ export type QuoteInput = {
   travelFee: number | null
   /** What each adult pays for this party (owner's special rate), e.g. 54.90. Empty = list price. */
   adultRate?: number | null
-  /** Extra dollars off on top of the party-size tier. */
+  /** Dollars off the total, signed into the link as flatOff. */
   flatOff?: number | null
   freeAppetizer?: { id: QuoteAppetizer; trays: number } | null
   freeTables?: boolean
@@ -87,7 +84,7 @@ export type QuoteInput = {
    */
   tablesRate?: number | null
   freeUtensils?: boolean
-  /** With a special rate: stack the usual promos (tier, free appetizer, Weekday Special) on it. Off by default (owner 2026-11-03). */
+  /** With a special rate: stack the usual promos (free appetizer, Weekday Special) on it. Off by default (owner 2026-11-03). */
   stackPromos?: boolean
 }
 
@@ -98,9 +95,6 @@ export type QuoteBreakdown = {
   adultPrice: number
   childPrice: number
   foodSubtotal: number
-  partySize: number
-  /** Owner-facing name of the tier, e.g. "31–40 人档". */
-  partySizeTier: string | null
   rateCut: number
   flatOff: number
   /** Everything taken off the food line, as one number for the customer. */
@@ -175,10 +169,8 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
   const rateCut = special ? r2((listAdultPrice - adultPrice) * adults) : 0
   const flatOff = r2(pos(q.flatOff))
 
-  const partySize = agreedOnly ? 0 : partySizeDiscount({ adults, kids })
+  // Paying heads (a kid 5-12 is half): the large-party floor and the free appetizer count these.
   const count = tierHeadcount({ adults, kids })
-  const tier = agreedOnly ? undefined : PARTY_SIZE_DISCOUNT_TIERS.find((t) => count >= t.minGuests && count <= t.maxGuests)
-  const partySizeTier = tier ? `${tier.minGuests}–${tier.maxGuests} 人档` : partySize > 0 ? `${PARTY_SIZE_CUSTOM_FROM} 人以上` : null
 
   // Tables at a set price (D-1017-01 half price) are billed like any rental:
   // inside the $599 minimum, before it is applied (calcInvoiceTotal).
@@ -188,7 +180,7 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
       : null
   const tablesCharge = tablesRate !== null ? r2(tablesRate * heads) : 0
 
-  const afterDiscounts = est.subtotal + tablesCharge - partySize - rateCut - flatOff
+  const afterDiscounts = est.subtotal + tablesCharge - rateCut - flatOff
   const food = Math.max(afterDiscounts, MINIMUM_SPEND)
   const travelFee = q.travelFee == null ? 0 : Math.max(0, Math.round(q.travelFee))
   const total = r2(food + travelFee)
@@ -258,9 +250,7 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
   // - unless the deal is only what was agreed, when nothing goes on top at all.
   if (special) deal.adultRate = r2(adultPrice + (GUEST_TIERS.adult.price - listAdultPrice))
   if (agreedOnly) deal.onlyAgreed = true
-  // Above the tier table the invoice gives no automatic discount, so sign it.
-  const signedFlat = r2(flatOff + (count >= PARTY_SIZE_CUSTOM_FROM ? partySize : 0))
-  if (signedFlat > 0) deal.flatOff = signedFlat
+  if (flatOff > 0) deal.flatOff = flatOff
   if (freeExtraIds.length) deal.freeExtraIds = freeExtraIds
   // A rule, not a dollar amount: the invoice re-prices it when the headcount moves.
   if (tablesRate !== null) deal.extraRates = { tables_chairs: tablesRate }
@@ -272,8 +262,6 @@ export function computeQuote(q: QuoteInput): QuoteBreakdown {
     adultPrice,
     childPrice,
     foodSubtotal: est.subtotal,
-    partySize,
-    partySizeTier,
     rateCut,
     flatOff,
     totalDiscount: r2(Math.max(0, est.subtotal + tablesCharge - food)),

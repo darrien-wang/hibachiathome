@@ -4,8 +4,6 @@ import {
   MINIMUM_SPEND as RULES_MINIMUM_SPEND,
   FULL_SETUP_PER_GUEST as RULES_FULL_SETUP,
   whiteClothFee as rulesWhiteClothFee,
-  partySizeDiscount as rulesPartySizeDiscount,
-  partySizeDiscountLabel,
   TRAVEL_FREE_RADIUS_MILES,
   TRAVEL_RATE_PER_MILE,
   CALL_OUT_FEE_PER_CHEF,
@@ -83,11 +81,6 @@ export type QuoteResult = {
   effectiveBase: number
   travelFeeRange: QuoteRange
   tablewareFee: number
-  /** Party Size Discount tier amount ($30 / $60 / $90) for adults + kids 5-12. */
-  partySizeDiscount: number
-  /** How much of it actually lowered the price; the $599 floor can absorb part of it. */
-  partySizeDiscountApplied: number
-  partySizeDiscountLabel: string | null
   addOnTotalRange: QuoteRange
   loyaltyDiscount: number
   totalRange: QuoteRange
@@ -242,12 +235,10 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
         ? PARTY_GUEST_CARD_DISCOUNT
         : 0
 
-  // Party Size Discount: every party, any day, stacks with the Weekday
-  // Special. Taken off before the $599 floor, exactly as the invoice bills it.
-  const partySizeDiscount = rulesPartySizeDiscount({ adults, kids })
-  const floorLow = Math.max(subtotalRange.low - partySizeDiscount, MINIMUM_SPEND)
-  const floorHigh = Math.max(subtotalRange.high - partySizeDiscount, MINIMUM_SPEND)
-  const partySizeDiscountApplied = roundCurrency(Math.max(0, subtotalRange.low - floorLow))
+  // The $599 floor, as the invoice bills it. No party-size discount since
+  // 2026-11-05 (D-1105-01).
+  const floorLow = Math.max(subtotalRange.low, MINIMUM_SPEND)
+  const floorHigh = Math.max(subtotalRange.high, MINIMUM_SPEND)
 
   // A thank-you never takes a party under the $599 minimum (owner 2026-10-29):
   // a party already at the minimum gets no loyalty dollars.
@@ -286,9 +277,6 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
     effectiveBase,
     travelFeeRange,
     tablewareFee,
-    partySizeDiscount,
-    partySizeDiscountApplied,
-    partySizeDiscountLabel: partySizeDiscountApplied > 0 ? partySizeDiscountLabel({ adults, kids }) : null,
     addOnTotalRange,
     loyaltyDiscount: roundCurrency(loyaltyLow),
     totalRange,
@@ -339,7 +327,6 @@ export function buildQuoteSummary(input: QuoteInput, result: QuoteResult): strin
     `Guests: ${result.guestCount} (Adults ${input.adults || 0}, Kids 5-12 ${input.kids || 0}, Under 5 ${input.toddlers || 0})`,
     `Full setup (tables/chairs/utensils): ${input.tablewareRental ? "yes" : "no"}`,
     input.setupSelection ? `Setup picked on /rentals: ${describeSetup(input.setupSelection)}` : null,
-    result.partySizeDiscountApplied > 0 ? `Party size discount (${result.partySizeDiscountLabel}): -$${result.partySizeDiscountApplied}` : null,
     `Upgrades: ${formatAddOnSummary(input.addOns)}`,
     result.includesAppetizerPlatter ? `Included: ${WEEKDAY_PLATTER_LINE}` : null,
     result.loyaltyDiscount > 0

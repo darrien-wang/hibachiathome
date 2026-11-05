@@ -15,7 +15,6 @@ import {
   checkWeekdayEligibility,
   displayRangeForEstimate,
   formatDisplayRange,
-  partySizeDiscountCode,
   roundCurrency,
   weekdayBlackoutLabel,
 } from "@/config/pricing-rules"
@@ -27,9 +26,9 @@ import {
 // Step 1 asks for a mobile number and an email and nothing else. The lead is
 // saved the moment they are given (stage "contact"), so a visitor who leaves
 // after step 1 is still a lead the daily report can chase. Step 2 is the
-// estimator: guests, optional date, and the exact total with the Party Size
-// Discount code shown on screen — no price bracket any more, the contact is
-// already in hand. "Text me this quote" sends the same SMS + email as before
+// estimator: guests, optional date, and the exact total shown on screen — no
+// price bracket any more, the contact is already in hand. "Text me this
+// quote" sends the same SMS + email as before
 // (stage "quote") and the card flips to a receipt in place. Every other CTA
 // on the page (sticky bar, final section) points back at this card.
 //
@@ -147,7 +146,7 @@ export default function LandingEstimator({
   const [emailErr, setEmailErr] = useState(false)
   const [contactBusy, setContactBusy] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [sent, setSent] = useState<null | { total: number; emailed: boolean; smsDelivered: boolean; depositUrl: string | null; discountCode: string | null; discount: number; personal?: boolean }>(null)
+  const [sent, setSent] = useState<null | { total: number; emailed: boolean; smsDelivered: boolean; depositUrl: string | null; personal?: boolean }>(null)
   const [serverErr, setServerErr] = useState<string | null>(null)
   const startedRef = useRef(false)
   const leadSentRef = useRef(false)
@@ -158,7 +157,7 @@ export default function LandingEstimator({
   // only holds its defaults, so leaving it must not text them as a quote:
   // 2026-10-14 952-567 gave her number on La Quinta ($900.50 with ~$62
   // travel), opened /menu, and that card's leave-beacon texted the SoCal
-  // default ($838.50, 15 adults, no travel) instead.
+  // default (15 adults, no travel) instead.
   const restoredRef = useRef(false)
   const touchedRef = useRef(false)
 
@@ -219,14 +218,12 @@ export default function LandingEstimator({
   const cityIsPage = shownCity === cityName
   const fee = cityIsPage && travelFee && travelFee > 0 ? Math.round(travelFee) : 0
   const travelUnknown = !cityIsPage || Boolean(travelNote)
-  // One shared calculation for every simple estimator: tier rate, the Party
-  // Size Discount, then the $599 floor (which applies on weekday dates too —
-  // 2026-09-13: five adults on a Thursday were being shown $274.50).
+  // One shared calculation for every simple estimator: the day's rate, then
+  // the $599 floor (which applies on weekday dates too — 2026-09-13: five
+  // adults on a Thursday were being shown $274.50).
   const est = calcSimpleEstimate({ adults, kids, weekdaySpecial: weekday, travelFee: fee })
   const minApplied = est.minApplied
-  const sizeOff = est.partySizeDiscountApplied
   const total = est.total
-  const discountCode = sizeOff > 0 ? partySizeDiscountCode({ adults, kids }) : null
   // Before the contact is given the sticky bar teases a bracket, same rule as
   // every other estimator on the site (D-0913-06).
   const rangeLabel = formatDisplayRange(displayRangeForEstimate(est))
@@ -358,8 +355,8 @@ export default function LandingEstimator({
   // the mobile so the price would be sent, so send it when they leave: a
   // beacon survives navigation and tab close, once per session, and the
   // server skips a second send if the tap already went out.
-  const latestRef = useRef({ busy, sent, phoneReady, emailReady, partyReady, priceCheck, total, discountCode, sizeOff, payload: quotePayload })
-  latestRef.current = { busy, sent, phoneReady, emailReady, partyReady, priceCheck, total, discountCode, sizeOff, payload: quotePayload }
+  const latestRef = useRef({ busy, sent, phoneReady, emailReady, partyReady, priceCheck, total, payload: quotePayload })
+  latestRef.current = { busy, sent, phoneReady, emailReady, partyReady, priceCheck, total, payload: quotePayload }
   useEffect(() => {
     if (step !== 2 || sent) return
     const fire = () => {
@@ -377,7 +374,7 @@ export default function LandingEstimator({
       autoSentRef.current = true
       const queued = navigator.sendBeacon("/api/landing-quote", new Blob([JSON.stringify(body)], { type: "application/json" }))
       if (!queued) return
-      setSent({ total: l.total, emailed: true, smsDelivered: true, depositUrl: null, discountCode: l.discountCode ?? null, discount: l.sizeOff })
+      setSent({ total: l.total, emailed: true, smsDelivered: true, depositUrl: null })
       trackEvent("quote_sent", {
         contact_surface: "landing_estimator_autoleave",
         quote_surface: attribution,
@@ -421,7 +418,7 @@ export default function LandingEstimator({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...quotePayload(), stage: "quote" }),
       })
-      const p = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; total?: number; emailed?: boolean; smsDelivered?: boolean; depositUrl?: string; discountCode?: string | null; discount?: number; personal?: boolean } | null
+      const p = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; total?: number; emailed?: boolean; smsDelivered?: boolean; depositUrl?: string; personal?: boolean } | null
       if (!res.ok || !p?.ok) {
         setServerErr(
           p?.error === "phone_invalid"
@@ -432,7 +429,7 @@ export default function LandingEstimator({
         )
         return
       }
-      setSent({ total: p.total ?? total, emailed: Boolean(p.emailed), smsDelivered: p.smsDelivered !== false, depositUrl: typeof p.depositUrl === "string" ? p.depositUrl : null, discountCode: p.discountCode ?? null, discount: p.discount ?? 0, personal: p.personal === true })
+      setSent({ total: p.total ?? total, emailed: Boolean(p.emailed), smsDelivered: p.smsDelivered !== false, depositUrl: typeof p.depositUrl === "string" ? p.depositUrl : null, personal: p.personal === true })
       trackEvent("quote_sent", {
         contact_surface: "landing_estimator",
         quote_surface: attribution,
@@ -523,7 +520,7 @@ export default function LandingEstimator({
                   ? "Enter a 10-digit mobile number so we can text the price."
                   : emailErr
                     ? "Add a valid email — the exact price goes there too."
-                    : "Exact price + your party discount code on the next screen and by text · we follow up within 15 min · no spam")}
+                    : "Exact price on the next screen and by text · we follow up within 15 min · no spam")}
             </p>
           </form>
         ) : (
@@ -617,7 +614,7 @@ export default function LandingEstimator({
                   {qualify && adults < 1 ? "—" : fmt(total)}
                 </p>
                 <p className="mt-1 text-[11px] font-semibold text-gold-700">
-                  {qualify && adults < 1 ? "Exact price · nothing charged" : discountCode ? `Code ${discountCode} · −$${sizeOff} party size discount included` : "Your exact price · nothing charged"}
+                  {qualify && adults < 1 ? "Exact price · nothing charged" : "Your exact price · nothing charged"}
                 </p>
               </div>
               <p className="text-right text-xs font-semibold leading-snug text-gold-700">
@@ -644,9 +641,6 @@ export default function LandingEstimator({
                         : "The text is delayed, so here is everything it would have said. We follow up within 15 min by text or email."}
                   </p>
                   <p className="mt-2 font-serif text-2xl font-extrabold leading-none">{fmt(sent.total)}</p>
-                  {sent.discountCode ? (
-                    <p className="mt-1 text-xs font-semibold text-gold-700">Code {sent.discountCode} · −${sent.discount} party size discount, applied automatically when you book</p>
-                  ) : null}
                   <p className="text-xs text-clay-600">
                     {guestsShort} · {planShort}
                     {fee > 0 ? ` · incl. ~$${fee} travel` : ""}

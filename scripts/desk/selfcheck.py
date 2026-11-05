@@ -12,7 +12,9 @@ call that gets past them fails the run instead of reaching production.
     module's own export (evaluated with tsx; SKIP when npx is not there)
   - --headcount on a quick-mode order: RH-20261022-0063, 8+2 -> 11+1
   - the official_party* line follows every headcount change (--headcount,
-    --guests-file, --add-adult, --remove-guest) and no other line moves
+    --guests-file, --add-adult, --remove-guest) on an order that keeps the old
+    ladder, and no other line moves; an order booked after it closed
+    (D-1105-01) gets none
   - the TOTAL is held against desk price, and a wrong stored discount is loud
   - desk send stops over a customer text the sender has not read (the three
     replies of 10-21..24, replayed on fake threads at the second they went
@@ -43,8 +45,9 @@ def _no_network(*args, **kwargs):
 _api._call = _no_network
 
 # ------------------------------------------------------------- the engines --
-# Catalog numbers of the two engines, as fakes need them. The ladder itself is
-# desk's (checked against the TS export below), so a tier change needs nothing here.
+# Catalog numbers of the two engines, as fakes need them. The old ladder is
+# desk's (checked against the TS export below); the site prices none since
+# 2026-11-05 (D-1105-01), and neither does fake_price.
 WEEKDAY_RATE = {"adult": 54.90, "child": 27.45}  # invoice WEEKDAY_SPECIAL: $5 / $2.45 off
 EXTRA_PRICES = {**desk.APPETIZER_PRICES, **desk.SETUP_PRICES, **desk.PROTEIN_SIDE_PRICES, **desk.CLOTH_PRICES}
 EXTRA_PROTEIN = 10.0  # invoice EXTRA_REGULAR_PROTEIN_PRICE
@@ -91,19 +94,16 @@ def fake_price(params: dict) -> dict:
     if adults + kids >= desk.party_tiers()[1]:
         return {"ok": True, "customQuote": True}
     tables, utensils = int(params.get("tables", 0)), int(params.get("utensils", 0))
-    line = desk.party_line(desk.tier_heads(adults, kids))
-    tier = float(line["amount"]) if line else 0.0
 
     def quote(weekday: bool) -> dict:
         a_rate, k_rate = (WEEKDAY_RATE["adult"], WEEKDAY_RATE["child"]) if weekday else (desk.ADULT_PRICE, desk.CHILD_PRICE)
         food = r2(adults * a_rate + kids * k_rate)
         rentals = tables * 10 + utensils * 5
-        after = max(0.0, food + rentals - tier)
-        base = max(after, desk.MINIMUM_SPEND)
+        before = r2(food + rentals)
+        base = max(before, desk.MINIMUM_SPEND)
         return {"plan": "Weekday Special (Mon-Thu)" if weekday else "Standard", "foodSubtotal": food,
                 **({"rentals": {"tablesChairsGuests": tables, "tablewareGuests": utensils, "amount": rentals}} if rentals else {}),
-                "partySizeDiscount": r2(max(0.0, food + rentals - base)), "minimumApplied": after < desk.MINIMUM_SPEND,
-                "travelFee": 0, "total": r2(base)}
+                "minimumApplied": before <= desk.MINIMUM_SPEND, "travelFee": 0, "total": r2(base)}
 
     date = params.get("date")
     if date:
@@ -116,6 +116,9 @@ def fake_price(params: dict) -> dict:
 # ------------------------------------------------------------ the harness --
 ORDER_NO = "RH-20300615-0001"
 SATURDAY, MONDAY = "2030-06-15", "2030-06-17"
+# The order row's created_at: booked while the whole ladder stood, between the
+# two closings (10-14 gone, 15+ still on), and after (D-1102-01, D-1105-01).
+BEFORE_1102, BEFORE_LADDER, AFTER_LADDER = "2026-10-20T18:00:00.000+00:00", "2026-11-03T18:00:00.000+00:00", "2030-01-01T00:00:00.000+00:00"
 
 
 def invoice(*, mode="quick", adults=0, kids=0, guests=None, proteins=None, extras=None, promos=None, date=SATURDAY) -> dict:
@@ -153,11 +156,14 @@ LITTLE_LINE = {"id": "under5_auto", "label": "Little kids (3-4) @ $0 ×1", "amou
 
 class Run:
     """One `desk order set` (or `op`) against the fakes: its output, exit and what it would have saved.
-    `reply` is added to save-invoice's answer; `lint` is the order lint the site answers (D-1017-02)."""
+    `reply` is added to save-invoice's answer; `lint` is the order lint the site answers (D-1017-02);
+    `created_at` is the order row's (None: the search has no time, as an order booked after the ladder closed reads)."""
 
-    def __init__(self, prefill: dict, *args: str, op: str = "set", reply: dict | None = None, lint: dict | None = None):
+    def __init__(self, prefill: dict, *args: str, op: str = "set", reply: dict | None = None, lint: dict | None = None,
+                 created_at: str | None = None):
         self.prefill, self.saved, self.priced = prefill, None, []
         self.reply, self.lint, self.texted = reply or {}, lint, None
+        self.created_at = created_at
         desk._search = self.search
         desk.invoice_post = self.invoice_post
         desk.site_get = self.site_get
@@ -172,8 +178,8 @@ class Run:
         self.out = buf.getvalue()
 
     def search(self, text):
-        return [{"name": "Self Check", "email": "selfcheck@example.com", "phone": "+15555550100",
-                 "orders": [{"order_no": ORDER_NO, "id": "00000000-0000-4000-8000-000000000001"}]}]
+        row = {"order_no": ORDER_NO, "id": "00000000-0000-4000-8000-000000000001", **({"created_at": self.created_at} if self.created_at else {})}
+        return [{"name": "Self Check", "email": "selfcheck@example.com", "phone": "+15555550100", "orders": [row]}]
 
     def invoice_post(self, path, payload, timeout=120):
         if path == "/api/self-service/orders/lookup":
@@ -238,9 +244,9 @@ def tiers_match_the_ts_export() -> None:
     root = desk.ROOT
     with tempfile.TemporaryDirectory() as tmp:
         script = pathlib.Path(tmp) / "tiers.ts"
-        script.write_text(f"import {{ PARTY_SIZE_DISCOUNT_TIERS as t, PARTY_SIZE_CUSTOM_FROM as c, KID_TIER_WEIGHT as w }} "
+        script.write_text(f"import {{ CLOSED_PARTY_LADDER as t, PARTY_SIZE_CUSTOM_FROM as c, KID_TIER_WEIGHT as w, PARTY_LADDER_CLOSED_AT as at }} "
                           f"from '{(root / 'config' / 'pricing-rules').as_posix()}'\n"
-                          "console.log(JSON.stringify({ t, c, w }))\n", encoding="utf-8")
+                          "console.log(JSON.stringify({ t, c, w, at: Date.parse(at) }))\n", encoding="utf-8")
         try:
             res = subprocess.run([npx, "-y", "tsx", "--tsconfig", str(root / "tsconfig.json"), str(script)],
                                  cwd=root, capture_output=True, text=True, timeout=180)
@@ -255,6 +261,8 @@ def tiers_match_the_ts_export() -> None:
     mine = [{"minGuests": t["min"], "maxGuests": t["max"], "amount": t["amount"]} for t in tiers]
     check("tiers: desk's read of config/pricing-rules.ts equals the TS export", (mine, custom, weight) == (ts["t"], ts["c"], ts["w"]),
           detail=f"desk {(mine, custom, weight)} / TS {(ts['t'], ts['c'], ts['w'])}")
+    check("tiers: desk reads the moment the ladder closed as the TS does", desk.ladder_closed_at().timestamp() * 1000 == ts["at"],
+          detail=f"desk {desk.ladder_closed_at().isoformat()} / TS {ts['at']}")
 
 
 # ----------------------------------------------- desk send: unread texts --
@@ -566,29 +574,47 @@ def _send_checks() -> None:
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     tiers_match_the_ts_export()
-    check("tiers: 8+2 is 9 paying heads (no tier), 11+1 is 11 (no tier, 10-14 closed), 14+2 is 15 (official_party15 $60)",
+    check("tiers: the old ladder reads 8+2 as 9 paying heads (no tier), 11+1 as 11 (none, 10-14 closed first), 14+2 as 15 (official_party15 $60)",
           desk.party_line(desk.tier_heads(8, 2)) is None
           and PARTY[10] == {"id": "official_party10", "label": "Party Size Discount (10–14 adults): $30 off", "amount": 30}
           and desk.party_line(desk.tier_heads(11, 1)) is None and desk.party_line(desk.tier_heads(14, 2))["id"] == "official_party15")
+    check("tiers: an order keeps the ladder when booked before it closed or carrying a line, nobody else does (D-1105-01)",
+          desk.kept_party_line(20, [], BEFORE_LADDER) == PARTY[15] and desk.kept_party_line(20, [], AFTER_LADDER) is None
+          and desk.kept_party_line(20, [], None) is None and desk.kept_party_line(20, [PARTY[41]], AFTER_LADDER) == PARTY[15]
+          and desk.kept_party_line(12, [], BEFORE_LADDER) is None and desk.kept_party_line(12, [], BEFORE_1102) == PARTY[10]
+          and desk.kept_party_line(12, [PARTY[10]], AFTER_LADDER) == PARTY[10] and desk.kept_party_line(12, [PARTY[15]], AFTER_LADDER) is None)
 
     # RH-20261022-0063 (2026-10-22): quick mode, 8 adults + 2 kids -> 11 + 1.
     quick_8_2 = invoice(adults=8, kids=2, proteins=prot(chicken=(8, 2), steak=(8, 2)),
                         extras=[{"id": "tables_chairs", "qty": 10}, {"id": "utensils", "qty": 10}])
     args = ["--headcount", "15/1", "--proteins", "chicken=15/1", "steak=15/1", "--add-extra", "tables_chairs=16", "utensils=16"]
-    r = Run(quick_8_2, *args, "--dry")
-    check("--headcount 15/1 on a quick-mode order: counts set, official_party15 added, TOTAL $1,108.40 = desk price, --dry saves nothing",
-          r.exit is None and r.saved is None and r.has("adultCount/childCount: 8/2 -> 15/1", "none -> official_party15 $60.00",
-                                                       "✓ total check: TOTAL $1,108.40", "DRY   not saved"), r)
-    r = Run(quick_8_2, *args)
+    r = Run(quick_8_2, *args, "--dry", created_at=AFTER_LADDER)
+    check("--headcount 15/1 on a quick-mode order booked after the ladder closed: counts set, no party line, TOTAL $1,168.40 = desk price, --dry saves nothing",
+          r.exit is None and r.saved is None and r.has("adultCount/childCount: 8/2 -> 15/1", "✓ total check: TOTAL $1,168.40", "DRY   not saved")
+          and "official_party" not in r.out, r)
+    r = Run(quick_8_2, *args, created_at=AFTER_LADDER)
     d = r.data
-    check("  saved: 15/1, the menu, tables/utensils for 16, and exactly the official party15 line",
-          d.get("adultCount") == 15 and d.get("childCount") == 1 and d.get("mode") == "quick" and d.get("promotions") == [PARTY[15]]
+    check("  saved: 15/1, the menu, tables/utensils for 16, and no promotion line",
+          d.get("adultCount") == 15 and d.get("childCount") == 1 and d.get("mode") == "quick" and d.get("promotions") == []
           and {q["itemId"]: (q["qty"], q.get("childQty")) for q in d.get("quickCountItems") or []} == {"chicken": (15, 1), "steak": (15, 1)}
           and {e["id"]: e["qty"] for e in d.get("partyExtras") or []} == {"tables_chairs": 16, "utensils": 16}
           and r.saved.get("baseVersion") == "v-selfcheck", r)
-    r = Run(quick_8_2, "--headcount", "11/1", "--proteins", "chicken=11/1", "steak=11/1", "--add-extra", "tables_chairs=12", "utensils=12", "--dry")
-    check("--headcount 11/1: 10-14 earns no line now, TOTAL $868.80 = desk price",
+    r = Run(quick_8_2, *args, "--dry", created_at=BEFORE_LADDER)
+    check("  the same order booked before the ladder closed keeps it: official_party15 added, TOTAL $1,108.40",
+          r.has("none -> official_party15 $60.00", "✓ total check: TOTAL $1,108.40"), r)
+    r = Run(quick_8_2, *args, created_at=BEFORE_LADDER)
+    check("  saved with exactly the official party15 line", r.data.get("promotions") == [PARTY[15]], r)
+    r = Run(quick_8_2, "--headcount", "11/1", "--proteins", "chicken=11/1", "steak=11/1", "--add-extra", "tables_chairs=12", "utensils=12", "--dry",
+            created_at=BEFORE_LADDER)
+    check("--headcount 11/1 on an order from between the two closings: 10-14 earns no line, TOTAL $868.80 = desk price",
           r.has("✓ total check: TOTAL $868.80") and "official_party" not in r.out, r)
+    r = Run(quick_8_2, "--headcount", "11/1", "--proteins", "chicken=11/1", "steak=11/1", "--add-extra", "tables_chairs=12", "utensils=12", "--dry",
+            created_at=BEFORE_1102)
+    check("  booked before 11/02 it keeps 10-14 too: official_party10 added, TOTAL $838.80 (D-1102-01)",
+          r.has("none -> official_party10 $30.00", "✓ total check: TOTAL $838.80"), r)
+    r = Run(invoice(adults=20, promos=[PARTY[15]]), "--headcount", "26/0", "--dry", created_at=AFTER_LADDER)
+    check("an order booked after the cutoff but carrying a party line (a lead quoted with the ladder) re-tiers on it: 20 -> 26 is official_party25",
+          r.has("official_party15 $60.00 -> official_party25 $90.00", "✓ total check: TOTAL $1,467.40"), r)
     r = Run(quick_8_2, "--headcount", "11/1", "--dry")
     check("--headcount alone says the menu and the per-guest setup still count the old party",
           r.has("the menu is still chicken=8/2 steak=8/2", "pass --proteins", "tables_chairs is still billed for 10 guests, the party is now 12"), r)
@@ -606,13 +632,18 @@ def main() -> int:
 
     # The stored order after the 10-22 rewrite, before the tier was added by hand.
     rewritten = invoice(mode="detailed", adults=15, kids=1, guests=rows(15, 1, setup=True))
-    r = Run(rewritten, "--time", "18:30", "--dry")
-    check("a stored order missing its tier: TOTAL CHECK FAILED, $1,168.40 vs desk price $1,108.40, $60.00 too much, fix named",
-          r.has("TOTAL CHECK FAILED", "$1,168.40", "$1,108.40", "$60.00 too much", "party size: order no line; desk price -$60.00 for 15 paying heads",
+    r = Run(rewritten, "--time", "18:30", "--dry", created_at=BEFORE_LADDER)
+    check("a stored order missing the tier it keeps: TOTAL CHECK FAILED, $1,168.40 vs $1,108.40, $60.00 too much, fix named",
+          r.has("TOTAL CHECK FAILED", "$1,168.40", "$1,108.40", "$60.00 too much", "party size: order no line; it should carry -$60.00 for 15 paying heads",
                 "likely fix: --retier (puts official_party15 $60.00 on for 15 paying heads)"), r)
-    r = Run(rewritten, "--retier")
+    r = Run(rewritten, "--retier", created_at=BEFORE_LADDER)
     check("  --retier on it: official_party15 added, nothing else, ✓ $1,108.40",
           r.data.get("promotions") == [PARTY[15]] and r.data.get("guests") == rewritten["guests"] and r.has("✓ total check: TOTAL $1,108.40"), r)
+    r = Run(rewritten, "--time", "18:30", "--dry", created_at=AFTER_LADDER)
+    check("  the same order booked after the ladder closed has no tier to miss: ✓ $1,168.40",
+          r.has("✓ total check: TOTAL $1,168.40") and "TOTAL CHECK FAILED" not in r.out, r)
+    r = Run(rewritten, "--retier", "--dry", created_at=AFTER_LADDER)
+    check("  and --retier says no line is right for it", r.has("none is already right", "D-1105-01") and "nothing to change" in str(r.exit), r)
     r = Run(invoice(mode="detailed", adults=15, kids=1, guests=rows(15, 1, setup=True), promos=[PARTY[15]]), "--time", "18:30", "--dry")
     check("  the same order with official_party15: ✓", r.has("✓ total check: TOTAL $1,108.40") and "TOTAL CHECK FAILED" not in r.out, r)
     r = Run(invoice(mode="detailed", adults=15, kids=1, guests=rows(15, 1, setup=True), promos=[PARTY[10]]), "--retier", "--dry")
@@ -642,10 +673,13 @@ def main() -> int:
         f = pathlib.Path(tmp) / "rows.json"
         f.write_text(json.dumps([{"name": f"G{i}", "proteins": ["chicken", "steak"], "tables": True, "utensils": True} for i in range(16)]),
                      encoding="utf-8")
-        r = Run(quick_8_2, "--guests-file", str(f))
-    check("--guests-file 16 adults on an 8+2 order: official_party15 $60 added, rows carry the setup, ✓ $1,138.40",
+        r = Run(quick_8_2, "--guests-file", str(f), created_at=BEFORE_LADDER)
+        r_new = Run(quick_8_2, "--guests-file", str(f), created_at=AFTER_LADDER)
+    check("--guests-file 16 adults on an 8+2 order booked before the cutoff: official_party15 $60 added, rows carry the setup, ✓ $1,138.40",
           r.data.get("promotions") == [PARTY[15]] and r.data.get("mode") == "detailed" and not r.data.get("partyExtras")
           and r.has("✓ total check: TOTAL $1,138.40"), r)
+    check("  booked after it: no party line, ✓ $1,198.40",
+          r_new.data.get("promotions") == [] and r_new.data.get("mode") == "detailed" and r_new.has("✓ total check: TOTAL $1,198.40"), r_new)
     with tempfile.TemporaryDirectory() as tmp:
         f = pathlib.Path(tmp) / "rows.json"
         f.write_text(json.dumps([{"name": f"G{i}", "proteins": ["chicken", "steak"]} for i in range(16)]), encoding="utf-8")
@@ -662,11 +696,11 @@ def main() -> int:
 
     # Appreciation stands in for the tier (leads skill: they do not stack unless the owner says so).
     teacher = {"id": "appreciation_teacher", "label": "Teacher Appreciation: $50 off", "amount": 50.0}
-    r = Run(invoice(adults=9, promos=[teacher]), "--headcount", "15/0")
-    check("appreciation on the order: no party line added, said why, ✓ with the stand-in noted",
+    r = Run(invoice(adults=9, promos=[teacher]), "--headcount", "15/0", created_at=BEFORE_LADDER)
+    check("appreciation on an order that keeps the ladder: no party line added, said why, ✓ with the stand-in noted",
           r.data.get("promotions") == [teacher] and r.has("not added - appreciation_teacher", "✓ total check: TOTAL $848.50", "stands in"), r)
     r = Run(invoice(adults=15, promos=[PARTY[15]]), "--remove-promo", "official_party15", "--add-promo", "appreciation_teacher=50",
-            "--promo-label", "Teacher Appreciation: $50 off", "--headcount", "16/0", "--dry")
+            "--promo-label", "Teacher Appreciation: $50 off", "--headcount", "16/0", "--dry", created_at=BEFORE_LADDER)
     check("--remove-promo official_party15 in the same command: not put back",
           r.has("not put back", "✓ total check: TOTAL $908.40") and "-> official_party15" not in r.out, r)
 

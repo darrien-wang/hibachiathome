@@ -266,8 +266,8 @@ export default function QuoteBuilderClient() {
   const [customerEmail, setCustomerEmail] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
   const [smsConsent, setSmsConsent] = useState(false)
-  // Price gate (2026-09-13): the exact total and the Party Size Discount are
-  // shown only after the visitor leaves a mobile number and an email. The
+  // Price gate (2026-09-13): the exact total is shown only after the visitor
+  // leaves a mobile number and an email. The
   // unlock is remembered on this device so a returning visitor is not asked twice.
   const [unlocked, setUnlocked] = useState(false)
   const [unlockBusy, setUnlockBusy] = useState(false)
@@ -727,7 +727,7 @@ export default function QuoteBuilderClient() {
   // "$1,175–$1,275" card).
   const shownResult = useMemo(() => {
     if (unlocked) return result
-    const r = displayRange(result.totalRange.low, result.totalRange.high + result.partySizeDiscountApplied)
+    const r = displayRange(result.totalRange.low, result.totalRange.high)
     return { ...result, totalRange: { low: r.low, high: r.high } }
   }, [unlocked, result])
   const smsBody = useMemo(
@@ -1416,8 +1416,6 @@ export default function QuoteBuilderClient() {
     }
     onEmailClick()
   }
-  // Declared ahead of primaryLabel/primaryHint, which read it during render.
-  const unlockDiscount = result.partySizeDiscountApplied
   const primaryLabel =
     step === 1
       ? unlockBusy
@@ -1426,9 +1424,7 @@ export default function QuoteBuilderClient() {
       : step === 2
         ? unlockBusy
           ? "Sending…"
-          : unlockDiscount > 0
-            ? `Text me this quote + $${unlockDiscount} code`
-            : "Text me this quote"
+          : "Text me this quote"
         : bookingRequestSubmitting
           ? "Submitting…"
           : "Book now"
@@ -1443,7 +1439,7 @@ export default function QuoteBuilderClient() {
     result.totalRange.low === result.totalRange.high
       ? `$${fmtMoney(result.totalRange.low)}`
       : `$${fmtMoney(result.totalRange.low)}–$${fmtMoney(result.totalRange.high)}`
-  const rangeLabel = formatDisplayRange(displayRange(result.totalRange.low, result.totalRange.high + result.partySizeDiscountApplied))
+  const rangeLabel = formatDisplayRange(displayRange(result.totalRange.low, result.totalRange.high))
   const shownPriceLabel = unlocked ? totalLabel : rangeLabel
 
   const validateContact = () => {
@@ -2172,12 +2168,6 @@ export default function QuoteBuilderClient() {
                     <div className="flex justify-between border-b border-ink/15 py-2.5">
                       <span>Tables, chairs &amp; utensils</span>
                       <span className="font-semibold">+${result.tablewareFee.toFixed(0)}</span>
-                    </div>
-                  ) : null}
-                  {result.partySizeDiscountApplied > 0 ? (
-                    <div className="flex justify-between border-b border-ink/15 py-2.5 text-gold-800">
-                      <span>Party size discount ({result.partySizeDiscountLabel})</span>
-                      <span className="font-semibold">−${result.partySizeDiscountApplied.toFixed(0)}</span>
                     </div>
                   ) : null}
                   {!isWeekdaySaverTier && selectedPremiumUpgrades.length > 0 ? (

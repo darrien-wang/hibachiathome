@@ -8,19 +8,20 @@ import { LARGE_PARTY_FLOOR, PRICE_FLOOR_PER_HEAD } from "../config/pricing-rules
 
 const r2 = (n: number) => Math.round(n * 100) / 100
 
-test("floor · Whitney 60 on a Sunday at $54.90: $3,114, $51.90 a head, full service", () => {
-  const q = computeQuote({ adults: 60, kids: 0, weekdaySpecial: false, travelFee: 0, stackPromos: true, adultRate: 54.9 })
+// Whitney's 60 on a Sunday took in $51.90 a head ($54.90 less the 51-60 tier,
+// which closed 2026-11-05, D-1105-01); the same take is a $51.90 rate now.
+test("floor · 60 on a Sunday at $51.90: $3,114, $51.90 a head, full service", () => {
+  const q = computeQuote({ adults: 60, kids: 0, weekdaySpecial: false, travelFee: 0, stackPromos: true, adultRate: 51.9 })
   assert.equal(q.total, 3114)
-  assert.equal(q.partySize, 180)
   assert.equal(q.floorRate, LARGE_PARTY_FLOOR.perHead, "40+ guests: the floor is $45 any day (D-1010-03)")
   assert.equal(q.effectivePerHead, 51.9)
   assert.equal(q.belowFloor, false)
   assert.equal(q.semiBuffet, false, "above the usual $50 the party stays full service")
-  assert.deepEqual(q.deal, { adultRate: 54.9 }, "the per-adult rate is what gets signed into the link")
+  assert.deepEqual(q.deal, { adultRate: 51.9 }, "the per-adult rate is what gets signed into the link")
 })
 
 test("floor · the same party with free tables counts $4 a head: $47.90 is under $50, so it runs semi-buffet", () => {
-  const q = computeQuote({ adults: 60, kids: 0, weekdaySpecial: false, travelFee: 0, stackPromos: true, adultRate: 54.9, freeTables: true })
+  const q = computeQuote({ adults: 60, kids: 0, weekdaySpecial: false, travelFee: 0, stackPromos: true, adultRate: 51.9, freeTables: true })
   assert.equal(q.effectivePerHead, 47.9)
   assert.equal(q.belowFloor, false)
   assert.equal(q.semiBuffet, true)
@@ -35,11 +36,11 @@ test("floor · 40+ guests: $45 a head is the floor (semi-buffet), $44 needs the 
   assert.equal(at45.belowFloor, false)
   assert.equal(at45.semiBuffet, true)
   assert.equal(at45.semiBuffetChefs, 3)
-  const at44 = computeQuote({ adults: 150, kids: 0, weekdaySpecial: false, travelFee: 0, stackPromos: true, adultRate: 45.1 })
+  const at44 = computeQuote({ adults: 150, kids: 0, weekdaySpecial: false, travelFee: 0, stackPromos: true, adultRate: 44.9 })
   assert.ok(at44.effectivePerHead < 45, `got ${at44.effectivePerHead}`)
   assert.equal(at44.belowFloor, true)
   assert.equal(at44.semiBuffet, false)
-  const small = computeQuote({ adults: 30, kids: 0, weekdaySpecial: false, travelFee: 0, stackPromos: true, adultRate: 50.9 })
+  const small = computeQuote({ adults: 30, kids: 0, weekdaySpecial: false, travelFee: 0, stackPromos: true, adultRate: 49.9 })
   assert.ok(small.effectivePerHead < 50, `got ${small.effectivePerHead}`)
   assert.equal(small.floorRate, PRICE_FLOOR_PER_HEAD.weekend)
   assert.equal(small.belowFloor, true, "30 guests: no large-party room")
@@ -47,7 +48,7 @@ test("floor · 40+ guests: $45 a head is the floor (semi-buffet), $44 needs the 
 })
 
 test("floor · weekday 40+ gets no extra room: $45 is already the floor and stays full service", () => {
-  // 45 x $48.50 - $150 (41-50 tier) = $2,032.50 -> $45.17 a head
+  // 45 x $48.50 = $2,182.50 -> $48.50 a head
   const q = computeQuote({ adults: 45, kids: 0, weekdaySpecial: true, travelFee: 0, adultRate: 48.5 })
   assert.equal(q.floorRate, PRICE_FLOOR_PER_HEAD.weekday)
   assert.ok(q.effectivePerHead >= 45, `got ${q.effectivePerHead}`)
@@ -64,20 +65,20 @@ test("floor · list price is always above the floor, weekend and weekday, with o
   }
 })
 
-test("floor · kids weigh half a head: 10 adults + 10 kids at list price is $41.90 a body but $55.87 a weighted head", () => {
+test("floor · kids weigh half a head: 10 adults + 10 kids at list price is $44.90 a body but $59.87 a weighted head", () => {
   const q = computeQuote({ adults: 10, kids: 10, weekdaySpecial: false, travelFee: 0 })
-  assert.equal(q.total, 599 + 299 - 60, "10+10 = 20 paying heads, 15-24 tier: -$60")
+  assert.equal(q.total, 599 + 299, "no party-size discount since 2026-11-05")
   assert.equal(q.perPerson, r2(q.total / 20))
   assert.equal(q.effectivePerHead, r2(q.total / 15))
   assert.equal(q.belowFloor, false)
 })
 
-test("floor · weekday floor is $45: 35 on a Tuesday at $47 a head clears it, $44 does not", () => {
-  const ok = computeQuote({ adults: 35, kids: 0, weekdaySpecial: true, travelFee: 0, stackPromos: true, adultRate: 50.43 })
+test("floor · weekday floor is $45: 35 on a Tuesday at $47 a head clears it, $44.90 does not", () => {
+  const ok = computeQuote({ adults: 35, kids: 0, weekdaySpecial: true, travelFee: 0, stackPromos: true, adultRate: 47 })
   assert.equal(ok.floorRate, PRICE_FLOOR_PER_HEAD.weekday)
   assert.ok(ok.effectivePerHead >= 45, `got ${ok.effectivePerHead}`)
   assert.equal(ok.belowFloor, false)
-  const low = computeQuote({ adults: 35, kids: 0, weekdaySpecial: true, travelFee: 0, stackPromos: true, adultRate: 47.4 })
+  const low = computeQuote({ adults: 35, kids: 0, weekdaySpecial: true, travelFee: 0, stackPromos: true, adultRate: 44.9 })
   assert.ok(low.effectivePerHead < 45, `got ${low.effectivePerHead}`)
   assert.equal(low.belowFloor, true)
 })
@@ -104,16 +105,16 @@ test("signing · a weekday special rate is signed with the $5 added back (the in
 
 test("tables · Saturday half price (D-1017-01): $5 a guest is billed inside the total and signed as a rate, not a dollar amount", () => {
   const q = computeQuote({ adults: 20, kids: 0, weekdaySpecial: false, eventDate: "2026-10-17", travelFee: 0, tablesRate: TABLES_HALF_PRICE })
-  // 20 x $59.90 = $1,198 + tables 20 x $5 - $60 (15-24 tier) = $1,238 - what the invoice bills
+  // 20 x $59.90 = $1,198 + tables 20 x $5 = $1,298 - what the invoice bills
   // ($10 a guest, then a "Tables & Chairs at $5/guest" line taking $5 a guest back off).
   assert.equal(q.tablesRate, 5)
   assert.equal(q.tablesCharge, 100)
-  assert.equal(q.total, 1238)
+  assert.equal(q.total, 1298)
   assert.deepEqual(q.deal, { extraRates: { tables_chairs: 5 } })
   const sms = quoteSms(q, {})
   assert.match(sms, /Tables & chairs: 20 guests x \$5\.00 \(half price\) = \$100\.00/)
-  assert.match(sms, /Discount: -\$60\.00/)
-  assert.match(sms, /Total: \$1,238\.00/)
+  assert.doesNotMatch(sms, /Discount:/, "no party-size discount line since 2026-11-05")
+  assert.match(sms, /Total: \$1,298\.00/)
   assert.doesNotMatch(sms, /tables and chairs on us/i, "half price is a price, not a gift")
   assert.match(quotePromiseNote(q, ""), /桌椅半价 \$5\.00\/人/)
 })
@@ -156,16 +157,15 @@ test("tables · isSaturday reads the party date (D-1017-01: Saturdays get half p
 
 // Owner 2026-11-03: a special rate is the whole price - heads × rate, nothing
 // stacked, signed onlyAgreed so the invoice adds none of its rules either.
-test("agreed only · Kande 64 at $50 on a Saturday: $3,200, no tier, no free appetizer, signed onlyAgreed", () => {
+test("agreed only · Kande 64 at $50 on a Saturday: $3,200, no free appetizer, signed onlyAgreed", () => {
   const q = computeQuote({ adults: 64, kids: 0, weekdaySpecial: false, eventDate: "2026-12-05", travelFee: 0, adultRate: 50 })
   assert.equal(q.agreedOnly, true)
-  assert.equal(q.partySize, 0)
   assert.equal(q.autoAppetizer, false)
   assert.equal(q.total, 3200)
   assert.deepEqual(q.deal, { adultRate: 50, onlyAgreed: true })
 })
 
-test("agreed only · 60 at $50: the 51-60 tier is not stacked ($3,000, not $2,820)", () => {
+test("agreed only · 60 at $50: $3,000, $50 a head", () => {
   const q = computeQuote({ adults: 60, kids: 0, weekdaySpecial: false, travelFee: 0, adultRate: 50 })
   assert.equal(q.total, 3000)
   assert.equal(q.effectivePerHead, 50)
@@ -178,14 +178,17 @@ test("agreed only · a weekday rate is the whole price: no Weekday Special under
   assert.deepEqual(q.deal, { adultRate: 49.9, onlyAgreed: true })
 })
 
-test("agreed only · stackPromos brings the old math back, without onlyAgreed", () => {
+test("agreed only · stackPromos brings the usual promos back (the 20+ free appetizer here), without onlyAgreed", () => {
   const q = computeQuote({ adults: 60, kids: 0, weekdaySpecial: false, travelFee: 0, adultRate: 50, stackPromos: true })
-  assert.equal(q.total, 2820)
+  assert.equal(q.total, 3000, "no party-size tier to stack since 2026-11-05")
+  assert.equal(q.autoAppetizer, true)
   assert.equal(q.deal?.onlyAgreed, undefined)
 })
 
-test("agreed only · no special rate, no change: list price still gets the tier", () => {
+test("agreed only · no special rate: the list price, no tier, the free appetizer stays", () => {
   const q = computeQuote({ adults: 60, kids: 0, weekdaySpecial: false, travelFee: 0 })
   assert.equal(q.agreedOnly, false)
-  assert.ok(q.partySize > 0)
+  assert.equal(q.total, 3594)
+  assert.equal(q.totalDiscount, 0)
+  assert.equal(q.autoAppetizer, true)
 })

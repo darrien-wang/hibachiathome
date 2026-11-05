@@ -204,8 +204,8 @@ const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigi
  * automatic quote never went out. When the minimum is the price on both nights
  * it says so - "For 1 adults ... it's $599.00" reads as $599 a head (the
  * landing quote's Susan Romero, 2026-10-22). A party whose Fri-Sun price is
- * above the minimum ("$628.90 Fri-Sun or $599.00 Mon-Thu" for 11) cannot be
- * read that way and gets no note.
+ * above the minimum ("$628.90 Fri-Sun or $599.00 Mon-Thu" for 10 adults and a
+ * kid) cannot be read that way and gets no note.
  */
 export function templateAMessage(p: LandingContactPayload): { sms: string; emailSubject: string; emailText: string } {
   const adults = Math.max(1, Math.round(Number(p.adults) || 15))

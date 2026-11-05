@@ -13,10 +13,11 @@ export const dynamic = "force-dynamic"
 //
 // The planner used to ask for a name and a phone number before showing
 // anything, and in its whole life that door produced two leads. Now a cold
-// visitor plans first and sees a price range; the exact price, the Party Size
-// Discount code and a link back to their party are what they trade their
-// contact details for. This route is the other half of that trade: it records
-// the lead, texts and emails the three things we promised, and wakes ops.
+// visitor plans first and sees a price range; the exact price and a link back
+// to their party are what they trade their contact details for (until
+// 2026-11-05 a party-size discount code came with them; there is none now,
+// D-1105-01). This route is the other half of that trade: it records the
+// lead, texts and emails what we promised, and wakes ops.
 //
 // It is server-to-server only. The planner app computes the exact total from
 // the full plan (proteins, add-ons, weekday rules) with the same pricing code
@@ -39,8 +40,6 @@ type Body = {
   babies?: number
   pickedCount?: number
   total?: number
-  discountCode?: string | null
-  discountAmount?: number
   weekday?: boolean
   plannerUrl?: string
   /** What the visitor was reaching for when the card came up: price | share | save | confirm */
@@ -111,8 +110,6 @@ export async function POST(request: NextRequest) {
   const babies = asInt(body.babies, 0, 100)
   const pickedCount = asInt(body.pickedCount, 0, 400)
   const eventDate = /^\d{4}-\d{2}-\d{2}$/.test(asStr(body.eventDate, 10)) ? asStr(body.eventDate, 10) : ""
-  const discountCode = /^PARTY\d{2,3}$/.test(asStr(body.discountCode, 12)) ? asStr(body.discountCode, 12) : null
-  const discountAmount = Math.max(0, Math.round(Number(body.discountAmount) || 0))
   const weekday = body.weekday === true
   const intent = asStr(body.intent, 20) || "price"
   const attribution = cleanAttribution(body.attribution)
@@ -126,9 +123,6 @@ export async function POST(request: NextRequest) {
   ].filter(Boolean)
   const guestsLine = guestParts.join(" + ")
   const dateLine = eventDate ? describeDate(eventDate) : "date TBD"
-  const discountLine = discountCode
-    ? `Your code ${discountCode} (-$${discountAmount} party size discount) is already in that price and applies automatically when you book.`
-    : null
 
   const supabase = createServerSupabaseClient()
   let leadId: string | null = null
@@ -145,7 +139,6 @@ export async function POST(request: NextRequest) {
           `Planner unlock (${intent}): ${guestsLine}`,
           eventDate ? `Date: ${eventDate}` : "date TBD",
           `Estimated total: ${money(total)}${weekday ? " (Weekday Special)" : ""}`,
-          discountCode ? `code ${discountCode}` : "",
           `${pickedCount}/${eaters} guests have picked proteins`,
           `Plan: ${plannerUrl}`,
         ]
@@ -185,7 +178,6 @@ export async function POST(request: NextRequest) {
 
   const smsBody = [
     `Real Hibachi: your party is saved. ${guestsLine}${eventDate ? `, ${dateLine}` : ""} - exact price ${money(total)}${weekday ? " (Weekday Special)" : ""}.`,
-    discountLine,
     `You can keep planning, or send this to your guests so they can pick their own seats and proteins: ${plannerUrl}`,
     "Please reply here with any questions, we answer fast. Reply STOP to opt out.",
   ]
@@ -200,7 +192,6 @@ export async function POST(request: NextRequest) {
     "",
     `Your party is saved: ${guestsLine}${eventDate ? ` · ${dateLine}` : ""}.`,
     `Exact price: ${money(total)}${weekday ? " (Weekday Special)" : ""}`,
-    ...(discountLine ? [discountLine] : []),
     "",
     "Your private party link - open it on any device, keep designing, or send it to your guests so everyone grabs a seat and picks their own proteins:",
     plannerUrl,
@@ -224,7 +215,7 @@ export async function POST(request: NextRequest) {
     subject: `🎪 Planner unlock · ${guestsLine} · ${money(total)} · ${phoneE164}`,
     text: [
       `${name} designed a party in the planner and unlocked the exact price (${intent}).`,
-      `${guestsLine} · ${dateLine} · ${money(total)}${weekday ? " (Weekday Special)" : ""}${discountCode ? ` · ${discountCode}` : ""}`,
+      `${guestsLine} · ${dateLine} · ${money(total)}${weekday ? " (Weekday Special)" : ""}`,
       `${pickedCount}/${eaters} guests have proteins picked.`,
       `Phone: ${phoneE164}${sms.ok ? "" : " (SMS FAILED: " + sms.error + ")"} · Email: ${email}`,
       `Their plan: ${plannerUrl}`,
@@ -232,7 +223,7 @@ export async function POST(request: NextRequest) {
       "They already have the price and their link. A short, warm hello while they are still playing with it lands best.",
     ].join("\n"),
     html: `<p><strong>${escapeHtml(name)}</strong> designed a party in the planner and unlocked the exact price (${escapeHtml(intent)}).</p>
-<p>${escapeHtml(guestsLine)} · ${escapeHtml(dateLine)} · <strong>${money(total)}</strong>${weekday ? " (Weekday Special)" : ""}${discountCode ? ` · ${escapeHtml(discountCode)}` : ""}<br>${pickedCount}/${eaters} guests have proteins picked.</p>
+<p>${escapeHtml(guestsLine)} · ${escapeHtml(dateLine)} · <strong>${money(total)}</strong>${weekday ? " (Weekday Special)" : ""}<br>${pickedCount}/${eaters} guests have proteins picked.</p>
 <p>Phone: ${escapeHtml(phoneE164)}${sms.ok ? "" : ` <strong style="color:#b91c1c">(SMS FAILED: ${escapeHtml(sms.error)})</strong>`} · Email: ${escapeHtml(email)}</p>
 <p><a href="${plannerUrl}">Open their plan</a> · <a href="${workbench}">Open in workbench</a></p>
 <p>They already have the price and their link. A short, warm hello while they are still playing with it lands best.</p>`,

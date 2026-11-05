@@ -112,12 +112,12 @@ test("template A says one price when both nights hit the minimum, and no travel 
   assert.equal(daisy.where, "")
   assert.equal(daisy.travelSms, ", first 50 miles of travel free")
   assert.match(daisy.travelEmail, /first 50 miles free/)
-  const ps = templateAWording({ weekend: "$838.50", weekday: "$763.50", travel: 42, city: "palm springs" })
-  assert.equal(ps.price, "$838.50 Fri-Sun or $763.50 Mon-Thu")
+  const ps = templateAWording({ weekend: "$898.50", weekday: "$823.50", travel: 42, city: "palm springs" })
+  assert.equal(ps.price, "$898.50 Fri-Sun or $823.50 Mon-Thu")
   assert.equal(ps.where, " in Palm Springs")
   assert.equal(ps.travelSms, ", plus about $42 travel")
   assert.equal(ps.travelEmail, "- Travel to Palm Springs: about $42")
-  const near = templateAWording({ weekend: "$838.50", weekday: "$763.50", travel: 0, city: "Irvine" })
+  const near = templateAWording({ weekend: "$898.50", weekday: "$823.50", travel: 0, city: "Irvine" })
   assert.equal(near.travelSms, ", no travel fee")
 })
 
@@ -144,9 +144,9 @@ test("template A: travel stays its own phrase, and more than 10 on the minimum a
 test("template A: no note once Fri-Sun clears the minimum (wording per leads voice.md 2026-10-29)", () => {
   assert.equal(
     templateAMessage({ adults: 15, cityName: "Anaheim" }).sms,
-    "Hi, it's Rowling from Real Hibachi. Our system was supposed to text you a price and didn't, sorry. For 15 adults in Anaheim it's $838.50 Fri-Sun or $763.50 Mon-Thu, no travel fee. Each guest gets 2 proteins, fried rice, veggies, salad and the chef show. What date are you thinking?",
+    "Hi, it's Rowling from Real Hibachi. Our system was supposed to text you a price and didn't, sorry. For 15 adults in Anaheim it's $898.50 Fri-Sun or $823.50 Mon-Thu, no travel fee. Each guest gets 2 proteins, fried rice, veggies, salad and the chef show. What date are you thinking?",
   )
-  assert.doesNotMatch(templateAMessage({ adults: 11, cityName: "Torrance" }).sms, /minimum/, "$628.90 Fri-Sun or $599.00 Mon-Thu")
+  assert.doesNotMatch(templateAMessage({ adults: 10, kids: 1, cityName: "Torrance" }).sms, /minimum/, "$628.90 Fri-Sun or $599.00 Mon-Thu")
 })
 
 test("template A: the note shows exactly when the price is the minimum on both nights", () => {

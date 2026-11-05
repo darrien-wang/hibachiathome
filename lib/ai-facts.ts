@@ -25,7 +25,6 @@ import {
   LATE_CANCEL_FEE,
   MINIMUM_SPEND,
   PARTY_SIZE_CUSTOM_FROM,
-  PARTY_SIZE_DISCOUNT_TIERS,
   LARGE_PARTY_APPETIZER_MIN,
   TABLES_CHAIRS_PER_GUEST,
   TRAVEL_FREE_RADIUS_MILES,
@@ -74,9 +73,9 @@ export function getAiFacts(now = new Date()): { summary: string; sections: FactS
     // the invoice carries it. Agents answer price questions with these figures.
     `Event minimum: ${usd(MINIMUM_SPEND)} (the food total after discounts, before travel and tip).`,
     `Weekday Special, Monday-Thursday: ${usd2(adult.weekdayPrice)} per adult, ${usd2(child.weekdayPrice)} per child, plus a free ${WEEKDAY_SPECIAL.appetizerPlatter.label.replace(/^Free /, "").toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.detail}): gyoza or spring rolls for every guest, or edamame for the table, gyoza if the customer doesn't choose. Any party size, full menu.${blackouts.length ? ` Not available on major holidays: ${blackouts.join("; ")}.` : ""}`,
-    `Party Size Discount, automatic on any day and on top of the Weekday Special (counts paying heads: each adult 1, each child 5-12 counts as half, under-5s do not count): ${PARTY_SIZE_DISCOUNT_TIERS.map((t) => `${t.minGuests}-${t.maxGuests} adults ${usd(t.amount)} off`).join(", ")}. ${PARTY_SIZE_CUSTOM_FROM}+ guests get a custom quote.`,
+    `${PARTY_SIZE_CUSTOM_FROM}+ guests get a custom quote.`,
     ...(platterOn
-      ? [`Parties of ${LARGE_PARTY_APPETIZER_MIN}+ adults on any day get the same free ${WEEKDAY_SPECIAL.appetizerPlatter.label.replace(/^Free /, "").toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.detail}). Counted in the same paying heads as the party-size discount, so a child 5-12 counts as half and an under-5 does not count. It is one per party: a qualifying weekday party gets one, not two.`]
+      ? [`Parties of ${LARGE_PARTY_APPETIZER_MIN}+ adults on any day get the same free ${WEEKDAY_SPECIAL.appetizerPlatter.label.replace(/^Free /, "").toLowerCase()} (${WEEKDAY_SPECIAL.appetizerPlatter.detail}). Counted in paying heads: each adult 1, a child 5-12 counts as half and an under-5 does not count. It is one per party: a qualifying weekday party gets one, not two.`]
       : []),
     `Travel: first ${TRAVEL_FREE_RADIUS_MILES} driving miles free, then ${usd(TRAVEL_RATE_PER_MILE)} per mile. Most of Los Angeles and Orange County is inside the free radius.`,
     ...(isPromotionActive("call_out_fee_waived") ? ["No chef call-out fee right now (waived)."] : []),
@@ -92,7 +91,7 @@ export function getAiFacts(now = new Date()): { summary: string; sections: FactS
       .filter(Boolean)
       .join(", ")}.`,
     `Gratuity is not included; 20-25% for the chef is customary.`,
-    `Example: 15 adults on a Saturday = 15 x ${usd2(adult.price)} = ${usd2(15 * adult.price)} - ${usd(60)} party size discount = ${usd2(15 * adult.price - 60)}, plus travel if over ${TRAVEL_FREE_RADIUS_MILES} miles. The /api/agent/price endpoint computes any party exactly.`,
+    `Example: 15 adults on a Saturday = 15 x ${usd2(adult.price)} = ${usd2(15 * adult.price)}, plus travel if over ${TRAVEL_FREE_RADIUS_MILES} miles. The /api/agent/price endpoint computes any party exactly.`,
   ]
 
   const included: string[] = [

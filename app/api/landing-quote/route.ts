@@ -13,7 +13,7 @@ import { getCityTravel } from "@/config/city-travel"
 import { placeName } from "@/lib/first-response"
 import { cityForZip } from "@/lib/zip-city"
 import { minimumNote, partyLine } from "@/lib/landing-quote-text"
-import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, TRAVEL_FREE_RADIUS_MILES, calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountCode, partySizeDiscountLabel } from "@/config/pricing-rules"
+import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, TRAVEL_FREE_RADIUS_MILES, calcSimpleEstimate, checkWeekdayEligibility } from "@/config/pricing-rules"
 
 // Rentals, said up front (2026-09-27 audit): tables/chairs/plates was the
 // most-asked question in 15 days of texts, and competitors bundle them, so a
@@ -78,9 +78,6 @@ const asInt = (v: unknown, min: number, max: number) => {
   return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : min
 }
 const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-// A discount is whole dollars in the texts ("the $60 party-size discount"); a
-// fractional one keeps its cents - "$29.9" went out on 2026-10-10.
-const dollars = (n: number) => (Number.isInteger(n) ? `$${n}` : money(n))
 
 function describeDate(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
@@ -148,8 +145,8 @@ export async function POST(request: NextRequest) {
 
   const phoneE164 = toE164(asStr(body.phone, 32))
   if (!phoneE164) return NextResponse.json({ ok: false, error: "phone_invalid" }, { status: 400 })
-  // Email is required since 2026-09-13: the exact price and discount code go
-  // out on both channels, and T-Mobile is currently rejecting our texts.
+  // Email is required since 2026-09-13: the exact price goes out on both
+  // channels, and T-Mobile is currently rejecting our texts.
   const email = asStr(body.email, 120).toLowerCase()
   if (!email) return NextResponse.json({ ok: false, error: "email_required" }, { status: 400 })
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ ok: false, error: "email_invalid" }, { status: 400 })
@@ -192,21 +189,14 @@ export async function POST(request: NextRequest) {
   // pick stands and the text says it is a Mon–Thu price.
   const eligibility = eventDate ? checkWeekdayEligibility(eventDate, { adult: adults, child: kids, toddler: 0 }) : null
   const weekday = eligibility ? eligibility.isEligible : body.plan === "weekday"
-  // Same shared calculation as the on-page estimator: tier rate, Party Size
-  // Discount, then the $599 floor on every date (the old weekday branch
-  // skipped the floor and under-quoted small Mon–Thu parties).
+  // Same shared calculation as the on-page estimator: the day's rate, then
+  // the $599 floor on every date (the old weekday branch skipped the floor and
+  // under-quoted small Mon–Thu parties). No party-size discount since
+  // 2026-11-05 (D-1105-01).
   const est = calcSimpleEstimate({ adults, kids, weekdaySpecial: weekday, travelFee })
   const subtotal = est.subtotal
   const total = est.total
   const planLabel = weekday ? "Weekday Special (Mon–Thu)" : "Standard (any day)"
-  const discountCode = est.partySizeDiscountApplied > 0 ? partySizeDiscountCode({ adults, kids }) : null
-  // "15–24 guests · $60 off" -> "15–24 guests". Said as a headcount tier, not
-  // a "code": a customer whose second quote showed a different code called
-  // to ask why it kept changing (2026-09-27).
-  const tierRange = (partySizeDiscountLabel({ adults, kids }) ?? "").split(" · ")[0] || null
-  const discountLine = discountCode
-    ? `Includes the ${dollars(est.partySizeDiscountApplied)} party-size discount${tierRange ? ` (${tierRange})` : ""}.`
-    : null
   // When the minimum set the price the text says so: "$599.00 for 1 adults"
   // read as $599 a head (Susan Romero, 2026-10-22).
   const minimum = minimumNote(est, adults + kids)
@@ -252,7 +242,7 @@ export async function POST(request: NextRequest) {
           ? `Landing contact (${cityName}): gave mobile + email, quote step pending · card default ${guestsLine} · ${planLabel}`
           : priceCheck
           ? `Price check (${cityName}, Meta, no date yet): ${guestsLine} · ${planLabel} · est. ${money(total)} - price texted, parked 45 days, not a lead until a date or a reply`
-          : `${surfaceLabel} (${cityName}): ${guestsLine} · ${planLabel} · ${dateLine} · est. ${money(total)}${travelFee ? ` incl. ~$${travelFee} travel` : ""}${discountCode ? ` · code ${discountCode}` : ""}${notes ? ` · ${notes}` : ""}`,
+          : `${surfaceLabel} (${cityName}): ${guestsLine} · ${planLabel} · ${dateLine} · est. ${money(total)}${travelFee ? ` incl. ~$${travelFee} travel` : ""}${notes ? ` · ${notes}` : ""}`,
         leadSource: source,
         leadChannel,
         leadType: "booking_inquiry",
@@ -273,7 +263,7 @@ export async function POST(request: NextRequest) {
           ...body,
           ...(carried ? { cityName, travelPending, cardCity: typedCity } : {}),
           phone: phoneE164,
-          computed: { weekday, subtotal, total, travelFee, discountCode, discount: est.partySizeDiscountApplied },
+          computed: { weekday, subtotal, total, travelFee },
         },
       })
       leadId = lead.leadId
@@ -329,10 +319,10 @@ export async function POST(request: NextRequest) {
 
   // A second quote for the same lead within half an hour is almost always the
   // same party with a changed headcount or city. Esme (2026-09-27) got two
-  // full quotes five minutes apart - $838.50 "code PARTY60", then $870.60
-  // "code PARTY30" - and called to ask why the price kept changing. The
-  // second text now says what changed and why, instead of starting over.
-  let previous: { guests: number; city: string; total: number; travelFee: number; discount: number } | null = null
+  // full quotes five minutes apart, each with its own party-size code (there
+  // is none since 2026-11-05), and called to ask why the price kept changing.
+  // The second text now says what changed and why, instead of starting over.
+  let previous: { guests: number; city: string; total: number; travelFee: number } | null = null
   if (!contactOnly && supabase && leadId) {
     const { data: prior } = await supabase
       .from("lead_touchpoints")
@@ -351,7 +341,6 @@ export async function POST(request: NextRequest) {
         city: String(p.cityName ?? ""),
         total: c.total,
         travelFee: Number(c.travelFee) || 0,
-        discount: Number(c.discount) || 0,
       }
     }
   }
@@ -360,13 +349,6 @@ export async function POST(request: NextRequest) {
     (previous.guests !== adults + kids || previous.city !== cityName || Math.round(previous.total) !== Math.round(total))
   const whyLines: string[] = []
   if (updated && previous) {
-    if (previous.discount !== est.partySizeDiscountApplied) {
-      whyLines.push(
-        est.partySizeDiscountApplied > 0
-          ? `The party-size discount is ${dollars(est.partySizeDiscountApplied)} at ${tierRange ?? `${adults + kids} guests`} (it was ${dollars(previous.discount)} for ${previous.guests}).`
-          : `Under 15 guests there is no party-size discount (it was ${dollars(previous.discount)} for ${previous.guests}).`,
-      )
-    }
     if (previous.travelFee !== travelFee) {
       whyLines.push(
         travelFee
@@ -398,7 +380,7 @@ export async function POST(request: NextRequest) {
 <p>Card says: ${escapeHtml(guestsLine)} · ${escapeHtml(planLabel)} · ${escapeHtml(dateLine)} · ${money(total)} (an untouched card says 15 adults).</p>
 <p>No automatic text or email went out. <a href="${workbench}">Answer by hand</a> with the numbers from the conversation.</p>`,
     })
-    return NextResponse.json({ ok: true, leadId, personal: true, smsDelivered: false, emailed: false, total, weekday, depositUrl: null, discountCode, discount: est.partySizeDiscountApplied })
+    return NextResponse.json({ ok: true, leadId, personal: true, smsDelivered: false, emailed: false, total, weekday, depositUrl: null })
   }
 
   // Deposit link: the same prefilled /deposit/pay the quote page uses, with
@@ -447,7 +429,6 @@ export async function POST(request: NextRequest) {
           // The minimum note comes after the party: the caller card reads the
           // first "N adults" in our texts as the party size.
           `Real Hibachi: your ${cityLabel} hibachi price is ${money(total)} for ${guestsLine} (${planLabel}${eventDate ? `, ${dateLine}` : ""})${minimum ? ` - ${minimum}` : ""}.`,
-          discountLine,
           travelLine,
           `You can lock your date here, with a card on file and nothing charged today: ${depositUrl}`,
           // The single most-asked question in the 09-13..09-27 audit (10+ threads),
@@ -477,7 +458,6 @@ export async function POST(request: NextRequest) {
       `Your ${cityLabel} hibachi price: ${money(total)}`,
       `${guestsLine} · ${planLabel}${eventDate ? ` · ${dateLine}` : ""}`,
       ...(minimum ? [`That's ${minimum}.`] : []),
-      ...(discountLine ? [discountLine] : []),
       travelFee
         ? `Includes about $${travelFee} travel.`
         : travelPending
@@ -503,14 +483,14 @@ export async function POST(request: NextRequest) {
   const workbench = leadId ? `${BASE_URL}/admin/leads?lead=${leadId}` : `${BASE_URL}/admin/leads`
   // A price check wakes nobody: the quote is on its way and the row is parked.
   if (priceCheck) {
-    return NextResponse.json({ ok: true, leadId, smsDelivered: sms.ok, emailed: Boolean(email), total, weekday, depositUrl, discountCode, discount: est.partySizeDiscountApplied, priceCheck: true })
+    return NextResponse.json({ ok: true, leadId, smsDelivered: sms.ok, emailed: Boolean(email), total, weekday, depositUrl, priceCheck: true })
   }
   await sendSupportNotificationEmail({
     subject: `🔥 ${surfaceLabel} · ${cityName} · ${guestsLine} · ${money(total)} · ${phoneE164}`,
     text: [
       textable
-        ? `Texted the price to ${phoneE164}${sms.ok ? "" : " (SMS FAILED: " + sms.error + ")"}${name ? ` · ${name}` : ""}${discountCode ? ` · ${discountCode}` : ""}.`
-        : `${phoneE164} is a ${line.type}${line.carrier ? ` (${line.carrier})` : ""} - NO TEXT SENT, the quote went by email${email ? ` to ${email}` : ""}. Follow up by email or phone.${name ? ` · ${name}` : ""}${discountCode ? ` · ${discountCode}` : ""}`,
+        ? `Texted the price to ${phoneE164}${sms.ok ? "" : " (SMS FAILED: " + sms.error + ")"}${name ? ` · ${name}` : ""}.`
+        : `${phoneE164} is a ${line.type}${line.carrier ? ` (${line.carrier})` : ""} - NO TEXT SENT, the quote went by email${email ? ` to ${email}` : ""}. Follow up by email or phone.${name ? ` · ${name}` : ""}`,
       `${guestsLine} · ${planLabel} · ${dateLine} · ${money(total)}${travelFee ? ` incl ~$${travelFee} travel` : ""}`,
       email ? `Email: ${email}` : "No email given.",
       `Source: ${source} · page ${pagePath}${attribution.gclid ? " · gclid" : ""}${attribution.oppref ? " · ChatGPT click" : ""}`,
@@ -536,7 +516,5 @@ ${notes ? `<p>${escapeHtml(notes)}</p>` : ""}
     total,
     weekday,
     depositUrl,
-    discountCode,
-    discount: est.partySizeDiscountApplied,
   })
 }

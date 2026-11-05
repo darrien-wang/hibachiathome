@@ -77,7 +77,6 @@ export default function CityQuoteCalculator({
   const standard = standardEst.total
   const atMinimum = standardEst.minApplied
   const weekdayTotal = weekdayEst.total
-  const sizeOff = standardEst.partySizeDiscountApplied
   const standardRange = formatDisplayRange(displayRangeForEstimate(standardEst))
   const weekdayRange = formatDisplayRange(displayRangeForEstimate(weekdayEst))
 
@@ -207,7 +206,6 @@ export default function CityQuoteCalculator({
               Weekday Special: ${fmt(GUEST_TIERS.adult.weekdayPrice)}/adult · ${fmt(GUEST_TIERS.child.weekdayPrice)}/kid, Mon–Thu, plus a{" "}
               {WEEKDAY_SPECIAL.appetizerPlatter.label.toLowerCase()} ({WEEKDAY_SPECIAL.appetizerPlatter.detail})
             </li>
-            <li>Party size discount, any day: $60 at 15–24 adults · $90 at 25–30 · $120 at 31–40 · $150 at 41–50 · $180 at 51–60 — your code comes with the exact quote</li>
             <li>
               Standard: ${fmt(GUEST_TIERS.adult.price)}/adult · ${fmt(GUEST_TIERS.child.price)}/kid, any day, ${MINIMUM_SPEND} minimum
             </li>

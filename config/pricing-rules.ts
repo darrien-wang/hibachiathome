@@ -324,38 +324,45 @@ export function setupPerGuest(): number {
 }
 
 // ---------------------------------------------------------------
-// Party Size Discount — every party, any day, on top of the Weekday
-// Special. Automatic by paid headcount; 61+ guests get a custom quote. The
-// $599 minimum still applies after the discount, same as the invoice system.
-// Mirrors the invoice repo's PARTY_SIZE_DISCOUNT_TIERS and paidGuestCount()
-// (kept in sync by hand, 2026-09-13; headcount rule 2026-09-24).
+// Party Size Discount — closed to new business (owner 2026-11-05, D-1105-01:
+// "把人数阶梯取消吧，从今天开始"). A new quote has no discount for party size at
+// any headcount: the per-person rate x heads, plus rentals and travel, at the
+// $599 minimum. 61+ guests are still a custom quote, priced by a person.
 //
-// The ladder is $30 per ten paying adults — a flat 5%, since ten adults bill
-// at $599. Its real design rule lives at the boundaries: each tier is exactly
-// $30 above the last, so the guest who crosses one comes in at half price
-// ($29.90 instead of $59.90) and nobody is ever punished for inviting one
-// more person. 2026-10-03 (owner): extended past 30 for precisely that
-// reason — the 31st adult used to cost $149.90 because the ladder simply
-// stopped, the same cliff the Weekday Special's old 15-guest gate had (see
-// GUEST_TIERS.adult.weekdayPrice). Custom quoting now starts at 61, where a
-// third chef comes on and the logistics stop being a template.
+// From 2026-09-13 every party earned a tier by paid headcount, $30 per ten
+// paying adults on any day; 10–14 closed first (2026-11-02, D-1102-01, see
+// CLOSED_PARTY_TIER) and the rest closed at PARTY_LADDER_CLOSED_AT.
 //
-// 2026-11-02 (owner, D-1102-01): 10–14 no longer earns a discount, "人数太少了
-// 利润太薄了". The ladder starts at 15 with $60, so the 15th adult comes in free
-// and bills ten cents under 14 ($838.50 against $838.60); nobody is punished.
+// What was promised stands. An order booked before the ladder closed, or whose
+// invoice already carries a party-size line, keeps the ladder on every save,
+// headcount changes included (the invoice repo's keptTiers). A lead from
+// before was quoted with it, so it locks at that price (quoted_ladder on the
+// deposit event). Those are the only uses of the table below: nothing new is
+// priced from it. desk reads it for the same two jobs.
 // ---------------------------------------------------------------
-export const PARTY_SIZE_DISCOUNT_TIERS = [
+export const CLOSED_PARTY_LADDER = [
   { minGuests: 15, maxGuests: 24, amount: 60 },
   { minGuests: 25, maxGuests: 30, amount: 90 },
   { minGuests: 31, maxGuests: 40, amount: 120 },
   { minGuests: 41, maxGuests: 50, amount: 150 },
   { minGuests: 51, maxGuests: 60, amount: 180 },
 ] as const
+/**
+ * When the ladder closed to new business. Edit this one value to move the
+ * cutoff; the invoice repo's LADDER_CLOSED_AT (lib/pricing.ts) mirrors it.
+ */
+export const PARTY_LADDER_CLOSED_AT = "2026-11-05T13:00:00-08:00"
 export const PARTY_SIZE_CUSTOM_FROM = 61
 
+/** The lead came in before the ladder closed, so its quote had the ladder. */
+export function quotedBeforeLadderClosed(leadCreatedAt: string | null | undefined): boolean {
+  const ms = leadCreatedAt ? Date.parse(leadCreatedAt) : NaN
+  return Number.isFinite(ms) && ms < Date.parse(PARTY_LADDER_CLOSED_AT)
+}
+
 /**
- * The tier that closed. A lead from before closedAt was quoted with it, in
- * writing, so it locks at that price: the deposit event says so
+ * The tier that closed first. A lead from before closedAt was quoted with it,
+ * in writing, so it locks at that price: the deposit event says so
  * (quoted_closed_tier) and the invoice repo's keepsClosedTier does the rest.
  * desk reads this too.
  */
@@ -366,20 +373,19 @@ export function quotedBeforeTierClosed(leadCreatedAt: string | null | undefined)
   return Number.isFinite(ms) && ms < Date.parse(CLOSED_PARTY_TIER.closedAt)
 }
 
-/** 收半价的小孩，在阶梯里算半个成人。 */
+/** 收半价的小孩，在人头里算半个成人。 */
 export const KID_TIER_WEIGHT = 0.5
 
 export type TierHeads = { adults: number; kids: number }
 
 /**
- * 阶梯数的是"掏钱的人头"（老板 2026-09-24 定）：
+ * 按"掏钱的人头"数（老板 2026-09-24 定，原来给人数阶梯用，现在 20 人送前菜、
+ * 地板价的大单都按这个数）：
  *   - 3–4 岁那种不收钱的小孩**不进这个数**。站上本来也没地方填他们——输入框只有
  *     "Kids 5–12"，under 5 从来不是一个数字，所以这一条在官网侧本来就成立。
- *   - **收半价的小孩算半个成人**。阶梯是按这一单的分量给的，半价的人头按整个算
- *     等于白送一档。
+ *   - **收半价的小孩算半个成人**。
  *
- * 往下取整：24 个成人 + 1 个小孩 = 24.5 → 24，落在 15–24 档。不取整会掉进档与档
- * 之间的缝里（24.5 既不 ≤24 也不 ≥25），一分折扣都拿不到。
+ * 往下取整：19 个成人 + 1 个小孩 = 19.5 → 19，还不到 20。
  *
  * 参数收成一个对象是故意的：以前这几个函数收一个 number，调用处各自写
  * `adults + kids`，改规则时漏掉一处编译器也不会吭声。
@@ -389,8 +395,8 @@ export function tierHeadcount(heads: TierHeads): number {
 }
 
 /**
- * The large-party free appetizer starts here, counted in the same paying heads
- * as the tiers: adults 1, half-price kids 0.5, free little ones 0 (owner
+ * The large-party free appetizer starts here, counted in paying heads
+ * (tierHeadcount): adults 1, half-price kids 0.5, free little ones 0 (owner
  * 2026-09-28). It used to be judged on bodies in the room, so 16 adults +
  * 4 kids + 2 toddlers read as 22 and earned an appetizer the owner never meant
  * to give. Public copy says "20+ adults" - simpler, and never promises more
@@ -402,58 +408,12 @@ export function earnsLargePartyAppetizer(heads: TierHeads): boolean {
   return tierHeadcount(heads) >= LARGE_PARTY_APPETIZER_MIN
 }
 
-/**
- * The discount a party earns. Above the table the TOP tier's amount carries
- * on instead of dropping to zero: a 61-adult party is still a custom quote
- * (PARTY_SIZE_CUSTOM_FROM) priced by a person, but if any path does compute a
- * number for it, that number must not be $239.90 higher than the 60-adult
- * one. Capping rather than continuing the ladder means the discount stops
- * growing past $180 — deliberately, so nothing auto-concedes on a huge party
- * — while the price stays monotone in headcount.
- *
- * The invoice repo deliberately does NOT mirror this: its partySizePromoFor()
- * returns null above the table, because an invoice line labelled "51–60
- * adults" on a 70-person party would be a lie in print, and those invoices
- * carry a hand-made custom-deal line anyway.
- */
-export function partySizeDiscount(heads: TierHeads): number {
-  const count = tierHeadcount(heads)
-  for (let i = PARTY_SIZE_DISCOUNT_TIERS.length - 1; i >= 0; i--) {
-    const tier = PARTY_SIZE_DISCOUNT_TIERS[i]
-    if (count >= tier.minGuests) return tier.amount
-  }
-  return 0
-}
-
-/**
- * One-line label for the tier a party earns, e.g. "15–24 adults · $60 off".
- * Stated in adults on purpose (owner 2026-09-29): the count is adults plus half
- * of each paying child, so "adults" can only under-promise, while "guests" made
- * a 20-person party read its $30 line as a shortchange.
- */
-export function partySizeDiscountLabel(heads: TierHeads): string | null {
-  const count = tierHeadcount(heads)
-  const tier = PARTY_SIZE_DISCOUNT_TIERS.find((t) => count >= t.minGuests && count <= t.maxGuests)
-  if (tier) return `${tier.minGuests}–${tier.maxGuests} adults · $${tier.amount} off`
-  // Above the table partySizeDiscount() still pays the top tier's amount, so
-  // this has to name it rather than return null: /quote prints the label
-  // inside parentheses with no guard, and a 61-adult party would otherwise
-  // read "Party size discount ()". Says "61+" instead of the top tier's own
-  // range, because "51–60 adults" on a 70-person party would be wrong.
-  const top = PARTY_SIZE_DISCOUNT_TIERS[PARTY_SIZE_DISCOUNT_TIERS.length - 1]
-  return count >= top.minGuests ? `${PARTY_SIZE_CUSTOM_FROM}+ adults · $${top.amount} off` : null
-}
-
 export type SimpleEstimate = {
   subtotal: number
-  /** Tier amount the party qualifies for. */
-  partySizeDiscount: number
-  /** How much of it actually lowered the price (the $599 floor can absorb it). */
-  partySizeDiscountApplied: number
   minApplied: boolean
   base: number
   travelFee: number
-  /** The listed (cash) total: prices, discounts, minimum and travel. Tax and payment-method figures live on the invoice (D-1006-05); estimates say nothing about them. */
+  /** The listed (cash) total: prices, minimum and travel. Tax and payment-method figures live on the invoice (D-1006-05); estimates say nothing about them. */
   total: number
 }
 
@@ -466,23 +426,18 @@ export function calcSimpleEstimate(args: { adults: number; kids: number; weekday
   const adults = Math.max(0, Math.floor(args.adults))
   const kids = Math.max(0, Math.floor(args.kids))
   const subtotal = roundCurrency(adults * getTierPrice("adult", args.weekdaySpecial) + kids * getTierPrice("child", args.weekdaySpecial))
-  // Rented tables / tableware sit in the subtotal before the party-size
-  // discount and the $599 floor, as the invoice (calcInvoiceTotal) and /quote
-  // bill them. Adding them after the floor quoted 10 adults with the full
-  // setup at $749 against the invoice's $719 (audit item 18, D-1009-04).
+  // Rented tables / tableware sit in the subtotal before the $599 floor, as
+  // the invoice (calcInvoiceTotal) and /quote bill them (audit item 18,
+  // D-1009-04).
   const rentals = roundCurrency(Math.max(0, args.rentals ?? 0))
-  const partySize = partySizeDiscount({ adults, kids })
-  const afterDiscount = Math.max(0, subtotal + rentals - partySize)
-  const base = Math.max(afterDiscount, MINIMUM_SPEND)
-  const partySizeDiscountApplied = roundCurrency(Math.max(0, subtotal + rentals - base))
+  const beforeMinimum = roundCurrency(subtotal + rentals)
+  const base = Math.max(beforeMinimum, MINIMUM_SPEND)
   const travelFee = Math.max(0, Math.round(args.travelFee ?? 0))
   const total = roundCurrency(base + travelFee)
   return {
     subtotal,
-    partySizeDiscount: partySize,
-    partySizeDiscountApplied,
     // <=: ten adults at $59.90 land on $599 exactly, and that is still the minimum's price.
-    minApplied: afterDiscount <= MINIMUM_SPEND,
+    minApplied: beforeMinimum <= MINIMUM_SPEND,
     base,
     travelFee,
     total,
@@ -602,8 +557,8 @@ export function isPromotionActive(id: PromotionId): boolean {
 // A flat $50 off (owner 2026-10-29, D-1029-01). It was $60 per 10 guests,
 // set 08-31 before the Party Size Discount went on every party (09-13):
 // stacked in full it took a Saturday 20 to $50.90 a head, and the owner
-// wants a weekend party to average about $55. Stacks with the Party Size
-// Discount, standard tier only, never under the $599 minimum, and only one
+// wants a weekend party to average about $55. Standard tier only, never
+// under the $599 minimum, and only one
 // of the $50 thank-yous (returning, party-guest card, appreciation) per
 // party. Conditional on the customer having booked before, so it lives
 // outside PROMOTIONS — those apply to every quote automatically.
@@ -630,32 +585,25 @@ export function roundCurrency(value: number): number {
 
 // ---------------------------------------------------------------
 // Price gate (2026-09-13, owner): the site shows a price RANGE for free;
-// the exact total and the Party Size Discount code arrive by text + email
-// once the visitor leaves a mobile number and an email. The range is the
-// honest bracket around the exact figure: top = before the discount, bottom
-// = after it, both rounded outward to $25. Under 10 guests there is no
-// discount, so the bracket collapses and the copy just promises the exact
-// number by text.
+// the exact total arrives by text + email once the visitor leaves a mobile
+// number and an email. The range is the honest bracket around the exact
+// figure, rounded outward to $25 (a total on a multiple of $25 shows as one
+// number). Until 2026-11-05 the bracket also spanned the party-size discount
+// and the text carried a discount code; there is neither now (D-1105-01).
 // ---------------------------------------------------------------
 export type DisplayRange = { low: number; high: number; single: boolean }
 
-export function displayRange(low: number, highBeforeDiscount: number): DisplayRange {
-  const lo = Math.floor(Math.min(low, highBeforeDiscount) / 25) * 25
-  const hi = Math.ceil(Math.max(low, highBeforeDiscount) / 25) * 25
+export function displayRange(low: number, high: number): DisplayRange {
+  const lo = Math.floor(Math.min(low, high) / 25) * 25
+  const hi = Math.ceil(Math.max(low, high) / 25) * 25
   return { low: lo, high: hi, single: lo === hi }
 }
 
 export function displayRangeForEstimate(est: SimpleEstimate): DisplayRange {
-  return displayRange(est.total, est.total + est.partySizeDiscountApplied)
+  return displayRange(est.total, est.total)
 }
 
 export function formatDisplayRange(r: DisplayRange): string {
   const f = (n: number) => `$${n.toLocaleString("en-US")}`
   return r.single ? `about ${f(r.high)}` : `${f(r.low)}–${f(r.high)}`
-}
-
-/** The code we text for a tier, e.g. PARTY60. Informational: the invoice applies the tier by headcount. */
-export function partySizeDiscountCode(heads: TierHeads): string | null {
-  const amount = partySizeDiscount(heads)
-  return amount > 0 ? `PARTY${amount}` : null
 }

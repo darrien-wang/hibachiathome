@@ -111,7 +111,6 @@ export async function GET(request: Request) {
       under5Rate: 0,
       foodSubtotal: est.subtotal,
       ...(rentals > 0 ? { rentals: { tablesChairsGuests: tables, tablewareGuests: utensils, amount: rentals } } : {}),
-      partySizeDiscount: est.partySizeDiscountApplied,
       minimumApplied: est.minApplied,
       travelFee: est.travelFee,
       // Owner 2026-10-06: the price only - tax is on the invoice, not in the quote.

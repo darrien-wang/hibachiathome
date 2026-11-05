@@ -33,7 +33,6 @@ export default function OccasionEstimator({
   const est = calcSimpleEstimate({ adults, kids, weekdaySpecial: false })
   const underMin = est.minApplied
   const total = est.total
-  const sizeOff = est.partySizeDiscountApplied
   const rangeLabel = formatDisplayRange(displayRangeForEstimate(est))
   const minAdults = Math.ceil(MINIMUM_SPEND / GUEST_TIERS.adult.price)
   const params = new URLSearchParams({ source, adults: String(adults), kids: String(kids) })
@@ -88,9 +87,6 @@ export default function OccasionEstimator({
           fried rice &amp; salad
         </p>
       </div>
-      {sizeOff > 0 ? (
-        <p className="text-xs font-semibold text-gold-800">A ${sizeOff} party size discount is waiting — the exact price and your code come by text</p>
-      ) : null}
       {underMin ? (
         <p className="rounded-lg bg-flame-100 px-2.5 py-2 text-xs leading-snug text-flame-700">
           Small group? The ${MINIMUM_SPEND} event minimum still applies — {minAdults} adults covers it, or add upgrades like filet or lobster.
@@ -114,7 +110,7 @@ export default function OccasionEstimator({
         Text (213) 770-7788
       </a>
       {textFallback.open ? <DesktopTextPanel summary={smsSummary} onClose={textFallback.close} /> : null}
-      <p className="text-center text-xs text-clay-600">Price range now · exact price and discount by text</p>
+      <p className="text-center text-xs text-clay-600">Price range now · exact price by text</p>
     </div>
   )
 }

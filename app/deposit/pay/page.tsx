@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { AlertCircle, CalendarCheck, Check, Loader2, Lock, MessageSquare } from "lucide-react"
 import { getBookingDetails } from "@/app/actions/booking"
-import { calcSimpleEstimate, checkWeekdayEligibility, partySizeDiscountLabel } from "@/config/pricing-rules"
+import { calcSimpleEstimate, checkWeekdayEligibility } from "@/config/pricing-rules"
 import { phone, smsHref } from "@/config/site"
 import { normalizeRhBookingNumber, shouldUseRhBookingNumbers } from "@/lib/booking-number"
 import { formatUiDate, formatUiDateShort } from "@/lib/date-display"
@@ -231,7 +231,7 @@ function DepositPaymentPageInner() {
   // Re-price with the engine the quote used, so the number moves the way the
   // text explained it. The link's estimate may include travel; that part is
   // recovered by pricing the link's own party and taking the difference, so a
-  // headcount or date change moves only the food and the tier discount.
+  // headcount or date change moves only the food.
   // (A dateless link priced at the Mon-Thu rate cannot be told apart from a
   // standard one, so its travel part reads as zero; the page still says travel
   // is confirmed from the address.)
@@ -252,7 +252,6 @@ function DepositPaymentPageInner() {
     const est = calcSimpleEstimate({ adults: adultsInput, kids: kidsInput, weekdaySpecial: weekday, travelFee: travelPart })
     return { total: est.total, weekday, travelPart }
   }, [detailsEditable, guestsChanged, dateChanged, base, effectiveDate, adultsInput, kidsInput])
-  const tierLabel = detailsEditable ? partySizeDiscountLabel({ adults: adultsInput, kids: kidsInput }) : null
   // The estimate shown and sent: the newest quote's own number until the
   // customer changes something here, then the engine's.
   const shownEstimate = repriced ? Math.round(repriced.total) : latest ? Math.round(latest.total) : null
@@ -816,7 +815,7 @@ function DepositPaymentPageInner() {
               </div>
             </div>
             <p className="mt-2 text-xs text-clay-600">
-              {tierLabel ? `Party-size discount included: ${tierLabel}. ` : ""}Headcount can still change until the day before; on the day we can add guests but not remove them.
+              Headcount can still change until the day before; on the day we can add guests but not remove them.
               {repriced?.weekday ? " Mon–Thu rate applied." : null}
             </p>
           </div>
