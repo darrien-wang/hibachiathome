@@ -7,7 +7,7 @@ import { aggregatePrep, FRIED_RICE, VEGE_NET_PER_RAW, type PrepItem } from "@/li
 // 自己去抓（抓码），后勤不再一场一场称。海鲜、酱料、鸡蛋、前菜这些不用加工的，
 // 师傅自己拿，不上这张纸。
 
-/** 一场要提前处理的量，原始单位：肉和豆腐、蔬菜毛重、熟饭都是盎司。 */
+/** 一场要提前处理的量，原始单位：肉和豆腐、蔬菜毛重、熟饭都是盎司（纸上折成磅）。 */
 export type CoolerWork = {
   chicken: number
   steak: number
@@ -49,11 +49,10 @@ export function coolerWork(items: PrepItem[], menuKnown: boolean): CoolerWork {
 }
 
 const up = (n: number) => Math.max(1, Math.ceil(n - 1e-9))
-const lb = (oz: number) => `约 ${Math.round((oz / 16) * 10) / 10} 磅`
-// 蔬菜和洋葱碎取整、好记（老板 2026-10-22，肉和米饭照实写）：往上凑——50 盎司以下
-// 凑到 5 的倍数，50 以上凑到 10 的倍数；磅数凑到半磅。多切一点没关系。
-const nice = (oz: number) => (oz <= 0 ? 0 : oz < 50 ? Math.ceil(oz / 5 - 1e-9) * 5 : Math.ceil(oz / 10 - 1e-9) * 10)
-const lbNice = (oz: number) => `约 ${Math.ceil((oz / 16) * 2 - 1e-9) / 2} 磅`
+// 纸上一律写磅，不写盎司（老板 2026-11-05："单位换成 lb 吧，不要用 oz 了"）。
+// 往上凑到半磅：秤上好认，多切一点没关系（宁多勿少）。内部照旧按盎司算。
+const halfLb = (oz: number) => (oz <= 0 ? 0 : Math.max(0.5, Math.ceil((oz / 16) * 2 - 1e-9) / 2))
+const lbs = (oz: number) => `${halfLb(oz)} 磅`
 
 // 切好的蔬菜每样写净重（老板 2026-10-22）：净重的四样比例和厨师备料单一致
 // （发票仓库 lib/pricing.ts VEGE_MIX：西葫芦/西兰花/洋葱各 30%、胡萝卜 10%，合计每人 5 盎司）。
@@ -69,12 +68,12 @@ type Line = { label: string; amount: string; note?: string }
 
 /** 合并后的几行：切多少、煮多少。 */
 export function workLines(parties: CoolerParty[]): { meat: Line[]; vege: Line[]; vegeNet: number; rice: Line[] } {
-  // vegeNet 返回的是四样取整后加起来的数，和纸上每一行对得上。
+  // vegeNet 返回的是四样取整后加起来的磅数，和纸上每一行对得上。
   const sum = Object.fromEntries(WORK_IDS.map((id) => [id, 0])) as CoolerWork
   for (const p of parties) for (const id of WORK_IDS) sum[id] += p.work?.[id] ?? 0
   const meat: Line[] = []
   const cut = (id: keyof CoolerWork, label: string) => {
-    if (sum[id] > 0) meat.push({ label, amount: `${up(sum[id])} 盎司`, note: lb(sum[id]) })
+    if (sum[id] > 0) meat.push({ label, amount: lbs(sum[id]) })
   }
   cut("chicken", "鸡胸肉 切块")
   cut("steak", "牛排 切块")
@@ -89,23 +88,24 @@ export function workLines(parties: CoolerParty[]): { meat: Line[]; vege: Line[];
   const vege: Line[] = []
   const vegeNet = sum.mixed_vege * VEGE_NET_PER_RAW
   if (vegeNet > 0) {
-    for (const v of VEGE_NET_SPLIT) vege.push({ label: v.label, amount: `${nice(vegeNet * v.ratio)} 盎司`, note: lbNice(nice(vegeNet * v.ratio)) })
+    for (const v of VEGE_NET_SPLIT) vege.push({ label: v.label, amount: lbs(vegeNet * v.ratio) })
     const volcanoes = parties.filter((p) => (p.work?.mixed_vege ?? 0) > 0).length
     vege.push({ label: "洋葱火山", amount: `${volcanoes} 个`, note: "一场一个" })
   }
-  // 洋葱碎：每 10 个人 10 盎司，大人小孩都算一个人；多切一点，加一成再往上凑到整 10
-  // （老板 2026-10-22："86 个人大概切一个 100 盎司"）。和上面"洋葱 切好"（蔬菜混合里的）是两样东西。
+  // 洋葱碎：每 10 个人 10 盎司，大人小孩都算一个人；多切一点，加一成再往上凑到整 10 盎司
+  // （老板 2026-10-22："86 个人大概切一个 100 盎司"），纸上折成磅。和上面"洋葱 切好"
+  // （蔬菜混合里的）是两样东西。
   const heads = parties.reduce((n, p) => n + p.adults + p.kids, 0)
   if (heads > 0) {
     const dice = Math.ceil((heads * ONION_DICE_OZ_PER_GUEST * 1.1) / 10) * 10
-    vege.push({ label: "洋葱碎", amount: `${dice} 盎司`, note: `${lbNice(dice)} · 每 10 个人 10 盎司，多切一点` })
+    vege.push({ label: "洋葱碎", amount: lbs(dice), note: "每 10 个人大约 0.6 磅，多切一点" })
   }
 
   const rice: Line[] = []
   // 写煮好的熟饭，每人多少写出来；米饭小孩按大人的量算（老板 2026-10-22）。
   const riceOz = parties.filter((p) => (p.work?.fried_rice ?? 0) > 0).reduce((n, p) => n + (p.adults + p.kids) * FRIED_RICE.adult, 0)
-  if (riceOz > 0) rice.push({ label: "熟米饭", amount: `${up(riceOz)} 盎司`, note: `每人 ${FRIED_RICE.adult} 盎司 · ${lb(riceOz)}` })
-  const vegeShown = vegeNet > 0 ? VEGE_NET_SPLIT.reduce((n, v) => n + nice(vegeNet * v.ratio), 0) : 0
+  if (riceOz > 0) rice.push({ label: "熟米饭", amount: lbs(riceOz), note: `每人 ${FRIED_RICE.adult / 16} 磅` })
+  const vegeShown = vegeNet > 0 ? VEGE_NET_SPLIT.reduce((n, v) => n + halfLb(vegeNet * v.ratio), 0) : 0
   return { meat, vege, vegeNet: vegeShown, rice }
 }
 
@@ -141,7 +141,7 @@ export function coolerSheetHtml(ymd: string, parties: CoolerParty[], who?: strin
           .join("")}</table></div>`
       : ""
   // 老板 2026-10-22：不列是哪几场、不印备注——这张纸只管切多少、煮多少。
-  const body = sec("肉和豆腐", meat) + sec(`蔬菜（切好后的净重，合计 ${vegeNet} 盎司）`, vege) + sec("米饭", rice)
+  const body = sec("肉和豆腐", meat) + sec(`蔬菜（切好后的净重，合计 ${vegeNet} 磅）`, vege) + sec("米饭", rice)
   const page = parties.length
     ? `<section class="page">
 <header>

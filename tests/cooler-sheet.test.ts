@@ -39,23 +39,23 @@ test("coolerWork: menu not in yet - no meat or tofu, vegetables and rice by head
 test("workLines: parties merged into one total; one onion volcano per party", () => {
   const { meat, vege, rice } = workLines([party(), party({ time: "晚上 7:30", chef: "Gary" })])
   const by = Object.fromEntries([...meat, ...vege, ...rice].map((l) => [l.label, l]))
-  assert.equal(by["鸡胸肉 切块"].amount, "200 盎司")
-  assert.equal(by["牛排 切块"].amount, "90 盎司")
+  assert.equal(by["鸡胸肉 切块"].amount, "12.5 磅") // 200 oz
+  assert.equal(by["牛排 切块"].amount, "6 磅") // 90 oz = 5.6 lb, up to the half pound
   assert.equal(by["豆腐 切块"].amount, "7 盒") // 20 portions, three a box
   assert.equal(by["豆腐 切块"].note, "20 份 · 一盒三个人")
-  // 40 guests × 5 oz net = 200, split like the chef sheet: 30 / 30 / 30 / 10 %
-  assert.equal(by["西葫芦"].amount, "60 盎司")
-  assert.equal(by["西兰花"].amount, "60 盎司")
-  assert.equal(by["洋葱"].amount, "60 盎司")
-  assert.equal(by["胡萝卜"].amount, "20 盎司")
+  // 40 guests × 5 oz net = 200, split like the chef sheet: 30 / 30 / 30 / 10 %, in pounds up to the half
+  assert.equal(by["西葫芦"].amount, "4 磅")
+  assert.equal(by["西兰花"].amount, "4 磅")
+  assert.equal(by["洋葱"].amount, "4 磅")
+  assert.equal(by["胡萝卜"].amount, "1.5 磅")
   assert.equal(by["洋葱火山"].amount, "2 个")
-  assert.equal(by["洋葱碎"].amount, "50 盎司") // 40 guests × 1 oz + 10%, up to the next 10
+  assert.equal(by["洋葱碎"].amount, "3.5 磅") // 40 guests × 1 oz + 10%, up to the next 10 oz = 50 oz
   // owner's example: 86 adults + 3 kids -> about 100 oz
-  assert.equal(workLines([party({ adults: 86, kids: 3 })]).vege.find((l) => l.label === "洋葱碎")?.amount, "100 盎司")
-  assert.equal(by["熟米饭"].amount, "320 盎司") // 40 × 8 oz cooked
-  assert.equal(by["熟米饭"].note, "每人 8 盎司 · 约 20 磅")
+  assert.equal(workLines([party({ adults: 86, kids: 3 })]).vege.find((l) => l.label === "洋葱碎")?.amount, "6.5 磅")
+  assert.equal(by["熟米饭"].amount, "20 磅") // 40 × 8 oz cooked
+  assert.equal(by["熟米饭"].note, "每人 0.5 磅")
   // rice: kids eat an adult's share
-  assert.equal(workLines([party({ adults: 10, kids: 2 })]).rice[0].amount, "96 盎司")
+  assert.equal(workLines([party({ adults: 10, kids: 2 })]).rice[0].amount, "6 磅")
   assert.equal(by["菲力 切块"], undefined)
   for (const l of [...meat, ...vege, ...rice]) assert.doesNotMatch(l.label + l.amount, /oz|lb|tbsp/)
 })
@@ -67,7 +67,9 @@ test("coolerSheetHtml: one merged page, owner on it, no customer or price fields
   assert.match(html, /共 2 场 · 32 位大人、2 位小孩/)
   assert.match(html, /备货负责人<\/small>张阿姨/)
   assert.match(html, /有 1 场菜还没定/)
-  assert.match(html, /合计 200 盎司/) // both fixture parties carry the 20-guest work
+  assert.match(html, /合计 13.5 磅/) // both fixture parties carry the 20-guest work
+  // pounds only on the paper (owner 2026-11-05)
+  assert.doesNotMatch(html, /盎司/)
   // no party list, no notes
   assert.doesNotMatch(html, /牛排切大块|是哪几场|厨师 Blu/)
   assert.match(html, /师傅自己来拿/)
