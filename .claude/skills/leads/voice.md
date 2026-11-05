@@ -81,7 +81,7 @@
 | `Still trying to decide` / `Not yet` | `No problem. Please text me when you know.` |
 | `Confirming with the team` / `I'll ask my wife` | `Sounds good, I'm here.` |
 | `Can you do 12 instead of 1?` | `Yes, noon works. Your chef will get there around 11:30 to set up.` |
-| `How much for 30?` | `30 people is $1,707 with tax if you pay cash.` |
+| `How much for 30?` | `30 people is $1,797 with tax if you pay cash.` |
 | `Can I change the headcount later?` | `Yes, freely up to the day before. On the day we can add guests but not take any off, since the food's already prepped.` |
 | `Just booked` | `Got it, you're booked for Tuesday the 10th at 5:30. Thanks Jamie!` 然后下一步一句（派对页 / 名单二选一） |
 | `It's my birthday` | `Happy birthday! When's the party?` |
@@ -103,7 +103,7 @@
 ```
 客人：How much for 30 people?
 ✗ Great question! Paying cash on the day, sales tax is already included in the $1,407.50. If you'd rather pay by card, the tax and a small card fee are added on top.
-✓ 30 people is $1,707 with tax if you pay cash. Still no travel fee, and the free appetizer stays.
+✓ 30 people is $1,797 with tax if you pay cash. Still no travel fee, and the free appetizer stays.
 ```
 ```
 客人：What time do u arrive?

@@ -57,12 +57,12 @@ python scripts/desk/desk.py link short  <长链> --lead <id>
 ```bash
 python scripts/desk/desk.py order find <姓名|手机|单号>
 python scripts/desk/desk.py order show <单号> [--json]         # 菜单、加购、NOTES（客人看得到）、内部备注、派工、⚠ 缺项、总价
-python scripts/desk/desk.py order set  <单号> --reconcile             # 原样存一次，发票引擎按规则补上该有的（20+ 前菜、人数折扣…）
+python scripts/desk/desk.py order set  <单号> --reconcile             # 原样存一次，发票引擎按规则补上该有的（20+ 前菜、老单的人数折扣…）
 python scripts/desk/desk.py order set  <单号> --date 2026-11-03 --time 18:00 --address "10756 McLennan Ave, Granada Hills, CA 91344" --dry
 python scripts/desk/desk.py order set  <单号> --travel-miles 69 --travel-fee 19
 python scripts/desk/desk.py order set  <单号> --proteins steak=15 chicken=15          # 只给了总数（快速模式）；只管菜，不改人数
 python scripts/desk/desk.py order set  <单号> --headcount 11/1[/1] --dry             # 没有逐人名单的单改人数：大人/5–12 岁小孩[/3–4 岁免费]（快速模式、还没菜单的新单）
-python scripts/desk/desk.py order set  <单号> --retier --dry                         # 人数折扣那行按现在的人数重排（自查报 party size 不对时用）
+python scripts/desk/desk.py order set  <单号> --retier --dry                         # 老单的人数折扣那行按现在的人数重排（自查报 party size 不对时用）
 python scripts/desk/desk.py order set  <单号> --guests-file rows.json [--replace-guests]   # 逐人名单 [{name, child?, little?, proteins:[...], allergy?, note?}]，每人 ≥2 种（little 的 3–4 岁可以不写）
 python scripts/desk/desk.py order set  <单号> --add-extra tables_chairs=27 | edamame=1 | side_shrimp=15   # 买的加购 / 桌椅按人头 / 整桌蛋白份
 python scripts/desk/desk.py order set  <单号> --free-item edamame=2                    # 送的前菜
@@ -78,17 +78,17 @@ python scripts/desk/desk.py order send <单号>                      # 发票：
 python scripts/desk/desk.py order email <单号> [--notes-reviewed]
 ```
 - 改之前先 `--dry` 看 TOTAL；每次 `order set` 会自己拿 TOTAL 和 `desk price`（同样的大人/小孩/日期/桌椅餐具，加上订单自己的加购、优惠和路费）对一遍：对上打 `✓ total check`，差 $1 以上打一大段 `!!! TOTAL CHECK FAILED`，并写出可能的改法（`--retier`、`--promo official_weekday=…`）。存的时候订单在你读之后被改过会 409 `STALE`，什么都没存，重看再改。
-- 人数一变（`--headcount` / `--guests-file` / `--add-adult` / `--add-child` / `--remove-guest`），`official_party*` 那行自动按掏钱人头换档（大人 1、5–12 岁 0.5、往下取整，档位读 `config/pricing-rules.ts`）；61+ 不动（人工报价），订单上有 appreciation 顶替人数折扣的不加回，其他优惠一行不动。周中特价那行存的时候由发票引擎按新人数重算（每加一个大人 $5、小孩 $2.45，手改过的多送几盘照留）；同一条命令里 `--promo` 手改的照你的。
-- 存完多出 `+ 引擎按规则：…`（10-24 起，D-1017-02）：该给客人的由发票引擎每次保存时补上——人数折扣、周中特价、20 人以上 / 全套桌椅餐具送的前菜（连托盘，师傅单上才有）、特价规则那几行。手加的行（`--free-item` 送的盘、appreciation、custom）不动；按报价锁定的价格（as quoted / agreed total）不往上加，只在缺项里提醒。送的前菜按人头（10-30 起，规则见 answers.md）：引擎把优惠行和托盘一起调到位，总价不变；`--free-item` 送的同一种算在里面，20 人以上 / 全套该送而不够人头的，差的补在官方行上。旧单存一次才补，没补的 `!` 提醒，`--reconcile` 就行。引擎补完会重印 TOTAL 和 total check。
+- 人数一变（`--headcount` / `--guests-file` / `--add-adult` / `--add-child` / `--remove-guest`），`official_party*` 那行自动按掏钱人头换档（大人 1、5–12 岁 0.5、往下取整，档位读 `config/pricing-rules.ts` 的 `CLOSED_PARTY_LADDER`）。只有老单有这行（D-1105-01）：11/05 上线前建的、或发票上本来就带人数折扣那行的；之后建的单没有，desk 不加；61+ 不动（人工报价），订单上有 appreciation 顶替人数折扣的不加回，其他优惠一行不动。周中特价那行存的时候由发票引擎按新人数重算（每加一个大人 $5、小孩 $2.45，手改过的多送几盘照留）；同一条命令里 `--promo` 手改的照你的。
+- 存完多出 `+ 引擎按规则：…`（10-24 起，D-1017-02）：该给客人的由发票引擎每次保存时补上——老单的人数折扣、周中特价、20 人以上 / 全套桌椅餐具送的前菜（连托盘，师傅单上才有）、特价规则那几行。手加的行（`--free-item` 送的盘、appreciation、custom）不动；按报价锁定的价格（as quoted / agreed total）不往上加，只在缺项里提醒。送的前菜按人头（10-30 起，规则见 answers.md）：引擎把优惠行和托盘一起调到位，总价不变；`--free-item` 送的同一种算在里面，20 人以上 / 全套该送而不够人头的，差的补在官方行上。旧单存一次才补，没补的 `!` 提醒，`--reconcile` 就行。引擎补完会重印 TOTAL 和 total check。
 - `⚠ 缺项`（`order show` 末尾、`order set` 存完）是发票系统的订单检查。`!!` 拦备料单（发票工具 Send to Chef 弹清单，可 Send anyway）和 `order remind`（`--force` 才发）：该有的优惠/前菜没上、送的盘或特价送的东西订单上没有（师傅不会带）、人头优惠还按旧人数算、一周内路费没算、三天内菜单不全、派对页人数和发票对不上（三天内）。`!` 只提醒、不拦。
 - 几样加购可以写在同一个 `--add-extra` 后面（`--add-extra tables_chairs=10 utensils=10`），也可以分开写几遍；10-21 之前分开写只留最后一个（Yunnie 差点只加上餐具），已改成会累加。改完照样看 `--dry` 的 TOTAL。
 - 客人回短信挑免费前菜：`--free-appetizer edamame`（gyoza / edamame / spring_rolls）。托盘和优惠行（周中特价 / 20 人以上 / 全套那条，连同同一种的 `--free-item`）一起换；edamame 一盘便宜 $5，差价记在优惠行上，总价不变，引擎换前换后各算一次，总价动了就不存。同一种托盘不止一盘时按优惠行金额认送了多少（按人头后可以是 2.6 盘 = 26 个），认不出来会让你先 `--promo` 重设金额；保存时引擎再按新前菜的人头数量调到位，总价同样不变。
-- 3–4 岁免费小孩：名单里写 `{"name": "Mia", "little": true}`（自动算小孩行，可以不写蛋白），desk 按名单里 little 行的个数自动加 / 改 / 删 `Little kids (3-4) @ $0 ×N`（under5_auto）那行；`--remove-guest` 拿掉一个 little 行，那行跟着减一。没有逐人名单（快速模式、还没菜单的新单）用 `--headcount` 的第三个数：`--headcount 11/1/1` = 11 大人 + 1 个 5–12 岁 + 1 个 3–4 岁，那行自动设成 ×1（`11/1/0` 拿掉；只写 `11/1` 那行不动）。只改 3–4 岁人数也这样写，大人小孩照填。不再手打 `--add-promo under5_auto=…`（× 经过命令行会乱码）。少了这行每人多收 $29.90，total check 会报；3–4 岁不算进人数折扣。
+- 3–4 岁免费小孩：名单里写 `{"name": "Mia", "little": true}`（自动算小孩行，可以不写蛋白），desk 按名单里 little 行的个数自动加 / 改 / 删 `Little kids (3-4) @ $0 ×N`（under5_auto）那行；`--remove-guest` 拿掉一个 little 行，那行跟着减一。没有逐人名单（快速模式、还没菜单的新单）用 `--headcount` 的第三个数：`--headcount 11/1/1` = 11 大人 + 1 个 5–12 岁 + 1 个 3–4 岁，那行自动设成 ×1（`11/1/0` 拿掉；只写 `11/1` 那行不动）。只改 3–4 岁人数也这样写，大人小孩照填。不再手打 `--add-promo under5_auto=…`（× 经过命令行会乱码）。少了这行每人多收 $29.90，total check 会报；3–4 岁不算进付费人头。
 - 名单只在派对页（`lp_` 计划）、订单 0 行时，师傅备料单是空的，扫描还报 `菜单空`：**催菜单前先 `desk order plan <单号>` 看派对页**，客人填好了就别催（11-01 Jere：`I filled it out online`）。`desk order plan <单号> --rows-out rows.json`，再 `order set <单号> --guests-file rows.json` 灌进去。订单上有桌椅、餐具的，行里没带会被拦下，补上 `"utensils": true` / `"tables": true`。
 - 存完多出 `WARN  Planner has …, the invoice counts …. Kept …: <名字>`（10-24 起）：客人派对页上有人填过名字或点过菜，这张发票的人数没算他们；存的时候留下了，没删（只删空位）。人真来就补进发票（比如 5 岁以下的照上面加 `under5_auto` 那行），不来就请客人在派对页删掉。
 - 订单 NOTES 会原样印在客人发票上：过程记录写 `orders.internal_notes`，不写 NOTES。
 
-**电话预定的手工建单**（客人电话里定了、不留卡）：往发票系统 `https://invoice.realhibachi.com/api/integrations/v1/events` 投一个签名的 `order.deposit_paid`（HMAC-SHA256，`X-Partner-Id: official_website`，payment `card_on_file` $0）。建完要补四样：`deposit_status → paid_verified`、`source_metadata.lead_id`、`desk order set --date --time`（时区）、`--travel-miles`；人数变了用 `--headcount`（人数折扣自动换档，看 `--dry` 的 total check）。先例 RH-20261020-4480。
+**电话预定的手工建单**（客人电话里定了、不留卡）：往发票系统 `https://invoice.realhibachi.com/api/integrations/v1/events` 投一个签名的 `order.deposit_paid`（HMAC-SHA256，`X-Partner-Id: official_website`，payment `card_on_file` $0）。建完要补四样：`deposit_status → paid_verified`、`source_metadata.lead_id`、`desk order set --date --time`（时区）、`--travel-miles`；人数变了用 `--headcount`（老单的人数折扣自动换档，看 `--dry` 的 total check）。先例 RH-20261020-4480。
 
 ---
 

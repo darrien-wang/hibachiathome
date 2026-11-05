@@ -8,7 +8,7 @@
 
 **A · 只留联系方式**（机器在留资 15 分钟后发，人不手发；供核对）
 ```
-Hi! Rowling from Real Hibachi - our system should've texted you a price and didn't, sorry about that. For 15 adults it's $838.50 Fri-Sun, or $763.50 Mon-Thu (2 proteins each + fried rice, veggies, salad and the chef show). What date are you thinking?
+Hi! Rowling from Real Hibachi - our system should've texted you a price and didn't, sorry about that. For 15 adults it's $898.50 Fri-Sun, or $823.50 Mon-Thu (2 proteins each + fried rice, veggies, salad and the chef show). What date are you thinking?
 ```
 
 **B · 报价已发**（机器在报价 2 分钟后发，措辞在 `lib/first-response.ts`；供核对和手发时用。两周内的日期说 `Saturday the 18th`，更远的说 `Saturday, May 15`）
@@ -45,8 +45,8 @@ Hi [Name or "there"],
 
 Rowling here from Real Hibachi. [一句回应他写的]
 
-• [15] adults, Fri-Sun: $[838.50]
-• Same party Mon-Thu: $[763.50] (+ a free appetizer of your choice: gyoza, edamame or spring rolls)
+• [15] adults, Fri-Sun: $[898.50]
+• Same party Mon-Thu: $[823.50] (+ a free appetizer of your choice: gyoza, edamame or spring rolls)
 • Includes 2 proteins per guest, fried rice, veggies, salad, and the chef show
 
 [一个问题]
@@ -60,13 +60,13 @@ Real Hibachi · (213) 770-7788
 ## 在聊
 
 - **问场合**：`What's the celebration?` / `Who's the party for?`
-- **报城市后给价 + 链接 + 问时间**：`Tustin is inside our free 50 miles, so 18 people on Saturday the 7th is $1,018.20. You can change the headcount freely up to the day before, and on the day we can add guests but not take any off. Here's the link to lock the date. It just saves a card, nothing is charged today: <link> What time are you thinking?`
-- **人数在涨**：`Congrats on the bigger crowd! Hibachi scales well. The group discount grows with the headcount, 20+ gets a free appetizer, and past 28 we send a second chef so everyone eats at once. Roughly how many are you expecting now?`
+- **报城市后给价 + 链接 + 问时间**：`Tustin is inside our free 50 miles, so 18 people on Saturday the 7th is $1,078.20. You can change the headcount freely up to the day before, and on the day we can add guests but not take any off. Here's the link to lock the date. It just saves a card, nothing is charged today: <link> What time are you thinking?`
+- **人数在涨**：`Congrats on the bigger crowd! Hibachi scales well. 20+ gets a free appetizer, and past 28 we send a second chef so everyone eats at once. Roughly how many are you expecting now?`
 - **改了时间地点、马上要锁**：`Yes to both. [Saturday the 24th at 3:30 at your place in Granada Hills] works, and it's still $[988.50]. Here's the link with [3:30] and [Granada Hills] filled in: <link>`
 - **问桌椅**（照价答，D-1029-02）：`We do. Tables, chairs and linens are $10 a guest, and plates and silverware are $5.` 要总价就过 `desk price --tables N --utensils N` 报一个数。客人拿别家比价或说超预算时，桌椅才是最后一张牌（周五–日最多半价、周一–四最多免费、节假日不给）：`If it helps, I can do the tables at half price once you lock the date.`
 - **模板 L · 他以为要等人数定了才能订**（10-01）：`You don't need the final number to lock [the 7th]. The link just saves a card to hold the date, nothing is charged today, and you can change the headcount freely up to the day before. On the day we can add guests but not take any off: <link>` 发完挂 3–5 天，之后不追。
 - **模板 I · 第二轮介绍自己**（10-30，D-1030-09，一位客人一次；11-01 D-1101-02 改）：**先替他高兴**（`Happy 75th to your husband!`、`Congratulations on the wedding!`；只祝贺喜事，不把他的话换个说法夸回去，11-03），再接 `Your chef cooks everything right in front of your guests, with USDA Choice beef we buy the day before and sauces we make ourselves, and our [69] Google reviews are all five stars.`。**有日期就接 `Here's the link to hold [Sunday the 15th]. It just saves a card, nothing is charged today: <link>`**（10-31、11-01 我们改成先问时间，人工递链接从每天 6 条掉到 1 条和 0 条，D-1101-03）；没日期才接 `What date are you thinking?`。这段不单独当跟进发，跟进用 f_intro。`Each chef has their own style` 不放进这段，客人问到表演才说。
-- **模板 S · 他要和家人商量**（10-30，D-1030-05）：`Here's a note you can forward: "Hibachi chef at our place on [Saturday, Nov 14]. $[1,138] for [20] of us covers the food and the chef[, plus a free appetizer]. The headcount can change up to the day before, and on the day we can only add guests." Please text me once you've talked it over.` 不带链接；价格先过 `desk price`；有送的才写 free appetizer；小费、桌椅、税不问不提。
+- **模板 S · 他要和家人商量**（10-30，D-1030-05）：`Here's a note you can forward: "Hibachi chef at our place on [Saturday, Nov 14]. $[1,198] for [20] of us covers the food and the chef[, plus a free appetizer]. The headcount can change up to the day before, and on the day we can only add guests." Please text me once you've talked it over.` 不带链接；价格先过 `desk price`；有送的才写 free appetizer；小费、桌椅、税不问不提。
 - **问预算**（10-30，D-1030-06，一条线索只问一次）：`Is there a budget you're trying to stay under?`
 - **确认类，一句话**：`Done, 7:30.` / `Got it, 7:30 then.`（`X it is` 一个客人最多用一次）
 - **客气收尾**：`You too, enjoy your night.` / `Anytime.` / `You got it.` / `Sounds good, talk soon.`（大多不带 emoji，见 `voice.md` §4）
@@ -126,7 +126,7 @@ Hi, it's Rowling. One thing a quote leaves out: everything's cooked right in fro
 
 ```
 B: ¡Hola! Soy Rowling de Real Hibachi 👋 [El sábado 18 de octubre] está disponible para tus [N] invitados en [Ciudad]. ¿Qué celebran?
-precio + link: [Tustin] está dentro de nuestras 50 millas gratis: son $[1,018.20] para [18] el [sábado 7 de noviembre], y el número de invitados puede cambiar hasta el día anterior. Aquí puedes asegurar la fecha. Solo se guarda una tarjeta, hoy no se cobra nada: <link>
+precio + link: [Tustin] está dentro de nuestras 50 millas gratis: son $[1,078.20] para [18] el [sábado 7 de noviembre], y el número de invitados puede cambiar hasta el día anterior. Aquí puedes asegurar la fecha. Solo se guarda una tarjeta, hoy no se cobra nada: <link>
 f_one: Hola, soy Rowling. Me imagino que andas con muchas cosas. ¿Ya quedó firme el [7 de noviembre] o todavía se está moviendo?
 cierre: ¡Claro! Que disfruten mucho. Aquí estoy para lo que necesites.
 ```
