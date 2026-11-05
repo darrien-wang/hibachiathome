@@ -351,7 +351,7 @@ export const CLOSED_PARTY_LADDER = [
  * When the ladder closed to new business. Edit this one value to move the
  * cutoff; the invoice repo's LADDER_CLOSED_AT (lib/pricing.ts) mirrors it.
  */
-export const PARTY_LADDER_CLOSED_AT = "2026-11-05T13:00:00-08:00"
+export const PARTY_LADDER_CLOSED_AT = "2026-11-05T14:15:00-08:00"
 export const PARTY_SIZE_CUSTOM_FROM = 61
 
 /** The lead came in before the ladder closed, so its quote had the ladder. */
