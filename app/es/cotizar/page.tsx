@@ -32,7 +32,6 @@ const PRICE_ROWS = [
   ["Especial entre semana (lun–jue)", "$54.90 por adulto, $27.45 por niño + un aperitivo gratis a elegir (gyozas, edamame o rollitos primavera)"],
   ["Mesas, sillas y mantel", "+$10 por persona (opcional)"],
   ["Cubiertos y vajilla", "+$5 por persona (opcional)"],
-  ["Descuento por tamaño de fiesta (cualquier día)", "15–24 adultos $60 · 25–30 $90 · 31–40 $120 · 41–50 $150 · 51–60 $180 — se aplica solo"],
 ]
 
 export default function CotizarPage() {

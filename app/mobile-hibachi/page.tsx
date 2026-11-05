@@ -67,7 +67,7 @@ const faqs = [
   {
     question: "How much does mobile hibachi cost?",
     answer:
-      "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum. Monday–Thursday parties get our Weekday Special at any size: $54.90 per adult plus a free appetizer of your choice (gyoza, edamame or spring rolls). Parties of 15–24 adults save $60, 25–30 save $90, 31–40 save $120, 41–50 save $150, 51–60 save $180 — any day, applied automatically. Pricing is published — see your price range with no sign-up; the exact total and your discount code come by text.",
+      "$59.90 per adult, $29.90 per child 5–12, kids under 5 eat free, with a $599 event minimum. Monday–Thursday parties get our Weekday Special at any size: $54.90 per adult plus a free appetizer of your choice (gyoza, edamame or spring rolls). Pricing is published — see your price range with no sign-up; the exact total comes by text.",
   },
   {
     question: "Do you need power or water at the site?",

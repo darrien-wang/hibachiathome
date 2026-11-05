@@ -11,8 +11,6 @@ Kids: $${pricing.children.basic.toFixed(2)} for ages 5-12, and kids under 5 eat 
 
 Weekday Special (Mon–Thu, any party size): $54.90 per adult, $27.45 per child, plus a free appetizer of your choice (gyoza, edamame or spring rolls)
 
-Party Size Discount (any day, automatic): 15–24 adults save $60, 25–30 save $90, 31–40 save $120, 41–50 save $150, 51–60 save $180
-
 Gratuity: 20–25% of the final bill is customary
 
 Travel fee: first 50 miles free, then $1 per mile — shown in your quote before you pay

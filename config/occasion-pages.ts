@@ -43,7 +43,7 @@ const SPACE_FAQ = {
 const PRICE_FAQ = {
   question: "How much does it cost?",
   answer:
-    "$59.90 per adult and $29.90 per child (5–12) on the Standard Plan — kids under 5 eat free — with a $599 event minimum. That includes the chef, the live show, 2 proteins per guest, fried rice, vegetables, salad, setup, and cleanup. Get a price range in 30 seconds with the instant quote; the exact number and your party discount come by text.",
+    "$59.90 per adult and $29.90 per child (5–12) on the Standard Plan — kids under 5 eat free — with a $599 event minimum. That includes the chef, the live show, 2 proteins per guest, fried rice, vegetables, salad, setup, and cleanup. Get a price range in 30 seconds with the instant quote; the exact number comes by text.",
 }
 
 export const occasionPages: OccasionPage[] = [
@@ -880,7 +880,7 @@ export const EXTRA_OCCASIONS: OccasionPage[] = [
       {
         question: "What does it cost for a team?",
         answer:
-          "Monday–Thursday is $54.90 per person with a free appetizer of your choice (gyoza, edamame or spring rolls); Friday–Sunday is $59.90, and so are Thanksgiving week and December 20 – January 3. There's a $599 event minimum, and a Party Size Discount comes off automatically: $60 for 15–24 adults, $90 for 25–30, $120 for 31–40, $150 for 41–50, $180 for 51–60. A 28-person weekday lunch comes to about $1,450; gratuity is separate and up to you (20–25% is customary). Over 60 people, we quote it for you directly. Need seating? Tables, chairs and tablecloths are $10 per person. Every guest picks 2 proteins, with fried rice, vegetables and salad — extra rice and vegetables are free if you tell us ahead.",
+          "Monday–Thursday is $54.90 per person with a free appetizer of your choice (gyoza, edamame or spring rolls); Friday–Sunday is $59.90, and so are Thanksgiving week and December 20 – January 3. There's a $599 event minimum. A 28-person weekday lunch comes to about $1,540; gratuity is separate and up to you (20–25% is customary). Over 60 people, we quote it for you directly. Need seating? Tables, chairs and tablecloths are $10 per person. Every guest picks 2 proteins, with fried rice, vegetables and salad — extra rice and vegetables are free if you tell us ahead.",
       },
       {
         question: "What about dietary needs on a big crew?",

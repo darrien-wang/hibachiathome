@@ -190,7 +190,7 @@ export default function Home() {
                 <span className="hidden lg:inline">Pick the plan that fits your party</span>
               </h2>
               <p className="mt-1 hidden text-base text-clay-700 lg:block">
-                Same food and chef show in every plan. Kids 5–12 half price, under 5 free. Parties of 15+ guests save $60–$180 automatically, any day.
+                Same food and chef show in every plan. Kids 5–12 half price, under 5 free.
               </p>
             </div>
             <span className="text-xs text-clay-600 lg:hidden">swipe →</span>
@@ -206,7 +206,7 @@ export default function Home() {
               lines={[
                 `$${fmt(GUEST_TIERS.child.price)}/child · under 5 free`,
                 "2 proteins, rice, veg, salad, show",
-                `$${MINIMUM_SPEND} minimum · 15+ guests save $60–$180`,
+                `$${MINIMUM_SPEND} minimum`,
               ]}
               cta="Get instant quote"
               href="/quote?source=home_pricing_standard"
@@ -236,7 +236,7 @@ export default function Home() {
             />
           </div>
           <p className="mt-2 px-5 text-xs text-clay-600 lg:hidden">
-            Tables & chairs $10/guest, utensils $5/guest. Parties of 15+ save $60–$180 any day. Gratuity 20–25% customary.
+            Tables & chairs $10/guest, utensils $5/guest. Gratuity 20–25% customary.
           </p>
         </div>
       </section>
