@@ -380,6 +380,65 @@ def voice_rec(event: str, phone: str, body: str, when: str, hits: list | None = 
             "hits": hits or [], "voice_ok": False, "session": "selfcheck"}
 
 
+def quoted_price_checks() -> None:
+    """desk price prints the old price a lead from before a tier closed was quoted, and
+    desk link deposit --lead puts that price on the link (D-1102-01, D-1105-01)."""
+    kept = desk.site_get, desk.site_post
+    posted: list[dict] = []
+
+    def run(argv: list[str], lead_created: str | None = None) -> tuple[str, object, str]:
+        def site_get(path, params=None, admin=True, timeout=90):
+            if path == "/api/agent/price":
+                return fake_price(params or {})
+            if path == "/api/admin/desk":
+                return {"cards": [{"lead": {"id": LEAD_ID, "created_at": lead_created}}] if lead_created else []}
+            raise RuntimeError(f"selfcheck: unexpected site read {path}")
+
+        def site_post(path, payload, method="POST", timeout=90):
+            if path == "/api/admin/short-link":
+                posted.append(payload)
+                return {"shortUrl": "https://www.realhibachi.com/d/selfcheck"}
+            if path == "/api/admin/custom-deal":
+                return {"ok": True, "query": "deal=selfcheck", "deal": {k: v for k, v in payload.items() if k not in ("leadId", "note")}}
+            raise RuntimeError(f"selfcheck: unexpected site write {path}")
+
+        desk.site_get, desk.site_post = site_get, site_post
+        posted.clear()
+        buf, exit_ = io.StringIO(), None
+        with contextlib.redirect_stdout(buf):
+            try:
+                desk.main(argv)
+            except SystemExit as e:
+                exit_ = e.code
+        url = posted[-1]["url"] if posted else ""
+        return buf.getvalue(), exit_, url
+
+    try:
+        out, _, _ = run(["price", "--adults", "20", "--date", SATURDAY])
+        check("desk price 20 adults: the new price, then the old one for leads from before the ladder closed",
+              "→ $1,198.00" in out and "前来的线索已报过含 $60 人数折扣的价，照旧报 $1,138.00（D-1105-01）" in out and "11/02" not in out,
+              detail=out)
+        out, _, _ = run(["price", "--adults", "12", "--date", SATURDAY])
+        check("  12 adults: only the 11/02 line (10-14 closed first)",
+              "→ $718.80" in out and "照旧报 $688.80（D-1102-01）" in out and "D-1105-01" not in out, detail=out)
+        link = ["link", "deposit", "--lead", LEAD_ID, "--city", "Irvine", "--date", SATURDAY]
+        out, _, url = run([*link, "--adults", "20"], BEFORE_LADDER)
+        check("desk link deposit --lead for a lead from before the ladder closed: the link carries $1,138",
+              "estimate_low=1138" in url and "链接照旧报 $1,138（含 $60 人数折扣，D-1105-01）" in out, detail=out + url)
+        out, _, url = run([*link, "--adults", "20"], AFTER_LADDER)
+        check("  a lead from after: $1,198, no old price", "estimate_low=1198" in url and "照旧" not in out, detail=out + url)
+        out, _, url = run([*link, "--adults", "12"], BEFORE_1102)
+        check("  12 adults on a lead from before 11/02: $689 with the $30 (D-1102-01)",
+              "estimate_low=689" in url and "链接照旧报 $689（含 $30 人数折扣，D-1102-01）" in out, detail=out + url)
+        out, _, url = run([*link, "--adults", "12"], BEFORE_LADDER)
+        check("  12 adults on a lead from between the closings: $719, nothing old to give", "estimate_low=719" in url and "照旧" not in out,
+              detail=out + url)
+        out, _, url = run([*link, "--adults", "20", "--flat-off", "60"], BEFORE_LADDER)
+        check("  --flat-off on an old lead says the lock already brings the old tier", "--flat-off 会叠在上面" in out, detail=out + url)
+    finally:
+        desk.site_get, desk.site_post = kept
+
+
 def send_checks() -> None:
     kept = desk.site_get, desk.site_post, desk._now, _api.upload_sales_media, _api.signed_sales_media_url, desk.VOICE_LOG
     with tempfile.TemporaryDirectory() as tmp:
@@ -884,6 +943,7 @@ def main() -> int:
     body = (r.texted or {}).get("body", "")
     check("  the text links the invoice and quotes no amount", "/d/selfcheck" in body and "$" not in body and "balance" not in body.lower(), r)
 
+    quoted_price_checks()
     send_checks()
 
     # A request with no "please" stops a send (owner 2026-11-01). Same samples as tests/voice-check.test.ts.

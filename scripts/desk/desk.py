@@ -237,14 +237,26 @@ def kept_party_line(heads: int, promos: list, created_at=None) -> dict | None:
     return line
 
 
-def quoted_closed_tier(lead_id: str) -> bool:
-    """The lead came in before the tier closed, so its quote had the tier."""
+def lead_created_at(lead_id: str) -> _dt.datetime | None:
+    """When the lead came in (its desk card), None when the card has no time."""
     cards = site_get("/api/admin/desk", {"lead": lead_id}).get("cards") or []
-    created = ((cards[0].get("lead") or {}).get("created_at") if cards else None) or ""
-    if not created:
-        return False
-    at = _dt.datetime.fromisoformat(re.sub(r"Z$", "+00:00", re.sub(r"\.\d+", "", created)))
-    return at < _dt.datetime.fromisoformat(closed_tier()["closed_at"])
+    return _instant((cards[0].get("lead") or {}).get("created_at") if cards else None)
+
+
+def quoted_line(heads: int, lead_id: str) -> dict | None:
+    """The party-size line a lead's quote had: the old ladder's for a lead from
+    before it closed (D-1105-01), the 10-14 one for a lead from before that
+    closed (D-1102-01); None for a lead that came in after. Its lock gets the
+    same line (quoted_ladder / quoted_closed_tier on the deposit event)."""
+    if not (party_line(heads) or in_closed_tier(heads)):
+        return None  # no old tier at this headcount: no need to read the lead
+    created = lead_created_at(lead_id)
+    if created is None or created >= ladder_closed_at():
+        return None
+    line = party_line(heads)
+    if not line and in_closed_tier(heads) and created < _dt.datetime.fromisoformat(closed_tier()["closed_at"]):
+        line = closed_line()
+    return line
 
 
 def is_tapback(body: str) -> bool:
@@ -578,7 +590,12 @@ def cmd_price(a):
         print(f"{date or '(any day)'}: {a.adults} 大人 + {a.kids} 小孩 → ${pr['total']:,.2f}  [{pr['plan']}]  "
               f"食 ${pr['foodSubtotal']:,.2f}{rent}{off} + 路费 ${pr['travelFee']:,.2f}"
               f"{'  (最低消费生效)' if pr.get('minimumApplied') else ''}")
-        if in_closed_tier(tier_heads(a.adults, a.kids)):
+        heads = tier_heads(a.adults, a.kids)
+        line = party_line(heads)
+        if line and not off:
+            old = max(pr["total"] - line["amount"], MINIMUM_SPEND + (pr.get("travelFee") or 0))
+            print(f"   {_when(ladder_closed_at())} 前来的线索已报过含 ${line['amount']} 人数折扣的价，照旧报 ${old:,.2f}（D-1105-01）")
+        if in_closed_tier(heads):
             old = max(pr["total"] - closed_tier()["amount"], MINIMUM_SPEND + (pr.get("travelFee") or 0))
             print(f"   11/02 前来的线索已报过含 ${closed_tier()['amount']:.0f} 的价，照旧报 ${old:,.2f}（D-1102-01）")
         if a.json:
@@ -1366,9 +1383,17 @@ def cmd_link(a):
             waived = (pr.get("travelFee") or 0) if a.waive_travel else 0
             floor = MINIMUM_SPEND + (pr.get("travelFee") or 0) - waived
             est = round(max(pr["total"] - cut - waived, floor))
-            if a.lead and in_closed_tier(tier_heads(a.adults, a.kids)) and quoted_closed_tier(a.lead):
-                est = round(max(est - closed_tier()["amount"], floor))
-                print(f"   11/02 前来的线索：链接照旧报 ${est:,}（含 ${closed_tier()['amount']:.0f} 人数折扣，D-1102-01）")
+            # A lead quoted before a tier closed locks at that quote (the deposit
+            # event says so and the invoice puts the line on); a site deployed
+            # before the ladder closed has already taken it off.
+            line = quoted_line(tier_heads(a.adults, a.kids), a.lead) if a.lead and not pr.get("partySizeDiscount") else None
+            if line:
+                est = round(max(est - line["amount"], floor))
+                closed = line["id"] == closed_line()["id"]
+                print(f"   {'11/02' if closed else _when(ladder_closed_at())} 前来的线索：链接照旧报 ${est:,}"
+                      f"（含 ${line['amount']} 人数折扣，{'D-1102-01' if closed else 'D-1105-01'}）")
+                if a.flat_off:
+                    print(f"   ⚠ 锁单时系统会自动带上这 ${line['amount']}，--flat-off 会叠在上面（negotiation §2.2：老线索不再叠）")
     q = {"source": "workbench", "location": a.city, "adults": str(a.adults), "kids": str(a.kids)}
     if est is not None:
         q["estimate_low"] = q["estimate_high"] = str(est)

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import type Stripe from "stripe"
-import { quotedBeforeTierClosed } from "@/config/pricing-rules"
+import { quotedBeforeLadderClosed, quotedBeforeTierClosed } from "@/config/pricing-rules"
 import { sendEmail } from "@/lib/email/send-email"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { getStripeServerClient } from "@/lib/stripe-server"
@@ -812,23 +812,26 @@ async function lockTravelForSession(
 }
 
 /**
- * Whether this lead came in before the 10-14 tier closed: its quote had the
- * tier, so it locks at that price (D-1102-01). A failed read costs a hand fix on
- * the invoice, never the lock.
+ * What this lead's quote had, by when it came in: before the 10-14 tier closed
+ * it had that tier (D-1102-01), before the party-size ladder closed it had the
+ * ladder (D-1105-01), so it locks at that price. A failed read costs a hand fix
+ * on the invoice, never the lock.
  */
-async function leadQuotedClosedTier(
+async function leadQuotedTiers(
   supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
   session: Stripe.Checkout.Session,
-): Promise<boolean> {
+): Promise<{ closedTier: boolean; ladder: boolean }> {
+  const none = { closedTier: false, ladder: false }
   const leadId = asNonEmptyString(session.metadata?.lead_id)
-  if (!leadId) return false
+  if (!leadId) return none
   try {
     const { data, error } = await supabase.from("leads").select("created_at").eq("id", leadId).maybeSingle()
     if (error) throw error
-    return quotedBeforeTierClosed((data as { created_at?: string | null } | null)?.created_at)
+    const createdAt = (data as { created_at?: string | null } | null)?.created_at
+    return { closedTier: quotedBeforeTierClosed(createdAt), ladder: quotedBeforeLadderClosed(createdAt) }
   } catch (error) {
     console.error("[stripe/webhook] Could not read the lead's quote date:", { leadId, error })
-    return false
+    return none
   }
 }
 
@@ -1573,6 +1576,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ received: false, error: result.error }, { status: 500 })
       }
 
+      const quoted = await leadQuotedTiers(supabase, session)
       const crmEnvelopeResult = buildDepositPaidEventEnvelope({
         stripeEventId: event.id,
         session,
@@ -1581,7 +1585,8 @@ export async function POST(request: NextRequest) {
         depositAmount: result.depositAmount,
         cardOnFile: result.cardOnFile ?? undefined,
         travel: result.lockTravel ?? undefined,
-        quotedClosedTier: await leadQuotedClosedTier(supabase, session),
+        quotedClosedTier: quoted.closedTier,
+        quotedLadder: quoted.ladder,
       })
 
       let crmForwarded = false

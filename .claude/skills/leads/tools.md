@@ -88,7 +88,7 @@ python scripts/desk/desk.py order email <单号> [--notes-reviewed]
 - 存完多出 `WARN  Planner has …, the invoice counts …. Kept …: <名字>`（10-24 起）：客人派对页上有人填过名字或点过菜，这张发票的人数没算他们；存的时候留下了，没删（只删空位）。人真来就补进发票（比如 5 岁以下的照上面加 `under5_auto` 那行），不来就请客人在派对页删掉。
 - 订单 NOTES 会原样印在客人发票上：过程记录写 `orders.internal_notes`，不写 NOTES。
 
-**电话预定的手工建单**（客人电话里定了、不留卡）：往发票系统 `https://invoice.realhibachi.com/api/integrations/v1/events` 投一个签名的 `order.deposit_paid`（HMAC-SHA256，`X-Partner-Id: official_website`，payment `card_on_file` $0）。建完要补四样：`deposit_status → paid_verified`、`source_metadata.lead_id`、`desk order set --date --time`（时区）、`--travel-miles`；人数变了用 `--headcount`（老单的人数折扣自动换档，看 `--dry` 的 total check）。先例 RH-20261020-4480。
+**电话预定的手工建单**（客人电话里定了、不留卡）：往发票系统 `https://invoice.realhibachi.com/api/integrations/v1/events` 投一个签名的 `order.deposit_paid`（HMAC-SHA256，`X-Partner-Id: official_website`，payment `card_on_file` $0）。建完要补四样：`deposit_status → paid_verified`、`source_metadata.lead_id`、`desk order set --date --time`（时区）、`--travel-miles`；人数变了用 `--headcount`（老单的人数折扣自动换档，看 `--dry` 的 total check）。11/05 上线前来的线索，event 的 `order.invoice_details` 带 `"quoted_ladder": true`（11/02 前的再带 `"quoted_closed_tier": true`），新单才会按老阶梯开出来（D-1105-01）。先例 RH-20261020-4480。
 
 ---
 

@@ -62,6 +62,8 @@ export type CrmDepositPaidEventEnvelope = {
       custom_deal?: CustomDeal
       /** The lead was quoted before the 10-14 tier closed: the order keeps it (D-1102-01). */
       quoted_closed_tier?: boolean
+      /** The lead was quoted before the party-size ladder closed: the order keeps it (D-1105-01). */
+      quoted_ladder?: boolean
     }
     notes?: string
     /** D-1006-04: the date was locked with a card on file ($0 charged); the CRM order keeps it for the day-of charge. */
@@ -510,6 +512,8 @@ export function buildDepositPaidEventEnvelope(params: {
   travel?: LockTravel
   /** The lead came in before the 10-14 tier closed, so its quote had the tier (D-1102-01). */
   quotedClosedTier?: boolean
+  /** The lead came in before the party-size ladder closed, so its quote had the ladder (D-1105-01). */
+  quotedLadder?: boolean
 }): BuildCrmEnvelopeResult<CrmDepositPaidEventEnvelope> {
   const source = resolveSource(params.source)
   const travel = params.travel
@@ -601,7 +605,8 @@ export function buildDepositPaidEventEnvelope(params: {
           travel !== undefined ||
           agreedTotal !== undefined ||
           customDeal !== undefined ||
-          params.quotedClosedTier === true
+          params.quotedClosedTier === true ||
+          params.quotedLadder === true
             ? {
                 total_cost: params.booking?.total_cost ?? undefined,
                 // Measured at lock when there is a travel result: its fee is
@@ -616,6 +621,7 @@ export function buildDepositPaidEventEnvelope(params: {
                 agreed_total: agreedTotal,
                 custom_deal: customDeal,
                 quoted_closed_tier: params.quotedClosedTier ? true : undefined,
+                quoted_ladder: params.quotedLadder ? true : undefined,
               }
             : undefined,
         notes:
