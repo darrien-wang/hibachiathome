@@ -70,8 +70,21 @@ function formatClockTime(value: string | undefined): string {
 const CHIPS = ["Pick proteins later", "Headcount stays flexible", "1.5–2 hr show", "Allergies handled free"] as const
 const QUESTION_SMS = "Hi Real Hibachi! Quick question about locking my date."
 
+// Lunch parties lock here too (2026-11-06): Lilibeth's 12 PM corporate lunch
+// had no option and she had to text us for a link with the time preset.
+// Nothing before noon - earlier starts are not approved yet.
 const TIME_OPTIONS: ReadonlyArray<readonly [string, string]> = [
   ["", "Pick a start time"],
+  ["12:00", "12:00 PM"],
+  ["12:30", "12:30 PM"],
+  ["13:00", "1:00 PM"],
+  ["13:30", "1:30 PM"],
+  ["14:00", "2:00 PM"],
+  ["14:30", "2:30 PM"],
+  ["15:00", "3:00 PM"],
+  ["15:30", "3:30 PM"],
+  ["16:00", "4:00 PM"],
+  ["16:30", "4:30 PM"],
   ["17:00", "5:00 PM"],
   ["17:30", "5:30 PM"],
   ["18:00", "6:00 PM"],

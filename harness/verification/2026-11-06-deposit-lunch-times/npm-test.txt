@@ -1,0 +1,10 @@
+npm test (worktree, HEAD 6afee16d + this change), 2026-11-06
+✔ a bare ZIP never goes to the router on its own (1.1844ms)
+ℹ tests 398
+ℹ suites 0
+ℹ pass 398
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3023.6714

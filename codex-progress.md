@@ -335,3 +335,31 @@ Noticed, not changed:
 - The check runs on the desk just before the POST; a text that lands between that read and the send (about a second) is still missed. Closing it would take the send route refusing a seen time the desk passes - a site change and a deploy.
 - `order send` and `order remind` text through the route directly and do not go through this check.
 - Four old one-off scheduled-task folders (annie-wed-evening-confirm, f-one-batch-1002, glendale-deadline-1002, nasim-friday-confirm) call `desk send` without `--seen`; none of them is an active task.
+
+## DEPOSIT-LUNCH-TIMES - The lock page's Start time list offers 12:00-4:30 PM, nothing before noon (2026-11-06)
+
+Status: done.
+
+Why: Lilibeth (iXCells Biotech, 31 guests, Wed 12/16 at 12 PM, San Diego) opened a lock link with no `event_time`, and the Start time list on `/deposit/pay` only went 5:00-8:00 PM, so she could not pick noon. She texted us and the desk sent a link with `event_time=12:00` preset. Handbook (`.claude/skills/leads/answers.md`, 现场): 12 PM starts have been done and the site says October-May suits lunch; nothing earlier than noon is approved yet; no "latest" start is advertised.
+
+What changed:
+- `app/deposit/pay/page.tsx` `TIME_OPTIONS`: 12:00, 12:30, 1:00 ... 4:30 PM in front of the 5:00-8:00 PM ones. "Pick a start time" stays first, "Not sure yet" last, nothing before 12:00. No other copy, price or behavior changed.
+
+Downstream checked - nothing assumes evening-only, no change needed:
+- `/api/deposit/start` validates the date only; the time goes into the Stripe metadata as picked.
+- Stripe webhook -> `lib/crm-integration.ts`: `parseTimeTo24Hour` takes any HH:MM 00-23 as is (the +12 only applies to "1 PM"-style input), and `event_start` keeps the wall clock as UTC exactly as for evening times. `/quote` already offers 1 PM and 4 PM (`EVENT_TIME_OPTIONS`), so midday starts were already going through this path.
+- Reminders: lead-watch's 72 h / 24 h party-contact texts read `wallTime()` ("12 PM") with today/tomorrow wording; the bill text goes an hour after the start, inside the 7-24 PT run hours. `desk order remind` says "tonight" only for 17:00 and later ("See you today at 12.").
+- Day map / dispatch: start minutes come from the UTC fields and chain generically (`lib/dispatch.ts`); `scripts/desk/dispatch.py` flags a clash only for two starts under 3 h apart on one day, so one chef can take a noon lunch and an evening party.
+- Chef share / prep sheet (`zhTime`, `lib/cooler-sheet.ts`): 12:00-17:59 reads 下午, so noon prints "下午 12:00". The cooler sheet itself prints no times. The calendar tab already shows starts before `evening_from_hour` (17) as daytime.
+- `/api/booking-request`, `/api/booking/create`, the deposit success page and the weather preview only check that a time is present or format any HH:MM.
+
+Verification completed:
+- Local dev at 375x812: the select lists all 19 entries in order with no horizontal scroll; picking 12:00 PM turns the summary line into "December 16, 2026 · 12:00 PM" and the button into "Lock Wed, Dec 16 · nothing charged today" (never pressed). Output: `harness/verification/2026-11-06-deposit-lunch-times/local-options.txt`, `mobile-375-select-unpicked.jpg`, `mobile-375-select-12pm.jpg`.
+- `npm test`: 398 pass, 0 fail. `npm run lint:copy`: 0 hard-rule hits (the one soft hit is the existing `app/pay/PayClient.tsx:469` line). Outputs: `npm-test.txt`, `lint-copy.txt` in the same folder.
+- Local `pnpm build`: exit 0, homepage SSR 77528 bytes, h1 1, jsonld 4.
+- Not a `harness/feature_list.json` item, so there is no status transition there.
+
+Noticed, not changed:
+- `lib/leads-next-step.ts` `extractEventDate` assumes a 19:00 start for the workbench SOP timers: for a noon party the 48 h confirmation step comes due ~41 h ahead and the morning-after review ~22 h after. Both still land on the right side of the party.
+- The list still ends at 8:00 PM; a later start goes through "Not sure yet" and a text. `/quote` offers 9 PM.
+- `zhTime` says 下午 for 12:xx; 中午 would read more naturally on the chef share.
