@@ -1532,12 +1532,15 @@ def _totals(data: dict) -> dict:
 
 def _setup_units(data: dict, x: str) -> int:
     """Guests the invoice bills a setup item for right now, counted the way the
-    engine's extraValue counts them: the rows' flags once there are rows, else
-    the party-wide partyExtras line (a fresh order has no rows yet, 2026-10-09)."""
+    engine counts them (setupUnitsOf): the rows' flags once there are rows, plus
+    the party-wide partyExtras line - all of it before there are rows (a fresh
+    order, 2026-10-09), and after, chairs beyond the guests who eat (30 chairs
+    for 28 diners on RH-20261029-8929, 2026-11-06)."""
+    line = sum(int(e.get("qty") or 0) for e in (data.get("partyExtras") or []) if e.get("id") == x)
     if data.get("mode") == "detailed" and data.get("guests"):
         flag = "tablesChairs" if x == "tables_chairs" else "utensils"
-        return sum(1 for g in data["guests"] if g.get(flag))
-    return next((int(e.get("qty") or 0) for e in (data.get("partyExtras") or []) if e.get("id") == x), 0)
+        return sum(1 for g in data["guests"] if g.get(flag)) + line
+    return line
 
 
 def _little_kids(data: dict) -> int:
@@ -2390,6 +2393,11 @@ def cmd_order(a):
             changes.append(f"guests: {len(data.get('guests') or [])} rows -> {len(new_rows)} ({adults} adults + {kids} kids"
                            + (f", {little} of them 3-4" if little else "") + ")")
             changes.append(f"adultCount/childCount: {data.get('adultCount')}/{data.get('childCount')} -> {adults}/{kids}")
+            # Setup the party had beyond its guests (chairs for guests who do not
+            # eat) stays beyond the new list, on the party line (below).
+            had_rows = data.get("mode") == "detailed" and data.get("guests")
+            eaters_before = len(data["guests"]) if had_rows else int(data.get("adultCount") or 0) + int(data.get("childCount") or 0)
+            beyond = {x: max(0, _setup_units(data, x) - eaters_before) if eaters_before > 0 else 0 for x in SETUP_PRICES}
             data["guests"] = new_rows
             data["adultCount"], data["childCount"] = adults, kids
             # The list is the whole party, so its little: true rows are all the
@@ -2403,7 +2411,9 @@ def cmd_order(a):
             # Before the rows, tables / utensils ride as one party-wide line;
             # the rows carry them per guest, and the engine bills both. Stacy
             # 10-13: tables_chairs=27 stayed next to 29 rows with tables - $270
-            # billed twice.
+            # billed twice. Only what the party had beyond its guests stays on
+            # the line, when every row carries it (the invoice keeps the same,
+            # 2026-11-06: RH-20261029-8929's 30 chairs for 28 diners).
             setup_lines = [e for e in (data.get("partyExtras") or []) if e.get("id") in SETUP_PRICES]
             if setup_lines:
                 on_rows = {"tables_chairs": "tablesChairs", "utensils": "utensils"}
@@ -2411,9 +2421,12 @@ def cmd_order(a):
                 if lost:
                     # Jere 2026-11-01: 7 plates came off the order, the $599 minimum hid it.
                     raise SystemExit(f"--guests-file: the order has {', '.join(lost)} and no row carries it - add \"utensils\": true / \"tables\": true to the rows that get it")
-                data["partyExtras"] = [e for e in (data.get("partyExtras") or []) if e.get("id") not in SETUP_PRICES]
+                keep = [{"id": x, "qty": beyond[x]} for x in SETUP_PRICES
+                        if beyond[x] > 0 and all(g.get(on_rows[x]) for g in new_rows)]
+                data["partyExtras"] = [e for e in (data.get("partyExtras") or []) if e.get("id") not in SETUP_PRICES] + keep
+                kept_note = "; kept " + ", ".join(f"{e['id']}={e['qty']}" for e in keep) + " beyond the guests" if keep else ""
                 changes.append("partyExtras: dropped " + ", ".join(f"{e.get('id')}={e.get('qty')}" for e in setup_lines)
-                               + " (the rows carry tables/utensils now)")
+                               + " (the rows carry tables/utensils now)" + kept_note)
         if a.remove_promo or a.add_promo:
             # A published offer that replaces another (teacher appreciation $50
             # in place of the party-size discount - they do not stack, skill 5):

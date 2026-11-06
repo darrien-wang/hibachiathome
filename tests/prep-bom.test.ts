@@ -67,6 +67,24 @@ test("prep · cloths rented on their own for the customer's tables are a setup r
   ])
 })
 
+test("prep · chairs beyond the guests who eat ride on the party line next to the rows, and are loaded too (2026-11-06)", () => {
+  // RH-20261029-8929: 28 diners with chairs on their rows, 2 more chairs for guests who are not eating.
+  const guests = Array.from({ length: 28 }, () => ({ proteins: ["steak", "shrimp"], tablesChairs: true }))
+  assert.deepEqual(setupRows({ mode: "detailed", adultCount: 28, childCount: 0, guests, partyExtras: [{ id: "tables_chairs", qty: 2 }] }), [
+    ["tables", 8, "张"],
+    ["chairs", 30, "把"],
+  ])
+})
+
+test("prep · noodles staff put on the party before the rows still cook next to the guests' own picks (2026-11-06)", () => {
+  const guests = Array.from({ length: 10 }, (_, i) => ({ proteins: ["chicken", "steak"], noodles: i < 2 }))
+  const inv = { mode: "detailed", adultCount: 10, childCount: 0, guests, partyExtras: [{ id: "noodles_party", qty: 4 }] }
+  const noodles = orderPrep(inv as never, "2026-10-20T00:00:00Z", 0, 0).items.find((i) => i.id === "noodles")
+  const rowsOnly = orderPrep({ ...inv, partyExtras: [] } as never, "2026-10-20T00:00:00Z", 0, 0).items.find((i) => i.id === "noodles")
+  assert.ok(noodles && rowsOnly)
+  assert.equal(Math.round((noodles.qty / rowsOnly.qty) * 10) / 10, 3, "6 servings, not the rows' 2")
+})
+
 test("prep · white cloths on their own ($8 from 2026-11-03) are a row of their own, packed from the white stock", () => {
   assert.deepEqual(setupRows({ mode: "quick", adultCount: 18, childCount: 0, partyExtras: [{ id: "white_tablecloth", qty: 4 }, { id: "white_linen", qty: 2 }] }), [
     ["tablecloths", 2, "条"],

@@ -744,6 +744,17 @@ def main() -> int:
         f.write_text(json.dumps([{"name": f"G{i}", "proteins": ["chicken", "steak"]} for i in range(16)]), encoding="utf-8")
         r = Run(quick_8_2, "--guests-file", str(f))
     check("--guests-file with no setup on the rows stops: the order's plates and tables do not fall off", "no row carries it" in str(r.exit), r)
+    # Chairs beyond the guests who eat (RH-20261029-8929, 2026-11-06): 30 chairs
+    # for 28 diners and 2 who are not eating. The rows carry 28; the 2 stay on the line.
+    chairs_30 = invoice(adults=28, proteins=prot(chicken=(28, 0), steak=(28, 0)), extras=[{"id": "tables_chairs", "qty": 30}])
+    with tempfile.TemporaryDirectory() as tmp:
+        f = pathlib.Path(tmp) / "rows.json"
+        f.write_text(json.dumps([{"name": f"G{i}", "proteins": ["chicken", "steak"], "tables": True} for i in range(28)]), encoding="utf-8")
+        r = Run(chairs_30, "--guests-file", str(f), created_at=AFTER_LADDER)
+    check("--guests-file 28 rows with tables on an order with 30 chairs: the 2 beyond the guests stay on the party line, 30 billed, ✓",
+          {e["id"]: e["qty"] for e in r.data.get("partyExtras") or []} == {"tables_chairs": 2}
+          and desk._setup_units(r.data, "tables_chairs") == 30
+          and r.has("kept tables_chairs=2 beyond the guests", "✓ total check: TOTAL"), r)
 
     # The edges of the ladder.
     r = Run(invoice(adults=10, proteins=prot(chicken=(10, 0), steak=(10, 0)), promos=[PARTY[10]]), "--headcount", "9/0")

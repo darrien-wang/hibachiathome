@@ -289,12 +289,14 @@ export function orderPrep(
       if (g.isChild) noodleK++
       else noodleA++
     }
-  } else {
-    const n = extras.find((e) => e.id === "noodles_party")
-    if (n?.qty) {
-      noodleA = Math.round(n.qty * (adults / Math.max(1, total)))
-      noodleK = n.qty - noodleA
-    }
+  }
+  // 员工按整桌记的 noodles_party 行：没有 guests 行时就是全部；有了行还在的话叠加在行上
+  //（2026-11-06：派对页提交保留这一行，账单本来就两边都收。镜像发票 calcBom，同天改）。
+  const n = extras.find((e) => e.id === "noodles_party")
+  if (n?.qty) {
+    const a = Math.round(n.qty * (adults / Math.max(1, total)))
+    noodleA += a
+    noodleK += n.qty - a
   }
   if (noodleA + noodleK > 0) {
     const cooked = noodleA * NOODLE_PORTION.adult + noodleK * NOODLE_PORTION.child
@@ -315,17 +317,17 @@ export function orderPrep(
     if (e.id === "extra_egg") items.push({ id: "extra_egg", label: "加蛋（炒饭）", qty, unit: "个", group: "produce" })
   }
 
-  // 桌椅餐具：装车清单。
-  let tcPersons = 0
-  let utPersons = 0
+  // 桌椅餐具：装车清单。有 guests 行就数勾了的客人，再加 partyExtras 里的整桌行：没有行时
+  // 整桌行就是全部；有行时它只装行装不下的——吃饭客人以外的椅子（RH-20261029-8929：28 位
+  // 吃饭 + 2 位不吃，30 把椅子，客人自己有桌子）。镜像发票 setupUnitsOf，2026-11-06 同天改。
+  const lineOf = (id: string) => extras.reduce((sum, e) => (e.id === id ? sum + Math.max(0, e.qty ?? 0) : sum), 0)
+  let tcPersons = lineOf("tables_chairs")
+  let utPersons = lineOf("utensils")
   if (data.mode === "detailed" && guests.length) {
     for (const g of guests as Array<GuestRow & { tablesChairs?: boolean; utensils?: boolean }>) {
       if (g.tablesChairs) tcPersons++
       if (g.utensils) utPersons++
     }
-  } else {
-    tcPersons = extras.find((e) => e.id === "tables_chairs")?.qty ?? 0
-    utPersons = extras.find((e) => e.id === "utensils")?.qty ?? 0
   }
   if (tcPersons > 0) {
     const tables = Math.ceil(tcPersons / GUESTS_PER_TABLE)
