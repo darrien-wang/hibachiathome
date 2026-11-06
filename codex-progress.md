@@ -357,6 +357,7 @@ Verification completed:
 - Local dev at 375x812: the select lists all 19 entries in order with no horizontal scroll; picking 12:00 PM turns the summary line into "December 16, 2026 · 12:00 PM" and the button into "Lock Wed, Dec 16 · nothing charged today" (never pressed). Output: `harness/verification/2026-11-06-deposit-lunch-times/local-options.txt`, `mobile-375-select-unpicked.jpg`, `mobile-375-select-12pm.jpg`.
 - `npm test`: 398 pass, 0 fail. `npm run lint:copy`: 0 hard-rule hits (the one soft hit is the existing `app/pay/PayClient.tsx:469` line). Outputs: `npm-test.txt`, `lint-copy.txt` in the same folder.
 - Local `pnpm build`: exit 0, homepage SSR 77528 bytes, h1 1, jsonld 4.
+- Deployed 9bdf0ea1: `/_release/ready` named it after 55 s; `verify-live.sh` green (homepage 81473 bytes, h1 1, jsonld 4; city pages 200; redirects 308; sitemap 116). The live page with no `event_time` loads chunk `page-da5f5ef130dc7d21.js`, which carries the new list, and the select at 375x812 shows all 19 entries in order. Nothing picked or pressed on production. Output: `prod-after-deploy.txt`, `prod-mobile-375-select.jpg`.
 - Not a `harness/feature_list.json` item, so there is no status transition there.
 
 Noticed, not changed:
