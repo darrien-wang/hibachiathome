@@ -362,5 +362,17 @@ Verification completed:
 
 Noticed, not changed:
 - `lib/leads-next-step.ts` `extractEventDate` assumes a 19:00 start for the workbench SOP timers: for a noon party the 48 h confirmation step comes due ~41 h ahead and the morning-after review ~22 h after. Both still land on the right side of the party.
-- The list still ends at 8:00 PM; a later start goes through "Not sure yet" and a text. `/quote` offers 9 PM.
+- The list still ended at 8:00 PM while `/quote` offers 9 PM - done in the addendum below.
 - `zhTime` says 下午 for 12:xx; 中午 would read more naturally on the chef share.
+
+### Addendum - 8:30 and 9:00 PM (2026-11-06)
+
+Why: ending at 8:00 PM read as a latest start, which the handbook never names, and `/quote` offers 9 PM. Asked for on 2026-11-06 right after the lunch-times deploy.
+
+What changed:
+- `TIME_OPTIONS` gains 8:30 and 9:00 PM before "Not sure yet". The comment says 9 PM is where `/quote`'s slots end, not a cutoff; anything later still comes in through "Not sure yet". Downstream reads 21:00 like any HH:MM (`/quote` already sends it): 晚上 9:00 on the chef share, "tonight" in `desk order remind`, the bill text at 10 PM inside the 7-24 PT run hours.
+
+Verification completed:
+- Local dev at 375x812: 21 entries in order, no horizontal scroll; picking 9:00 PM gives "December 16, 2026 · 9:00 PM" and the enabled Lock button (never pressed). Output: `local-options-late.txt`, `mobile-375-select-9pm.jpg`.
+- `npm test`: 398 pass, 0 fail. `npm run lint:copy`: 0 hard-rule hits. Outputs: `npm-test-late.txt`, `lint-copy-late.txt`.
+- Local `pnpm build`: exit 0, homepage SSR 77528 bytes, h1 1, jsonld 4.
