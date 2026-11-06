@@ -376,3 +376,4 @@ Verification completed:
 - Local dev at 375x812: 21 entries in order, no horizontal scroll; picking 9:00 PM gives "December 16, 2026 · 9:00 PM" and the enabled Lock button (never pressed). Output: `local-options-late.txt`, `mobile-375-select-9pm.jpg`.
 - `npm test`: 398 pass, 0 fail. `npm run lint:copy`: 0 hard-rule hits. Outputs: `npm-test-late.txt`, `lint-copy-late.txt`.
 - Local `pnpm build`: exit 0, homepage SSR 77528 bytes, h1 1, jsonld 4.
+- Deployed 23c8563f: `/_release/ready` named it after 65 s; `verify-live.sh` green. The live page with no `event_time` loads chunk `page-6e90fb92d49ac233.js` with the 21-entry list, and the select at 375x812 ends 8:30 PM, 9:00 PM, Not sure yet. Nothing picked or pressed on production. Output: `prod-after-deploy-late.txt`.

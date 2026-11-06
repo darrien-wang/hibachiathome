@@ -1,0 +1,21 @@
+Production check after the 8:30/9:00 PM deploy, 2026-11-06 PT (read-only: GETs and one page load, nothing picked or posted)
+
+/_release/ready gitCommitSha before the push: c886812485cb3eb9758a1b664b5f37c8bc267b48
+pushed c8868124..23c8563f to main; /_release/ready named 23c8563ff3fcd8163a373beb379f3f4ef103f2e0 after 65 s
+"requestedHost":"www.realhibachi.com" "vercelEnv":"production" "vercelUrl":"realhibachi-marketing-pvj7ok0w7-darrienwangs-projects.vercel.app" 
+== verify-live.sh ==
+=== 1. Homepage SSR ===
+size: 81473 | h1: 1 | jsonld: 4 | canonical: https://www.realhibachi.com
+=== 2. City pages (expect 200) ===
+san-diego: 200  irvine: 200  anaheim: 200  long-beach: 200  palm-springs: 200  
+=== 3. Redirects (expect 308) ===
+nyc-long-island: 308 -> https://www.realhibachi.com/locations/la-orange-county
+non-www:         308 -> https://www.realhibachi.com/menu
+=== 4. SEO endpoints ===
+llms.txt: 200 | sitemap <loc> count: 116
+== live page chunk: /_next/static/chunks/app/deposit/pay/page-6e90fb92d49ac233.js ==
+["","Pick a start time"],["12:00","12:00 PM"],["12:30","12:30 PM"],["13:00","1:00 PM"],["13:30","1:30 PM"],["14:00","2:00 PM"],["14:30","2:30 PM"],["15:00","3:00 PM"],["15:30","3:30 PM"],["16:00","4:00 PM"],["16:30","4:30 PM"],["17:00","5:00 PM"],["17:30","5:30 PM"],["18:00","6:00 PM"],["18:30","6:30 PM"],["19:00","7:00 PM"],["19:30","7:30 PM"],["20:00","8:00 PM"],["20:30","8:30 PM"],["21:00","9:00 PM"],["TBD","Not sure yet"]
+
+
+Rendered in the browser pane at 375x812 (www.realhibachi.com, chunk page-6e90fb92d49ac233.js): Start time select has 21 entries,
+  first "Pick a start time", "12:00 PM"; last "8:30 PM", "9:00 PM", "Not sure yet"; document scrollWidth 375 = viewport.
