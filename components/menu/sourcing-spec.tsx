@@ -24,7 +24,7 @@ export default function SourcingSpec({ city, adultPrice = 59.9 }: SourcingSpecPr
             <dt className="text-xs font-medium uppercase tracking-widest text-gray-500 mb-1">{row.item}</dt>
             <dd>
               <p className="font-bold text-gray-900">{row.spec}</p>
-              <p className="mt-1 text-sm text-gray-600 leading-relaxed">{row.note}</p>
+              {row.note ? <p className="mt-1 text-sm text-gray-600 leading-relaxed">{row.note}</p> : null}
             </dd>
           </div>
         ))}

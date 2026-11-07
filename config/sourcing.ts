@@ -15,11 +15,14 @@
 //    oil, sugar, mayonnaise (egg, soy, wheat - so NOT gluten free). The
 //    gyoza contain sesame and wheat (verified 2026-08-27). The recipes live
 //    in config/house-sauces.ts; change both when a recipe changes.
+//  - 2026-11-06 (owner, D-1106-01): chicken is bought as a mix of breast and
+//    thigh, by price and supply. Never "breast only" again. "Raised in the
+//    USA" stays off until the owner confirms the thigh is US-raised too.
 
 export type SourcingSpec = {
   item: string
   spec: string
-  note: string
+  note?: string
 }
 
 export const sourcing: SourcingSpec[] = [
@@ -40,8 +43,7 @@ export const sourcing: SourcingSpec[] = [
   },
   {
     item: "Chicken",
-    spec: "Boneless, skinless breast",
-    note: "Hatched, raised and harvested in the USA. Breast meat only — no thigh substitution.",
+    spec: "Boneless, skinless chicken, breast and thigh",
   },
   {
     item: "Lobster tail",

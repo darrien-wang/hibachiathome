@@ -64,6 +64,7 @@
 - **包含**：每位成人选 2 种蛋白（chicken / steak / shrimp / salmon / tofu）+ 炒饭 + 烤蔬菜 + 姜汁沙拉 + 现场表演；小孩半份。
 - **份量**（报份量时必须带 "each guest picks 2"，否则客人以为三样都给）：`Each guest picks 2 - chicken 5 oz, steak 4.5 oz, shrimp 5 jumbo (tail-off), salmon 4 oz.` scallops 4 oz、filet 4.5 oz、lobster 6 oz。
 - **牛肉**：标准牛排是 Costco 的 USDA Choice top sirloin，不冷冻、前一天买；问产地答 `Costco's beef in California comes mostly from Harris Ranch in the Central Valley.` 虾是冷冻袋装的（问了照实说）。
+- **鸡肉**（老板 11-06，D-1106-01）：鸡胸和鸡腿混着买，看价格和货源。对客不说 chicken breast；客人问是什么鸡肉就答 `Boneless, skinless chicken, breast and thigh.` 鸡腿是不是美国产还没确认，问产地先别说 USA，问老板。
 - **同一种选两次**可以（只吃鸡就两份鸡）；只选豆腐的默认双份豆腐。
 - **白米饭**：客人要可以带，替代炒饭（老板 10-22）；写进订单备注让师傅知道。
 - **12–14 岁**：一般按大人订 `Kids that age usually eat like adults. Our kids' plates have half the protein, so I'd book them as adults.`

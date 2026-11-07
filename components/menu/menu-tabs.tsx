@@ -12,7 +12,7 @@ import { GUEST_TIERS } from "@/config/pricing-rules"
 type Tab = "proteins" | "portions" | "sourcing"
 
 const REGULAR = [
-  { name: "Chicken", desc: "Boneless breast, house marinade", qty: "5 oz", img: "/images/menu/chicken.jpg" },
+  { name: "Chicken", desc: "Boneless, skinless breast and thigh, house marinade", qty: "5 oz", img: "/images/menu/chicken.jpg" },
   { name: "Steak", desc: "USDA Choice Angus top sirloin", qty: "4.5 oz", img: "/images/menu/steak.jpg" },
   { name: "Shrimp", desc: "Colossal 16/22, BAP-certified", qty: "5 pcs", img: "/images/menu/shrimp.jpg" },
   { name: "Salmon", desc: "Skinless Atlantic fillet", qty: "4 oz", img: "/images/menu/salmon.jpg" },
@@ -128,7 +128,7 @@ export default function MenuTabs() {
               <div key={row.item} className="flex flex-col gap-1 border-b border-ink/15 py-3.5 lg:py-[18px]">
                 <span className="text-xs font-bold uppercase tracking-[0.06em] text-flame-700">{row.item}</span>
                 <p className="text-base font-semibold lg:text-[17px]">{row.spec}</p>
-                <p className="text-[13px] leading-snug text-clay-700 lg:text-sm">{row.note}</p>
+                {row.note ? <p className="text-[13px] leading-snug text-clay-700 lg:text-sm">{row.note}</p> : null}
               </div>
             ))}
           </div>

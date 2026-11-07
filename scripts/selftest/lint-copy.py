@@ -5,11 +5,12 @@
     python scripts/selftest/lint-copy.py --json     # 机器可读
     python scripts/selftest/lint-copy.py --rule 19.90   # 只跑一条规则
 
-规则来自决策日志 D-1005-01 / D-1006-04 / D-1006-05 / D-1006-07 和 leads skill（answers.md）：
+规则来自决策日志 D-1005-01 / D-1006-04 / D-1006-05 / D-1006-07 / D-1106-01 和 leads skill（answers.md）：
 押金前一个字不提税和付款方式；锁日期 = 留卡不收钱、48h/$99；没有 4% 手续费、
 没有 all-inclusive、没有 cash discount、没有 "no fees"；$19.90 押金和 72 小时退款
-是 10-05 之前的世界。每条规则有自己的范围（哪些文件是对客面）和放行条件
-（v1 分支、注释、历史说明）。命中不等于一定错，但每一条都要有人看过。
+是 10-05 之前的世界；鸡肉是鸡胸 + 鸡腿，不写 chicken breast / breast only（11-06 起）。
+每条规则有自己的范围（哪些文件是对客面）和放行条件（v1 分支、注释、历史说明）。
+命中不等于一定错，但每一条都要有人看过。
 
 发票仓库按同级目录 ../v0-real-hibachi-invoice-generator 找；不存在就只扫本仓库。
 """
@@ -64,6 +65,7 @@ RULES = [
         "app/api/booking-request/route.ts", "components/admin/workbench/quote-tool.ts", "lib/workbench-settings-shared.ts",
         "config/faq.ts", "config/faq-es.ts", "config/city-pages.ts", "config/occasion-pages.ts", "config/blog-posts.ts", "lib/ai-facts.ts",
     ], []), re.compile(r"^\s*(//|#|/\*|\*)|seller|permit|税务|季报|CDTFA|restaurant|dine|eat out|dining|tip|gratuity", re.I), "定下来之前（报价/跟进/公开页）一个字不提税（D-1005-01 补充、D-1006-05）"),
+    ("chicken-breast", r"\bbreasts?\b|white[- ]meat|pechuga|no thigh", (CUSTOMER_MKT, CUSTOMER_INV), re.compile(r"breast and thigh|breast & thigh|pechuga y muslo", re.I), "鸡肉是鸡胸 + 鸡腿混着买（D-1106-01）：对客写 boneless, skinless chicken, breast and thigh，不说 chicken breast / breast only"),
     ("deposit-public", r"\bdeposit\b|\bdepósito\b", ([
         "config/blog-posts.ts", "config/faq.ts", "config/faq-es.ts", "config/city-pages.ts", "config/occasion-pages.ts",
         "app/page.tsx", "app/hibachi-at-home/**/*.tsx", "app/hibachi-catering/**/*.tsx", "app/party/**/*.tsx",

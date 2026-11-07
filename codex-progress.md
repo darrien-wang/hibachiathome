@@ -377,3 +377,29 @@ Verification completed:
 - `npm test`: 398 pass, 0 fail. `npm run lint:copy`: 0 hard-rule hits. Outputs: `npm-test-late.txt`, `lint-copy-late.txt`.
 - Local `pnpm build`: exit 0, homepage SSR 77528 bytes, h1 1, jsonld 4.
 - Deployed 23c8563f: `/_release/ready` named it after 65 s; `verify-live.sh` green. The live page with no `event_time` loads chunk `page-6e90fb92d49ac233.js` with the 21-entry list, and the select at 375x812 ends 8:30 PM, 9:00 PM, Not sure yet. Nothing picked or pressed on production. Output: `prod-after-deploy-late.txt`.
+
+## CHICKEN-BREAST-THIGH - Chicken reads "breast and thigh" everywhere a guest sees it (2026-11-06)
+
+Status: done.
+
+Why: D-1106-01 (owner, 2026-11-06): the chicken is now bought as a mix of breast and thigh, by price and supply, and may stay that way. The site still said breast only: the sourcing spec on /menu and all 50 city pages ("Boneless, skinless breast" / "Hatched, raised and harvested in the USA. Breast meat only — no thigh substitution."), the menu's Proteins tab ("Boneless breast"), the homepage ("boneless breast") and `config/menu-items.ts` ("Tender chicken breast"). The risk the decision names is saying one thing and serving another.
+
+What changed:
+- `config/sourcing.ts` Chicken: spec "Boneless, skinless chicken, breast and thigh", no note. "Breast meat only — no thigh substitution." is gone, and so is "Hatched, raised and harvested in the USA.": nothing confirms the thigh is US-raised, and the decision keeps that line only if the owner confirms it. `note` is optional now; `components/menu/menu-tabs.tsx` and `components/menu/sourcing-spec.tsx` skip the empty line, and the city page prints "Chicken: Boneless, skinless chicken, breast and thigh." The header comment records the rule.
+- `components/menu/menu-tabs.tsx` Proteins tab: "Boneless, skinless breast and thigh, house marinade".
+- `app/page.tsx` "Fresh off the griddle" (desktop): "... BAP-certified jumbo shrimp, boneless chicken breast and thigh — plus 8 oz fried rice ...".
+- `config/menu-items.ts` chicken: "Tender chicken, breast and thigh, marinated in our house marinade". No page renders the regular-protein descriptions today (no "Tender chicken" in the build), so this one is for consistency.
+- `.claude/skills/leads/answers.md`: a 鸡肉 line. Never "chicken breast" to a customer; asked, the answer is "Boneless, skinless chicken, breast and thigh."; no USA claim until the owner confirms.
+- `scripts/selftest/lint-copy.py`: hard rule `chicken-breast` over both repos' customer-facing files: any "breast" outside "breast and thigh", "white meat", "pechuga", "no thigh". It catches all four old strings.
+- No price, portion or other menu item changed. The Spanish pages only say "Pollo: 5 oz". llms.txt / `lib/ai-facts.ts`, both FAQs, the JSON-LD, the SMS/email templates and desk.py never named the cut.
+
+Invoice repo (party page /order, chef prep sheet): `git grep` on origin/main acad49f for breast / white meat / thigh / boneless / skinless / pechuga / 鸡胸 / 鸡腿 finds nothing; the planner, the chef sheet and the invoice just say "Chicken". No commit there. The mirror tests compare pricing constants and are untouched.
+
+Verification completed:
+- `npm test`: 400 pass, 0 fail. `npm run lint:copy`: 0 hard-rule hits. The same lint over this worktree plus a clean export of invoice origin/main: 0 hard hits, `chicken-breast` 0 in both (the soft 4% hits are the existing ones). Outputs: `harness/verification/2026-11-06-chicken-breast-thigh/npm-test.txt`, `lint-copy.txt`.
+- Local `pnpm build`: exit 0, homepage SSR 77546 bytes, h1 1, jsonld 4. Every "breast" in `.next/server/app` and `.next/static` reads "breast and thigh"; "Breast meat only" and "harvested in the USA" appear nowhere; all 50 city pages carry the new spec line. Output: `build-check.txt`.
+- Not a `harness/feature_list.json` item, so there is no status transition there.
+
+Noticed, not changed:
+- Chef-facing: `public/chef-handbook.html` §06 出品标准 still lists "Chicken 鸡胸" (its source, `RealHibachi厨师手册-v2.9.html`, sits outside the repo). The decision says chefs tell a guest it's a mix if asked.
+- Internal names stay as the task said: `lib/prep-bom.ts` 鸡胸盘, `lib/pantry.ts`, `lib/cooler-sheet.ts` 鸡胸肉 切块, the supplies/warehouse skills ("Chicken Breast", alias "ks chkn brst bnls"). A receipt line for thighs won't match those aliases on its own.
