@@ -1,0 +1,62 @@
+Production check after the deploy, read-only (GETs only, no tracking params), 2026-11-06 PT
+
+Pushed 20906f27..0e212fe9 to main at 07:05:41 UTC (23:05 PT). 0e212fe9 merges e71f1a6f with origin/main's two
+answers.md commits (47398ff4, 20906f27). The app's sync refused to write .claude/skills from the pinned origin, so the
+merge was built with git merge-tree --write-tree + commit-tree; merged tree vs origin/main = this change only,
+merged tree vs e71f1a6f = answers.md only. No test or lint reads answers.md.
+
+=== /_release/ready poll
+t+0s sha=20906f277c3e634d436f6a4ea3efb66bf0cb4b99
+t+11s sha=20906f277c3e634d436f6a4ea3efb66bf0cb4b99
+t+22s sha=20906f277c3e634d436f6a4ea3efb66bf0cb4b99
+t+32s sha=20906f277c3e634d436f6a4ea3efb66bf0cb4b99
+t+43s sha=20906f277c3e634d436f6a4ea3efb66bf0cb4b99
+t+54s sha=0e212fe9956f9ee6f872484442f9eb6f4b196bca
+LIVE after 54s
+"vercelEnv":"production"
+"vercelUrl":"realhibachi-marketing-d1hdu9i72-darrienwangs-projects.vercel.app"
+"gitCommitSha":"0e212fe9956f9ee6f872484442f9eb6f4b196bca"
+
+=== BEFORE (still 20906f27)
+=== /_release/ready  (2026-11-07T07:06:29Z)
+"vercelEnv":"production"
+"vercelUrl":"realhibachi-marketing-latkvwi7h-darrienwangs-projects.vercel.app"
+"gitCommitSha":"20906f277c3e634d436f6a4ea3efb66bf0cb4b99"
+=== /chef-handbook  200 text/html; charset=utf-8 final=https://www.realhibachi.com/chef-handbook?t=1794035188  180318 bytes
+-- chicken row:     <tr><td><b>Chicken</b> 鸡胸</td><td>无</td><td>无麸质</td></tr>
+-- version stamps:  版本 <b>v1.1</b>|更新 <b>2026-10-07</b>|厨师手册 · v1.1 · 2026-10-07|
+-- old row '<b>Chicken</b> 鸡胸</td>': 1   all '鸡胸': 1   'breast and thigh': 0   'v1.1': 2
+=== /chef-handbook.html  200 text/html; charset=utf-8 final=https://www.realhibachi.com/chef-handbook.html?t=1794035188  180318 bytes
+-- chicken row:     <tr><td><b>Chicken</b> 鸡胸</td><td>无</td><td>无麸质</td></tr>
+-- version stamps:  版本 <b>v1.1</b>|更新 <b>2026-10-07</b>|厨师手册 · v1.1 · 2026-10-07|
+-- old row '<b>Chicken</b> 鸡胸</td>': 1   all '鸡胸': 1   'breast and thigh': 0   'v1.1': 2
+
+=== AFTER
+=== /_release/ready  (2026-11-07T07:06:54Z)
+"vercelEnv":"production"
+"vercelUrl":"realhibachi-marketing-d1hdu9i72-darrienwangs-projects.vercel.app"
+"gitCommitSha":"0e212fe9956f9ee6f872484442f9eb6f4b196bca"
+=== /chef-handbook  200 text/html; charset=utf-8 final=https://www.realhibachi.com/chef-handbook?t=1794035214  180368 bytes
+-- chicken row:     <tr><td><b>Chicken</b> 鸡胸 + 鸡腿</td><td>无</td><td>无麸质；客人问部位就说 breast and thigh</td></tr>
+-- version stamps:  版本 <b>v1.2</b>|更新 <b>2026-11-06</b>|厨师手册 · v1.2 · 2026-11-06|
+-- old row '<b>Chicken</b> 鸡胸</td>': 0   all '鸡胸': 1   'breast and thigh': 1   'v1.1': 0
+=== /chef-handbook.html  200 text/html; charset=utf-8 final=https://www.realhibachi.com/chef-handbook.html?t=1794035214  180368 bytes
+-- chicken row:     <tr><td><b>Chicken</b> 鸡胸 + 鸡腿</td><td>无</td><td>无麸质；客人问部位就说 breast and thigh</td></tr>
+-- version stamps:  版本 <b>v1.2</b>|更新 <b>2026-11-06</b>|厨师手册 · v1.2 · 2026-11-06|
+-- old row '<b>Chicken</b> 鸡胸</td>': 0   all '鸡胸': 1   'breast and thigh': 1   'v1.1': 0
+
+=== verify-live.sh
+=== 1. Homepage SSR ===
+size: 81491 | h1: 1 | jsonld: 4 | canonical: https://www.realhibachi.com
+=== 2. City pages (expect 200) ===
+san-diego: 200  irvine: 200  anaheim: 200  long-beach: 200  palm-springs: 200  
+=== 3. Redirects (expect 308) ===
+nyc-long-island: 308 -> https://www.realhibachi.com/locations/la-orange-county
+non-www:         308 -> https://www.realhibachi.com/menu
+=== 4. SEO endpoints ===
+llms.txt: 200 | sitemap <loc> count: 116
+
+=== Browser pane, https://www.realhibachi.com/chef-handbook#s6
+375x812: row 'Chicken 鸡胸 + 鸡腿 | 无 | 无麸质；客人问部位就说 breast and thigh'; the name sits on one line; page scrollWidth 375 = viewport
+(the table scrolls inside its frame, as before). 768x1024: whole row visible; header stamp 版本 v1.2 / 更新 2026-11-06.
+No console errors. Nothing clicked. Screenshots: prod-375-handbook-proteins.jpg, prod-768-handbook-proteins.jpg.
