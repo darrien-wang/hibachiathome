@@ -104,7 +104,7 @@
 - **问桌椅**：照价答（D-1029-02）。桌椅让步只在客人比价或说超预算时考虑，最多周五–日半价、周一–四免费，节假日不给，见 SKILL §5.6；以前答应过的照给。
 - **桌椅只随派对租，不单租**；每天同价（周中不免费）。
 - **桌椅只有"要"或"不要"**（老板 11-06，D-1106-03）：锁单前问清要不要、要几位，写进订单，师傅照单带。不答应"先带着备用、现场看够不够、用多少收多少"，也不让客人到现场再决定，因为带东西要成本，师傅也要花时间。客人说"不知道够不够"，就请他按最多的人数订；或者告诉他人数和桌数到前一天都能改：`Could you let me know if you'd like our tables and chairs, and for how many? Your chef brings exactly what's on the order, and you can change it up to the day before.` 起因：Esme 11/6 约定"先用你们的、不够再用我们的、备到 16 人"，现场师傅没带，一半客人没桌子，老板给了 $100 off。
-- **只要椅子**（老板 11-01）：客人自己有桌子桌布，椅子 $5/人，也只随派对租：`Yes, we can do chairs only at $5 a guest, so $130 for 26.` 进订单：`--add-extra tables_chairs=26 --add-promo chairs_only=130 --promo-label "Chairs only rate"`，订单备注写清只带椅子、不带桌子，备料单和发票都看一眼。
+- **只要椅子 / 只要桌子**（椅子老板 11-01 定，桌子 11-06 定）：客人自己有桌子桌布的，椅子 $5 一把；自己有椅子的，6 英尺桌 $10 一张，不带桌布（要布另算，黑 $5、白 $8）。也只随派对租。`Yes, we can do chairs only at $5 each, so $130 for 26.` 进订单按件记：`--add-extra folding_chairs=26`，桌子 `folding_tables=N`。不要再用 `tables_chairs` 加 `chairs_only` 让价去凑，那样备料单会按套餐配出桌子和桌布：Lawrence 11/7 的单就成了 7 桌 7 布 28 椅（D-1106-03）。
 
 ## 档期、范围
 
