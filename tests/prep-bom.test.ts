@@ -131,8 +131,9 @@ test("chef pay · the table money counts the party line too, and pieces go by th
   // Rows and the line add up, as the bill does.
   const rows = Array.from({ length: 10 }, (_, i) => ({ proteins: ["steak"], tablesChairs: i < 8 }))
   assert.equal(setupCountsOf({ mode: "detailed", adultCount: 10, childCount: 0, guests: rows, partyExtras: [{ id: "tables_chairs", qty: 2 }] } as never).tcPersons, 10)
-  // Lawrence's 30 chairs on their own, and 2 bare tables: $1 a chair, $3 a table (placeholder).
+  // Lawrence's 30 chairs on their own, and 2 bare tables: $2 a chair, nothing for a table (owner 11-06).
   const pieces = setupCountsOf({ mode: "quick", adultCount: 28, childCount: 0, partyExtras: [{ id: "folding_chairs", qty: 30 }, { id: "folding_tables", qty: 2 }] } as never)
   assert.deepEqual([pieces.tcPersons, pieces.chairsOnly, pieces.bareTables], [0, 30, 2])
-  assert.equal(tableChairCents(0, { chairs: pieces.chairsOnly, tables: pieces.bareTables }), 3000 + 600)
+  assert.equal(tableChairCents(0, { chairs: pieces.chairsOnly, tables: pieces.bareTables }), 6000)
+  assert.equal(tableChairCents(0, { tables: 4 }), 0)
 })

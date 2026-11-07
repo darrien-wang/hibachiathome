@@ -66,10 +66,10 @@ export const KID_HEAD_FACTOR = 0.5
 export const TABLE_CHAIR_PER_HEAD_CENTS = 400
 /**
  * 单租的椅子、桌子（订单上的 folding_chairs / folding_tables，2026-11-06 D-1106-03）按件给：
- * 椅子 $1 一把、桌子 $3 一张。老板还没定，这是建议数，定了改这里。套餐的 $4 一位照旧。
+ * 椅子 $2 一把，桌子不给（老板 11-06：「椅子2 桌子没有工钱」）。套餐的 $4 一位照旧。
  */
-export const CHAIR_ONLY_CENTS = 100
-export const TABLE_ONLY_CENTS = 300
+export const CHAIR_ONLY_CENTS = 200
+export const TABLE_ONLY_CENTS = 0
 /**
  * 食材加工费（老板 2026-10-13）：这单的料是后勤（张阿姨）备的，师傅就不用自己切菜备料，
  * 结算时从师傅这场里扣——每个成人 $1。小孩不扣。几位师傅同场按人平分。

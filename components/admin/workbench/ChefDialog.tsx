@@ -30,15 +30,18 @@ const TABS: Array<[ChefTabKey, string]> = [
   ["files", "文件"],
 ]
 
-/** 这场的桌椅钱怎么算的：套餐按人头，单租的椅子、桌子按件（D-1106-03）。 */
+/** 这场的桌椅钱怎么算的：套餐按人头，单租的椅子按件，单租的桌子不给工钱（D-1106-03）。 */
 function tablePayLabel(s: ShiftRow): string {
   const p = s.setupPieces ?? { chairs: 0, tables: 0 }
-  const parts = [
+  // 订单上一件都没有（老板扳成"带了"）：服务端按全场人头算套餐。
+  if (!s.tableHeads && !p.chairs && !p.tables) return `桌椅 ${s.guests} 人 × $${TABLE_CHAIR_PER_HEAD_CENTS / 100}`
+  return [
     s.tableHeads > 0 ? `桌椅 ${s.tableHeads} 人 × $${TABLE_CHAIR_PER_HEAD_CENTS / 100}` : "",
     p.chairs > 0 ? `单租椅子 ${p.chairs} 把 × $${CHAIR_ONLY_CENTS / 100}` : "",
-    p.tables > 0 ? `单租桌子 ${p.tables} 张 × $${TABLE_ONLY_CENTS / 100}` : "",
-  ].filter(Boolean)
-  return parts.join(" + ") || `桌椅 ${s.guests} 人 × $${TABLE_CHAIR_PER_HEAD_CENTS / 100}`
+    p.tables > 0 ? `单租桌子 ${p.tables} 张${TABLE_ONLY_CENTS ? ` × $${TABLE_ONLY_CENTS / 100}` : "（不给工钱）"}` : "",
+  ]
+    .filter(Boolean)
+    .join(" + ")
 }
 
 function fileToBase64(file: File): Promise<string> {

@@ -90,8 +90,8 @@ CLOTH_LABELS = {"white_linen": "tablecloths", "white_tablecloth": "white tablecl
 # Chairs and 6-ft tables rented on their own, by the piece (owner 2026-11-06, D-1106-03:
 # yes or no, and the chef brings what the order says). A party on its own tables rents
 # chairs only: RH-20261029-8929 had 30. Bare tables bring no cloth (a cloth line does).
-# Placeholder prices until the owner sets them: invoice CHAIR_ONLY_PRICE / TABLE_ONLY_PRICE.
-PIECE_PRICES = {"folding_chairs": 5.0, "folding_tables": 15.0}  # invoice lib/pricing.ts PARTY_EXTRAS
+# Owner's prices (11-06): $5 a chair, $10 a table - invoice CHAIR_ONLY_PRICE / TABLE_ONLY_PRICE.
+PIECE_PRICES = {"folding_chairs": 5.0, "folding_tables": 10.0}  # invoice lib/pricing.ts PARTY_EXTRAS
 PIECE_LABELS = {"folding_chairs": "chairs on their own", "folding_tables": "6-ft tables on their own (no cloth)"}
 RICE_ADDIN_PRICES = {"diy_rice_chicken": 10.0, "diy_rice_shrimp": 10.0}  # same list; one order is enough for about 10 guests (owner 2026-11-01)
 ADULT_PRICE, CHILD_PRICE = 59.90, 29.90  # invoice ADULT_BASE_PRICE / CHILD_BASE_PRICE, what a deal's rate is cut from

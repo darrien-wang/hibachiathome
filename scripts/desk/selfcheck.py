@@ -687,7 +687,7 @@ def main() -> int:
     # Chairs and tables by the piece (D-1106-03): a party on its own tables rents chairs only.
     r = Run(quick_8_2, "--add-extra", "folding_chairs=30", "folding_tables=2", "--dry")
     check("--add-extra folding_chairs=30 folding_tables=2: thirty chairs and two bare tables, by count",
-          r.exit is None and r.has("chairs on their own: 0 -> 30 at $5.00 each", "6-ft tables on their own (no cloth): 0 -> 2 at $15.00 each"), r)
+          r.exit is None and r.has("chairs on their own: 0 -> 30 at $5.00 each", "6-ft tables on their own (no cloth): 0 -> 2 at $10.00 each"), r)
     r = Run(invoice(mode="detailed", adults=5, guests=rows(5)), "--headcount", "6/0", "--dry")
     check("--headcount refuses an order with guest rows", "guest rows" in str(r.exit), r)
     r = Run(invoice(mode="detailed", adults=5), "--headcount", "6/0")
