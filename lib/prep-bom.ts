@@ -190,6 +190,33 @@ export type OrderPrep = {
 
 const r1 = (n: number) => Math.round(n * 10) / 10
 
+/**
+ * 一张订单租了哪些桌椅餐具。装车单、师傅的桌椅钱、客人确认页都用这一个数。
+ *   tcPersons / utPersons —— 套餐（tables_chairs / utensils）的人头：有 guests 行就数勾了的
+ *     客人，再加 partyExtras 里的整桌行。没有行时，整桌行就是全部；有行时，整桌行只装行
+ *     装不下的，比如吃饭客人以外的椅子。镜像发票 setupUnitsOf。
+ *   chairsOnly / bareTables —— 单租的椅子、桌子（folding_chairs / folding_tables），按件数，
+ *     不从人头推（老板 2026-11-06 D-1106-03「只能要或者不要」）。单租的桌子不带桌布。
+ *   linen / whiteCloths —— 单租的桌布（客人自己的桌子用）：黑的 $5、白的 $8，按条。
+ */
+export type SetupCounts = { tcPersons: number; utPersons: number; chairsOnly: number; bareTables: number; linen: number; whiteCloths: number }
+
+export function setupCountsOf(inv: InvoiceLite | null | undefined): SetupCounts {
+  const data = inv ?? {}
+  const extras = Array.isArray(data.partyExtras) ? data.partyExtras : []
+  const lineOf = (id: string) => extras.reduce((sum, e) => (e.id === id ? sum + Math.max(0, e.qty ?? 0) : sum), 0)
+  let tcPersons = lineOf("tables_chairs")
+  let utPersons = lineOf("utensils")
+  const guests = Array.isArray(data.guests) ? data.guests : []
+  if (data.mode === "detailed" && guests.length) {
+    for (const g of guests as Array<GuestRow & { tablesChairs?: boolean; utensils?: boolean }>) {
+      if (g.tablesChairs) tcPersons++
+      if (g.utensils) utPersons++
+    }
+  }
+  return { tcPersons, utPersons, chairsOnly: lineOf("folding_chairs"), bareTables: lineOf("folding_tables"), linen: lineOf("white_linen"), whiteCloths: lineOf("white_tablecloth") }
+}
+
 /** 一张订单 → 用料行。人数以发票为准，发票没有就用订单行上的人数兜底。 */
 export function orderPrep(
   inv: InvoiceLite | null | undefined,
@@ -320,15 +347,12 @@ export function orderPrep(
   // 桌椅餐具：装车清单。有 guests 行就数勾了的客人，再加 partyExtras 里的整桌行：没有行时
   // 整桌行就是全部；有行时它只装行装不下的——吃饭客人以外的椅子（RH-20261029-8929：28 位
   // 吃饭 + 2 位不吃，30 把椅子，客人自己有桌子）。镜像发票 setupUnitsOf，2026-11-06 同天改。
-  const lineOf = (id: string) => extras.reduce((sum, e) => (e.id === id ? sum + Math.max(0, e.qty ?? 0) : sum), 0)
-  let tcPersons = lineOf("tables_chairs")
-  let utPersons = lineOf("utensils")
-  if (data.mode === "detailed" && guests.length) {
-    for (const g of guests as Array<GuestRow & { tablesChairs?: boolean; utensils?: boolean }>) {
-      if (g.tablesChairs) tcPersons++
-      if (g.utensils) utPersons++
-    }
-  }
+  // 单租的椅子、桌子（folding_chairs / folding_tables，老板 2026-11-06 D-1106-03「只能要
+  // 或者不要」）：按件数，不从人头推。Lawrence 自己有桌子、只租 30 把椅子，套餐只能写
+  // "28 位带桌椅"，装车单就成了 7 桌 7 布 28 椅。单租的桌子不带桌布，要布另有布的行。
+  // 镜像发票 calcBom（同天改）。
+  const { tcPersons, utPersons, chairsOnly, bareTables, linen, whiteCloths } = setupCountsOf(data)
+  const chairs = tcPersons + chairsOnly
   if (tcPersons > 0) {
     const tables = Math.ceil(tcPersons / GUESTS_PER_TABLE)
     const clothName = setup ? (TABLECLOTHS.find((c) => c.id === setup.cloth)?.name ?? "") : ""
@@ -339,15 +363,14 @@ export function orderPrep(
       unit: "张",
       group: "setup",
     })
-    items.push({ id: "chairs", label: "椅子", qty: tcPersons, unit: "把", group: "setup" })
   }
+  if (bareTables > 0) items.push({ id: "tables_bare", label: "桌子（单租，不带桌布）", qty: bareTables, unit: "张", group: "setup" })
+  if (chairs > 0) items.push({ id: "chairs", label: "椅子", qty: chairs, unit: "把", group: "setup" })
   // 单租的桌布（客人自己的桌子用）：租桌椅送黑桌布，不租桌椅桌布才收钱，两码事
   //（老板 2026-11-03），所以这些在租的桌子自带的那张之外另算。white_linen 黑的一张
   // $5（11-03 以前的单颜色看订单备注）；white_tablecloth 白的一张 $8，从白桌布那批
   // 里拿。镜像发票仓库 calcBom（2026-11-03 同天改：RH-20261020-4480 的 5 张桌布在
   // 发票上，装车单上没有）。
-  const linen = extras.find((e) => e.id === "white_linen")?.qty ?? 0
-  const whiteCloths = extras.find((e) => e.id === "white_tablecloth")?.qty ?? 0
   if (linen > 0) items.push({ id: "tablecloths", label: "桌布（客人自己的桌子）", qty: linen, unit: "条", group: "setup" })
   if (whiteCloths > 0) items.push({ id: "white_tablecloths", label: "白桌布（客人自己的桌子）", qty: whiteCloths, unit: "条", group: "setup" })
   if (utPersons > 0) {

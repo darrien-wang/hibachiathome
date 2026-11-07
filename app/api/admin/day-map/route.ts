@@ -169,7 +169,7 @@ export async function GET(request: NextRequest) {
       // 手工定位过的不算。
       approx: !!geo && (!!geo.approx || (streetless(addr) && !geo.label.includes("手工定位"))),
       // 和备料单同一个判定：算出来要装桌子或椅子的就是有桌椅。
-      tables: orderPrep(r.invoice_data ?? null, r.created_at ?? null, r.guest_adult_count ?? 0, r.guest_child_count ?? 0, r.setup_selection ?? null).items.some((i) => i.id === "tables" || i.id === "chairs"),
+      tables: orderPrep(r.invoice_data ?? null, r.created_at ?? null, r.guest_adult_count ?? 0, r.guest_child_count ?? 0, r.setup_selection ?? null).items.some((i) => i.id === "tables" || i.id === "tables_bare" || i.id === "chairs"),
       plan: (() => {
         const p = planForOrder({ invoice_data: r.invoice_data ?? null, guest_adult_count: r.guest_adult_count, guest_child_count: r.guest_child_count, event_start: r.event_start, dispatch_plan: r.dispatch_plan ?? null })
         return { chefs: p.chefs, grills: p.grills, source: p.source }

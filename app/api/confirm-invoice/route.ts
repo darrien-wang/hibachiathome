@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
-import { orderPrep } from "@/lib/prep-bom"
+import { orderPrep, setupCountsOf } from "@/lib/prep-bom"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -40,13 +40,13 @@ function summarize(o: OrderRow) {
   const prep = orderPrep(inv, o.created_at, o.guest_adult_count ?? 0, o.guest_child_count ?? 0, null)
   const guests = Array.isArray(inv.guests) ? (inv.guests as Array<Record<string, unknown>>) : []
   const littles = guests.filter((g) => g.isChild === true && g.isLittle === true).length
+  // 桌椅餐具和装车单同一个数（setupCountsOf）：客人行勾的 + 整桌行的，单租的椅子、桌子、
+  // 桌布按件。客人在这里确认的就是师傅照着带的（D-1106-03）。
+  const setup = setupCountsOf(inv)
   const tableHeads =
-    guests.length > 0
-      ? guests.filter((g) => g.tablesChairs === true).length
-      : Array.isArray(inv.partyWideAddons) && (inv.partyWideAddons as unknown[]).includes("tables_chairs")
-        ? prep.adults + prep.kids
-        : 0
-  const utensilHeads = guests.length > 0 ? guests.filter((g) => g.utensils === true).length : 0
+    setup.tcPersons ||
+    (Array.isArray(inv.partyWideAddons) && (inv.partyWideAddons as unknown[]).includes("tables_chairs") ? prep.adults + prep.kids : 0)
+  const utensilHeads = setup.utPersons
   const allergies = guests
     .map((g) => String(g.foodAllergy ?? "").trim())
     .filter(Boolean)
@@ -66,6 +66,10 @@ function summarize(o: OrderRow) {
     menuKnown: prep.menuKnown,
     proteins: prep.proteinServings.map((p) => ({ label: p.label.split(" ")[0], servings: p.servings })),
     tableHeads,
+    chairsOnly: setup.chairsOnly,
+    bareTables: setup.bareTables,
+    blackCloths: setup.linen,
+    whiteCloths: setup.whiteCloths,
     utensilHeads,
     allergies,
     totalCents: o.quoted_total_cents ?? null,

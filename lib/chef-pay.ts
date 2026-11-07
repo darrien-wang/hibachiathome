@@ -65,6 +65,12 @@ export const KID_HEAD_FACTOR = 0.5
 /** 派对带桌椅时付给师傅：$4 × 带桌椅的人头（大人小孩全算）。 */
 export const TABLE_CHAIR_PER_HEAD_CENTS = 400
 /**
+ * 单租的椅子、桌子（订单上的 folding_chairs / folding_tables，2026-11-06 D-1106-03）按件给：
+ * 椅子 $1 一把、桌子 $3 一张。老板还没定，这是建议数，定了改这里。套餐的 $4 一位照旧。
+ */
+export const CHAIR_ONLY_CENTS = 100
+export const TABLE_ONLY_CENTS = 300
+/**
  * 食材加工费（老板 2026-10-13）：这单的料是后勤（张阿姨）备的，师傅就不用自己切菜备料，
  * 结算时从师傅这场里扣——每个成人 $1。小孩不扣。几位师傅同场按人平分。
  */
@@ -125,8 +131,9 @@ export function chefPayCentsFrac(rate: ChefRate, heads: number): number {
   return Math.round(Math.max(0, rate.base_pay_cents) + extra * Math.max(0, rate.per_head_cents))
 }
 
-export function tableChairCents(tableHeads: number): number {
-  return Math.max(0, Math.round(tableHeads)) * TABLE_CHAIR_PER_HEAD_CENTS
+export function tableChairCents(tableHeads: number, pieces: { chairs?: number; tables?: number } = {}): number {
+  const n = (v: number | undefined) => Math.max(0, Math.round(v ?? 0))
+  return n(tableHeads) * TABLE_CHAIR_PER_HEAD_CENTS + n(pieces.chairs) * CHAIR_ONLY_CENTS + n(pieces.tables) * TABLE_ONLY_CENTS
 }
 
 export function travelCompCents(distanceMiles: number | null | undefined): number {

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { BUY_UNITS, aggregatePrep, orderPrep } from "../lib/prep-bom"
+import { BUY_UNITS, aggregatePrep, orderPrep, setupCountsOf } from "../lib/prep-bom"
+import { tableChairCents } from "../lib/chef-pay"
 
 // A party where everyone has steak: `adults` adult servings, `kids` kid servings.
 const steakLine = (adults: number, kids = 0) => {
@@ -90,4 +91,48 @@ test("prep · white cloths on their own ($8 from 2026-11-03) are a row of their 
     ["tablecloths", 2, "条"],
     ["white_tablecloths", 4, "条"],
   ])
+})
+
+// Chairs and tables rented by the piece (owner 2026-11-06, D-1106-03: yes or no, and the chef
+// brings what the order says). Lawrence (RH-20261029-8929) had his own tables and rented 30
+// chairs; the package could only say "28 guests with tables & chairs", so the load list read
+// 7 tables, 7 cloths and 28 chairs. Mirrors the invoice's calcBom (tests/setup-pieces.test.ts there).
+test("prep · chairs on their own load as chairs only: no tables, no cloths", () => {
+  const guests = Array.from({ length: 28 }, () => ({ proteins: ["steak", "shrimp"] }))
+  assert.deepEqual(setupRows({ mode: "detailed", adultCount: 28, childCount: 0, guests, partyExtras: [{ id: "folding_chairs", qty: 30 }] }), [["chairs", 30, "把"]])
+})
+
+test("prep · tables on their own come bare: a row of their own, and a cloth only when a cloth line is on the order", () => {
+  assert.deepEqual(setupRows({ mode: "quick", adultCount: 16, childCount: 0, partyExtras: [{ id: "folding_tables", qty: 4 }] }), [["tables_bare", 4, "张"]])
+  assert.deepEqual(setupRows({ mode: "quick", adultCount: 16, childCount: 0, partyExtras: [{ id: "folding_tables", qty: 4 }, { id: "white_linen", qty: 4 }] }), [
+    ["tables_bare", 4, "张"],
+    ["tablecloths", 4, "条"],
+  ])
+})
+
+test("prep · pieces add to the package: 18 guests with tables & chairs, plus 2 chairs or 1 table", () => {
+  assert.deepEqual(setupRows({ mode: "quick", adultCount: 18, childCount: 0, partyExtras: [{ id: "tables_chairs", qty: 18 }, { id: "folding_chairs", qty: 2 }] }), [
+    ["tables", 5, "张"],
+    ["chairs", 20, "把"],
+  ])
+  assert.deepEqual(setupRows({ mode: "quick", adultCount: 18, childCount: 0, partyExtras: [{ id: "tables_chairs", qty: 18 }, { id: "folding_tables", qty: 1 }] }), [
+    ["tables", 5, "张"],
+    ["tables_bare", 1, "张"],
+    ["chairs", 18, "把"],
+  ])
+})
+
+test("chef pay · the table money counts the party line too, and pieces go by the piece", () => {
+  // Yasmin (RH-20261016-2338, 11-06): tables & chairs for 16 on the party line, no rows. Before
+  // 2026-11-06 the ledger counted only rows, so Gary's tables came to $0.
+  const yasmin = setupCountsOf({ mode: "quick", adultCount: 16, childCount: 0, partyExtras: [{ id: "tables_chairs", qty: 16 }] } as never)
+  assert.equal(yasmin.tcPersons, 16)
+  assert.equal(tableChairCents(yasmin.tcPersons), 6400)
+  // Rows and the line add up, as the bill does.
+  const rows = Array.from({ length: 10 }, (_, i) => ({ proteins: ["steak"], tablesChairs: i < 8 }))
+  assert.equal(setupCountsOf({ mode: "detailed", adultCount: 10, childCount: 0, guests: rows, partyExtras: [{ id: "tables_chairs", qty: 2 }] } as never).tcPersons, 10)
+  // Lawrence's 30 chairs on their own, and 2 bare tables: $1 a chair, $3 a table (placeholder).
+  const pieces = setupCountsOf({ mode: "quick", adultCount: 28, childCount: 0, partyExtras: [{ id: "folding_chairs", qty: 30 }, { id: "folding_tables", qty: 2 }] } as never)
+  assert.deepEqual([pieces.tcPersons, pieces.chairsOnly, pieces.bareTables], [0, 30, 2])
+  assert.equal(tableChairCents(0, { chairs: pieces.chairsOnly, tables: pieces.bareTables }), 3000 + 600)
 })

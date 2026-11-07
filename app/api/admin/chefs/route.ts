@@ -1,9 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { can, resolveAdminActor, type AdminActor } from "@/lib/admin-auth"
-import { chefPayCents, chefPayCentsFrac, docState, payableHeads, tableChairCents, taxMissing, travelCompCents, CARD_FEE_RATE, KID_HEAD_FACTOR, TABLE_CHAIR_PER_HEAD_CENTS, TRAVEL_FREE_MILES, TRAVEL_BASE_CENTS, TRAVEL_PER_MILE_CENTS, REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS, PREP_FEE_PER_ADULT_CENTS, applyChefPayRule, describeChefPayRule, normalizeChefPayRule, type ChefPayRule, type ChefRate, type HeadCounts } from "@/lib/chef-pay"
+import { chefPayCents, chefPayCentsFrac, docState, payableHeads, tableChairCents, taxMissing, travelCompCents, CARD_FEE_RATE, CHAIR_ONLY_CENTS, KID_HEAD_FACTOR, TABLE_CHAIR_PER_HEAD_CENTS, TABLE_ONLY_CENTS, TRAVEL_FREE_MILES, TRAVEL_BASE_CENTS, TRAVEL_PER_MILE_CENTS, REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS, PREP_FEE_PER_ADULT_CENTS, applyChefPayRule, describeChefPayRule, normalizeChefPayRule, type ChefPayRule, type ChefRate, type HeadCounts } from "@/lib/chef-pay"
 import { randomBytes } from "node:crypto"
 import { partyHeadCounts } from "@/lib/party-heads"
+import { setupCountsOf, type InvoiceLite } from "@/lib/prep-bom"
 import { logisticsLedgerRows, sumCents, sumHeads, type LogisticsOrder } from "@/lib/logistics-pay"
 import { registerFinalPayment } from "@/lib/final-payment"
 import { assetLabel } from "@/lib/staff-assets"
@@ -299,28 +300,31 @@ async function loadLogistics(supabase: NonNullable<ReturnType<typeof createServe
  * 一场派对的计钱要素，全部来自发票（和发票工具同一套判定）：
  *   大人/收费小孩/免费小孩 —— detailed 按 guests 行数；免费小孩以 under5 促销
  *   行为准（它才是"这个孩子没收钱"的账面记录），quick 模式同理。
- *   桌椅人头 —— detailed 数勾了 tablesChairs 的客人；quick 看 partyWideAddons。
+ *   桌椅人头 —— 和装车单同一个数（lib/prep-bom.ts setupCountsOf）：勾了 tablesChairs 的
+ *            客人 + 整桌的 tables_chairs 行；老单写在 partyWideAddons 里的算全场。
+ *            2026-11-06 以前不数整桌行，快速模式、还没有名单的单师傅的桌椅钱是 $0
+ *           （Yasmin 11-06 16 位，Gary；Matthew Katz 10-24 是老板手动改成 $60 的）。
+ *   单租的椅子、桌子 —— folding_chairs / folding_tables 的件数（D-1106-03），按件给。
  *   里程 —— 发票 travelFee.distanceMiles（客户免不免路费不影响给师傅补）。
  *            2026-10-04 起这只是后备：师傅的里程按地址实量（lib/chef-drive-miles.ts），
  *            发票上客人路费手填时这个数是空的或被改过。
  */
-function partyComp(o: OrderLite): { counts: HeadCounts; tableHeads: number; miles: number | null } {
+function partyComp(o: OrderLite): { counts: HeadCounts; tableHeads: number; pieces: { chairs: number; tables: number }; miles: number | null } {
   const inv = (o.invoice_data ?? {}) as Record<string, unknown>
-  const guests = Array.isArray(inv.guests) ? (inv.guests as Array<Record<string, unknown>>) : []
   // 人头的数法在 lib/party-heads.ts：结算、日历月份小结、看板每月服务人数同一口径。
   const { adults, kids, littles } = partyHeadCounts(o)
-  let tableHeads: number
-  if (inv.mode === "detailed" && guests.length) {
-    tableHeads = guests.filter((g) => g.tablesChairs === true).length
-  } else {
+  const setup = setupCountsOf(inv as InvoiceLite)
+  let tableHeads = setup.tcPersons
+  if (!tableHeads) {
     const child = Number(inv.childCount ?? o.guest_child_count ?? 0) || 0
     const pwa = Array.isArray(inv.partyWideAddons) ? (inv.partyWideAddons as unknown[]) : []
-    tableHeads = pwa.includes("tables_chairs") ? adults + child : 0
+    if (pwa.includes("tables_chairs")) tableHeads = adults + child
   }
+  const pieces = { chairs: setup.chairsOnly, tables: setup.bareTables }
   const tf = (inv.travelFee ?? null) as Record<string, unknown> | null
   // distanceMiles 没填就是没填（null 别折成 0）：路费显示 "?" 提醒补里程，而不是假装 $0。
   const miles = tf && tf.distanceMiles != null && Number.isFinite(Number(tf.distanceMiles)) ? Number(tf.distanceMiles) : null
-  return { counts: { adults, kids, littles }, tableHeads, miles }
+  return { counts: { adults, kids, littles }, tableHeads, pieces, miles }
 }
 
 /** One chef's shift on one order, with the pay/cash/settlement the ledger needs. */
@@ -334,11 +338,14 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
   const comp = partyComp(o)
   // 特殊规则（发票按大人备料、工钱按小孩算）只改计钱的人头，不改发票。
   const counts = applyChefPayRule(comp.counts, o.chef_pay_rule)
-  const hasTables = a.has_tables_override ?? comp.tableHeads > 0
-  const tableHeads = hasTables ? (comp.tableHeads > 0 ? comp.tableHeads : guests) : 0
+  const onOrder = comp.tableHeads > 0 || comp.pieces.chairs > 0 || comp.pieces.tables > 0
+  const hasTables = a.has_tables_override ?? onOrder
+  // 订单上一件桌椅都没有、老板扳成"带了"：按全场人头算套餐。
+  const tableHeads = hasTables ? (onOrder ? comp.tableHeads : guests) : 0
+  const setupPieces = hasTables ? comp.pieces : { chairs: 0, tables: 0 }
   const heads = payableHeads(counts) / n
   const pay = a.pay_cents ?? (s ? chefPayCentsFrac(rateOf(s), heads) : 0)
-  const tables = a.tables_cents ?? Math.round(tableChairCents(tableHeads) / n)
+  const tables = a.tables_cents ?? Math.round(tableChairCents(tableHeads, setupPieces) / n)
   // 食材加工费：后勤备的料，每个成人 $1（按发票上的大人数，不受特殊人头规则影响），同场平分。
   const prepFee = a.prep_fee_cents ?? (o.logi_prepped ? Math.round((comp.counts.adults * PREP_FEE_PER_ADULT_CENTS) / n) : 0)
   // 发票里程和按地址实量，取大的（老板 2026-10-23）：发票量少了师傅就吃亏——
@@ -369,6 +376,7 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
     counts,
     chefRule: o.chef_pay_rule ? { ...o.chef_pay_rule, label: describeChefPayRule(o.chef_pay_rule) } : null,
     tableHeads,
+    setupPieces,
     hasTables,
     miles,
     milesSource,
@@ -1118,7 +1126,7 @@ export async function POST(request: NextRequest) {
           period: { start: dates[0] ?? today, end: dates[dates.length - 1] ?? today },
           generatedAt: now,
           rate: rate ? { baseCents: rate.base_pay_cents, headFrom: rate.head_from, perHeadCents: rate.per_head_cents } : null,
-          rules: { kidFactor: KID_HEAD_FACTOR, tablePerHeadCents: TABLE_CHAIR_PER_HEAD_CENTS, travelFreeMiles: TRAVEL_FREE_MILES, travelBaseCents: TRAVEL_BASE_CENTS, travelPerMileCents: TRAVEL_PER_MILE_CENTS, reviewPlainCents: REVIEW_PLAIN_CENTS, reviewPhotoCents: REVIEW_PHOTO_CENTS },
+          rules: { kidFactor: KID_HEAD_FACTOR, tablePerHeadCents: TABLE_CHAIR_PER_HEAD_CENTS, chairOnlyCents: CHAIR_ONLY_CENTS, tableOnlyCents: TABLE_ONLY_CENTS, travelFreeMiles: TRAVEL_FREE_MILES, travelBaseCents: TRAVEL_BASE_CENTS, travelPerMileCents: TRAVEL_PER_MILE_CENTS, reviewPlainCents: REVIEW_PLAIN_CENTS, reviewPhotoCents: REVIEW_PHOTO_CENTS },
           parties: picked
             .sort((x, y) => (x.date || "").localeCompare(y.date || ""))
             .map((x) => ({
@@ -1134,6 +1142,7 @@ export async function POST(request: NextRequest) {
               payPrepaid: !!x.paySettledAt,
               miles: x.miles,
               tableHeads: x.tableHeads,
+              ...(x.setupPieces.chairs || x.setupPieces.tables ? { setupPieces: x.setupPieces } : {}),
               payCents: payOf(x),
               tablesCents: x.method ? x.tablesCents : 0,
               travelCents: x.method ? x.travelCents : 0,
@@ -1188,7 +1197,7 @@ export async function POST(request: NextRequest) {
               tables_cents: x.tablesCents,
               travel_cents: x.travelCents,
               prep_fee_cents: x.prepFeeCents,
-              comp_breakdown: { counts: x.counts, tableHeads: x.tableHeads, miles: x.miles, ...(x.chefRule ? { chefRule: x.chefRule } : {}) },
+              comp_breakdown: { counts: x.counts, tableHeads: x.tableHeads, setupPieces: x.setupPieces, miles: x.miles, ...(x.chefRule ? { chefRule: x.chefRule } : {}) },
               pay_settled_at: x.paySettledAt ?? now,
               pay_settled_cents: x.paySettledAt ? x.paySettledCents : x.payCents,
               updated_at: now,
@@ -1393,7 +1402,7 @@ export async function POST(request: NextRequest) {
           period: { start: revs[0].review_date, end: revs[revs.length - 1].review_date },
           generatedAt: now,
           rate: null,
-          rules: { kidFactor: KID_HEAD_FACTOR, tablePerHeadCents: TABLE_CHAIR_PER_HEAD_CENTS, travelFreeMiles: TRAVEL_FREE_MILES, travelBaseCents: TRAVEL_BASE_CENTS, travelPerMileCents: TRAVEL_PER_MILE_CENTS, reviewPlainCents: REVIEW_PLAIN_CENTS, reviewPhotoCents: REVIEW_PHOTO_CENTS },
+          rules: { kidFactor: KID_HEAD_FACTOR, tablePerHeadCents: TABLE_CHAIR_PER_HEAD_CENTS, chairOnlyCents: CHAIR_ONLY_CENTS, tableOnlyCents: TABLE_ONLY_CENTS, travelFreeMiles: TRAVEL_FREE_MILES, travelBaseCents: TRAVEL_BASE_CENTS, travelPerMileCents: TRAVEL_PER_MILE_CENTS, reviewPlainCents: REVIEW_PLAIN_CENTS, reviewPhotoCents: REVIEW_PHOTO_CENTS },
           parties: [],
           reviews: revs.map((r) => ({ platform: r.platform, date: r.review_date, reviewer: r.reviewer, hasPhoto: r.has_photo, excerpt: r.excerpt, url: r.url ?? null, cents: r.cents })),
           reimb: { count: 0, cents: 0 },

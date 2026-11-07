@@ -49,7 +49,7 @@ _api._call = _no_network
 # desk's (checked against the TS export below); the site prices none since
 # 2026-11-05 (D-1105-01), and neither does fake_price.
 WEEKDAY_RATE = {"adult": 54.90, "child": 27.45}  # invoice WEEKDAY_SPECIAL: $5 / $2.45 off
-EXTRA_PRICES = {**desk.APPETIZER_PRICES, **desk.SETUP_PRICES, **desk.PROTEIN_SIDE_PRICES, **desk.CLOTH_PRICES}
+EXTRA_PRICES = {**desk.APPETIZER_PRICES, **desk.SETUP_PRICES, **desk.PROTEIN_SIDE_PRICES, **desk.CLOTH_PRICES, **desk.PIECE_PRICES}
 EXTRA_PROTEIN = 10.0  # invoice EXTRA_REGULAR_PROTEIN_PRICE
 
 
@@ -684,6 +684,10 @@ def main() -> int:
     r = Run(quick_8_2, "--add-extra", "white_linen=2", "white_tablecloth=5", "--dry")
     check("--add-extra white_linen=2 white_tablecloth=5: two cloths at $5, five white ones at $8",
           r.exit is None and r.has("tablecloths: 0 -> 2 at $5.00 each", "white tablecloths: 0 -> 5 at $8.00 each"), r)
+    # Chairs and tables by the piece (D-1106-03): a party on its own tables rents chairs only.
+    r = Run(quick_8_2, "--add-extra", "folding_chairs=30", "folding_tables=2", "--dry")
+    check("--add-extra folding_chairs=30 folding_tables=2: thirty chairs and two bare tables, by count",
+          r.exit is None and r.has("chairs on their own: 0 -> 30 at $5.00 each", "6-ft tables on their own (no cloth): 0 -> 2 at $15.00 each"), r)
     r = Run(invoice(mode="detailed", adults=5, guests=rows(5)), "--headcount", "6/0", "--dry")
     check("--headcount refuses an order with guest rows", "guest rows" in str(r.exit), r)
     r = Run(invoice(mode="detailed", adults=5), "--headcount", "6/0")

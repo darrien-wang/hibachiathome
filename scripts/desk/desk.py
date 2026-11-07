@@ -87,6 +87,12 @@ SETUP_LABELS = {"tables_chairs": "Tables & Chairs", "utensils": "Utensils & Tabl
 # white_linen is the $5 one, whatever its id says.
 CLOTH_PRICES = {"white_linen": 5.0, "white_tablecloth": 8.0}  # invoice lib/pricing.ts PARTY_EXTRAS
 CLOTH_LABELS = {"white_linen": "tablecloths", "white_tablecloth": "white tablecloths"}
+# Chairs and 6-ft tables rented on their own, by the piece (owner 2026-11-06, D-1106-03:
+# yes or no, and the chef brings what the order says). A party on its own tables rents
+# chairs only: RH-20261029-8929 had 30. Bare tables bring no cloth (a cloth line does).
+# Placeholder prices until the owner sets them: invoice CHAIR_ONLY_PRICE / TABLE_ONLY_PRICE.
+PIECE_PRICES = {"folding_chairs": 5.0, "folding_tables": 15.0}  # invoice lib/pricing.ts PARTY_EXTRAS
+PIECE_LABELS = {"folding_chairs": "chairs on their own", "folding_tables": "6-ft tables on their own (no cloth)"}
 RICE_ADDIN_PRICES = {"diy_rice_chicken": 10.0, "diy_rice_shrimp": 10.0}  # same list; one order is enough for about 10 guests (owner 2026-11-01)
 ADULT_PRICE, CHILD_PRICE = 59.90, 29.90  # invoice ADULT_BASE_PRICE / CHILD_BASE_PRICE, what a deal's rate is cut from
 WEEKDAY_ADULT_OFF, WEEKDAY_CHILD_OFF = 5.0, 2.45  # invoice WEEKDAY_SPECIAL adultOff / childOff, the official_weekday line's per-head part
@@ -2488,18 +2494,18 @@ def cmd_order(a):
             has_rows = data.get("mode") == "detailed" and bool(data.get("guests"))
             for pair in a.add_extra:
                 m = re.fullmatch(r"([a-z_]+)=(\d+)", pair)
-                if not m or m.group(1) not in {**APPETIZER_PRICES, **SETUP_PRICES, **PROTEIN_SIDE_PRICES, **CLOTH_PRICES, **RICE_ADDIN_PRICES}:
-                    raise SystemExit(f"--add-extra {pair!r}: use id=N with id in {sorted({**APPETIZER_PRICES, **SETUP_PRICES, **PROTEIN_SIDE_PRICES, **CLOTH_PRICES, **RICE_ADDIN_PRICES})}")
+                if not m or m.group(1) not in {**APPETIZER_PRICES, **SETUP_PRICES, **PROTEIN_SIDE_PRICES, **CLOTH_PRICES, **PIECE_PRICES, **RICE_ADDIN_PRICES}:
+                    raise SystemExit(f"--add-extra {pair!r}: use id=N with id in {sorted({**APPETIZER_PRICES, **SETUP_PRICES, **PROTEIN_SIDE_PRICES, **CLOTH_PRICES, **PIECE_PRICES, **RICE_ADDIN_PRICES})}")
                 app_id, n = m.group(1), int(m.group(2))
                 row = next((e for e in extras if e.get("id") == app_id), None)
-                if app_id in CLOTH_PRICES or app_id in RICE_ADDIN_PRICES:
+                if app_id in CLOTH_PRICES or app_id in PIECE_PRICES or app_id in RICE_ADDIN_PRICES:
                     was = int(row.get("qty") or 0) if row else 0
                     if row:
                         row["qty"] = n
                     else:
                         extras.append({"id": app_id, "qty": n})
-                    what = CLOTH_LABELS[app_id] if app_id in CLOTH_PRICES else f"fried rice add-in {app_id}"
-                    changes.append(f"{what}: {was} -> {n} at {money({**CLOTH_PRICES, **RICE_ADDIN_PRICES}[app_id])} each")
+                    what = {**CLOTH_LABELS, **PIECE_LABELS}.get(app_id) or f"fried rice add-in {app_id}"
+                    changes.append(f"{what}: {was} -> {n} at {money({**CLOTH_PRICES, **PIECE_PRICES, **RICE_ADDIN_PRICES}[app_id])} each")
                     continue
                 if app_id in SETUP_PRICES:
                     if has_rows:
@@ -3037,7 +3043,7 @@ def main(argv=None):
                         "+ the matching 'Tables & Chairs at $5/guest' line at the current count")
     p.add_argument("--drop-deal", action="store_true", help="remove the order's custom deal and its deal_* promotion lines")
     p.add_argument("--free-item", nargs="+", action="extend", metavar="ID=N", help="appetizer trays promised free: gyoza=2 adds 2 trays and a fixed 'FREE: Gyoza (10 pcs) x2' line")
-    p.add_argument("--add-extra", nargs="+", action="extend", metavar="ID=N", help="appetizer trays the customer buys (billed at menu price): gyoza=1; a setup item for N guests before the rows exist: utensils=18; or tablecloths for their own tables by count: white_linen=3 ($5, black), white_tablecloth=3 ($8, white)")
+    p.add_argument("--add-extra", nargs="+", action="extend", metavar="ID=N", help="appetizer trays the customer buys (billed at menu price): gyoza=1; a setup item for N guests before the rows exist: utensils=18; or tablecloths for their own tables by count: white_linen=3 ($5, black), white_tablecloth=3 ($8, white); or chairs / 6-ft tables on their own by count: folding_chairs=30, folding_tables=2 (bare, no cloth)")
     p.add_argument("--remove-promo", nargs="+", action="extend", metavar="ID", help="drop stored promotion lines by id")
     p.add_argument("--add-promo", metavar="ID=AMOUNT", help="add a promotion line, e.g. appreciation_teacher=50 (with --promo-label)")
     p.add_argument("--promo-label", help="label for --add-promo, as the customer reads it")

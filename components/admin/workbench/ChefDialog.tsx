@@ -8,7 +8,7 @@ import { addDays, copyText, dowZh, md, money, prettyPhone, ptToday, stamp } from
 import { APPRENTICE_ASSIST, APPRENTICE_WATCH, FILE_KIND_LABELS, FILE_STATUS_LABELS, METHOD_LABELS, METHOD_SHORT, shiftNet, weekStartOf, type AssetRow, type ChefDetail, type ChefFile, type SettleMethod, type ShiftRow } from "./chef-types"
 import type { ChefTabKey } from "./ChefsTab"
 import { LogisticsSettle } from "./LogisticsSettle"
-import { BILLING_LABELS, chefPayCents, docState, rateLabel, taxMissing } from "@/lib/chef-pay"
+import { BILLING_LABELS, CHAIR_ONLY_CENTS, chefPayCents, docState, rateLabel, TABLE_CHAIR_PER_HEAD_CENTS, TABLE_ONLY_CENTS, taxMissing } from "@/lib/chef-pay"
 import { assetRank } from "@/lib/staff-assets"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
@@ -29,6 +29,17 @@ const TABS: Array<[ChefTabKey, string]> = [
   ["settle", "结算"],
   ["files", "文件"],
 ]
+
+/** 这场的桌椅钱怎么算的：套餐按人头，单租的椅子、桌子按件（D-1106-03）。 */
+function tablePayLabel(s: ShiftRow): string {
+  const p = s.setupPieces ?? { chairs: 0, tables: 0 }
+  const parts = [
+    s.tableHeads > 0 ? `桌椅 ${s.tableHeads} 人 × $${TABLE_CHAIR_PER_HEAD_CENTS / 100}` : "",
+    p.chairs > 0 ? `单租椅子 ${p.chairs} 把 × $${CHAIR_ONLY_CENTS / 100}` : "",
+    p.tables > 0 ? `单租桌子 ${p.tables} 张 × $${TABLE_ONLY_CENTS / 100}` : "",
+  ].filter(Boolean)
+  return parts.join(" + ") || `桌椅 ${s.guests} 人 × $${TABLE_CHAIR_PER_HEAD_CENTS / 100}`
+}
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -956,7 +967,7 @@ export function ChefDialog({
                             · 特殊规则
                           </span>
                         ) : null}
-                        <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void toggleTables(s)} title={s.hasTables ? `桌椅 ${s.tableHeads} 人 × $4，点击改成不带` : "点击改成带桌椅"}>
+                        <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void toggleTables(s)} title={s.hasTables ? `${tablePayLabel(s)}，点击改成不带` : "点击改成带桌椅"}>
                           · 桌椅 {s.hasTables ? money(s.tablesCents) : "无"}
                         </button>
                         <span

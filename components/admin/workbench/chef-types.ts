@@ -22,6 +22,8 @@ export type ShiftRow = {
   /** 谈价时定在线索上的特殊人头规则（发票按大人备料、工钱按小孩算），counts 已经按它算过。 */
   chefRule?: { adultsAsKids: number | "all"; note?: string; label: string } | null
   tableHeads: number
+  /** 单租的椅子、桌子（按件给，D-1106-03）；tablesCents 里已经含着。 */
+  setupPieces?: { chairs: number; tables: number }
   hasTables: boolean
   miles: number | null
   /** 里程哪来的：google / osrm（按地址实量）、*_city_fallback（按城市估）、invoice（发票上的数）。 */

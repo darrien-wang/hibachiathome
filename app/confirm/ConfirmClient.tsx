@@ -20,6 +20,10 @@ type Summary = {
   menuKnown?: boolean
   proteins?: Array<{ label: string; servings: number }>
   tableHeads?: number
+  chairsOnly?: number
+  bareTables?: number
+  blackCloths?: number
+  whiteCloths?: number
   utensilHeads?: number
   allergies?: string[]
   totalCents?: number | null
@@ -88,6 +92,10 @@ export default function ConfirmClient() {
   rows.push(["Guests", `${data.adults} adult${data.adults === 1 ? "" : "s"}${data.kids ? ` · ${data.kids} kid${data.kids === 1 ? "" : "s"}` : ""}${data.littles ? ` · ${data.littles} little (3–4, free)` : ""}`])
   if (data.menuKnown && data.proteins?.length) rows.push(["Menu", data.proteins.map((p) => `${p.label} ×${p.servings}`).join(" · ")])
   if (data.tableHeads) rows.push(["Tables & chairs", `for ${data.tableHeads}`])
+  if (data.chairsOnly) rows.push(["Chairs", `${data.chairsOnly}`])
+  if (data.bareTables) rows.push(["Tables", `${data.bareTables}`])
+  const cloths = [data.blackCloths ? `${data.blackCloths} black` : "", data.whiteCloths ? `${data.whiteCloths} white` : ""].filter(Boolean)
+  if (cloths.length) rows.push(["Tablecloths", cloths.join(" · ")])
   if (data.utensilHeads) rows.push(["Utensils & tableware", `for ${data.utensilHeads}`])
   if (data.allergies?.length) rows.push(["Allergies", data.allergies.join(" · ")])
   if (data.totalCents) rows.push(["Party total", usd(data.totalCents)])
