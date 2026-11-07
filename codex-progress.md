@@ -402,5 +402,21 @@ Verification completed:
 - Not a `harness/feature_list.json` item, so there is no status transition there.
 
 Noticed, not changed:
-- Chef-facing: `public/chef-handbook.html` §06 出品标准 still lists "Chicken 鸡胸" (its source, `RealHibachi厨师手册-v2.9.html`, sits outside the repo). The decision says chefs tell a guest it's a mix if asked.
+- Chef-facing: `public/chef-handbook.html` §06 出品标准 still lists "Chicken 鸡胸" (its source, `RealHibachi厨师手册-v2.9.html`, sits outside the repo). The decision says chefs tell a guest it's a mix if asked. Changed later the same day: CHEF-HANDBOOK-CHICKEN below.
 - Internal names stay as the task said: `lib/prep-bom.ts` 鸡胸盘, `lib/pantry.ts`, `lib/cooler-sheet.ts` 鸡胸肉 切块, the supplies/warehouse skills ("Chicken Breast", alias "ks chkn brst bnls"). A receipt line for thighs won't match those aliases on its own.
+
+## CHEF-HANDBOOK-CHICKEN - The chef handbook's protein table says breast and thigh too (2026-11-06)
+
+Status: done.
+
+Why: follow-up to CHICKEN-BREAST-THIGH (D-1106-01); the owner said yes to the one chef-facing line left. `public/chef-handbook.html` §06 出品标准 listed "Chicken 鸡胸", and D-1106-01 has the chef tell a guest it's a mix if asked.
+
+What changed:
+- §06 regular-protein table, Chicken row: "Chicken 鸡胸 + 鸡腿", and the 要注意的 cell reads "无麸质；客人问部位就说 breast and thigh". Allergens (无) and every other row are unchanged; no price or portion moved. A first try, "鸡肉 (鸡胸 + 鸡腿)", broke inside 鸡腿 at 375 px; the shorter cell fits on one line.
+- Version stamp v1.1 · 2026-10-07 → v1.2 · 2026-11-06 in the header and the footer, the way the 10-07 content edits bumped it (851895ae, 0d338247).
+- The handbook has no other 鸡胸 / breast mention. `D:\desktop\RealHibachi\RealHibachi厨师手册-v2.9.html` (outside the repo) still says 鸡胸, but it is handbook v1.0 · 2026-08-26, two versions behind the repo copy, so the repo copy is the live source; it was not touched.
+
+Verification completed:
+- `npm test`: 400 pass, 0 fail. `npm run lint:copy`: 0 hard-rule hits, `chicken-breast` 0 (the one soft hit is the existing `4pct-v2` line in `app/pay/PayClient.tsx`). Outputs: `harness/verification/2026-11-06-chef-handbook-chicken/npm-test.txt`, `lint-copy.txt`.
+- Local `npm run dev`, `/chef-handbook.html#s6` in the browser pane: at 375x812 "Chicken 鸡胸 + 鸡腿" sits on one line and the page has no horizontal scroll (the table scrolls inside its frame, as it already did); at 768x1024 the whole row shows; no console errors. Output: `local-375-handbook-proteins.jpg`, `local-768-handbook-proteins.jpg`.
+- Not a `harness/feature_list.json` item.
