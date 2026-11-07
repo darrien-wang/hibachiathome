@@ -1,0 +1,56 @@
+Production check after deploying ef4c08c8, 2026-11-06 (GETs only; pages loaded without tracking params; only tab/fold toggles clicked)
+
+Deploy poll (/_release/ready every 10 s from the push):
+t+1s sha=7e6303f36ad0daceab6ea4e6e3679078c14bf8f6
+t+12s sha=7e6303f36ad0daceab6ea4e6e3679078c14bf8f6
+t+22s sha=7e6303f36ad0daceab6ea4e6e3679078c14bf8f6
+t+33s sha=7e6303f36ad0daceab6ea4e6e3679078c14bf8f6
+t+44s sha=7e6303f36ad0daceab6ea4e6e3679078c14bf8f6
+t+55s sha=ef4c08c867795b7fae7d978529cd979f64389021
+LIVE after 55s
+deployment: vercelEnv production, vercelUrl realhibachi-marketing-mtgfvkmdk-darrienwangs-projects.vercel.app
+
+############ curl: page HTML + every JS chunk it loads
+=== /_release/ready
+"target":"public-site"
+"gitCommitSha":"ef4c08c867795b7fae7d978529cd979f64389021"
+=== /  HTTP 200  81491 bytes
+chunks fetched: 16
+-- chicken wording (HTML + chunks, <!-- --> stripped):
+      2 BAP-certified jumbo shrimp, boneless chicken breast and thigh — plus 8 oz fried
+-- 'breast' not followed by ' and thigh': 0
+-- 'Breast meat only': 0   'harvested in the USA': 0   'no thigh': 0
+=== /menu  HTTP 200  79563 bytes
+chunks fetched: 16
+-- chicken wording (HTML + chunks, <!-- --> stripped):
+      1  c=[{name:"Chicken",desc:"Boneless, skinless breast and thigh, house marinade",qt
+      1  text-clay-700 lg:hidden">Boneless, skinless breast and thigh, house marinade</p>
+      1 :"Chicken",spec:"Boneless, skinless chicken, breast and thigh"},{item:"Lobster ta
+      1 g text-clay-700 lg:block">Boneless, skinless breast and thigh, house marinade</p>
+-- 'breast' not followed by ' and thigh': 0
+-- 'Breast meat only': 0   'harvested in the USA': 0   'no thigh': 0
+=== /hibachi-at-home/irvine  HTTP 200  158105 bytes
+chunks fetched: 16
+-- chicken wording (HTML + chunks, <!-- --> stripped):
+      1 \":\"]}],\" \",\"Boneless, skinless chicken, breast and thigh\",\". \",\"$undefin
+      1 hicken:</strong> Boneless, skinless chicken, breast and thigh. </p><p><strong cla
+-- 'breast' not followed by ' and thigh': 0
+-- 'Breast meat only': 0   'harvested in the USA': 0   'no thigh': 0
+
+############ verify-live.sh
+=== 1. Homepage SSR ===
+size: 81491 | h1: 1 | jsonld: 4 | canonical: https://www.realhibachi.com
+=== 2. City pages (expect 200) ===
+san-diego: 200  irvine: 200  anaheim: 200  long-beach: 200  palm-springs: 200  
+=== 3. Redirects (expect 308) ===
+nyc-long-island: 308 -> https://www.realhibachi.com/locations/la-orange-county
+non-www:         308 -> https://www.realhibachi.com/menu
+=== 4. SEO endpoints ===
+llms.txt: 200 | sitemap <loc> count: 116
+
+############ browser pane (www.realhibachi.com)
+/menu Proteins tab: 'Boneless, skinless breast and thigh, house marinade' (mobile + desktop variants). At 375x812 it wraps to two lines, 5 oz pill aligned, scrollWidth 375 = innerWidth (prod-mobile-375-menu-proteins.jpg).
+/menu Sourcing tab: CHICKEN 'Boneless, skinless chicken, breast and thigh', no line under it; find 'Breast meat only' = 0, 'harvested' = 0 (prod-menu-sourcing.jpg).
+/hibachi-at-home/irvine 'What we actually buy' fold: 'Chicken: Boneless, skinless chicken, breast and thigh.'; find 'breast' = that line only, 'Breast meat only' = 0, 'harvested' = 0; console errors: none (prod-irvine-what-we-buy.jpg).
+
+############ party page (invoice repo, not changed): https://party.realhibachi.com/order HTML + 12 JS chunks (930892 bytes): breast/thigh/white meat/pechuga/鸡胸 = 0; 'Chicken' label present.
