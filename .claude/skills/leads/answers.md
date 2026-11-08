@@ -59,8 +59,9 @@
   - 取消：提前 48 小时以上免费；48 小时内取消扣 $99，从留存卡扣。
   - 改期：不扣钱，但也要提前 48 小时说。48 小时内要改期，先回 `Date changes need at least 48 hours' notice.`
   - 客人坚持，就问原因（老板 11-07：「坚持 你看看原因吧 不可抗力因素可以改」）：`Sorry plans changed. Could I ask what came up?` 不先说有例外。
-    - 不可抗力，可以免费改：官方天气预警（见下面「下雨、大风」）、山火或疏散令、地震、场地停电停水或出事没法用、政府命令。回 `I'm sorry, that's out of your control. We'll move it at no charge. What date works for you?`，记 `[why]`。
-    - 急病住院、家里有人去世这类人的急事：先问老板。
+    - 不可抗力，可以免费改：官方天气预警（见下面「下雨、大风」）、山火或疏散令、地震、场地停电停水或出事没法用、政府命令，还有急病住院、家里有人去世（老板 11-07：「算,急病住院和家人去世都可以改」）。记 `[why]`。
+      - 天灾这类回 `I'm sorry, that's out of your control. We'll move it at no charge. What date works for you?`
+      - 住院、去世回 `I'm so sorry. Please don't worry about the party. We'll move it at no charge, and we can pick a new date whenever you're ready.`
     - 其他原因（改主意、人没约齐、想换日子）不改。客人还是要取消，就照 48 小时内取消扣 $99，扣之前先告诉老板。
   - 对客：`Moving the date is free with at least 48 hours' notice, and so is cancelling. A cancellation inside 48 hours is $99, charged to the card you saved.` 48 小时内要改期：`Date changes need at least 48 hours' notice.`
   - 天气另算，见下面「下雨、大风」。
