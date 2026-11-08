@@ -1,0 +1,17 @@
+The new tests/dispatch-plan.test.ts run against origin/main d717f76a's lib (before the fix), 2026-11-07: the negatives fail on the first real text.
+✔ mirror · GUESTS_PER_CHEF is the invoice engine's (1.0573ms)
+✔ rule · the plan's chef count and the quote's calcChefCount agree at every party size that matters (0.3393ms)
+✔ order · paid heads and the plan off an order row (Eileen: 29 adults + 2 kids, no plan column) (0.7632ms)
+✔ order · hours to the party compare Pacific wall clocks (event_start is stored as if UTC) (18.0353ms)
+✔ order · lint: Eileen as dispatched the day before (promise 2/2, one lead chef + helper) blocks (1.3508ms)
+✔ promise · the desk's own texts (2.326ms)
+✖ promise · chefs in general are not this party's crew (11-07: a 15-guest and an 11-head party booked as two chefs) (2.2113ms)
+✔ promise · a crew next to the general line still counts (0.2101ms)
+✔ lint · a one-chef owner plan on 30 heads is flagged against the rule, one week out as a warning (0.1507ms)
+ℹ tests 9
+ℹ pass 8
+ℹ fail 1
+  AssertionError [ERR_ASSERTION]: I'll let your chef know it's the twins' 14th and that you'd like it fun for teenagers. Each chef has their own style, and yours will have that in mind.
+    actual: { chefs: 2, grills: 2, stations_note: null, text: "I'll let your chef know it's the twins' 14th and that you'd like it fun for teenagers. Each chef has their own style, and yours will have that in mind." },
+    expected: null,
+exit 1

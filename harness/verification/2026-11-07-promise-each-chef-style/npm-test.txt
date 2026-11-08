@@ -1,0 +1,14 @@
+npm test (worktree, HEAD d717f76a + this change), 2026-11-07
+✔ promise · the desk's own texts (4.7572ms)
+✔ promise · chefs in general are not this party's crew (11-07: a 15-guest and an 11-head party booked as two chefs) (0.3864ms)
+✔ promise · a crew next to the general line still counts (0.3563ms)
+✔ a bare ZIP never goes to the router on its own (0.7336ms)
+ℹ tests 406
+ℹ suites 0
+ℹ pass 406
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1278.9956
+npm test exit 0

@@ -168,8 +168,9 @@ export function applyPromise(existing: DispatchPlan | null, promise: StaffingPro
 // going", "For 35 we send two chefs, each with their own grill", "with 60
 // guests that's 3 chefs", "we'd bring 2-3 chefs with their own grills", "each
 // chef cooks from an open end", "we'll set the two stations a few feet back".
-// And the one that must NOT count: "28 guests is one chef and one grill -
-// past 28 it becomes two chefs" (a rule explained, not a promise).
+// And the ones that must NOT count: "28 guests is one chef and one grill -
+// past 28 it becomes two chefs" (a rule explained, not a promise), and "each
+// chef has their own style" (every chef, not this party's; 2026-11-07).
 
 const NUM: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6 }
 const NUM_RE = "(\\d|one|two|three|four|five|six)"
@@ -182,6 +183,26 @@ const EACH_CHEF_RE = /\b(each|both|every) chefs?\b|\bper chef\b|\b(a |an )?(seco
 /** "One chef handles groups up to 28" - a text that states one chef is explaining the rule, not promising a crew. */
 const SINGLE_CHEF_RE = /\b(one|1|a single) chef\b/i
 const OWN_GRILL_RE = /\b(each|all) with (their|his|her) own grills?\b|\btheir own grills?\b|\ba grill each\b|\bown grills\b/i
+/** Words up to the end of the clause (no sentence end, comma or dash) with no grill, station or pop-up in them. */
+const IN_CLAUSE = "(?:(?!\\s-\\s|grills?\\b|stations?\\b|pop-?ups?\\b)[^.!?;,—])*?"
+/**
+ * Chefs in general, not this party's crew. "Each chef has their own style" is
+ * the desk's answer to a show question (owner, 10-30: expectation management);
+ * on 11-07 it had made two-chef promises of RH-20261028-4275 (15 guests) and
+ * RH-20261107-9978 (11 heads). Taken out of the text before the "each chef"
+ * test, so "each chef cooks from an open end" next to it still counts.
+ */
+const GENERAL_CHEF_RE = new RegExp(
+  "\\b(?:each|every) chefs?(?:" +
+    // each chef has / will have / brings / 's got ... their own style, a flair, his own way
+    `(?:(?:\\s\\w+){0,2}?\\s(?:has|have|brings?)|['’]s got)\\b${IN_CLAUSE}\\b(?:(?:their|his|her|a|an|own)\\s(?:\\w+\\s){0,2}?(?:style|flair|personality)|(?:own|different|unique)\\s(?:\\w+\\s)?way)\\b` +
+    // every chef's style, each chef's own flair
+    "|['’]s\\s(?:own\\s)?(?:style|flair|personality)\\b" +
+    // each chef is different, every chef's a little different, each chef is unique
+    "|(?:['’]s|\\s(?:is|are))\\s(?:(?:a little|a bit|slightly)\\s)?(?:different|unique)\\b" +
+    ")",
+  "gi",
+)
 const STATIONS_RE = /\bu[\s-]?shapes?\b|\bstations?\b|\bpop-?ups?\b|\bopen end\b|\bby the pool\b|\bset (up|the) (two|2|three|3)\b|\bfeet back\b/i
 
 export type ParsedPromise = { chefs: number; grills: number; stations_note: string | null; text: string }
@@ -211,9 +232,10 @@ function stationsNoteOf(text: string): string | null {
 
 /**
  * Does this outbound text or email promise the customer more than one chef or
- * grill? Returns what was promised, or null. Explicit counts win; "each chef",
- * "a second chef" and "their own grills" mean at least two; grills default to
- * the chef count and vice versa.
+ * grill? Returns what was promised, or null. Explicit counts win; "each chef"
+ * (not "each chef has their own style": that is every chef), "a second chef"
+ * and "their own grills" mean at least two; grills default to the chef count
+ * and vice versa.
  */
 export function parseStaffingPromise(raw: string): ParsedPromise | null {
   const text = (raw ?? "").replace(/\s+/g, " ").trim()
@@ -223,8 +245,9 @@ export function parseStaffingPromise(raw: string): ParsedPromise | null {
   // "each chef" / "a second chef" / "their own grills" mean a crew - unless the
   // same text says "one chef": then they describe what bigger parties get
   // (Jackson Rogow, 10-12: "One chef handles groups up to 28, so there are no
-  // extra chef or grill fees").
-  const plural = (EACH_CHEF_RE.test(text) || OWN_GRILL_RE.test(text)) && !SINGLE_CHEF_RE.test(text)
+  // extra chef or grill fees"). Chefs in general ("each chef has their own
+  // style") come out of the text before the "each chef" test.
+  const plural = (EACH_CHEF_RE.test(text.replace(GENERAL_CHEF_RE, " ")) || OWN_GRILL_RE.test(text)) && !SINGLE_CHEF_RE.test(text)
   let chefs = chefCounts.length ? Math.max(...chefCounts) : 0
   let grills = grillCounts.length ? Math.max(...grillCounts) : 0
   if (!chefs && !grills && !plural) return null

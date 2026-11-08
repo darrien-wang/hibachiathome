@@ -1,0 +1,47 @@
+Mirror: v0-real-hibachi-invoice-generator npm test (branch claude/promise-each-chef-style = origin/main 2189d3c + c31d69a), 2026-11-07
+✔ promise · 2/2: "Yes — 2 chefs and 2 grills for 30, no extra charge" (4.3631ms)
+✔ promise · 2/2: "Your chefs get there around 5:30 to set up, so eve" (1.8675ms)
+✔ promise · 2/2: "Chefs by the pool works - we'll set the two statio" (0.5479ms)
+✔ promise · 2/2: "Almost - they bring the grills, propane, food and " (0.2881ms)
+✔ promise · 2/2: "Sat, Nov 21 at 5 it is! For 35 we send two chefs, " (0.1823ms)
+✔ promise · 3/3: "5:30 it is - with 60 guests that's 3 chefs, and th" (0.2059ms)
+✔ promise · 3/3: "Perfect, a backyard works great. We've done plenty" (0.2642ms)
+✔ promise · 2/2: "Hi! Bling from Real Hibachi 👋 37 guests - that's " (0.5219ms)
+✔ promise · 2/2: "Hi, it's Bling from Real Hibachi. 36 is a two-chef" (0.1644ms)
+✔ promise · 2/2: "Hi Faith, it's Bling - got your menu for 39, thank" (0.1344ms)
+✔ promise · none: "Morning Stacy - your invoice goes out 2 days befor" (0.0965ms)
+✔ promise · none: "Yes - Saturday, Oct 17 at 5 PM works for 18. One c" (0.0996ms)
+✔ promise · none: "Your chef arrives about 10 minutes before start ti" (0.0705ms)
+✔ promise · none: "Not included - 20-25% is customary, and 100% of it" (0.0818ms)
+✔ promise · 2/2: "$45 a head would be under what it costs us to run " (0.0833ms)
+✔ promise · none: "I'll let your chef know it's the twins' 14th and t" (0.088ms)
+✔ promise · none: "...your chef cooks everything right in front of yo" (0.0598ms)
+✔ promise · none: "Every chef has their own style." (0.0549ms)
+✔ promise · none: "Each chef has his own style, and yours will keep i" (0.0908ms)
+✔ promise · none: "Each chef has her own style." (0.0544ms)
+✔ promise · none: "Each chef has a style all their own." (0.0547ms)
+✔ promise · none: "Each chef has an individual style." (0.0546ms)
+✔ promise · none: "Each chef will have their own way of running the s" (0.0564ms)
+✔ promise · none: "Each chef has a bit of their own flair." (0.0537ms)
+✔ promise · none: "Each chef brings their own style to the show." (0.0527ms)
+✔ promise · none: "Every chef's got their own style." (0.0612ms)
+✔ promise · none: "Each chef's style is a little different." (0.0865ms)
+✔ promise · none: "Each chef is different." (0.0723ms)
+✔ promise · none: "Every chef is a little different, and yours will m" (0.0742ms)
+✔ promise · 2/2: "Each chef has their own style, and for 35 we send " (0.0948ms)
+✔ promise · 2/2: "Each chef has their own style - each chef cooks fr" (0.0875ms)
+✔ promise · 2/2: "For 40 we add a second chef, so nobody waits for f" (0.0796ms)
+✔ promise · 2/2: "Each chef has a grill and their own style." (0.0669ms)
+✔ promise · 2/2: "Each chef is at a different end of the table, so e" (0.075ms)
+✔ promise · 2/2: "Both chefs have their own style, so it's two shows" (0.0594ms)
+✔ promise · none: "" (0.0552ms)
+✔ promise · the stations note is the sentence that places the chefs (0.4437ms)
+ℹ tests 302
+ℹ suites 0
+ℹ pass 302
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2421.7182
+npm test exit 0

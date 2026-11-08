@@ -1,0 +1,58 @@
+Scratch check, not a repo test: parseStaffingPromise over 55 phrasings, worktree lib after this change, 2026-11-07
+ok   want 2/2  got 2/2  Sat, Nov 21 at 5 it is! For 35 we send two chefs, each with their own grill, so everyone's
+ok   want 3/3  got 3/3  5:30 it is - with 60 guests that's 3 chefs, and they'll arrive around 5 to set up so the s
+ok   want 3/3  got 3/3  for 50-60 guests we'd bring 2-3 chefs with their own grills.
+ok   want 2/2  got 2/2  Chefs by the pool works - we'll set the two stations a few feet back from the edge so ever
+ok   want 2/2  got 2/2  Your chefs get there around 5:30 to set up, so everything's ready at 6. For tables: two U 
+ok   want 2/2  got 2/2  Yes — 2 chefs and 2 grills for 30, no extra charge, so everyone eats together. And yes, th
+ok   want 2/2  got 2/2  Almost - they bring the grills, propane, food and cooking tools. The one thing from you is
+ok   want 2/2  got 2/2  Hi! Bling from Real Hibachi 👋 37 guests - that's a 2-chef party, two grills going so ever
+ok   want 2/2  got 2/2  Hi, it's Bling from Real Hibachi. 36 is a two-chef party - two grills going so everyone ea
+ok   want 2/2  got 2/2  Hi Faith, it's Bling - got your menu for 39, thank you. At that size you'll have two chefs
+ok   want 2/2  got 2/2  $45 a head would be under what it costs us to run two chefs
+ok   want 2/2  got 2/2  For 40 we add a second chef so nobody waits for food.
+ok   want 2/2  got 2/2  Each chef has their own style, and for 35 we send two chefs.
+ok   want 2/2  got 2/2  Each chef has their own style - each chef cooks from an open end so everyone faces the sho
+ok   want 2/2  got 2/2  each chef cooks from an open end and each chef has their own style
+ok   want 2/2  got 2/2  Both chefs have their own style, so it's two shows in one.
+ok   want 2/2  got 2/2  Each chef has their own grill, so everyone eats together.
+ok   want 2/2  got 2/2  each chef has a grill that way everyone eats at once
+ok   want 2/2  got 2/2  each chef is at a different end of the table
+ok   want 2/2  got 2/2  Each chef has a 6x8 spot, either way works.
+ok   want 2/2  got 2/2  each chef has a pop-up either way
+ok   want 2/2  got 2/2  For 90 each chef has a buffet table set up family-style
+ok   want 2/2  got 2/2  each chef has a grill and their own style
+ok   want 2/2  got 2/2  each chef has a station and a style of their own
+ok   want 2/2  got 2/2  each chef has a pop-up and their own flair
+ok   want null got null I'll let your chef know it's the twins' 14th and that you'd like it fun for teenagers. Eac
+ok   want null got null your chef cooks everything right in front of your guests, and each chef has their own styl
+ok   want null got null Each chef has their own style.
+ok   want null got null Every chef has their own style.
+ok   want null got null each chef has his own style
+ok   want null got null each chef has her own style
+ok   want null got null each chef has his or her own style
+ok   want null got null Each chef has a style of their own.
+ok   want null got null Each chef has an own style.
+ok   want null got null Each chef has a style all their own, and yours will keep it fun.
+ok   want null got null Each chef is different.
+ok   want null got null Every chef is a little different, and yours will make it fun.
+ok   want null got null each chef is unique
+ok   want null got null Each chef's a bit different.
+ok   want null got null Each chef has their own way of running the show.
+ok   want null got null Each chef has a different way of doing the show.
+ok   want null got null each chef has a bit of their own flair
+ok   want null got null each chef has their own flair
+ok   want null got null Each chef brings their own style to the show.
+ok   want null got null Every chef's got their own style
+ok   want null got null Each chef's style is a little different
+ok   want null got null each chef will have their own style
+ok   want null got null Each chef has a different style.
+ok   want null got null Each chef has their own signature style and tricks.
+ok   want null got null Each chef has their own personality.
+ok   want null got null Morning Stacy - your invoice goes out 2 days before the party. And 28 guests is one chef a
+ok   want null got null Yes - Saturday, Oct 17 at 5 PM works for 18. One chef handles groups up to 28, so you'll h
+ok   want null got null Your chef arrives about 10 minutes before start time with the grill and fresh ingredients.
+ok   want null got null Not included - 20-25% is customary, and 100% of it goes to the chefs.
+ok   want null got null 
+all ok
+exit 0
