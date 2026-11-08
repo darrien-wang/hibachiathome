@@ -52,9 +52,19 @@
 ## 锁日期、改人数、取消
 
 - **锁日期 = 留一张卡，当天 $0**（D-1006-04）；尾款派对当天付。61+ 也一样留卡，不收押金。
+- **第一次递链接就说清这张卡唯一的用处**（老板 11-07，D-1107-01：「这个留卡的时候说明一下吧，这个卡的唯一作用」）：`It just saves a card, and nothing is charged today. The card would only be charged $99 if you cancel within 48 hours of the party.` 只说一次（`voice.md` 第 8 条）。尾款不从这张卡扣。
 - **人数可以改到派对前一天，自由调整**，总价跟人数走，$599 最低消费不变。**说这句就要带上当天规则**（老板 11-02，D-1102-02）：`You can change the headcount freely up to the day before. On the day of the party we can add guests but not take any off, since the food's already prepped.`
 - **派对当天只能加人，不能减人**（老板 10-31，D-1031-02：货已经备好了）。客人当天说少人，总价不减，一句话说清，并告诉师傅照原单收：`Sorry, your food is already prepped, so at this point we can only add guests, not remove them. Your total stays at $[1,001].`
-- **取消/改期**：提前 48 小时以上免费，48 小时内 $99（从留存卡扣）。
+- **取消、改期都要提前 48 小时说**（老板 11-07，D-1107-01：「取消要扣，改期不用」「取消和改期都要 48小时」「提前48小时」）：
+  - 取消：提前 48 小时以上免费；48 小时内取消扣 $99，从留存卡扣。
+  - 改期：不扣钱，但也要提前 48 小时说。48 小时内要改期，先回 `Date changes need at least 48 hours' notice.`
+  - 客人坚持，就问原因（老板 11-07：「坚持 你看看原因吧 不可抗力因素可以改」）：`Sorry plans changed. Could I ask what came up?` 不先说有例外。
+    - 不可抗力，可以免费改：官方天气预警（见下面「下雨、大风」）、山火或疏散令、地震、场地停电停水或出事没法用、政府命令，还有急病住院、家里有人去世（老板 11-07：「算,急病住院和家人去世都可以改」）。记 `[why]`。
+      - 天灾这类回 `I'm sorry, that's out of your control. We'll move it at no charge. What date works for you?`
+      - 住院、去世回 `I'm so sorry. Please don't worry about the party. We'll move it at no charge, and we can pick a new date whenever you're ready.`
+    - 其他原因（改主意、人没约齐、想换日子）不改。客人还是要取消，就照 48 小时内取消扣 $99，扣之前先告诉老板。
+  - 对客：`Moving the date is free with at least 48 hours' notice, and so is cancelling. A cancellation inside 48 hours is $99, charged to the card you saved.` 48 小时内要改期：`Date changes need at least 48 hours' notice.`
+  - 天气另算，见下面「下雨、大风」。
 - **"押金能退吗"**：没收押金，没有可退的；规则就是上一条。
 - **卡在锁日期页被拒**：请他换一张卡；换卡也不行就不锁，不人工建单、不改收 Zelle/Venmo、不口头占位。
 - **到场承诺**（客人担心会不会放鸽子时才说）：厨师开席前实名确认；是我们自己的团队，不是平台派单；我们这边出状况，优先给他补档。不说双倍退款（已撤）。
