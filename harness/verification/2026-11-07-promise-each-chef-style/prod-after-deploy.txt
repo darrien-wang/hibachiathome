@@ -1,0 +1,36 @@
+Production check after the deploy, 2026-11-07 (PT) / 2026-11-08 (UTC). Read-only GETs only.
+
+== marketing: local build of 6db531c6 (worktree, after CI=true pnpm install --frozen-lockfile) ==
+install exit 0
+build exit 0
+homepage .next/server/app/index.html size: 77546 | h1: 1 | jsonld: 4
+
+== marketing: merge and push ==
+sync_with_base_branch(main) refused: main changed .claude/skills/leads/{SKILL,answers,templates,voice}.md and the origin was pinned before the app asked; nothing merged.
+git merge-tree --write-tree origin/main(60363a39) HEAD(6db531c6) -> tree cd65272c8fdeaf25e6c0f56585c075fb0def7e11
+  vs origin/main: codex-progress.md, harness/verification/2026-11-07-promise-each-chef-style/{before-fix,invoice-mirror-npm-test,lint-copy,npm-test,phrasing-battery}.txt, lib/dispatch-plan.ts, tests/dispatch-plan.test.ts
+  vs 6db531c6:   .claude/skills/leads/SKILL.md, answers.md, templates.md, voice.md (main's 57c48402, 4b881897, 60363a39)
+git commit-tree -> 642bf91adbf2dea057300e0cfaec16647bc7aa5e (parents 6db531c6 60363a39)
+push at 2026-11-08T05:36:32Z: 60363a39..642bf91a -> main; ls-remote refs/heads/main = 642bf91adbf2dea057300e0cfaec16647bc7aa5e
+
+== marketing: live ==
+before: /_release/ready gitCommitSha=60363a39d2d6eadb5b0b9034e211170ced250b8d
+after 48s live gitCommitSha=642bf91adbf2dea057300e0cfaec16647bc7aa5e (want 642bf91adbf2dea057300e0cfaec16647bc7aa5e) at 2026-11-08T05:37:33Z
+(waiter polled every 15 s from 05:36:45Z; first match after 48 s, ~61 s after the push)
+=== 1. Homepage SSR ===
+size: 81491 | h1: 1 | jsonld: 4 | canonical: https://www.realhibachi.com
+=== 2. City pages (expect 200) ===
+san-diego: 200  irvine: 200  anaheim: 200  long-beach: 200  palm-springs: 200  
+=== 3. Redirects (expect 308) ===
+nyc-long-island: 308 -> https://www.realhibachi.com/locations/la-orange-county
+non-www:         308 -> https://www.realhibachi.com/menu
+=== 4. SEO endpoints ===
+llms.txt: 200 | sitemap <loc> count: 116
+verify-live exit 0
+live /admin (200): the GENERAL_CHEF_RE source ("...(?:style|flair|personality)...") is in /_next/static/chunks/app/admin/page-f51bf57738276aed.js (local build: page-f9afb3136515c5bb.js); it existed nowhere before this change
+
+== invoice mirror (v0-real-hibachi-invoice-generator) ==
+push at 2026-11-08T05:36:49Z: 2189d3c..c31d69a -> main (fast-forward); ls-remote refs/heads/main = c31d69a854782252d0bdf28b78c81ebae9aa43fc
+before: invoice.realhibachi.com/order and party.realhibachi.com/order served dpl_6ewd9dm7ySg98XFGUsqMZzdB46YS (2189d3c was committed 2026-11-06 23:54 PT)
+after 21s invoice /order dpl=dpl_8bmh1Tb9BnYFvv2RJoUtA4pwSwJn (was dpl_6ewd9dm7ySg98XFGUsqMZzdB46YS) at 2026-11-08T05:37:21Z; party: dpl_8bmh1Tb9BnYFvv2RJoUtA4pwSwJn
+still dpl_8bmh1Tb9BnYFvv2RJoUtA4pwSwJn at 2026-11-08T05:38:38Z. c31d69a is the only new commit on that main; Vercel's own record of which commit a deployment built needs a login (gh not logged in, repo private), so the commit is inferred from the timing. The mirrored parser has no caller in that app (only tests); nothing there to exercise.
