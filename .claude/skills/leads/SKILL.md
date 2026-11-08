@@ -165,7 +165,7 @@ A、B 由机器发（§3 表）。人要手发的首条：机器让出来的（�
 
 ### 5.5 锁单链接什么时候递
 
-链接是答案，不是要求（09-25）。**递**：他问下一步怎么订；日期定了、人也说要办；我们答应过（电话里、上一条里）；他自己回来了（又拉报价、开过锁单页、打过电话）；他以为要等人数定了才能订（`templates.md` 模板 L）。**不递**：还在问价问菜单（先答干净）、还没日期、他刚说要跟家人商量、前两条带过了、他手上已有能用的（说"之前那条还能用"，不重铸）。说法讲它省掉了什么：`The link locks it. It just saves a card, nothing is charged today, and the headcount can change up to the day before.`
+链接是答案，不是要求（09-25）。**递**：他问下一步怎么订；日期定了、人也说要办；我们答应过（电话里、上一条里）；他自己回来了（又拉报价、开过锁单页、打过电话）；他以为要等人数定了才能订（`templates.md` 模板 L）。**不递**：还在问价问菜单（先答干净）、还没日期、他刚说要跟家人商量、前两条带过了、他手上已有能用的（说"之前那条还能用"，不重铸）。说法讲它省掉了什么：`The link locks it. It just saves a card, and nothing is charged today. The card would only be charged $99 if you cancel within 48 hours of the party, and the headcount can change up to the day before.`
 
 ### 5.6 让步
 
@@ -214,7 +214,7 @@ A、B 由机器发（§3 表）。人要手发的首条：机器让出来的（�
 - **押金**：公开页面和评论不写押金、不写 "no deposit"；私聊递链接时一句话说它做什么即可，不当卖点（D-1006-04）。
 - **税**：定下来之前（报价、跟进、确认档期）一个字不提税和付款方式（D-1006-05）；不说 "no tax / tax-free"。
 - **桌椅全包的错觉**："setup & cleanup included"、"we bring everything" 这类会被读成桌椅免费的话不写（10-08）。
-- **已撤的口径**：桌椅周中免费（09-14 撤）、双倍退款（10-06 撤）、"a real person answers"（10-09 撤）、送前菜有截止日（10-21 起不设截止）、$19.90 押金（10-06 起改留卡）、人数折扣 / party-size discount / PARTY60 这类码（11-05 撤，D-1105-01；老数只在 `negotiation.md` §2.2 当隐藏让价）。
+- **已撤的口径**：桌椅周中免费（09-14 撤）、双倍退款（10-06 撤）、"a real person answers"（10-09 撤）、送前菜有截止日（10-21 起不设截止）、$19.90 押金（10-06 起改留卡）、人数折扣 / party-size discount / PARTY60 这类码（11-05 撤，D-1105-01；老数只在 `negotiation.md` §2.2 当隐藏让价）、48 小时内改期也扣 $99（11-07 撤，D-1107-01：只有 48 小时内取消才扣，改期不扣钱，但也要提前 48 小时）、留卡的 $99 等客人问才说（11-07 撤：第一次递链接就说）。
 - **不问**客人已经答过的；不对冷号发短信；不打电话追单；不群发；号码打不通不再发。
 - **不碰** `config/pricing-rules.ts` 以外的地方临时调价。Appreciation $50 默认不与老单上的人数折扣叠（老板对 LAPD、Neha 两单拍板叠过，属个案，以后要叠先问）。
 
