@@ -1,0 +1,21 @@
+npm test (worktree, origin/main 4bc696b4 + this change), 2026-11-08
+✔ kids and rentals add at their prices, nothing comes off for size (0.1846ms)
+✔ /quote and the workbench quote tool price the same way (4.1594ms)
+✔ minimum · Nicole 11-08: 7 adults + 1 kid with $208 of upgrades are past $599, so there is no minimum line (1.6225ms)
+✔ minimum · 4 adults + scallops are still under $599: the minimum tops up to $599 with the upgrade inside it (1.6049ms)
+✔ minimum · rentals count toward it like upgrades: 4 adults + full setup + scallops top up $275.40 (0.2669ms)
+✔ minimum · travel stays outside it, as on the invoice (0.18ms)
+✔ minimum · every party up to 14 adults, either plan: the lines add up to what the invoice bills (6.498ms)
+✔ weekday saving · 8 adults on a Tuesday with all three upgrades save $40; on food alone it read $0 (0.3269ms)
+✔ rentals · 10 adults with the full setup is $749, like the invoice and /quote (1.9887ms)
+✔ rentals · without rentals nothing changes (0.2748ms)
+✔ rentals · a small party: rentals fill the minimum before it is charged (0.2587ms)
+ℹ tests 412
+ℹ suites 0
+ℹ pass 412
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1292.5491
+npm test exit 0 (406 before the change, plus the 6 new tests)

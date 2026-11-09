@@ -1,0 +1,45 @@
+Local `npm run dev` (this branch), http://localhost:3000/quote in the browser pane, 2026-11-08.
+The contact step was skipped by seeding localStorage rh_quote_unlock with test values ((213) 555-0100,
+test@example.com); /api/landing-quote and /api/booking-request were answered inside the page by a fetch
+stub, so "Text me this quote" sent nothing (3 sends caught, 0 on the network). Network: GETs only
+(travel-fee 200, weather 200, slot-availability 503 - the worktree has no database keys). The seed was
+removed afterwards. Travel to Indio here is the local lookup's $62.30, not production's figure.
+Rows are read from step 3's breakdown (the price card's figure in brackets).
+
+1. Nicole's party: Standard, Mon 11/23 (Thanksgiving week), Indio, 7 adults + 1 kid
+   before any upgrade                [card $661.30]
+     7 adults × $59.90 | $419.30
+     1 kid × $29.90 | $29.90
+     Travel · Indio | $62
+     $599 event minimum applied | +$149.80
+   filet + scallops + lobster tail   [card $661.30–$719.50]   local-nicole-7a1k-all-upgrades.jpg
+     7 adults × $59.90 | $419.30
+     1 kid × $29.90 | $29.90
+     Travel · Indio | $62
+     Premium upgrades (Filet Mignon, Scallops, Lobster Tail) | up to +$208
+     (no minimum line: $449.20 + $208 = $657.20; + $62.30 travel = $719.50, the card's high end)
+
+2. 4 adults + scallops               [card $661.30 = $599 + travel]
+     4 adults × $59.90 | $239.60
+     Travel · Indio | $62
+     Premium upgrades (Scallops) | up to +$24
+     $599 event minimum applied | +$335.40
+   + tables, chairs & utensils       [card $661.30]   local-4a-setup-scallops.jpg
+     4 adults × $59.90 | $239.60
+     Travel · Indio | $62
+     Tables, chairs & utensils | +$60
+     Premium upgrades (Scallops) | up to +$24
+     $599 event minimum applied | +$275.40
+
+3. 8 adults, Tue 12/8, tables + scallops
+   step 2, Standard: "Mon–Thu date — take the Weekday Special and save $40, plus a free appetizer (your pick)."
+                     button "Apply Weekday Special — save $40" (on food alone: $0, no button)
+   Weekday Special, step 3           [card $661.30–$669.50]   local-weekday-8a-setup-scallops.jpg
+     8 adults × $54.90 | $439.20
+     Travel · Indio | $62
+     Tables, chairs & utensils | +$120
+     Premium upgrades (Scallops) | up to +$48
+     (no minimum line: $607.20; the upgrades line used to be hidden on this plan)
+     under the upgrade buttons: "Per guest who chooses it, on top of the 2 regular proteins."
+
+Console: the two slot-availability 503s only. Dev server log: no errors.

@@ -1,0 +1,28 @@
+What /quote's step-3 breakdown showed before the fix (origin/main 4bc696b4, scratch script on calculateQuote + the client's line formula effectiveBase - baseSubtotal), 2026-11-08.
+Nicole 11-08: 7 adults + 1 kid, Mon 11/23 Indio, filet+scallops+lobster
+  food 449.2 · rentals 0 · upgrades up to 208
+  shown: "$599 event minimum applied +$149.8"  -> the lines add up to $807
+  price card totalRange: $599-$657.2
+4 adults + scallops
+  food 239.6 · rentals 0 · upgrades up to 24
+  shown: "$599 event minimum applied +$359.4"  -> the lines add up to $623
+  price card totalRange: $599-$599
+4 adults + full setup + scallops
+  food 239.6 · rentals 60 · upgrades up to 24
+  shown: "$599 event minimum applied +$359.4"  -> the lines add up to $683
+  price card totalRange: $599-$599
+8 adults, Tue 12/8, filet+scallops+lobster
+  "Apply Weekday Special - save $X" today: X = 0 (button hidden at 0)
+  totals: Standard $687.2, Weekday Special $647.2 -> real saving $40
+
+The new tests/quote-minimum-upgrades.test.ts against the same code (before the fix): all 6 fail.
+✖ minimum · Nicole 11-08: 7 adults + 1 kid with $208 of upgrades are past $599, so there is no minimum line (2.0319ms)
+✖ minimum · 4 adults + scallops are still under $599: the minimum tops up to $599 with the upgrade inside it (0.8818ms)
+✖ minimum · rentals count toward it like upgrades: 4 adults + full setup + scallops top up $275.40 (0.2518ms)
+✖ minimum · travel stays outside it, as on the invoice (0.1962ms)
+✖ minimum · every party up to 14 adults, either plan: the lines add up to what the invoice bills (0.3178ms)
+✖ weekday saving · 8 adults on a Tuesday with all three upgrades save $40; on food alone it read $0 (0.1095ms)
+ℹ tests 6
+ℹ pass 0
+ℹ fail 6
+exit 1

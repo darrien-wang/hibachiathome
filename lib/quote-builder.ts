@@ -78,7 +78,12 @@ export type QuoteResult = {
   pricingTier: QuotePricingTier
   baseSubtotal: number
   minimumSpend: number
-  effectiveBase: number
+  /**
+   * What the $599 minimum adds on top of the food, rentals and upgrades as
+   * picked - the figures the breakdown lists - measured as the invoice
+   * measures it, before loyalty and travel. 0 when they clear the minimum.
+   */
+  minimumTopUp: number
   travelFeeRange: QuoteRange
   tablewareFee: number
   addOnTotalRange: QuoteRange
@@ -239,6 +244,13 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
   // 2026-11-05 (D-1105-01).
   const floorLow = Math.max(subtotalRange.low, MINIMUM_SPEND)
   const floorHigh = Math.max(subtotalRange.high, MINIMUM_SPEND)
+  // The breakdown's minimum line. The invoice floors the whole subtotal -
+  // food, upgrades, rentals (calcInvoiceTotal) - so the line is measured on
+  // what the breakdown lists, the upgrades as picked. It was effectiveBase -
+  // baseSubtotal, the food alone: 7 adults + 1 kid with $208 of upgrades
+  // ($657.20) read "+$149.80" of minimum on top of them, and a rented setup
+  // was counted a second time under it (2026-11-08).
+  const minimumTopUp = roundCurrency(floorHigh - subtotalRange.high)
 
   // A thank-you never takes a party under the $599 minimum (owner 2026-10-29):
   // a party already at the minimum gets no loyalty dollars.
@@ -248,8 +260,6 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
     low: roundCurrency(floorLow - loyaltyLow),
     high: roundCurrency(floorHigh - loyaltyHigh),
   }
-
-  const effectiveBase = Math.max(packageSubtotal, MINIMUM_SPEND)
 
   const totalRange: QuoteRange = {
     low: roundCurrency(totalBeforeTravelRange.low + travelFeeRange.low),
@@ -274,7 +284,7 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
     pricingTier,
     baseSubtotal,
     minimumSpend: MINIMUM_SPEND,
-    effectiveBase,
+    minimumTopUp,
     travelFeeRange,
     tablewareFee,
     addOnTotalRange,
@@ -289,6 +299,19 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
     isBookable: hasCoreInputs && (!isWeekdaySaver || weekdayIsEligible),
     budgetFit,
   }
+}
+
+/**
+ * What the Weekday Special saves this party against the Standard rate. Both
+ * sides go through calculateQuote, so the $599 minimum is measured the
+ * invoice's way on each (food, rentals, the upgrades as picked); /quote used
+ * to floor the food alone, which read $0 for a small party its upgrades
+ * already carry past the minimum. Loyalty stays out of it, as before.
+ */
+export function weekdaySpecialSavings(input: QuoteInput): number {
+  const total = (pricingTier: QuotePricingTier) =>
+    calculateQuote({ ...input, pricingTier, loyaltyStatus: undefined }).totalRange.high
+  return Math.round(total("standard") - total("weekday_saver"))
 }
 
 function formatCurrency(value: number): string {

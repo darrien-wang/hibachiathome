@@ -41,6 +41,7 @@ import {
   buildSmsBody,
   buildQuoteSummary,
   calculateQuote,
+  weekdaySpecialSavings,
   type QuoteInput,
   type QuoteRange,
 } from "@/lib/quote-builder"
@@ -554,16 +555,7 @@ export default function QuoteBuilderClient() {
   const weekdayAdultRateLabel = `$${GUEST_TIERS.adult.weekdayPrice.toFixed(2)}/adult`
 
   // What Weekday Special would save this exact party — shown when it applies.
-  const weekdaySavings = useMemo(() => {
-    const adults = Math.max(0, Math.floor(input.adults || 0))
-    const kids = Math.max(0, Math.floor(input.kids || 0))
-    const standardBase = Math.max(adults * GUEST_TIERS.adult.price + kids * GUEST_TIERS.child.price, MINIMUM_SPEND)
-    const weekdayBase = Math.max(
-      adults * GUEST_TIERS.adult.weekdayPrice + kids * GUEST_TIERS.child.weekdayPrice,
-      MINIMUM_SPEND,
-    )
-    return Math.round(standardBase - weekdayBase)
-  }, [input.adults, input.kids])
+  const weekdaySavings = useMemo(() => weekdaySpecialSavings(input), [input])
 
   // One line telling the customer how to unlock Weekday Special — shown only
   // while the party does NOT qualify (once it does, the selectable plan card
@@ -2144,12 +2136,6 @@ export default function QuoteBuilderClient() {
                       <span className="font-semibold">${fmtMoney(heroKids * (isWeekdaySaverTier ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price))}</span>
                     </div>
                   ) : null}
-                  {result.effectiveBase > result.baseSubtotal ? (
-                    <div className="flex justify-between border-b border-ink/15 py-2.5 text-flame-700">
-                      <span>${MINIMUM_SPEND} event minimum applied</span>
-                      <span className="font-semibold">+${fmtMoney(result.effectiveBase - result.baseSubtotal)}</span>
-                    </div>
-                  ) : null}
                   <div className="flex items-center justify-between border-b border-ink/15 py-2.5">
                     <span>Travel · {input.location.trim() || "Southern California"}</span>
                     {travelUnknown ? (
@@ -2170,10 +2156,18 @@ export default function QuoteBuilderClient() {
                       <span className="font-semibold">+${result.tablewareFee.toFixed(0)}</span>
                     </div>
                   ) : null}
-                  {!isWeekdaySaverTier && selectedPremiumUpgrades.length > 0 ? (
+                  {selectedPremiumUpgrades.length > 0 ? (
                     <div className="flex justify-between border-b border-ink/15 py-2.5">
                       <span>Premium upgrades ({selectedPremiumUpgradesText})</span>
                       <span className="font-semibold">up to +${result.addOnTotalRange.high.toFixed(0)}</span>
+                    </div>
+                  ) : null}
+                  {/* After what it is measured on, like the invoice's "Min. spend adj.":
+                      the food, rentals and upgrades above count toward it, travel does not. */}
+                  {result.minimumTopUp > 0 ? (
+                    <div className="flex justify-between border-b border-ink/15 py-2.5 text-flame-700">
+                      <span>${MINIMUM_SPEND} event minimum applied</span>
+                      <span className="font-semibold">+${fmtMoney(result.minimumTopUp)}</span>
                     </div>
                   ) : null}
                   {result.loyaltyDiscount > 0 ? (
@@ -2236,11 +2230,7 @@ export default function QuoteBuilderClient() {
                       )
                     })}
                   </div>
-                  <p className="text-xs leading-snug text-clay-600">
-                    {isWeekdaySaverTier
-                      ? "Premium upgrades are Standard Plan only — picking one switches this quote to Standard pricing."
-                      : "Per guest who chooses it, on top of the 2 regular proteins."}
-                  </p>
+                  <p className="text-xs leading-snug text-clay-600">Per guest who chooses it, on top of the 2 regular proteins.</p>
                 </div>
 
                 {shouldShowWeatherCard && weatherPreview ? (
