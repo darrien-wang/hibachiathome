@@ -1,0 +1,45 @@
+Production check around the deploy, 2026-11-09. GETs only (curl); nothing on the live /quote was clicked
+or submitted.
+
+Push: `git push origin HEAD:main` at 17:54:49Z, 4bc696b4..f3ed8404 (fast-forward: 0220ff52 + f3ed8404;
+origin/main had not moved since the branch was cut, so no merge). Vercel target: .vercel/project.json in
+the main checkout is prj_uq6V65eQcr9o6oIao946e8dPfR9o / realhibachi-marketing.
+
+1. Before the push (17:44:53Z)
+   /_release/ready gitCommitSha 4bc696b43b1b57c8f6c7b3d49cbbdf4534b89fc1
+   /quote html 66649 bytes, 17 chunks referenced
+     "effectiveBase"           app/quote/page-958678477f4755cb.js
+     "minimumTopUp"            (none)
+     "Standard Plan only"      app/quote/page-958678477f4755cb.js
+     "event minimum applied"   app/quote/page-958678477f4755cb.js
+
+2. /_release/ready named f3ed8404642bad4247de6c51ca8b6b4889910585 80 s after the push (polled every 15 s).
+
+3. verify-live.sh (17:56Z)
+   === 1. Homepage SSR ===
+   size: 81491 | h1: 1 | jsonld: 4 | canonical: https://www.realhibachi.com
+   === 2. City pages (expect 200) ===
+   san-diego: 200  irvine: 200  anaheim: 200  long-beach: 200  palm-springs: 200
+   === 3. Redirects (expect 308) ===
+   nyc-long-island: 308 -> https://www.realhibachi.com/locations/la-orange-county
+   non-www:         308 -> https://www.realhibachi.com/menu
+   === 4. SEO endpoints ===
+   llms.txt: 200 | sitemap <loc> count: 116
+
+4. After (17:56:30Z)
+   /_release/ready gitCommitSha f3ed8404642bad4247de6c51ca8b6b4889910585
+   /quote html 66649 bytes, 17 chunks referenced
+     "effectiveBase"           (none)
+     "minimumTopUp"            app/quote/page-9d10bd39acbff9a8.js
+     "Standard Plan only"      (none)
+     "event minimum applied"   app/quote/page-9d10bd39acbff9a8.js
+     "...input,"               (none)
+   The weekday saving in that chunk, both calls on the one parameter (the shape that failed the first
+   local build is gone):
+     (function(e){let t=en({...e,pricingTier:"standard",loyaltyStatus:void 0}),
+                   a=en({...e,pricingTier:"weekday_saver",loyaltyStatus:void 0});
+                   return Math.round(t.totalRange.high-a.totalRange.high)})
+
+Not done on production: walking /quote to step 3 there needs the contact step or its POST
+/api/landing-quote, which stores a lead and texts the number. The breakdown numbers were checked on a
+local production build of the same commit instead (build-check.txt), and in dev (browser-check.txt).
