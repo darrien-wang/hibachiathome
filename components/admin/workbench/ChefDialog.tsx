@@ -220,12 +220,26 @@ export function ChefDialog({
   }
   const addPerf = () =>
     post("perf", { action: "add_perf", id: chefId, event_date: perfForm.date, customer_label: perfForm.customer, review: perfForm.review || null, late_minutes: Number(perfForm.late) || 0, comment: perfForm.comment, order_id: perfForm.orderId || undefined }, "已记录").then(() => setPerfForm({ ...perfForm, open: false, comment: "", late: "0", review: "" }))
+  // 先发对账单、师傅口头确认交钱、再结清（老板 2026-11-09）。发 = 按现在的数存一张"待结清"
+  // 的单子，场次不动；再发一次就按最新的数重算同一张，链接不变。
+  const draft = d?.draft ?? null
+  const draftStale = !!draft && draft.net_cents !== net
+  const sendDraft = async () => {
+    if (openRows.length === 0 && approvedReimb.length === 0 && approvedAdjust.length === 0) return
+    const r = await post("draft", { action: "draft_statement", id: chefId })
+    if (r?.statementUrl) await sendStatement(String(r.statementUrl), Number(r.netCents ?? 0), "draft")
+  }
   const settleAll = async () => {
     if (openRows.length === 0 && approvedReimb.length === 0 && approvedAdjust.length === 0) return
     const what = net > 0 ? `付给 ${name} ${money(net)}` : net < 0 ? `向 ${name} 收 ${money(-net)}` : "标记已结清"
-    const method = await askPrompt({ title: "结清本期", message: `${what}，结清 ${openRows.length} 场 + ${approvedReimb.length} 张报销${approvedAdjust.length ? ` + ${approvedAdjust.length} 笔补差/扣款` : ""}。`, placeholder: "付款方式：Zelle / Venmo / 现金 / 转账", defaultValue: "Zelle", okLabel: "结清" })
+    const sent = !draft
+      ? "\n\n还没给师傅发过对账单。"
+      : draftStale
+        ? `\n\n注意：发给师傅的对账单是 ${draft.net_cents >= 0 ? `付他 ${money(draft.net_cents)}` : `他交回 ${money(-draft.net_cents)}`}，之后有改动，现在是上面这个数。结清按现在的数，他手里的链接也会变成现在的数。`
+        : ""
+    const method = await askPrompt({ title: "结清本期", message: `${what}，结清 ${openRows.length} 场 + ${approvedReimb.length} 张报销${approvedAdjust.length ? ` + ${approvedAdjust.length} 笔补差/扣款` : ""}。${sent}`, placeholder: "付款方式：Zelle / Venmo / 现金 / 转账", defaultValue: "Zelle", okLabel: "结清" })
     if (method === null) return
-    const r = await post("settle", { action: "settle", id: chefId, method, note: "" }, "本期已结清")
+    const r = await post("settle", { action: "settle", id: chefId, method, note: "" }, draft ? "本期已结清——师傅手里那条对账单链接不变，已变成已结清" : "本期已结清")
     if (r?.statementUrl) setStatement({ url: String(r.statementUrl), net: Number(r.netCents ?? 0) })
   }
   // 后勤周结：到今天为止办了的单 × 人头单价 + 已批准的报销。
@@ -434,7 +448,7 @@ export function ChefDialog({
     }
   }
   // 结清之后把明细页链接发给师傅：他打开能看到每一场每一条怎么算的。
-  const sendStatement = async (url: string, netCents: number, kind?: "reviews") => {
+  const sendStatement = async (url: string, netCents: number, kind?: "reviews" | "draft") => {
     if (!c?.phone) {
       setMsg("没有电话")
       return
@@ -445,7 +459,10 @@ export function ChefDialog({
       kind === "reviews"
         ? `Real Hibachi ${name} 好评奖励对账单，提到你的每条评价都列在里面（点开有原文链接）：${url}
 合计：${who}。哪一条对不上直接回这条短信。`
-        : `Real Hibachi ${name} 本周对账单，每一场每一笔都列在里面：${url}
+        : kind === "draft"
+          ? `Real Hibachi ${name} 本周对账单，每一场每一笔都列在里面，请核对：${url}
+合计：${who}。没问题回个"好"；哪一行对不上直接回这条短信。`
+          : `Real Hibachi ${name} 本周对账单，每一场每一笔都列在里面：${url}
 合计：${who}。哪一行对不上直接回这条短信。`
     if (!(await askConfirm({ title: "发对账单", message: `发给 ${prettyPhone(c.phone)}？\n\n${body}`, okLabel: "发送" }))) return
     setBusy("statement")
@@ -1044,11 +1061,29 @@ export function ChefDialog({
 
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {owner ? (
+                <button type="button" className="btn btn-secondary btn-left" disabled={!!busy || (openRows.length === 0 && approvedReimb.length === 0 && approvedAdjust.length === 0)} onClick={() => void sendDraft()} title="按现在的数出对账单，短信发给师傅核对；不结账，场次不动">
+                  {busy === "draft" || busy === "statement" ? "发送中…" : draft ? "重发对账单" : "发对账单"}
+                </button>
+              ) : null}
+              {owner ? (
                 <button type="button" className="btn btn-primary btn-left" disabled={!!busy || (openRows.length === 0 && approvedReimb.length === 0 && approvedAdjust.length === 0)} onClick={() => void settleAll()}>
                   {busy === "settle" ? "结算中…" : net > 0 ? `付给厨师 ${money(net)} 并结清` : net < 0 ? `收到 ${money(-net)} 并结清` : "标记本期已结清"}
                 </button>
               ) : null}
             </div>
+            {draft ? (
+              <div className="notice" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 12.5 }}>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  对账单已发 {stamp(draft.created_at)}（{draft.net_cents >= 0 ? `付他 ${money(draft.net_cents)}` : `他交回 ${money(-draft.net_cents)}`}），收到钱再结清
+                  {draftStale ? <strong style={{ color: "var(--color-accent-700)" }}> · 之后数字变了，现在是 {net >= 0 ? `付他 ${money(net)}` : `他交回 ${money(-net)}`}，要的话重发</strong> : null}
+                </span>
+                {draft.token ? (
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => copyText(`https://invoice.realhibachi.com/chef/statement/${draft.token}`)}>
+                    复制链接
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
             {statement && statement.kind !== "reviews" ? (
               <div className="notice" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 12.5 }}>
                 <span style={{ flex: 1, minWidth: 0 }}>对账单已生成（{statement.net >= 0 ? `付给师傅 ${money(statement.net)}` : `师傅交回 ${money(-statement.net)}`}）</span>

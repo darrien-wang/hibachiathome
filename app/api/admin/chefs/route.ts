@@ -448,7 +448,7 @@ export async function GET(request: NextRequest) {
     const [{ data: performance }, { data: files }, { data: settlements }, { data: assetRows }, { data: reviewRows }] = await Promise.all([
       supabase.from("chef_performance").select("*").eq("staff_member_id", id).order("event_date", { ascending: false }).limit(300),
       supabase.from("chef_files").select("id, order_id, kind, title, content_type, bytes, amount_cents, status, approved_at, settled_at, note, uploaded_by, created_at").eq("staff_member_id", id).order("created_at", { ascending: false }).limit(300),
-      supabase.from("chef_settlements").select("id, period_start, period_end, shifts, pay_cents, reimb_cents, cash_cents, tip_cents, tables_cents, travel_cents, review_cents, token, net_cents, method, note, created_by, created_at").eq("staff_member_id", id).order("created_at", { ascending: false }).limit(60),
+      supabase.from("chef_settlements").select("id, status, period_start, period_end, shifts, pay_cents, reimb_cents, cash_cents, tip_cents, tables_cents, travel_cents, review_cents, token, net_cents, method, note, created_by, created_at, settled_at").eq("staff_member_id", id).neq("status", "void").order("created_at", { ascending: false }).limit(60),
       supabase.from("staff_assets").select("id, item_key, label, qty, size, issued_on, returned_on, condition, unit_cost_cents, note, created_by").eq("staff_member_id", id).order("issued_on", { ascending: false }).limit(200),
       supabase.from("chef_review_bonuses").select("id, platform, review_date, reviewer, has_photo, excerpt, url, review_id, cents, settlement_id, settled_at, created_at").eq("staff_member_id", id).order("review_date", { ascending: false }).limit(120),
     ])
@@ -461,7 +461,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: true, chef: publicStaff(chef), shifts: shifts.map(hideShiftMoney), performance: performance ?? [], files: (files ?? []).filter((f) => MEDIA_KINDS.has(String(f.kind))), settlements: [], assets: assetsSafe, reviews: [], helping, today, sensitive: false })
     }
     const logistics = isLogistics(chef) ? await loadLogistics(supabase, chef, today) : undefined
-    return NextResponse.json({ ok: true, chef, shifts, performance: performance ?? [], files: files ?? [], settlements: settlements ?? [], assets, reviews: reviewRows ?? [], logistics, helping, today, sensitive: true })
+    // 发出去还没结清的那张对账单（老板 2026-11-09：先发对账单，师傅口头确认、交钱，再结清）。
+    const draft = (settlements ?? []).find((s) => s.status === "draft") ?? null
+    return NextResponse.json({ ok: true, chef, shifts, performance: performance ?? [], files: files ?? [], settlements: (settlements ?? []).filter((s) => s.status !== "draft"), draft, assets, reviews: reviewRows ?? [], logistics, helping, today, sensitive: true })
   }
 
   // List: everything the 名单 table and the nav badge need.
@@ -1061,7 +1063,13 @@ export async function POST(request: NextRequest) {
         }
         return NextResponse.json({ ok: true, orderSync })
       }
-      case "settle": {
+      case "settle":
+      case "draft_statement": {
+        // draft_statement = 只发对账单：算法和结清一模一样，存一张 status=draft 的单子
+        // 给师傅看，场次一个都不动（老板 2026-11-09：要先看对账单，师傅才交钱，
+        // 收到了再结清）。再点一次就按现在的数重算同一张，链接不变。结清时沿用这张。
+        const draftOnly = action === "draft_statement"
+        if (draftOnly && Array.isArray(body.assignment_ids)) return NextResponse.json({ error: "对账单按整期发，不按单场" }, { status: 400 })
         // 一次结账。每场分两种：
         //   办完了 + 确认过尾款怎么收的  -> 全结（工钱 + 小费 − 代收），这场清了
         //   还没办完 / 还没确认           -> 只结工钱（提前付），代收和小费等派对
@@ -1160,30 +1168,43 @@ export async function POST(request: NextRequest) {
           adjustments: adjust.map((f) => ({ title: (f.title ?? "").trim() || "调整", cents: f.amount_cents ?? 0 })),
           totals: { payCents: pay, tablesCents: tables, travelCents: travel, prepFeeCents: prepFee, reviewCents: review, tipCents: tip, cashCents: cash, reimbCents, adjustCents, netCents: net },
         }
-        const { data: settlement, error } = await supabase
-          .from("chef_settlements")
-          .insert({
-            staff_member_id: body.id,
-            period_start: dates[0] ?? null,
-            period_end: dates[dates.length - 1] ?? null,
-            shifts: picked.length,
-            pay_cents: pay,
-            reimb_cents: reimbCents,
-            cash_cents: cash,
-            tip_cents: tip,
-            tables_cents: tables,
-            travel_cents: travel,
-            prep_fee_cents: prepFee,
-            review_cents: review,
-            lines,
-            token,
-            net_cents: net,
-            method: str(body.method, 30) || null,
-            note: [str(body.note, 400), early.length ? `其中 ${early.length} 场只结了工钱（提前）` : ""].filter(Boolean).join(" · ") || null,
-            created_by: actor.alias,
-          })
-          .select("id")
-          .single()
+        const figures = {
+          period_start: dates[0] ?? null,
+          period_end: dates[dates.length - 1] ?? null,
+          shifts: picked.length,
+          pay_cents: pay,
+          reimb_cents: reimbCents,
+          cash_cents: cash,
+          tip_cents: tip,
+          tables_cents: tables,
+          travel_cents: travel,
+          prep_fee_cents: prepFee,
+          review_cents: review,
+          lines,
+          net_cents: net,
+        }
+        const { data: openDraft } = await supabase.from("chef_settlements").select("id, token").eq("staff_member_id", body.id).eq("status", "draft").maybeSingle()
+        if (draftOnly) {
+          const row = openDraft
+            ? await supabase.from("chef_settlements").update({ ...figures, created_at: now, created_by: actor.alias }).eq("id", openDraft.id).select("id, token").single()
+            : await supabase.from("chef_settlements").insert({ ...figures, staff_member_id: body.id, status: "draft", token, note: "已发对账单，待结清", created_by: actor.alias }).select("id, token").single()
+          if (row.error) throw row.error
+          return NextResponse.json({ ok: true, draft: true, settlementId: row.data.id, statementUrl: `https://invoice.realhibachi.com/chef/statement/${row.data.token}`, netCents: net, shifts: picked.length })
+        }
+        // 单场结的数和发出去那张整期单对不上了：那张作废，要的话重发。
+        if (openDraft && only) await supabase.from("chef_settlements").update({ status: "void", token: null, note: "已作废（之后单场结过）" }).eq("id", openDraft.id)
+        const settleFields = {
+          ...figures,
+          status: "settled",
+          settled_at: now,
+          method: str(body.method, 30) || null,
+          note: [str(body.note, 400), early.length ? `其中 ${early.length} 场只结了工钱（提前）` : ""].filter(Boolean).join(" · ") || null,
+        }
+        // 整期结清：发过对账单的就结在那张上，师傅手里的链接不变，页面从"待结清"变"已结清"。
+        const useDraft = openDraft && !only ? openDraft : null
+        const { data: settlement, error } = useDraft
+          ? await supabase.from("chef_settlements").update(settleFields).eq("id", useDraft.id).select("id, token").single()
+          : await supabase.from("chef_settlements").insert({ ...settleFields, staff_member_id: body.id, token, created_by: actor.alias }).select("id, token").single()
         if (error) throw error
         // 全结的场：冻结当时的工钱和人头，之后改工价不影响历史。
         for (const x of ready) {
@@ -1227,8 +1248,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           ok: true,
           settlementId: settlement.id,
-          token,
-          statementUrl: `https://invoice.realhibachi.com/chef/statement/${token}`,
+          token: settlement.token,
+          statementUrl: `https://invoice.realhibachi.com/chef/statement/${settlement.token}`,
+          fromDraft: !!useDraft,
           shifts: picked.length,
           prepaidOnly: early.length,
           payCents: pay,
@@ -1527,7 +1549,7 @@ export async function POST(request: NextRequest) {
         const { data: s } = await supabase.from("staff_members").select("id").eq("id", body.id).maybeSingle()
         if (!s) return NextResponse.json({ error: "员工不存在" }, { status: 404 })
         const { count: settledShifts } = await supabase.from("order_staff_assignments").select("id", { count: "exact", head: true }).eq("staff_member_id", s.id).not("settled_at", "is", null)
-        const { count: settlements } = await supabase.from("chef_settlements").select("id", { count: "exact", head: true }).eq("staff_member_id", s.id)
+        const { count: settlements } = await supabase.from("chef_settlements").select("id", { count: "exact", head: true }).eq("staff_member_id", s.id).eq("status", "settled")
         if ((settledShifts ?? 0) > 0 || (settlements ?? 0) > 0) {
           return NextResponse.json({ error: "这位员工有结算记录，不能删除；把状态改成「停用」即可" }, { status: 409 })
         }
