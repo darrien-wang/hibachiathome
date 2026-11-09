@@ -309,9 +309,12 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
  * already carry past the minimum. Loyalty stays out of it, as before.
  */
 export function weekdaySpecialSavings(input: QuoteInput): number {
-  const total = (pricingTier: QuotePricingTier) =>
-    calculateQuote({ ...input, pricingTier, loyaltyStatus: undefined }).totalRange.high
-  return Math.round(total("standard") - total("weekday_saver"))
+  // Two plain calls, not a small helper called twice: SWC's minifier inlined
+  // that helper into /quote's useMemo and left its second copy reading an
+  // undeclared `input`, which failed the production build (2026-11-09).
+  const standard = calculateQuote({ ...input, pricingTier: "standard", loyaltyStatus: undefined })
+  const weekday = calculateQuote({ ...input, pricingTier: "weekday_saver", loyaltyStatus: undefined })
+  return Math.round(standard.totalRange.high - weekday.totalRange.high)
 }
 
 function formatCurrency(value: number): string {

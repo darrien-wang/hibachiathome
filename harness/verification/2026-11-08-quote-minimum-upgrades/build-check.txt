@@ -1,0 +1,46 @@
+Production build before the push, 2026-11-09 (this worktree, after `CI=true pnpm install --frozen-lockfile`;
+no dev server running here).
+
+1. `pnpm build` on 0220ff52 failed while prerendering /quote:
+     Error occurred prerendering page "/quote".
+     ReferenceError: input is not defined
+         at .next/server/app/quote/page.js:1:16200
+         at Object.nl [as useMemo] (next/dist/compiled/next-server/app-page.runtime.prod.js)
+     Export encountered an error on /quote/page: /quote, exiting the build.
+   The minified code there - SWC inlined weekdaySpecialSavings and its `total` helper (called twice) into
+   QuoteBuilderClient's useMemo:
+     td=(0,i.useMemo)(()=>Math.round(et({...a,pricingTier:"standard",loyaltyStatus:void 0}).totalRange.high
+        -et({...input,pricingTier:"weekday_saver",loyaltyStatus:void 0}).totalRange.high),[a])
+   The first copy reads the component's state (`a`); the second still reads the helper's parameter `input`,
+   which no longer exists after inlining. `npm run dev` and the tests do not minify, so neither showed it.
+   Vercel builds the same way: the push would have failed there and production stayed on 4bc696b4.
+
+2. Fix: weekdaySpecialSavings makes its two calculateQuote calls directly (no helper called twice). Same
+   numbers: the 6 new tests pass; `npm test` 412 pass / 0 fail; `npm run lint:copy` 0 hard-rule hits;
+   `tsc --noEmit` lists nothing in lib/quote-builder.ts (the same 3 existing lines in QuoteBuilderClient.tsx).
+
+3. `pnpm build` again: exit 0, 160/160 static pages, /quote static (26.6 kB, first load 149 kB).
+   Homepage SSR guard: .next/server/app/index.html 77546 bytes, h1 1, jsonld 4.
+   Both /quote bundles now hold it as one function with both calls on its parameter:
+     (function(e){let t=en({...e,pricingTier:"standard",loyaltyStatus:void 0}),
+                   a=en({...e,pricingTier:"weekday_saver",loyaltyStatus:void 0});
+                   return Math.round(t.totalRange.high-a.totalRange.high)})(...)
+   No `...input` left in .next/server/app/quote/page.js or static/chunks/app/quote/page-24cd906831a8eadd.js;
+   both carry `minimumTopUp`, neither `effectiveBase` nor "Standard Plan only".
+
+4. The built bundle in the browser pane: `next start` on :3001 from a temporary .claude/launch.json entry,
+   reverted afterwards. Contact step skipped with a test rh_quote_unlock seed (removed afterwards). Once the
+   page had loaded, a fetch/sendBeacon stub answered every non-GET: 3 POST /api/landing-quote and 5
+   analytics calls (GA collect, the Google Ads quote_completed conversion, an OpenAI pixel) went nowhere;
+   whatever the page sent on load, before the stub, was not caught. Our own API saw GETs only (travel-fee,
+   weather, slot-availability 503 - no database keys here). Travel is the local lookup's $62.30.
+   - 7 adults + 1 kid, Mon 11/23, Indio, Standard: "$599 event minimum applied | +$149.80" with no upgrade;
+     with all three: "Premium upgrades (Filet Mignon, Scallops, Lobster Tail) | up to +$208", no minimum
+     line, card $661.30–$719.50. Setup + scallops only: "+$120", "up to +$48", no minimum line.
+   - 8 adults, Tue 12/8, setup + scallops, Standard: card $661.50–$709.50, "Mon–Thu date — take the Weekday
+     Special and save $40, plus a free appetizer (your pick)." and "Apply Weekday Special — save $40".
+     Applied, step 3: 8 adults × $54.90 $439.20, Travel · Indio $62, Tables, chairs & utensils +$120,
+     Premium upgrades (Scallops) up to +$48, no minimum line, card $661.30–$669.50; under the upgrade
+     buttons "Per guest who chooses it, on top of the 2 regular proteins."
+     (local-prod-build-weekday-8a-setup-scallops.jpg)
+   Console: /_vercel/insights/script.js 404 (it only exists on Vercel) and the slot-availability 503s.
