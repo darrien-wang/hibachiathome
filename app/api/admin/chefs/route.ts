@@ -1106,9 +1106,15 @@ export async function POST(request: NextRequest) {
         const { data: adjRows } = await supabase.from("chef_files").select("id, title, amount_cents").eq("staff_member_id", body.id).eq("kind", "other").eq("status", "approved").not("amount_cents", "is", null)
         const adjust = only ? [] : ((adjRows ?? []) as Array<{ id: string; title: string | null; amount_cents: number | null }>)
         const adjustCents = adjust.reduce((a, f) => a + (f.amount_cents ?? 0), 0)
-        // 好评奖励 2026-09-28 起每月单独结（settle_reviews 出自己的对账单），
-        // 周结不再掺好评——这里恒为空，字段留着只为对账单快照结构不变。
-        const reviewRows2: Array<{ id: string; platform: string; review_date: string; reviewer: string | null; has_photo: boolean; excerpt: string | null; url?: string | null; cents: number }> = []
+        // 好评奖励 2026-09-28 起默认每月单独结（settle_reviews 出自己的对账单）；
+        // 2026-11-09 老板：结算时可以勾"好评一起结"，待结的好评就并进这一期（include_reviews）。
+        // 单场结不带好评。
+        type RevRow = { id: string; platform: string; review_date: string; reviewer: string | null; has_photo: boolean; excerpt: string | null; url?: string | null; cents: number }
+        let reviewRows2: RevRow[] = []
+        if (body.include_reviews === true && !only) {
+          const { data: revPending } = await supabase.from("chef_review_bonuses").select("id, platform, review_date, reviewer, has_photo, excerpt, url, cents").eq("staff_member_id", body.id).is("settlement_id", null).order("review_date")
+          reviewRows2 = (revPending ?? []) as RevRow[]
+        }
         // 工钱：这一轮真正要付的（提前结过的不再付）。桌椅和路费跟着"这场
         // 真办完了"走：提前结只付人头费，桌椅路费等收尾那笔一起清。
         const payOf = (x: (typeof picked)[number]) => (x.paySettledAt ? 0 : x.payCents)
@@ -1120,7 +1126,7 @@ export async function POST(request: NextRequest) {
         const cash = ready.reduce((a, x) => a + x.cashCents, 0)
         const tip = ready.reduce((a, x) => a + x.cardTipCents, 0)
         const reimbCents = reimb.reduce((a, f) => a + (f.amount_cents ?? 0), 0)
-        if (!picked.length && !reimb.length && !adjust.length) {
+        if (!picked.length && !reimb.length && !adjust.length && !reviewRows2.length) {
           return NextResponse.json({ error: "没有可结的：先确认每场尾款怎么收的（还没办的场用\"提前结算\"，按师傅代收现金处理）。" }, { status: 400 })
         }
         const net = pay + tables + travel + review + reimbCents + adjustCents + tip - cash - prepFee

@@ -90,6 +90,8 @@ export function ChefDialog({
   const [settleView, setSettleView] = useState<"week" | "month">("week")
   const [fileFilter, setFileFilter] = useState<"all" | ChefFile["kind"]>("all")
   const [statement, setStatement] = useState<{ url: string; net: number; kind?: "reviews" } | null>(null)
+  // 结算时好评要不要一起结（2026-11-09 老板）。发过的对账单带了好评，就默认勾上。
+  const [withReviews, setWithReviews] = useState(false)
   const [profile, setProfile] = useState<Record<string, string>>({})
   const [docs, setDocs] = useState<Record<string, string>>({})
   const [skills, setSkills] = useState<string[]>([])
@@ -104,6 +106,7 @@ export function ChefDialog({
     try {
       const r = await adminJson<ChefDetail & { ok: boolean }>(adminKey, `/api/admin/chefs?id=${encodeURIComponent(chefId)}`)
       setD(r)
+      if (r.draft) setWithReviews((r.draft.review_cents ?? 0) > 0)
       const c = r.chef
       setProfile({ display_name: c.display_name ?? c.full_name ?? "", full_name: c.full_name ?? "", phone: c.phone ?? "", email: c.email ?? "", wechat: c.wechat ?? "", base: String((c.base_pay_cents ?? 0) / 100), head_from: String(c.head_from ?? 0), per_head: String((c.per_head_cents ?? 0) / 100), billing_cycle: c.billing_cycle ?? "weekly", notes: c.notes ?? "", status: c.status, role: c.role ?? "chef", pay_start_date: c.pay_start_date ?? "" })
       // 后勤没有场次和评价这两页。
@@ -171,8 +174,9 @@ export function ChefDialog({
   const cashTotal = openRows.reduce((a, s) => a + s.cashCents, 0)
   const tipTotal = openRows.reduce((a, s) => a + s.cardTipCents, 0)
   const reimbTotal = approvedReimb.reduce((a, f) => a + (f.amount_cents ?? 0), 0)
-  // 好评不进周结（2026-09-28 起每月单独出单，见下方好评卡）。
-  const net = payTotal + tablesTotal + travelTotal + reimbTotal + adjustTotal + tipTotal - cashTotal - prepFeeTotal
+  // 好评默认不进周结（2026-09-28 起每月单独出单，见下方好评卡）；勾了"好评一起结"就并进这一期（2026-11-09）。
+  const reviewIn = withReviews && pendingReviews.length > 0 ? reviewTotal : 0
+  const net = payTotal + tablesTotal + travelTotal + reimbTotal + adjustTotal + tipTotal + reviewIn - cashTotal - prepFeeTotal
   const perf = d?.performance ?? []
   const good = perf.filter((p) => p.review === "good").length
   const bad = perf.filter((p) => p.review === "bad").length
@@ -224,22 +228,23 @@ export function ChefDialog({
   // 的单子，场次不动；再发一次就按最新的数重算同一张，链接不变。
   const draft = d?.draft ?? null
   const draftStale = !!draft && draft.net_cents !== net
+  const nothingToSettle = openRows.length === 0 && approvedReimb.length === 0 && approvedAdjust.length === 0 && reviewIn === 0
   const sendDraft = async () => {
-    if (openRows.length === 0 && approvedReimb.length === 0 && approvedAdjust.length === 0) return
-    const r = await post("draft", { action: "draft_statement", id: chefId })
+    if (nothingToSettle) return
+    const r = await post("draft", { action: "draft_statement", id: chefId, include_reviews: reviewIn > 0 })
     if (r?.statementUrl) await sendStatement(String(r.statementUrl), Number(r.netCents ?? 0), "draft")
   }
   const settleAll = async () => {
-    if (openRows.length === 0 && approvedReimb.length === 0 && approvedAdjust.length === 0) return
+    if (nothingToSettle) return
     const what = net > 0 ? `付给 ${name} ${money(net)}` : net < 0 ? `向 ${name} 收 ${money(-net)}` : "标记已结清"
     const sent = !draft
       ? "\n\n还没给师傅发过对账单。"
       : draftStale
         ? `\n\n注意：发给师傅的对账单是 ${draft.net_cents >= 0 ? `付他 ${money(draft.net_cents)}` : `他交回 ${money(-draft.net_cents)}`}，之后有改动，现在是上面这个数。结清按现在的数，他手里的链接也会变成现在的数。`
         : ""
-    const method = await askPrompt({ title: "结清本期", message: `${what}，结清 ${openRows.length} 场 + ${approvedReimb.length} 张报销${approvedAdjust.length ? ` + ${approvedAdjust.length} 笔补差/扣款` : ""}。${sent}`, placeholder: "付款方式：Zelle / Venmo / 现金 / 转账", defaultValue: "Zelle", okLabel: "结清" })
+    const method = await askPrompt({ title: "结清本期", message: `${what}，结清 ${openRows.length} 场 + ${approvedReimb.length} 张报销${approvedAdjust.length ? ` + ${approvedAdjust.length} 笔补差/扣款` : ""}${reviewIn ? ` + ${pendingReviews.length} 条好评` : ""}。${sent}`, placeholder: "付款方式：Zelle / Venmo / 现金 / 转账", defaultValue: "Zelle", okLabel: "结清" })
     if (method === null) return
-    const r = await post("settle", { action: "settle", id: chefId, method, note: "" }, draft ? "本期已结清——师傅手里那条对账单链接不变，已变成已结清" : "本期已结清")
+    const r = await post("settle", { action: "settle", id: chefId, method, note: "", include_reviews: reviewIn > 0 }, draft ? "本期已结清——师傅手里那条对账单链接不变，已变成已结清" : "本期已结清")
     if (r?.statementUrl) setStatement({ url: String(r.statementUrl), net: Number(r.netCents ?? 0) })
   }
   // 后勤周结：到今天为止办了的单 × 人头单价 + 已批准的报销。
@@ -1051,7 +1056,7 @@ export function ChefDialog({
               ))}
               <div style={{ display: "flex", flexDirection: "column", gap: 2, padding: "10px 0 4px" }}>
                 <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-                  人头费 {money(payTotal)} + 桌椅 {money(tablesTotal)} + 路费 {money(travelTotal)} + 报销 {money(reimbTotal)}{adjustTotal ? ` ${adjustTotal < 0 ? "−" : "+"} 补差/扣款 ${money(Math.abs(adjustTotal))}` : ""} + 小费 {money(tipTotal)} − 代收 {money(cashTotal)}{prepFeeTotal ? ` − 食材加工 ${money(prepFeeTotal)}` : ""}
+                  人头费 {money(payTotal)} + 桌椅 {money(tablesTotal)} + 路费 {money(travelTotal)} + 报销 {money(reimbTotal)}{adjustTotal ? ` ${adjustTotal < 0 ? "−" : "+"} 补差/扣款 ${money(Math.abs(adjustTotal))}` : ""}{reviewIn ? ` + 好评 ${money(reviewIn)}` : ""} + 小费 {money(tipTotal)} − 代收 {money(cashTotal)}{prepFeeTotal ? ` − 食材加工 ${money(prepFeeTotal)}` : ""}
                 </span>
                 <strong className="num" style={{ fontSize: 20, whiteSpace: "nowrap", color: net < 0 ? "var(--color-accent-700)" : undefined }}>
                   {net > 0 ? `欠他 ${money(net)}` : net < 0 ? `他欠 ${money(-net)}` : "已结清"}
@@ -1059,14 +1064,20 @@ export function ChefDialog({
               </div>
             </div>
 
+            {owner && pendingReviews.length > 0 ? (
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
+                <input type="checkbox" checked={withReviews} disabled={!!busy} onChange={(e) => setWithReviews(e.target.checked)} />
+                待结好评 {pendingReviews.length} 条（{money(reviewTotal)}）和这次一起结
+              </label>
+            ) : null}
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {owner ? (
-                <button type="button" className="btn btn-secondary btn-left" disabled={!!busy || (openRows.length === 0 && approvedReimb.length === 0 && approvedAdjust.length === 0)} onClick={() => void sendDraft()} title="按现在的数出对账单，短信发给师傅核对；不结账，场次不动">
+                <button type="button" className="btn btn-secondary btn-left" disabled={!!busy || nothingToSettle} onClick={() => void sendDraft()} title="按现在的数出对账单，短信发给师傅核对；不结账，场次不动">
                   {busy === "draft" || busy === "statement" ? "发送中…" : draft ? "重发对账单" : "发对账单"}
                 </button>
               ) : null}
               {owner ? (
-                <button type="button" className="btn btn-primary btn-left" disabled={!!busy || (openRows.length === 0 && approvedReimb.length === 0 && approvedAdjust.length === 0)} onClick={() => void settleAll()}>
+                <button type="button" className="btn btn-primary btn-left" disabled={!!busy || nothingToSettle} onClick={() => void settleAll()}>
                   {busy === "settle" ? "结算中…" : net > 0 ? `付给厨师 ${money(net)} 并结清` : net < 0 ? `收到 ${money(-net)} 并结清` : "标记本期已结清"}
                 </button>
               ) : null}
