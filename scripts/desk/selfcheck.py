@@ -889,6 +889,15 @@ def main() -> int:
     r = Run(monday, "--free-appetizer", "edamame", "--dry")
     check("--free-appetizer edamame on it (the line drops $5 with the tray): ✓ $628.80, the free edamame netted",
           r.has("✓ total check: TOTAL $628.80", "extras $10.00 - other promos $10.00"), r)
+    # --set-extra: the whole count, free tray included (Joyce 11-09 took her bought gyoza off on the page).
+    r = Run(dict(monday, partyExtras=[{"id": "gyoza", "qty": 2}]), "--set-extra", "gyoza=1", "edamame=1")
+    check("--set-extra gyoza=1 edamame=1 over a bought gyoza: back to the free tray, one edamame on",
+          r.data.get("partyExtras") == [{"id": "gyoza", "qty": 1}, {"id": "edamame", "qty": 1}]
+          and r.has("party extra: gyoza 2 -> 1 tray(s)", "party extra: edamame 0 -> 1 tray(s)"), r)
+    r = Run(monday, "--set-extra", "gyoza=0", "--dry")
+    check("  gyoza=0 takes the line off, --dry saves nothing", r.saved is None and r.has("party extra: gyoza 1 -> 0 tray(s)"), r)
+    r = Run(monday, "--set-extra", "utensils=8", "--dry")
+    check("  a setup item is not a party extra (those ride the rows)", "--set-extra 'utensils=8'" in str(r.exit) and r.saved is None, r)
     # One free tray per 10 guests rides on the weekday line; a tray they bought does not.
     def monday_20(line_amount: float) -> dict:
         return invoice(adults=20, proteins=prot(chicken=(20, 0), steak=(20, 0)), extras=[{"id": "gyoza", "qty": 2}], date=MONDAY,

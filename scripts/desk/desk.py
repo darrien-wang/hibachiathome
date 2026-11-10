@@ -2187,7 +2187,7 @@ def cmd_order(a):
         for w in res.get("lint") or []:
             print(f"   {'!!' if w.get('severity') == 'blocking' else '! '} {w.get('message')}")
         invoice_flags = (a.date, a.time, a.address, a.name, a.email, a.phone, a.notes_file, a.travel_miles, a.travel_fee, a.proteins,
-                         a.headcount, a.retier, a.guests_file, a.deal_free, a.deal_rate, a.drop_deal or None, a.free_item, a.add_extra, a.add_promo, a.remove_promo,
+                         a.headcount, a.retier, a.guests_file, a.deal_free, a.deal_rate, a.drop_deal or None, a.free_item, a.add_extra, a.set_extra, a.add_promo, a.remove_promo,
                          a.free_appetizer, a.free_appetizer_trays, a.add_adult, a.add_child, a.remove_guest, a.promo, a.reconcile or None)
         if all(v in (None, False, []) for v in invoice_flags):
             return
@@ -2538,6 +2538,22 @@ def cmd_order(a):
                     extras.append({"id": app_id, "qty": n})
                 unit = "serving(s)" if app_id in PROTEIN_SIDE_PRICES else "tray(s)"
                 changes.append(f"paid extra: {app_id} +{n} {unit} at {money({**APPETIZER_PRICES, **PROTEIN_SIDE_PRICES}[app_id])} each")
+        if a.set_extra:
+            # The whole count of a party-wide appetizer or protein side, the free
+            # appetizer's tray included - --add-extra only adds. Joyce 11-09 took
+            # her bought gyoza tray off on the party page and added an edamame;
+            # an invoice save writes its own counts back onto that page, so
+            # saving the old 2 gyoza would have put the tray back on it.
+            extras = data.setdefault("partyExtras", [])
+            for pair in a.set_extra:
+                m = re.fullmatch(r"([a-z_]+)=(\d+)", pair)
+                if not m or m.group(1) not in {**APPETIZER_PRICES, **PROTEIN_SIDE_PRICES}:
+                    raise SystemExit(f"--set-extra {pair!r}: use id=N with id in {sorted({**APPETIZER_PRICES, **PROTEIN_SIDE_PRICES})}")
+                app_id, n = m.group(1), int(m.group(2))
+                was = sum(tray_qty(e.get("qty")) for e in extras if e.get("id") == app_id)
+                data["partyExtras"] = extras = [e for e in extras if e.get("id") != app_id] + ([{"id": app_id, "qty": n}] if n else [])
+                unit = "serving(s)" if app_id in PROTEIN_SIDE_PRICES else "tray(s)"
+                changes.append(f"party extra: {app_id} {tray_qty(was)} -> {n} {unit}")
         if a.drop_deal:
             # Take a signed deal back off an order: the customDeal rule and the
             # deal_* lines it wrote. Taegan 10-09: the 10-02 flatOff $90 was the
@@ -3060,6 +3076,7 @@ def main(argv=None):
     p.add_argument("--drop-deal", action="store_true", help="remove the order's custom deal and its deal_* promotion lines")
     p.add_argument("--free-item", nargs="+", action="extend", metavar="ID=N", help="appetizer trays promised free: gyoza=2 adds 2 trays and a fixed 'FREE: Gyoza (10 pcs) x2' line")
     p.add_argument("--add-extra", nargs="+", action="extend", metavar="ID=N", help="appetizer trays the customer buys (billed at menu price): gyoza=1; a setup item for N guests before the rows exist: utensils=18; or tablecloths for their own tables by count: white_linen=3 ($5, black), white_tablecloth=3 ($8, white); or chairs / 6-ft tables on their own by count: folding_chairs=30, folding_tables=2 (bare, no cloth)")
+    p.add_argument("--set-extra", nargs="+", action="extend", metavar="ID=N", help="the whole count of a party-wide appetizer (trays) or protein side (servings), the free appetizer's tray included; 0 takes the line off. For a tray the customer took off on the party page: gyoza=1 leaves just the free one")
     p.add_argument("--remove-promo", nargs="+", action="extend", metavar="ID", help="drop stored promotion lines by id")
     p.add_argument("--add-promo", metavar="ID=AMOUNT", help="add a promotion line, e.g. appreciation_teacher=50 (with --promo-label)")
     p.add_argument("--promo-label", help="label for --add-promo, as the customer reads it")
