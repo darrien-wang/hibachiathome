@@ -2064,7 +2064,8 @@ def _party_plan(order: dict) -> dict | None:
 
 
 def _plan_rows(state: dict) -> list[dict]:
-    """The party page's guests as --guests-file rows. A baby is not a row; one protein is that protein twice."""
+    """The party page's guests as --guests-file rows. A baby is not a row; one protein is that protein twice.
+    Each row keeps its guest's id on the page, so a save lands it back on that guest (see --guests-file)."""
     extras = state.get("extras") or {}
     rows = []
     for g in state.get("guests") or []:
@@ -2072,6 +2073,8 @@ def _plan_rows(state: dict) -> list[dict]:
             continue
         prots = list(g.get("proteins") or [])
         row = {"name": (g.get("name") or "").strip(), "proteins": prots * 2 if len(prots) == 1 else prots}
+        if g.get("id"):
+            row["id"] = g["id"]
         if g.get("kind") == "child":
             row["child"] = True
         if g.get("kind") == "under5":
@@ -2364,12 +2367,19 @@ def cmd_order(a):
             # +$10 per protein past two), so nothing is priced by hand.
             rows = json.loads(pathlib.Path(a.guests_file).read_bytes().decode("utf-8"))
             if not isinstance(rows, list) or not rows:
-                raise SystemExit("--guests-file: a JSON list of {name, child?, little?, proteins: [ids], tables?, utensils?, noodles?, allergy?, note?}")
+                raise SystemExit("--guests-file: a JSON list of {id?, name, child?, little?, proteins: [ids], tables?, utensils?, noodles?, allergy?, note?}")
             had = [g for g in (data.get("guests") or []) if g.get("proteins")]
             if had and not a.replace_guests:
                 raise SystemExit(f"this order already has {len(had)} guest rows with picks - pass --replace-guests to overwrite them")
             stamp = int(time.time())
             new_rows = []
+            # A row from `order plan --rows-out` keeps its party-page guest id:
+            # the save lines the page up with the rows by id, then by name. With
+            # a fresh id, a guest with picks and no name matched nobody - the
+            # row went on as "Guest 4" and the guest stayed as well (filled in,
+            # so a save keeps it): RH-20261107-9978's page had 15 guests for 13
+            # rows after two saves (2026-11-09). A hand-written row has no id.
+            ids_used: set[str] = set()
             for i, r in enumerate(rows):
                 prots = [str(x).strip() for x in (r.get("proteins") or [])]
                 bad = [x for x in prots if x not in PROTEIN_IDS]
@@ -2379,8 +2389,13 @@ def cmd_order(a):
                 # skill), so their row may list none; everyone else picks two.
                 if len(prots) < 2 and not r.get("little"):
                     raise SystemExit(f"guest {i + 1} {r.get('name')!r}: needs at least 2 proteins (a free 3-4 year old: \"little\": true)")
+                page_id = str(r.get("id") or "").strip()
+                if page_id in ids_used:
+                    page_id = ""  # a row copied in the file is another guest
+                elif page_id:
+                    ids_used.add(page_id)
                 row = {
-                    "id": f"g{i + 1}_{stamp}",
+                    "id": page_id or f"g{i + 1}_{stamp}",
                     "name": str(r.get("name") or f"Guest {i + 1}").strip(),
                     "isChild": bool(r.get("child") or r.get("little")),  # a 3-4 year old is a child row, refunded by the Little kids line
                     "proteins": prots,
@@ -3035,7 +3050,8 @@ def main(argv=None):
                    '[{"name": "Mom", "proteins": ["filet_mignon", "steak", "lobster_tail"], "tables": true}, {"name": "Tyson", "child": true, ...}]. '
                    "Upgrades and third proteins are protein ids; the engine bills them. Sets the head counts from the rows. "
                    '{"name": "Mia", "little": true} is a free 3-4 year old (a child row, no proteins needed): the order\'s '
-                   "Little kids (3-4) @ $0 ×N line follows the list's little rows, and --remove-guest of one takes it down by one.")
+                   "Little kids (3-4) @ $0 ×N line follows the list's little rows, and --remove-guest of one takes it down by one. "
+                   'Rows from `order plan --rows-out` carry "id", their guest on the party page; keep it, and the save updates that guest.')
     p.add_argument("--replace-guests", action="store_true", help="allow --guests-file to overwrite rows that already have picks")
     p.add_argument("--deal-free", help="setup items promised free, e.g. tables_chairs: writes customDeal + the matching refund line at the current row count")
     p.add_argument("--deal-rate", nargs="+", action="extend", metavar="ID=PRICE",

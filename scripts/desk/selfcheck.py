@@ -760,6 +760,30 @@ def main() -> int:
           and desk._setup_units(r.data, "tables_chairs") == 30
           and r.has("kept tables_chairs=2 beyond the guests", "✓ total check: TOTAL"), r)
 
+    # Rows exported from the party page keep their guest's id there (RH-20261107-9978,
+    # 2026-11-09): with a fresh id, a picked guest with no name matched nothing on the
+    # save and stayed next to its "Guest 4" row - 15 guests on the page for 13 rows.
+    page = {"guests": [
+        {"id": "g_robert", "kind": "adult", "name": "Robert", "proteins": ["steak", "shrimp"]},
+        {"id": "g_unnamed", "kind": "adult", "name": "", "proteins": ["shrimp"]},
+        {"id": "g_toddler", "kind": "under5", "name": "", "proteins": ["steak", "chicken"]},
+        {"id": "g_baby", "kind": "baby", "name": "Ava", "proteins": []},
+    ], "extras": {"tablesChairs": True}}
+    exported = desk._plan_rows(page)
+    check("order plan --rows-out: every row keeps its party-page id, the baby is no row",
+          [x.get("id") for x in exported] == ["g_robert", "g_unnamed", "g_toddler"] and exported[1]["proteins"] == ["shrimp", "shrimp"])
+    with tempfile.TemporaryDirectory() as tmp:
+        f = pathlib.Path(tmp) / "rows.json"
+        extra = {"name": "Plus one", "proteins": ["steak", "shrimp"], "tables": True}
+        f.write_text(json.dumps([*exported, extra, dict(exported[0], name="Robert's twin")]), encoding="utf-8")
+        r = Run(invoice(mode="detailed", adults=3, guests=rows(3), extras=[]), "--guests-file", str(f), "--replace-guests",
+                created_at=AFTER_LADDER)
+    ids = [g.get("id") for g in r.data.get("guests") or []]
+    check("--guests-file: rows from the page are saved with its ids, a new row and a copied row get new ones",
+          ids[:3] == ["g_robert", "g_unnamed", "g_toddler"] and len(ids) == 5 and len(set(ids)) == 5
+          and all(i and i.startswith(("g4_", "g5_")) for i in ids[3:])
+          and [g.get("name") for g in r.data.get("guests") or []][1] == "Guest 2", r)
+
     # The edges of the ladder.
     r = Run(invoice(adults=10, proteins=prot(chicken=(10, 0), steak=(10, 0)), promos=[PARTY[10]]), "--headcount", "9/0")
     check("under 10 paying heads: the kept line comes off too, and the $599 minimum check still matches",
