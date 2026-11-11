@@ -1,0 +1,65 @@
+Production check after the deploy, 2026-11-11. GETs only (curl, no page scripts, no fbclid or lead ids); nothing written.
+Owner's go in the session, 2026-11-11: "按照你你的建议来吧" (go with the recommendation: A, all four changes).
+
+Before the push: /_release/ready gitCommitSha f9a848889d2ef03ad6274506faa6b9cbe20f364d; live /llms.txt read
+  "- Premium protein upgrades, per guest: Filet Mignon +$8, Premium Sea Scallops +$6, Spiny Lobster Tail +$12. A third protein is +$10 per guest."
+Push: f9a84888..b55e54af HEAD -> main at 2026-11-11T20:46:11Z, a fast-forward (origin/main had not moved, no merge).
+/_release/ready named b55e54af348c25381a8e313a63170b0996d4b738 at 20:47:24Z (about 73 s after the push).
+
+--- prod-check.sh
+== /_release/ready
+gitCommitSha b55e54af348c25381a8e313a63170b0996d4b738 | vercelUrl realhibachi-marketing-r2nmuv7fq-darrienwangs-projects.vercel.app
+
+== /quote and its page chunk
+quote HTML 66649 bytes
+chunk /_next/static/chunks/app/quote/page-98b453741438f720.js
+chunk 81635 bytes
+  1  Swaps one of a guest's 
+  0   proteins. Extra protein: $   <- grep read the trailing $ as end of line; as a fixed string the count is 1 (below)
+  0  on top of the 2 regular proteins
+  0  Per guest who chooses it
+  upgrades helper: e.steak&&t.push(K.steak),e.shrimp&&t.push(K.shrimp),e.lobster&&t.push(K.lobster);let a=Math.max(0,t.length-E.eF);return ee(t.reduce((e,t)=>e+t,0)+a*E.Fh)}
+
+== /llms.txt, /llms-full.txt, /for-ai
+/llms.txt 5840 bytes
+  0  A third protein is +$10 per guest
+  1  swaps one of the guest's 2 included proteins
+  1  Filet Mignon +$18, Premium Sea Scallops +$16, Spiny Lobster Tail +$22
+  1  all 3 premiums for one guest = +$56
+/llms-full.txt 13482 bytes
+  0  A third protein is +$10 per guest
+  1  swaps one of the guest's 2 included proteins
+  1  Filet Mignon +$18, Premium Sea Scallops +$16, Spiny Lobster Tail +$22
+  1  all 3 premiums for one guest = +$56
+/for-ai 92541 bytes
+  0  A third protein is +$10 per guest
+  2  swaps one of the guest's 2 included proteins
+  3  Filet Mignon +$18, Premium Sea Scallops +$16, Spiny Lobster Tail +$22
+  3  all 3 premiums for one guest = +$56
+- Premium protein upgrades, per guest: Filet Mignon +$8, Premium Sea Scallops +$6, Spiny Lobster Tail +$12. An upgrade swaps one of the guest's 2 included proteins; it does not add one. A protein beyond the 2 is +$10 per guest, plus its upgrade if premium (Filet Mignon +$18, Premium Sea Scallops +$16, Spiny Lobster Tail +$22). Example: chicken, shrimp and all 3 premiums for one guest = +$56.
+
+== the three other pages
+/hibachi-at-home 162547 bytes
+  2  Swap in lobster or filet!
+  (patterns not listed: 0)
+/hibachi-at-home/newport-beach 156981 bytes
+  4  each swaps one of a guest
+  (patterns not listed: 0)
+/blog/hibachi-at-home-cost-los-angeles 83789 bytes
+  2  most guests swap one protein, not both
+  (patterns not listed: 0)
+  fixed-string recheck in the chunk: 1  ' proteins. Extra protein: $'
+  caption in the chunk: ,{className:"text-xs leading-snug text-clay-600",children:["Swaps one of a guest's ",E.eF," proteins. Extra protein: $",E.Fh," more."]})]}),tj&&eM?(0,l.
+
+--- .claude/skills/deploy/scripts/verify-live.sh
+=== 1. Homepage SSR ===
+size: 81491 | h1: 1 | jsonld: 4 | canonical: https://www.realhibachi.com
+=== 2. City pages (expect 200) ===
+san-diego: 200  irvine: 200  anaheim: 200  long-beach: 200  palm-springs: 200  
+=== 3. Redirects (expect 308) ===
+nyc-long-island: 308 -> https://www.realhibachi.com/locations/la-orange-county
+non-www:         308 -> https://www.realhibachi.com/menu
+=== 4. SEO endpoints ===
+llms.txt: 200 | sitemap <loc> count: 116
+
+Not done: the live /quote breakdown was not walked (step 3 needs the contact POST, which texts and emails); the chunk carries the same caption and helper the local build and the built-bundle walk (build-check.txt) showed.

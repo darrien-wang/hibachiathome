@@ -473,7 +473,7 @@ Noticed, not changed:
 
 ## QUOTE-UPGRADE-SWAP - /quote says an upgrade swaps one of the 2 proteins, and prices all three the invoice's way (2026-11-11)
 
-Status: committed on `claude/peaceful-herschel-8424e2`, not pushed. Waiting for the owner's go on the copy (shown to him in Chinese, before and after).
+Status: done; deployed 2026-11-11 on the owner's go-ahead (f9701701 + a9738fa9 + b55e54af). The before/after copy was shown to him in Chinese; his answer, "按照你你的建议来吧", took the recommendation: all four changes, QUOTE-UPGRADE-WORDING included.
 
 Why: the invoice engine (`v0-real-hibachi-invoice-generator/lib/pricing.ts` `calcGuestProteinCost`, origin/main 5ab32a1) gives every guest 2 proteins. A premium upgrade replaces one of them (filet +$8, scallops +$6, lobster tail +$12); each protein past the 2 is $10 more, so a premium one there is $18 / $16 / $22 (desk.py `PROTEIN_SIDE_PRICES` agrees). /quote's caption under the upgrade buttons read "Per guest who chooses it, on top of the 2 regular proteins.", and `calculateQuote` added the picked upgrades up per guest ($26 for all three) for the "up to" line and the card's high end. On 2026-11-08 the 7 adult + 1 kid party in Indio picked all three, saw about $672 and took it as chicken + shrimp + all three for everyone: that is $448 of proteins for 8 guests, not $208 ($912.20 in all). The owner walked it back on 11-11. /llms.txt said "A third protein is +$10 per guest.", which prices a premium third at $10.
 
@@ -496,7 +496,7 @@ Noticed, not changed:
 
 ## QUOTE-UPGRADE-WORDING - Three more live lines that made an upgrade an add-on (2026-11-11)
 
-Status: committed on `claude/peaceful-herschel-8424e2` after QUOTE-UPGRADE-SWAP, not pushed. A separate commit so the owner can take or drop it on its own.
+Status: done; deployed 2026-11-11 with QUOTE-UPGRADE-SWAP (the owner took all four changes). Kept a separate commit, a9738fa9, so it could be dropped on its own.
 
 Why: the sweep for "on top of" / upgrade wording that QUOTE-UPGRADE-SWAP asked for (app/, components/, lib/, plus config/, where the city and blog copy lives) found three customer-facing lines that read an upgrade as something added to the 2 proteins.
 
@@ -512,3 +512,4 @@ Verification completed:
 - Local `npm run dev`, plain GETs of the three pages (no page scripts run): each serves the new line (2 / 4 / 2 times, HTML + JSON-LD + RSC payload) and none of the old ones. Output: `harness/verification/2026-11-11-quote-upgrade-swap/wording-pages-local.txt`.
 - Production before the push (GET `/_release/ready`): f9a84888, the base of this branch; live /llms.txt still reads "A third protein is +$10 per guest."
 - Production build of a9738fa9 (both commits; `CI=true pnpm install --frozen-lockfile` in the worktree first): exit 0, 160/160 pages, /quote prerendered, homepage 77546 bytes / h1 1 / jsonld 4. The /quote chunk `page-f121808329c5b0ab.js` carries the new caption and the upgrades helper inlined as a function on its own parameter (the 11-09 minifier failure was an inlined helper reading an undeclared `input`); none of the five old strings is anywhere in `.next`; `llms.txt.body` and the three prerendered pages carry the new lines. The built bundle (`npm run start`) in the browser pane gave the 11-08 party "up to +$288", card $661.20–$799.40, the new caption. Output: `build-check.txt`, `local-prod-build-11-08-party-all-three.jpg`.
+- Deployed: b55e54af pushed to main at 20:46:11Z, a fast-forward from f9a84888 (main had not moved, no merge). `/_release/ready` named b55e54af about 73 s later. Live, GETs only: the /quote chunk `page-98b453741438f720.js` carries the new caption and the upgrades helper, and neither old caption string; /llms.txt, /llms-full.txt and /for-ai carry the new upgrade line and not "A third protein is +$10 per guest." (live before the push); /hibachi-at-home, the Newport Beach page and the LA cost post carry the new lines and none of the old. `verify-live.sh` green (homepage 81491 bytes, h1 1, jsonld 4; city pages 200; redirects 308; llms.txt 200; sitemap 116). The live /quote breakdown was not walked (step 3 needs the contact POST). Output: `prod-after-deploy.txt`.
