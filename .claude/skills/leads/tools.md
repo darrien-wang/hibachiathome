@@ -12,6 +12,7 @@ python scripts/desk/desk.py card   <手机|leadId>          # 单条卡
 python scripts/desk/desk.py thread <手机|leadId>          # 只看对话（Twilio 为准，旧→新，tapback 已标）；最后一行是回复要带的 --seen
 python scripts/desk/desk.py search <姓名|手机|邮箱|单号>
 python scripts/desk/desk.py price  --adults 24 --kids 0 --date 2026-11-07 --zip 92780 [--tables 18 --utensils 18]   # 引擎价，禁止手算
+python scripts/desk/desk.py price  --adults 7 --kids 1 --zip 92201 --date 2026-11-23 --swap filet=12 --extra lobster=3 --off 50   # 带升级：--swap 换 2 样里的一样（收差价），--extra 另加一份（$10+差价），--off 最低消费前扣的致谢
 python scripts/desk/desk.py travel "<地址或 zip>"         # 里程和路费
 python scripts/desk/desk.py send   <手机> --lead <id> --body-file draft.txt --seen <时间> [--force] [--voice-ok]   # 发短信；会清掉挂起，先发后挂
 python scripts/desk/desk.py send   <手机> --lead <id> --body "..." --media photo.jpg --seen <时间>     # 发图（只用于回复）

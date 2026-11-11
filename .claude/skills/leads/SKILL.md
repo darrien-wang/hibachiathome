@@ -99,7 +99,7 @@ description: >-
 
 图片是客人在回答（场地照片、菜单截图），先在工作台看图再答。客人发完正事又点了个赞，不用回的只是那个赞。
 
-**③ 算价**：`desk price --adults N --kids K --date YYYY-MM-DD --zip Z [--tables N --utensils N]`。短信里不出现没过引擎的数。31–60 人直接报引擎价（没有人数折扣了，D-1105-01），不自己加让价；61+ 见 `negotiation.md`。11/05 上线前来的线索，`desk price` 多打的那行老价才是要报的数。
+**③ 算价**：`desk price --adults N --kids K --date YYYY-MM-DD --zip Z [--tables N --utensils N]`；有升级或加份蛋白再带 `--swap filet=N`（换掉 2 样里的一样）、`--extra lobster=N`（2 样之外另加）、`--off 50`（签过的致谢）。短信里不出现没过引擎的数，/quote 页上的升级合计不算过引擎。31–60 人直接报引擎价（没有人数折扣了，D-1105-01），不自己加让价；61+ 见 `negotiation.md`。11/05 上线前来的线索，`desk price` 多打的那行老价才是要报的数。
 
 **④ 写**：原则在 §1、§5，句式在 `templates.md`，事实在 `answers.md`，**口吻按 `voice.md`**：第一句答他刚问的；客人那句话在 `voice.md` §4 表里有的，照那个回法写；写完自己过一遍 §6，不靠 ⑤ 的检查兜底。
 
