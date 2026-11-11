@@ -5,7 +5,9 @@
 // the food alone: on 2026-11-08 Nicole Weston (7 adults + 1 kid, Mon 11/23 in
 // Indio, filet + scallops + lobster tail = $208) read "$599 event minimum
 // applied +$149.80" above her upgrades, though $449.20 + $208 = $657.20 is
-// past the minimum and the invoice adds nothing.
+// past the minimum and the invoice adds nothing. ($208 was the page's sum of
+// the three; since 2026-11-11 it prices them the invoice's way, $288 for her
+// 8 guests: tests/quote-upgrade-swap.test.ts.)
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
@@ -14,8 +16,20 @@ import { calculateQuote, weekdaySpecialSavings, type QuoteInput, type QuoteResul
 
 const r2 = (n: number) => Math.round(n * 100) / 100
 
-// Per guest who takes it, at the invoice's prices (lib/pricing.ts PROTEINS).
-const UPGRADE = { steak: 8, shrimp: 6, lobster: 12 } as const // filet mignon, scallops, lobster tail
+// A guest's proteins as the invoice prices them (lib/pricing.ts
+// calcGuestProteinCost): each premium its upgrade, each protein past the 2
+// included $10 more. Until 2026-11-11 this helper added the picked upgrades up
+// ($26 for all three), the same mistake as the page; all three are $36.
+const PREMIUM: Record<string, number> = { filet_mignon: 8, scallops: 6, lobster_tail: 12 }
+const guestProteinCost = (proteins: string[]) =>
+  proteins.reduce((sum, p) => sum + (PREMIUM[p] ?? 0), 0) + Math.max(0, proteins.length - 2) * 10
+/** The guest who takes every upgrade picked: those, made up to 2 proteins with regular ones. */
+const upgradedGuest = (addOns: QuoteInput["addOns"]) => {
+  const picked = [addOns.steak && "filet_mignon", addOns.shrimp && "scallops", addOns.lobster && "lobster_tail"].filter(
+    (p): p is string => Boolean(p),
+  )
+  return [...picked, "chicken", "shrimp"].slice(0, Math.max(2, picked.length))
+}
 const NO_UPGRADES = { steak: false, shrimp: false, lobster: false }
 const SCALLOPS = { steak: false, shrimp: true, lobster: false }
 const ALL_THREE = { steak: true, shrimp: true, lobster: true }
@@ -48,20 +62,19 @@ function invoiceTotal(input: QuoteInput, travel = 0): number {
   const baseCost =
     input.adults * (weekday ? GUEST_TIERS.adult.weekdayPrice : GUEST_TIERS.adult.price) +
     input.kids * (weekday ? GUEST_TIERS.child.weekdayPrice : GUEST_TIERS.child.price)
-  const perGuest = (input.addOns.steak ? UPGRADE.steak : 0) + (input.addOns.shrimp ? UPGRADE.shrimp : 0) + (input.addOns.lobster ? UPGRADE.lobster : 0)
-  const proteinUpgrades = guests * perGuest
+  const proteinUpgrades = guests * guestProteinCost(upgradedGuest(input.addOns))
   const partyExtrasCost = input.tablewareRental ? guests * FULL_SETUP_PER_GUEST : 0
   return r2(Math.max(baseCost + proteinUpgrades + partyExtrasCost, MINIMUM_SPEND) + travel)
 }
 
-test("minimum · Nicole 11-08: 7 adults + 1 kid with $208 of upgrades are past $599, so there is no minimum line", () => {
+test("minimum · Nicole 11-08: 7 adults + 1 kid with all three upgrades are past $599, so there is no minimum line", () => {
   const input = party({ eventDate: "2026-11-23", location: "Indio", adults: 7, kids: 1, addOns: ALL_THREE })
   const q = calculateQuote(input)
   assert.equal(q.weekdaySaver.isWeekdayEligible, false, "Mon 11/23 is Thanksgiving week: Standard rates")
   assert.equal(q.baseSubtotal, 449.2, "7 x $59.90 + 1 x $29.90")
-  assert.equal(q.addOnTotalRange.high, 208, "8 guests x ($8 + $6 + $12)")
+  assert.equal(q.addOnTotalRange.high, 288, "8 guests x ($8 + $6 + $12 + $10 for the third protein); it read $208 until 11-11")
   assert.equal(q.minimumTopUp, 0, "the page showed +$149.80 here")
-  assert.equal(q.totalRange.high, 657.2)
+  assert.equal(q.totalRange.high, 737.2)
   assert.equal(q.totalRange.high, invoiceTotal(input), "what the invoice bills")
   assert.equal(lines(q), q.totalRange.high, "the lines add up to the total")
   // Nobody taking an upgrade leaves the food alone, under $599: the low end is the minimum.
@@ -116,7 +129,7 @@ test("minimum · every party up to 14 adults, either plan: the lines add up to w
 
 test("weekday saving · 8 adults on a Tuesday with all three upgrades save $40; on food alone it read $0", () => {
   const input = party({ eventDate: "2026-12-08", adults: 8, addOns: ALL_THREE })
-  // Standard 8 x $59.90 + $208 = $687.20; Weekday Special 8 x $54.90 + $208 = $647.20.
+  // Standard 8 x $59.90 + $288 = $767.20; Weekday Special 8 x $54.90 + $288 = $727.20.
   assert.equal(weekdaySpecialSavings(input), 40)
   assert.equal(weekdaySpecialSavings({ ...input, addOns: NO_UPGRADES }), 0, "both plans sit at the $599 minimum")
   assert.equal(weekdaySpecialSavings(party({ eventDate: "2026-12-08", adults: 15 })), 75, "a party past the minimum: $5 an adult, as before")
