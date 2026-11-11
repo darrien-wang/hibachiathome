@@ -2711,7 +2711,7 @@ export const cityPages: CityPage[] = [
       {
         question: "What premium menu upgrades are available?",
         answer:
-          "Filet mignon, lobster, and scallops are the favorites for Newport events — priced per guest as add-ons to the $59.90 base. Full details appear in your instant quote.",
+          "Filet mignon, lobster, and scallops are the favorites for Newport events — each swaps one of a guest's 2 proteins for a per-guest upgrade. Full details appear in your instant quote.",
       },
       {
         question: "What does hibachi at home cost in Newport Beach?",

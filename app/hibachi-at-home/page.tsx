@@ -58,7 +58,7 @@ const faqs = [
 
 const serviceFeatures = [
   { title: "What's Included", description: "Private chef, grill, full setup, cleanup. You host, we cook." },
-  { title: "What You Eat", description: "Fried rice, salad, veggies, and 2 proteins per guest. Add lobster or filet upgrades!" },
+  { title: "What You Eat", description: "Fried rice, salad, veggies, and 2 proteins per guest. Swap in lobster or filet!" },
   { title: "What to Expect", description: "Live hibachi show with fire tricks, food tossing, and crowd interaction." },
   { title: "Duration", description: "~1.5 to 2 hours depending on guest count and menu." },
   { title: "Guest Minimum", description: "$599 event minimum — about 10 adults. Perfect for birthdays or backyard dinners." },

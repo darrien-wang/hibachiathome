@@ -493,3 +493,21 @@ Verification completed:
 Noticed, not changed:
 - The upgrades' high end multiplies by every guest, under-5s included, though `config/pricing-rules.ts` gives under-5s no protein allowance. Left as it was: it only raises the "up to", and the planner has let an under-5 pick two proteins (RH-20261015-3202), so how the invoice treats them is not settled here.
 - `app/actions/booking.ts` `createBooking` prices an "Extra Protein" at $15; nothing calls it. `components/promotional-card.tsx` ("FREE lobster protein upgrade"), `components/menu/PackageCard.tsx`, `components/menu/price-transparency.tsx` and `components/occasion/occasion-estimator.tsx` are imported nowhere.
+
+## QUOTE-UPGRADE-WORDING - Three more live lines that made an upgrade an add-on (2026-11-11)
+
+Status: committed on `claude/peaceful-herschel-8424e2` after QUOTE-UPGRADE-SWAP, not pushed. A separate commit so the owner can take or drop it on its own.
+
+Why: the sweep for "on top of" / upgrade wording that QUOTE-UPGRADE-SWAP asked for (app/, components/, lib/, plus config/, where the city and blog copy lives) found three customer-facing lines that read an upgrade as something added to the 2 proteins.
+
+What changed:
+- `app/hibachi-at-home/page.tsx` ("What You Eat" card): "... and 2 proteins per guest. Add lobster or filet upgrades!" -> "... Swap in lobster or filet!"
+- `config/city-pages.ts`, Newport Beach FAQ "What premium menu upgrades are available?" (page and its FAQ JSON-LD): "... priced per guest as add-ons to the $59.90 base." -> "... each swaps one of a guest's 2 proteins for a per-guest upgrade."
+- `config/blog-posts.ts`, "What Hibachi at Home Actually Costs in Los Angeles": "... not $80 - most guests take one upgrade, not three." -> "... most guests swap one protein, not both." ($80 is $59.90 + filet $8 + lobster tail $12, both proteins swapped; three upgrades on one guest would be a third protein.)
+
+Checked, left as they are: the city landing line "Upgrades per guest: filet +$8 · scallops +$6 · lobster tail +$12" and /menu's "Premium · per guest upgrade" +$8 / +$6 / +$12 under "Regular · included" (swap prices, nothing says add or on top); the blog's "Filet mignon is +$8 per guest ..." and "Add roughly $160 if everyone upgrades to filet" (20 x $8); "Full menu, upgrades welcome", "premium upgrades available" and the city pages' "filet and lobster upgrades" (no price, no add); the Spanish pages ("Mejoras de proteínas premium disponibles", no prices); `/api/agent/price` ("Optional upgrades and add-ons (see /llms.txt)", which QUOTE-UPGRADE-SWAP fixed); the invoice repo's /order page, which already says "a third protein" and "Extra Protein (beyond 2/pp)" (untouched).
+
+Verification completed:
+- `npm test`: 418 pass, 0 fail. `npm run lint:copy`: 0 hard-rule hits (the soft `4pct-v2` line as before).
+- Local `npm run dev`, plain GETs of the three pages (no page scripts run): each serves the new line (2 / 4 / 2 times, HTML + JSON-LD + RSC payload) and none of the old ones. Output: `harness/verification/2026-11-11-quote-upgrade-swap/wording-pages-local.txt`.
+- Production before the push (GET `/_release/ready`): f9a84888, the base of this branch; live /llms.txt still reads "A third protein is +$10 per guest."

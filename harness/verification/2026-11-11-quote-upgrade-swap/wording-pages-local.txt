@@ -1,0 +1,26 @@
+Server-rendered HTML from local npm run dev (this branch), plain GETs (curl, no page scripts run), 2026-11-11.
+Count of each old / new line in the page source (HTML + JSON-LD + RSC payload):
+
+== /hibachi-at-home -> 200, 309935 bytes
+   0  Add lobster or filet upgrades!
+   2  Swap in lobster or filet!
+   0  priced per guest as add-ons
+   0  each swaps one of a guest
+   0  most guests take one upgrade, not three
+   0  most guests swap one protein, not both
+
+== /hibachi-at-home/newport-beach -> 200, 260992 bytes
+   0  Add lobster or filet upgrades!
+   0  Swap in lobster or filet!
+   0  priced per guest as add-ons
+   4  each swaps one of a guest
+   0  most guests take one upgrade, not three
+   0  most guests swap one protein, not both
+
+== /blog/hibachi-at-home-cost-los-angeles -> 200, 131117 bytes
+   0  Add lobster or filet upgrades!
+   0  Swap in lobster or filet!
+   0  priced per guest as add-ons
+   0  each swaps one of a guest
+   0  most guests take one upgrade, not three
+   2  most guests swap one protein, not both
