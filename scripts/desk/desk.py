@@ -577,7 +577,49 @@ def price_for(adults: int, kids: int, date: str | None, zipcode: str | None, tab
         return None
 
 
+# Protein upgrades on a quote (2026-11-11, Nicole Weston, Indio): the site's
+# price endpoint knows head counts only, so a quote with filet, scallops or
+# lobster tail was worked out by hand - and once copied off the /quote page,
+# whose caption had an upgrade come "on top of the 2 regular proteins": $672.20
+# went out in writing for what the invoice bills at $912.20. The invoice
+# engine bills an upgrade two ways. A swap trades one of a guest's 2 included
+# proteins for it (the premium: its side price less a regular side's); an extra
+# is a protein beyond the 2 (the side price). Both count toward the $599
+# minimum, and so does a signed flat discount (a deal's flatOff comes off
+# before the minimum; only an afterMinimum promo line comes off after it).
+PROTEIN_SHORT = {"chicken": "side_chicken", "steak": "side_steak", "shrimp": "side_shrimp", "salmon": "side_salmon",
+                 "tofu": "side_tofu", "scallops": "side_scallops", "filet": "side_filet_mignon", "lobster": "side_lobster_tail"}
+REGULAR_SIDE = PROTEIN_SIDE_PRICES["side_chicken"]
+SWAP_PREMIUM = {k: round(PROTEIN_SIDE_PRICES[v] - REGULAR_SIDE, 2) for k, v in PROTEIN_SHORT.items()
+                if PROTEIN_SIDE_PRICES[v] > REGULAR_SIDE}
+
+
+def protein_counts(pairs: list[str] | None, allowed, flag: str) -> dict[str, int]:
+    """--swap filet=7 --swap lobster=3 -> {"filet": 7, "lobster": 3}."""
+    out: dict[str, int] = {}
+    for pair in pairs or []:
+        m = re.fullmatch(r"([a-z]+)=(\d+)", pair.strip().lower())
+        if not m or m.group(1) not in allowed:
+            raise SystemExit(f"{flag} {pair!r}: use name=N with name in {sorted(allowed)}")
+        out[m.group(1)] = out.get(m.group(1), 0) + int(m.group(2))
+    return out
+
+
+def protein_quote(price: dict, swaps: dict[str, int], extras: dict[str, int], off: float = 0.0) -> dict:
+    """The engine's head-count price plus upgrades, the way the invoice bills the same party."""
+    upgrades = round(sum(SWAP_PREMIUM[k] * n for k, n in swaps.items()), 2)
+    added = round(sum(PROTEIN_SIDE_PRICES[PROTEIN_SHORT[k]] * n for k, n in extras.items()), 2)
+    rentals = (price.get("rentals") or {}).get("amount") or 0
+    before = round(price["foodSubtotal"] + rentals - (price.get("partySizeDiscount") or 0) + upgrades + added - off, 2)
+    travel = price.get("travelFee") or 0
+    return {"upgrades": upgrades, "extras": added, "off": round(off, 2), "before_minimum": before,
+            "minimum_applied": before < MINIMUM_SPEND, "travel": travel,
+            "total": round(max(before, MINIMUM_SPEND) + travel, 2)}
+
+
 def cmd_price(a):
+    swaps = protein_counts(a.swap, SWAP_PREMIUM, "--swap")
+    extras = protein_counts(a.extra, PROTEIN_SHORT, "--extra")
     for date in [a.date] + ([a.alt_date] if a.alt_date else []):
         p = price_for(a.adults, a.kids, date, a.zip, a.tables or 0, a.utensils or 0)
         if not p or not p.get("ok"):
@@ -596,6 +638,20 @@ def cmd_price(a):
         print(f"{date or '(any day)'}: {a.adults} 大人 + {a.kids} 小孩 → ${pr['total']:,.2f}  [{pr['plan']}]  "
               f"食 ${pr['foodSubtotal']:,.2f}{rent}{off} + 路费 ${pr['travelFee']:,.2f}"
               f"{'  (最低消费生效)' if pr.get('minimumApplied') else ''}")
+        if swaps or extras or a.off:
+            q = protein_quote(pr, swaps, extras, a.off or 0)
+            picks = 2 * (a.adults + a.kids)
+            parts = []
+            if swaps:
+                parts.append("换 " + " ".join(f"{k}×{n}" for k, n in swaps.items()) + f" +${q['upgrades']:,.2f}")
+            if extras:
+                parts.append("另加 " + " ".join(f"{k}×{n}" for k, n in extras.items()) + f" +${q['extras']:,.2f}")
+            if q["off"]:
+                parts.append(f"让 −${q['off']:,.2f}")
+            print(f"   带升级: {' · '.join(parts)} → 最低消费前 ${q['before_minimum']:,.2f} → ${q['total']:,.2f}"
+                  f"（含路费 ${q['travel']:,.2f}{'，最低消费生效' if q['minimum_applied'] else ''}）")
+            if sum(swaps.values()) > picks:
+                print(f"   ⚠ 换了 {sum(swaps.values())} 份，可每人只有 2 样（共 {picks} 份）：多出来的是另加，用 --extra")
         heads = tier_heads(a.adults, a.kids)
         line = party_line(heads)
         if line and not off:
@@ -2936,6 +2992,13 @@ def main(argv=None):
     p.add_argument("--date"); p.add_argument("--alt-date"); p.add_argument("--zip"); p.add_argument("--json", action="store_true")
     p.add_argument("--tables", type=int, help="guests getting tables & chairs ($10 each) - priced inside the $599 minimum, as the invoice does")
     p.add_argument("--utensils", type=int, help="guests getting plates & cutlery ($5 each)")
+    p.add_argument("--swap", action="append", metavar="NAME=N",
+                   help="N picks traded from a regular protein to an upgrade (filet +$8, scallops +$6, lobster +$12): "
+                        "one of a guest's 2 included proteins. Repeatable")
+    p.add_argument("--extra", action="append", metavar="NAME=N",
+                   help="N servings beyond a guest's 2 proteins ($10 regular; filet $18, scallops $16, lobster $22). Repeatable")
+    p.add_argument("--off", type=float, help="a signed flat discount (a deal's flatOff, e.g. the $50 thank-you): "
+                                             "it comes off before the $599 minimum, as the invoice takes it")
     p.set_defaults(fn=cmd_price)
     p = sp.add_parser("travel"); p.add_argument("destination"); p.set_defaults(fn=cmd_travel)
     p = sp.add_parser("send"); p.add_argument("phone"); p.add_argument("body", nargs="?"); p.add_argument("--lead")

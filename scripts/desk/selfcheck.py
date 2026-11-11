@@ -1012,6 +1012,18 @@ def main() -> int:
     check("  and is quiet when we are glad for them", not any("替他高兴" in x for x in lines("Happy 75th to your husband! What city will it be in?", said("my husbands 75th", 0.1))))
     check("voice notes a congratulation with a full stop", any("句号" in x for x in lines("Congratulations on the wedding. Is it an evening event?", said("Wedding", 0.1))))
 
+    # Nicole Weston 11-11: 7 adults + 1 kid in Indio ($449.20 food, $65 travel) with the $50 thank-you.
+    indio = {"foodSubtotal": 449.2, "travelFee": 65}
+    check("price: upgrades swapped into all 16 picks stay at the $599 minimum ($664 with travel)",
+          desk.protein_quote(indio, {"filet": 12, "scallops": 1, "lobster": 3}, {}, 50)["total"] == 664.0)
+    check("price: chicken + shrimp for all, 7 filet / 1 scallops / 3 lobster on top is $672.20",
+          desk.protein_quote(indio, {}, {"filet": 7, "scallops": 1, "lobster": 3}, 50)["total"] == 672.2)
+    check("price: all five for all 8 is $912.20, not the /quote page's $672.20",
+          desk.protein_quote(indio, {}, {"filet": 8, "scallops": 8, "lobster": 8}, 50)["total"] == 912.2)
+    check("price: a swap costs the premium, an extra the side price (filet $8 / $18)",
+          desk.SWAP_PREMIUM == {"scallops": 6.0, "filet": 8.0, "lobster": 12.0}
+          and desk.protein_quote({"foodSubtotal": 700, "travelFee": 0}, {"filet": 1}, {"filet": 1})["total"] == 726.0)
+
     print()
     if FAILS:
         print(f"{len(FAILS)} FAILED")
