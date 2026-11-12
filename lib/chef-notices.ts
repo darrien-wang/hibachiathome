@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { CHEF_NOTICE_WHY, isChefNoticeAlarm, openCallback, requestCallback, type RingOutcome } from "@/lib/callback-ring"
 import { classifyChefText, type ChefTextKind } from "@/lib/chef-inbound"
-import { sheetReachedChef, thatPartyZh, type PartyRef } from "@/lib/chef-notify"
+import { SHEET_SEND_FAILED, sheetHeld, sheetReachedChef, sheetSendErrorZh, thatPartyZh, type PartyRef, type SheetLink } from "@/lib/chef-notify"
 import { wallToInstant } from "@/lib/first-response"
 import { loadStaffContacts, staffOnNumber, type StaffContact } from "@/lib/staff-phones"
 
@@ -18,6 +18,8 @@ import { loadStaffContacts, staffOnNumber, type StaffContact } from "@/lib/staff
 //   - a notice whose text never went out (no sms_sid, summary starting
 //     【短信没发出去：) shows at once: every send issues a new link and revokes the
 //     one before it, so that chef is holding no sheet he can open
+//   - so does a chef left with no sheet by any other send that failed - the one
+//     reassigning makes (D-1112-01), or a sheet text that bounced (loadSheetless)
 //
 // The table arrives with card A. Until it exists every read here comes back
 // empty and every write is a no-op: nothing shows, nothing rings, nothing breaks.
@@ -184,8 +186,122 @@ export function sheetReachedSince(group: Pick<FailedGroup, "orderId" | "staffId"
   })
 }
 
-/** What is open: texts waiting for a "1", and chefs whose text never arrived. */
-export type NoticeBoard = { waiting: NoticeGroup[]; failed: FailedGroup[] }
+/** A chef on a coming party with no sheet he can open, because a sheet sent to him did not get to him. */
+export type SheetlessGroup = {
+  orderId: string
+  staffId: string
+  /** When that send failed. */
+  at: string | null
+  /** Why, as the send reported it, in words a person can act on; null when nothing said. */
+  reason: string | null
+  /** Names this failure for the ring sweep's once-only mark: the dead link, or the refused send. */
+  mark: string
+}
+
+/** Refused sends older than this are history (the lookback of loadSheetless). */
+export const SHEETLESS_LOOKBACK_MS = 7 * 24 * 3600_000
+
+/**
+ * Chefs left without a sheet by a send that did not get to them (owner
+ * 2026-11-12, D-1112-01: chefs work only from the sheet and the order). Two
+ * kinds of trace, both read narrowly so the inbox poll stays cheap:
+ *   - a live link whose text failed (sent_via "failed") and that he never opened:
+ *     any sheet text - the day-before send, a re-send, the one reassigning makes;
+ *   - a send that made no link at all (order_events chef_sheet_send_failed,
+ *     written by lib/chef-notify.ts sendSheetsToNewTeam): refused by the invoice
+ *     app, or it could not be reached.
+ * Each is kept only while he is still on the party as one of its chefs and
+ * holds no live link that reached him (lib/chef-notify.ts sheetHeld: none or
+ * undelivered); a stale link is the change flow's to replace and is not listed
+ * here. Helpers are not listed: the invoice app sends them the lead's sheet as
+ * it goes, and a helper with no phone on file (易非: both failed links on record,
+ * 10-22 and 10-24, are his) would otherwise ring on every send. Unreadable
+ * tables give [] - the board's other lists still answer.
+ */
+export async function loadSheetless(supabase: SupabaseClient, now = Date.now()): Promise<SheetlessGroup[]> {
+  try {
+    const nowIso = new Date(now).toISOString()
+    const [dead, refused] = await Promise.all([
+      supabase
+        .from("chef_sheet_links")
+        .select("id, order_id, staff_member_id, sent_at")
+        .eq("sent_via", "failed")
+        .is("revoked_at", null)
+        .is("first_opened_at", null)
+        .gt("expires_at", nowIso)
+        .limit(100),
+      supabase
+        .from("order_events")
+        .select("order_id, created_at, metadata")
+        .eq("action", SHEET_SEND_FAILED)
+        .gte("created_at", new Date(now - SHEETLESS_LOOKBACK_MS).toISOString())
+        .order("created_at", { ascending: false })
+        .limit(100),
+    ])
+    const found = new Map<string, SheetlessGroup & { linkId?: string }>()
+    const keep = (g: SheetlessGroup & { linkId?: string }) => {
+      const key = pairKey(g)
+      const had = found.get(key)
+      if (!had || Date.parse(g.at ?? "") > Date.parse(had.at ?? "")) found.set(key, g)
+    }
+    for (const l of (dead.error ? [] : (dead.data ?? [])) as Array<{ id: string; order_id: string | null; staff_member_id: string | null; sent_at: string | null }>) {
+      if (l.order_id && l.staff_member_id) keep({ orderId: l.order_id, staffId: l.staff_member_id, at: validTime(l.sent_at) ? l.sent_at : null, reason: null, mark: `link:${l.id}`, linkId: l.id })
+    }
+    for (const e of (refused.error ? [] : (refused.data ?? [])) as Array<{ order_id: string | null; created_at: string; metadata: Record<string, unknown> | null }>) {
+      const staffId = String(e.metadata?.staff_member_id ?? "")
+      if (!e.order_id || !/^[0-9a-f-]{36}$/i.test(staffId)) continue
+      keep({ orderId: e.order_id, staffId, at: e.created_at, reason: sheetSendErrorZh(String(e.metadata?.error ?? "")), mark: `send:${e.order_id}:${staffId}:${e.created_at}` })
+    }
+    if (!found.size) return []
+    const orderIds = [...new Set([...found.values()].map((g) => g.orderId))]
+    const [asg, links] = await Promise.all([
+      supabase
+        .from("order_staff_assignments")
+        .select("order_id, staff_member_id")
+        .in("order_id", orderIds)
+        .in("assignment_status", ["tentative", "confirmed", "completed"])
+        .neq("assignment_role", "assistant_chef"),
+      supabase.from("chef_sheet_links").select("order_id, staff_member_id, sent_via, first_opened_at, revoked_at, stale").in("order_id", orderIds),
+    ])
+    let out = [...found.values()]
+    if (!asg.error) {
+      const on = new Set(((asg.data ?? []) as Array<{ order_id: string; staff_member_id: string }>).map((a) => `${a.order_id}:${a.staff_member_id}`))
+      out = out.filter((g) => on.has(pairKey(g)))
+    }
+    if (!links.error) {
+      const byOrder = new Map<string, SheetLink[]>()
+      for (const l of (links.data ?? []) as Array<SheetLink & { order_id: string }>) byOrder.set(l.order_id, [...(byOrder.get(l.order_id) ?? []), l])
+      out = out.filter((g) => {
+        const held = sheetHeld(byOrder.get(g.orderId) ?? [], g.staffId)
+        return held === "none" || held === "undelivered"
+      })
+    }
+    // Why a text bounced: the send that made the link said so on the order's timeline.
+    const needReason = out.filter((g) => g.linkId)
+    if (needReason.length) {
+      const { data: evs } = await supabase
+        .from("order_events")
+        .select("order_id, metadata")
+        .in("order_id", [...new Set(needReason.map((g) => g.orderId))])
+        .in("action", ["chef_sheet_sent", "chef_change_notice_failed"])
+        .order("created_at", { ascending: false })
+        .limit(200)
+      const why = new Map<string, string>()
+      for (const e of (evs ?? []) as Array<{ metadata: Record<string, unknown> | null }>) {
+        const linkId = String(e.metadata?.link_id ?? "")
+        const sms = (e.metadata?.sms ?? null) as { error?: unknown } | null
+        if (linkId && sms?.error && !why.has(linkId)) why.set(linkId, sheetSendErrorZh(String(sms.error)))
+      }
+      for (const g of needReason) g.reason = why.get(g.linkId!) ?? null
+    }
+    return out.map((g) => ({ orderId: g.orderId, staffId: g.staffId, at: g.at, reason: g.reason, mark: g.mark }))
+  } catch {
+    return []
+  }
+}
+
+/** What is open: texts waiting for a "1", chefs whose change text never arrived, and chefs a sheet never reached. */
+export type NoticeBoard = { waiting: NoticeGroup[]; failed: FailedGroup[]; sheetless: SheetlessGroup[] }
 
 /**
  * Open notices for chefs who are still on the party. A chef who was taken off
@@ -198,10 +314,15 @@ export type NoticeBoard = { waiting: NoticeGroup[]; failed: FailedGroup[] }
  * line beats a missing one.
  */
 export async function loadNoticeBoard(supabase: SupabaseClient, now = Date.now()): Promise<NoticeBoard> {
-  const open = await loadOpenNotices(supabase, now)
+  const [open, sheetlessAll] = await Promise.all([loadOpenNotices(supabase, now), loadSheetless(supabase, now)])
   let waiting = groupNotices(open)
   let failed = groupFailedSends(open)
-  if (!waiting.length && !failed.length) return { waiting, failed }
+  // One line per chef per party: a failed change notice says it with what changed.
+  const withSheetless = (f: FailedGroup[]) => {
+    const failedPairs = new Set(f.map(pairKey))
+    return sheetlessAll.filter((g) => !failedPairs.has(pairKey(g)))
+  }
+  if (!waiting.length && !failed.length) return { waiting, failed, sheetless: withSheetless(failed) }
   try {
     const { data, error } = await supabase
       .from("order_staff_assignments")
@@ -228,7 +349,7 @@ export async function loadNoticeBoard(supabase: SupabaseClient, now = Date.now()
       // keep them all
     }
   }
-  return { waiting, failed }
+  return { waiting, failed, sheetless: withSheetless(failed) }
 }
 
 /** The texts still waiting for a "1" (see loadNoticeBoard). */
@@ -406,6 +527,11 @@ export function failedSendAlarmText(chef: string, order: PartyRef): string {
   return `${CHEF_NOTICE_WHY}：${chef} 没收到 ${thatPartyZh(order)}的改单短信，手里没有能打开的备料单，派对不到 3 小时就开始。`
 }
 
+/** ...and for a sheet that never reached him (D-1112-01). */
+export function sheetlessAlarmText(chef: string, order: PartyRef): string {
+  return `${CHEF_NOTICE_WHY}：${chef} 没收到 ${thatPartyZh(order)}的备料单，手里没有能打开的，派对不到 3 小时就开始。`
+}
+
 /**
  * lead-watch's sweep: every notice still unconfirmed three hours before its
  * party rings the owner's App once, through the existing callback ring (which
@@ -427,22 +553,26 @@ export async function ringUnackedNotices(
   } = {},
 ): Promise<NoticeRing[]> {
   const board = await loadNoticeBoard(supabase, now)
-  if (!board.waiting.length && !board.failed.length) return []
-  const orders = await loadNoticeOrders(supabase, [...board.waiting, ...board.failed].map((g) => g.orderId))
+  if (!board.waiting.length && !board.failed.length && !board.sheetless.length) return []
+  const orders = await loadNoticeOrders(supabase, [...board.waiting, ...board.failed, ...board.sheetless].map((g) => g.orderId))
   // Only while there is still time to act on it: once the party has started the list keeps it, the phone does not ring.
   const ahead = (s: NoticeState) => s.urgent && s.hoursToParty !== null && s.hoursToParty > 0
   const failedDue = board.failed.filter((g) => ahead(failedSendState(g, orders.get(g.orderId), now)))
-  const failedPairs = new Set(failedDue.map(pairKey))
+  const sheetlessDue = board.sheetless.filter((g) => ahead(failedSendState(g, orders.get(g.orderId), now)))
+  const failedPairs = new Set([...failedDue, ...sheetlessDue].map(pairKey))
   const waitingByPair = new Map(board.waiting.map((g) => [pairKey(g), g]))
-  const due: Array<{ orderId: string; staffId: string; notices: ChefNotice[]; failedSend: boolean }> = [
+  const idsOf = (notices: ChefNotice[]) => notices.map((n) => n.id)
+  // `ids` name what the owner is being told about, for the once-only marks: notice ids, or the failed send.
+  const due: Array<{ orderId: string; staffId: string; ids: string[]; failedSend: boolean; sheetless?: boolean }> = [
     // The owner hears about this chef and this party once: his unconfirmed texts ride along with the failed one.
-    ...failedDue.map((g) => ({ orderId: g.orderId, staffId: g.staffId, notices: [...g.notices, ...(waitingByPair.get(pairKey(g))?.notices ?? [])], failedSend: true })),
+    ...failedDue.map((g) => ({ orderId: g.orderId, staffId: g.staffId, ids: idsOf([...g.notices, ...(waitingByPair.get(pairKey(g))?.notices ?? [])]), failedSend: true })),
+    ...sheetlessDue.map((g) => ({ orderId: g.orderId, staffId: g.staffId, ids: [`sheet:${g.mark}`, ...idsOf(waitingByPair.get(pairKey(g))?.notices ?? [])], failedSend: true, sheetless: true })),
     ...board.waiting
       .filter((g) => !failedPairs.has(pairKey(g)) && ahead(noticeState(g, orders.get(g.orderId), now)))
-      .map((g) => ({ orderId: g.orderId, staffId: g.staffId, notices: g.notices, failedSend: false })),
+      .map((g) => ({ orderId: g.orderId, staffId: g.staffId, ids: idsOf(g.notices), failedSend: false })),
   ]
   if (!due.length) return []
-  const keys = due.flatMap((g) => g.notices.map((n) => MARK(n.id)))
+  const keys = due.flatMap((g) => g.ids.map((id) => MARK(id)))
   const { data: marks } = await supabase.from("lead_watch_notified").select("key").in("key", keys)
   const marked = new Set(((marks ?? []) as Array<{ key: string }>).map((r) => r.key))
   const staff = new Map((await loadStaffContacts(supabase)).map((s) => [s.id, s]))
@@ -451,13 +581,13 @@ export async function ringUnackedNotices(
 
   const out: NoticeRing[] = []
   for (const g of due) {
-    const fresh = g.notices.filter((n) => !marked.has(MARK(n.id)))
+    const fresh = g.ids.filter((id) => !marked.has(MARK(id)))
     if (!fresh.length) continue
     const order = orders.get(g.orderId)!
     const who = staff.get(g.staffId)
     const chef = who?.name ?? "师傅"
-    const why = g.failedSend ? failedSendAlarmText(chef, order) : noticeAlarmText(chef, order)
-    const base = { orderId: g.orderId, orderNo: order.order_no ?? null, staffId: g.staffId, chef, why, notices: fresh.map((n) => n.id), ...(g.failedSend ? { failedSend: true } : {}) }
+    const why = g.sheetless ? sheetlessAlarmText(chef, order) : g.failedSend ? failedSendAlarmText(chef, order) : noticeAlarmText(chef, order)
+    const base = { orderId: g.orderId, orderNo: order.order_no ?? null, staffId: g.staffId, chef, why, notices: fresh, ...(g.failedSend ? { failedSend: true } : {}) }
     const leadId = String((order.source_metadata ?? {}).lead_id ?? "")
     if (!/^[0-9a-f-]{36}$/i.test(leadId)) {
       out.push({ ...base, rang: false, skipped: "no_lead" })
@@ -474,9 +604,9 @@ export async function ringUnackedNotices(
     }
     // The chef's number rides on the request: an answered call to him after it closes the alarm.
     // (The ring needs some number on file to go out at all; the customer's stands in when the chef has none.)
-    const res = await request(supabase, { leadId, phone: who?.phone || order.customer_phone || "", name: chef, why, source: `chef_notice:${fresh[0].id}` })
+    const res = await request(supabase, { leadId, phone: who?.phone || order.customer_phone || "", name: chef, why, source: `chef_notice:${fresh[0]}` })
     const at = new Date(now).toISOString()
-    await supabase.from("lead_watch_notified").upsert(fresh.map((n) => ({ key: MARK(n.id), kind: "cn", notified_at: at })), { onConflict: "key" })
+    await supabase.from("lead_watch_notified").upsert(fresh.map((id) => ({ key: MARK(id), kind: "cn", notified_at: at })), { onConflict: "key" })
     out.push({ ...base, rang: res.rang, ...(res.skipped ? { skipped: res.skipped } : {}), ...(res.error ? { error: res.error } : {}) })
   }
   return out

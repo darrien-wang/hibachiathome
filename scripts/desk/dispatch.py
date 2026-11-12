@@ -250,13 +250,12 @@ def cmd_suggest(week, include_far=False):
 def cmd_apply(path):
     plan = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
     for r in plan:
-        res = site_post("/api/admin/chefs", {"action": "assign", "order_id": r["orderId"], "staff_member_ids": r["teamIds"]})
-        # A chef this takes off a party he already had the prep sheet for is texted by the site (2026-11-11).
-        # ...and a chef it puts on a party whose sheets are already out has none yet: change notices only go to
-        # chefs who hold a link, so he needs the sheet sent (order drawer / day map), which stays a person's call.
-        need = "、".join(n.get("name") or "?" for n in (res.get("needSheet") or []))
-        print(r["day"], r["who"], "→", " + ".join(r["team"]), "ok" if res.get("ok") else res, *([f"· {res['notice']}"] if res.get("notice") else []),
-              *([f"· {need} 还没有这场的备料单，要另外发"] if need else []))
+        res = site_post("/api/admin/chefs", {"action": "assign", "order_id": r["orderId"], "staff_member_ids": r["teamIds"], "source": "desk"})
+        # A chef this takes off a party he already had the prep sheet for is texted by the site (2026-11-11);
+        # a chef it puts on a party whose sheets are already out is sent his own at once (2026-11-12,
+        # D-1112-01) - one that did not get to him is in the inbox as [chef_unsent].
+        print(r["day"], r["who"], "→", " + ".join(r["team"]), "ok" if res.get("ok") else res,
+              *[f"· {res[k]}" for k in ("notice", "sheetNotice") if res.get(k)])
 
 
 def main():

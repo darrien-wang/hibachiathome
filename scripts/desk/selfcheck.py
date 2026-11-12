@@ -777,7 +777,7 @@ def order_flow_checks() -> None:
           and "刹车: 客人最后说话 → 回复不受刹车限制" in customer_part, r)
     r = DeskRun(["next"], gets={"/api/admin/desk": {**inbox, "cards": [{**chef_card, "kinds": ["chef"], "alerts": []}]}})
     check("  a plain chef text (no change waiting) does not offer chef-confirm", "desk chef-confirm" not in r.out and f"desk ack {CHEF_PHONE}" in r.out, r)
-    check("  no change text has failed: the header does not bring it up", "师傅没收到改单短信" not in r.out.split("\n", 1)[0], r)
+    check("  no sheet has failed to reach a chef: the header does not bring it up", "师傅没收到备料单" not in r.out.split("\n", 1)[0], r)
 
     # A change text that never reached the chef ([chef_unsent]): the new link was issued and his old one
     # revoked before the text bounced, so he holds no sheet he can open. Counted up front, its own words.
@@ -788,7 +788,7 @@ def order_flow_checks() -> None:
                    "alerts": [{"kind": "chef_unsent", "title": "师傅没收到改单短信 · Gary", "body": unsent_why}]}
     r = DeskRun(["next"], gets={"/api/admin/desk": {**inbox, "cards": [unsent_card, customer_card], "counts": {**inbox["counts"], "chefUnsent": 1}}})
     check("desk next: a change text that never reached the chef is counted with the chefs' items, flagged",
-          "师傅 1 · 师傅没确认改动 1 · 师傅没收到改单短信 1 ⚠️ · 未回 1" in r.out.split("\n", 1)[0], r)
+          "师傅 1 · 师傅没确认改动 1 · 师傅没收到备料单 1 ⚠️ · 未回 1" in r.out.split("\n", 1)[0], r)
     chef_part = r.out.partition("Joyce Lin ·")[0]
     check("  its card comes before the customer's and says it in full: no sheet he can open, which party, why the text failed",
           f"师傅 Gary · {CHEF_PHONE}   [chef_unsent] 等了 3 分钟 ⚠️" in chef_part
@@ -797,6 +797,14 @@ def order_flow_checks() -> None:
     check("  and what to do about it: the owner sends the sheet again from the order; chef-confirm only if it reached him another way",
           "「发备料单给他」重发" in chef_part and f"已经从别的路给到他了（微信发了链接、当面说了）: desk chef-confirm {CHEF_PHONE}" in chef_part
           and "只是没回 1" not in chef_part, r)
+    # The sheet reassigning sent him did not get to him (D-1112-01): same card, and no chef-confirm - there is
+    # no notice to mark; it goes when a sheet reaches him or he opens one.
+    sheetless_card = {**unsent_card, "alerts": [{"kind": "chef_unsent", "title": "师傅没收到备料单 · Gary",
+                                                 "body": f"他手里现在没有能打开的备料单 · {CANCEL_PARTY} · 原因：没存手机号"}]}
+    r = DeskRun(["next"], gets={"/api/admin/desk": {**inbox, "cards": [sheetless_card], "counts": {**inbox["counts"], "chefUnsent": 1}}})
+    check("  a sheet that never reached him after a reassign: the same card and fix, and no chef-confirm to clear it",
+          r.has("⚑ 师傅没收到备料单 · Gary — 他手里现在没有能打开的备料单", "「发备料单给他」重发", "或者他打开了链接，这条自己消")
+          and "desk chef-confirm" not in r.out, r)
     stale_card = {**chef_card, "kinds": ["chef"], "alerts": [], "staff": {**chef_card["staff"], "parties": [{**party, "sheet": "stale"}]}}
     r = DeskRun(["next"], gets={"/api/admin/desk": {**inbox, "cards": [stale_card]}})
     check("  a party whose order changed after his sheet went out: that version is void and the new one has not landed - said as such",

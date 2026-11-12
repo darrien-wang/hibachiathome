@@ -17,6 +17,7 @@ import {
   RESEND_MARGIN_MS,
   ackNotices,
   ackNoticesFromPhone,
+  SHEETLESS_LOOKBACK_MS,
   failedSendAlarmText,
   failedSendState,
   groupFailedSends,
@@ -25,6 +26,7 @@ import {
   loadNoticeBoard,
   loadOpenNoticeGroups,
   loadOpenNotices,
+  loadSheetless,
   noticeAlarmText,
   noticeAt,
   noticeState,
@@ -32,6 +34,7 @@ import {
   onStaffText,
   ringUnackedNotices,
   sheetReachedSince,
+  sheetlessAlarmText,
   type ChefNotice,
   type SentLink,
 } from "../lib/chef-notices"
@@ -48,7 +51,7 @@ const H = 3600_000
 const notice = (id: string, sentAt: number, over: Partial<ChefNotice> = {}): ChefNotice => ({ id, order_id: ORDER_ID, staff_member_id: GARY, summary: "8 位加餐具", sent_at: new Date(sentAt).toISOString(), acked_at: null, ...over })
 const group = (sentAt: number) => groupNotices([notice("n1", sentAt)])[0]
 
-function world(notices: Row[], over: { missing?: boolean; marks?: Row[]; order?: Row; assignments?: Row[]; links?: Row[]; noLinksTable?: boolean } = {}) {
+function world(notices: Row[], over: { missing?: boolean; marks?: Row[]; order?: Row; assignments?: Row[]; links?: Row[]; noLinksTable?: boolean; events?: Row[] } = {}) {
   return fakeSupabase(
     {
       ...(over.missing ? {} : { chef_change_notices: notices }),
@@ -63,7 +66,7 @@ function world(notices: Row[], over: { missing?: boolean; marks?: Row[]; order?:
         { id: GARY, display_name: "Gary", full_name: null, phone: "6265550102", role: "chef" },
         { id: BLU, display_name: "Blu", full_name: null, phone: "(626) 555-0101", role: "chef" },
       ],
-      order_events: [],
+      order_events: over.events ?? [],
       lead_watch_notified: over.marks ?? [],
     },
     { missing: [...(over.missing ? ["chef_change_notices"] : []), ...(over.noLinksTable ? ["chef_sheet_links"] : [])] },
@@ -499,4 +502,68 @@ test("ring · a failure inside three hours rings on the next sweep, no fifteen-m
   const plan = await ringUnackedNotices(dry as never, t + 2 * 60_000, { dryRun: true, request: quiet.request, openOf: noCallback })
   assert.deepEqual(plan.map((r) => [r.failedSend, r.dryRun, r.why]), [[true, true, failedSendAlarmText("Gary", ORDER)]])
   assert.deepEqual(dry.writes, [])
+})
+
+// ---- a chef a sheet never reached (owner 2026-11-12, D-1112-01) --------------------------
+// Reassigning sends the new chef his sheet at once; when that - or any sheet text to a chef on
+// a coming party - does not get to him, he holds no sheet he can open, and it is listed the
+// same way as a change text that never went out.
+
+const LIVE_UNTIL = at(START + 6 * H)
+const sentEvent = (linkId: string, error: string, when: number): Row => ({ id: `e-${linkId}`, order_id: ORDER_ID, action: "chef_sheet_sent", created_at: at(when), metadata: { link_id: linkId, staff_member_id: GARY, sms: { error } } })
+const refusedEvent = (when: number, error = "备料单没发：菜单还空着。改好发票再发，或确认后 force 发。"): Row => ({ id: `r-${when}`, order_id: ORDER_ID, action: "chef_sheet_send_failed", created_at: at(when), metadata: { staff_member_id: GARY, staff_name: "Gary", error, code: "order_lint" } })
+
+test("sheetless · a sheet text that bounced on a coming party: listed, with what Twilio said", async () => {
+  const t = START - 20 * H
+  const db = world([], { links: [link("L2", { sent_via: "failed", sent_at: at(t), expires_at: LIVE_UNTIL })], events: [sentEvent("L2", "Twilio 21211: invalid 'To' number", t)] })
+  assert.deepEqual(await loadSheetless(db as never, t + 10 * 60_000), [{ orderId: ORDER_ID, staffId: GARY, at: at(t), reason: "Twilio 21211: invalid 'To' number", mark: "link:L2" }])
+  // He opened it after all (someone passed him the URL), or it has expired: not listed.
+  assert.deepEqual(await loadSheetless(world([], { links: [link("L2", { sent_via: "failed", sent_at: at(t), expires_at: LIVE_UNTIL, first_opened_at: at(t + H) })] }) as never, t + 2 * H), [])
+  assert.deepEqual(await loadSheetless(world([], { links: [link("L2", { sent_via: "failed", sent_at: at(t), expires_at: at(t + H) })] }) as never, t + 2 * H), [])
+  assert.deepEqual(db.writes, [])
+})
+
+test("sheetless · a send that made no link at all: listed from the order's timeline, with the reason", async () => {
+  const t = START - 20 * H
+  const out = await loadSheetless(world([], { links: [link("L1", { staff_member_id: BLU, first_opened_at: at(t - H) })], events: [refusedEvent(t)] }) as never, t + 60_000)
+  assert.deepEqual(out, [{ orderId: ORDER_ID, staffId: GARY, at: at(t), reason: "备料单没发：菜单还空着。改好发票再发，或确认后 force 发。", mark: `send:${ORDER_ID}:${GARY}:${at(t)}` }])
+  // A week on it is history.
+  assert.deepEqual(await loadSheetless(world([], { events: [refusedEvent(t)] }) as never, t + SHEETLESS_LOOKBACK_MS + H), [])
+})
+
+test("sheetless · gone once he holds a sheet that reached him, is off the party, or holds a stale one (the change flow's)", async () => {
+  const t = START - 20 * H
+  // Sent again and it went through: the failed link was replaced (revoked), the new one is live.
+  const resent = [link("L2", { sent_via: "failed", sent_at: at(t), expires_at: LIVE_UNTIL, revoked_at: at(t + H) }), link("L3", { sent_at: at(t + H), expires_at: LIVE_UNTIL })]
+  assert.deepEqual(await loadSheetless(world([], { links: resent, events: [refusedEvent(t - H)] }) as never, t + 2 * H), [])
+  const off = [{ id: "as1", order_id: ORDER_ID, staff_member_id: GARY, assignment_status: "cancelled" }]
+  assert.deepEqual(await loadSheetless(world([], { assignments: off, events: [refusedEvent(t)] }) as never, t + H), [])
+  // A helper's text bouncing is not a chef without a sheet: he works from the lead's (易非 has no phone on file).
+  const helper = [{ id: "as1", order_id: ORDER_ID, staff_member_id: GARY, assignment_status: "confirmed", assignment_role: "assistant_chef" }]
+  assert.deepEqual(await loadSheetless(world([], { assignments: helper, links: [link("L2", { sent_via: "failed", sent_at: at(t), expires_at: LIVE_UNTIL })] }) as never, t + H), [])
+  assert.deepEqual(await loadSheetless(world([], { links: [link("L3", { stale: true, sent_at: at(t - H), expires_at: LIVE_UNTIL })], events: [refusedEvent(t)] }) as never, t + H), [])
+})
+
+test("board · a failed change text and the dead link it left are one line, the notice's", async () => {
+  const t = START - 20 * H
+  const db = world([failed("f1", t)], { links: [link("L2", { sent_via: "failed", sent_at: at(t), expires_at: LIVE_UNTIL })] })
+  const board = await loadNoticeBoard(db as never, t + 60_000)
+  assert.deepEqual([board.failed.map((g) => g.staffId), board.sheetless], [[GARY], []])
+  // Blu's sheet text bounced on the same party: his own line.
+  const both = world([failed("f1", t)], { links: [link("L2", { sent_via: "failed", sent_at: at(t), expires_at: LIVE_UNTIL }), link("L9", { staff_member_id: BLU, sent_via: "failed", sent_at: at(t), expires_at: LIVE_UNTIL })] })
+  assert.deepEqual((await loadNoticeBoard(both as never, t + 60_000)).sheetless.map((g) => g.staffId), [BLU])
+})
+
+test("ring · a chef a sheet never reached, three hours before the party: once, in its own words", async () => {
+  const t = START - 10 * H
+  const db = world([], { links: [link("L2", { sent_via: "failed", sent_at: at(t), expires_at: LIVE_UNTIL })] })
+  assert.equal(sheetlessAlarmText("Gary", ORDER), "师傅未确认：Gary 没收到 11月14日下午5:30 Irvine（Joyce）那场的备料单，手里没有能打开的，派对不到 3 小时就开始。")
+  const { calls, request } = ringer()
+  assert.deepEqual(await ringUnackedNotices(db as never, START - 3 * H - 60_000, { request, openOf: noCallback }), [])
+  const out = await ringUnackedNotices(db as never, START - 2.5 * H, { request, openOf: noCallback })
+  assert.deepEqual(calls.map((c) => [c.why, c.source]), [[sheetlessAlarmText("Gary", ORDER), "chef_notice:sheet:link:L2"]])
+  assert.deepEqual(out.map((r) => [r.chef, r.failedSend, r.notices]), [["Gary", true, ["sheet:link:L2"]]])
+  assert.deepEqual(db.tables.lead_watch_notified.map((m) => m.key), ["cn:ring:sheet:link:L2"])
+  const again = ringer()
+  assert.deepEqual(await ringUnackedNotices(db as never, START - 2.3 * H, { request: again.request, openOf: noCallback }), [])
 })

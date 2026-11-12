@@ -16,10 +16,14 @@ import {
   partyCancelledText,
   partyLabelZh,
   removedFromPartyText,
+  sendSheetsToNewTeam,
   sheetHeld,
   sheetReachedChef,
+  sheetSendSummaryZh,
   teamNeedingSheet,
   type PartyRef,
+  type SheetSendInput,
+  type SheetSendResult,
 } from "../lib/chef-notify"
 import { fakeSupabase } from "./fixtures/fake-supabase"
 
@@ -296,4 +300,84 @@ test("who still needs a sheet · once a party's sheets are out, a chef put on it
   assert.deepEqual(teamNeedingSheet([GARY], [link("l2", GARY, { stale: true })]), [])
   // His only link was revoked (taken off earlier, now back on): he needs one again.
   assert.deepEqual(teamNeedingSheet([GARY], [link("l1", BLU), link("l2", GARY, { revoked_at: "2030-11-12T02:00:00Z" })]), [GARY])
+})
+
+// ---- the chef put on a party gets its sheet at once (owner 2026-11-12, D-1112-01) ---------
+// 「给师傅更新发也是直接发，不要拖延」. The send itself is the invoice app's; here it is a recorder.
+
+function teamWorld(links: Array<Record<string, unknown>>, order: Record<string, unknown> = {}) {
+  const db = world(links)
+  db.tables.orders = [{ id: ORDER.id, order_no: ORDER.order_no, event_start: ORDER.event_start, order_status: "active", ...order }]
+  db.tables.order_events = []
+  return db
+}
+function invoiceApp(answer: (x: SheetSendInput) => SheetSendResult | Promise<SheetSendResult> = () => ({ ok: true, url: "https://invoice.example/chef/tok", resent: false, sms: { delivered: true } })) {
+  const calls: SheetSendInput[] = []
+  return { calls, send: async (x: SheetSendInput) => (calls.push(x), answer(x)) }
+}
+// Blu had the sheet and was taken off (his link revoked): the party's sheet has gone out.
+const bluHad = link("l1", BLU, { first_opened_at: "2030-11-12T01:00:00Z", revoked_at: "2030-11-12T19:00:00Z" })
+
+test("new team · the chef put on a party whose sheet has gone out is sent his own, at once, as the workbench", async () => {
+  const db = teamWorld([bluHad])
+  const app = invoiceApp()
+  const out = await sendSheetsToNewTeam(db as never, { orderId: ORDER.id, team: [GARY], sentBy: "workbench:reassign", send: app.send, now: BEFORE })
+  assert.deepEqual(app.calls, [{ orderNo: ORDER.order_no, staffMemberId: GARY, sendSms: true, sentBy: "workbench:reassign" }])
+  assert.deepEqual(out, [{ staffId: GARY, name: "Gary", sent: true, delivered: true }])
+  assert.equal(sheetSendSummaryZh(out), "备料单已发给 Gary")
+  assert.deepEqual(db.writes, [], "the invoice app writes the link and its own trail")
+  // At 2 AM the same: no hold for the night.
+  const night = invoiceApp()
+  await sendSheetsToNewTeam(teamWorld([bluHad]) as never, { orderId: ORDER.id, team: [GARY], sentBy: "desk", send: night.send, now: Date.parse("2030-11-13T10:00:00Z") })
+  assert.deepEqual(night.calls.map((c) => c.sentBy), ["desk"])
+})
+
+test("new team · nothing goes out before the party's first sheet, or to a chef who already holds a live one", async () => {
+  const none = invoiceApp()
+  assert.deepEqual(await sendSheetsToNewTeam(teamWorld([]) as never, { orderId: ORDER.id, team: [GARY], sentBy: "workbench:reassign", send: none.send, now: BEFORE }), [])
+  // A sheet text that bounced is not a sheet that went out.
+  assert.deepEqual(await sendSheetsToNewTeam(teamWorld([link("l1", BLU, { sent_via: "failed" })]) as never, { orderId: ORDER.id, team: [GARY], sentBy: "workbench:reassign", send: none.send, now: BEFORE }), [])
+  assert.equal(none.calls.length, 0)
+  // Blu stays on and holds his; Gary is added next to him.
+  const both = invoiceApp()
+  const out = await sendSheetsToNewTeam(teamWorld([link("l1", BLU)]) as never, { orderId: ORDER.id, team: [BLU, GARY], sentBy: "workbench:reassign", send: both.send, now: BEFORE })
+  assert.deepEqual(both.calls.map((c) => c.staffMemberId), [GARY])
+  assert.deepEqual(out.map((r) => r.name), ["Gary"])
+})
+
+test("new team · a text that did not get to him: reported, and his link (marked failed) is how the inbox finds him", async () => {
+  const db = teamWorld([bluHad])
+  const app = invoiceApp(() => ({ ok: true, url: "https://invoice.example/chef/tok", sms: { delivered: false, error: "staff_has_no_phone" } }))
+  const out = await sendSheetsToNewTeam(db as never, { orderId: ORDER.id, team: [GARY], sentBy: "workbench:reassign", send: app.send, now: BEFORE })
+  assert.deepEqual(out, [{ staffId: GARY, name: "Gary", sent: true, delivered: false, error: "staff_has_no_phone" }])
+  assert.equal(sheetSendSummaryZh(out), "Gary 的备料单短信没发出去（没存手机号），已进收件箱")
+  assert.deepEqual(db.writes, [])
+})
+
+test("new team · a send the invoice app refuses, or one that throws: written to the order for the inbox, never thrown", async () => {
+  const db = teamWorld([bluHad])
+  const refused = invoiceApp(() => ({ ok: false, error: "备料单没发：菜单还空着。改好发票再发，或确认后 force 发。", code: "order_lint" }))
+  const out = await sendSheetsToNewTeam(db as never, { orderId: ORDER.id, team: [GARY], sentBy: "workbench:reassign", send: refused.send, now: BEFORE })
+  assert.deepEqual(out, [{ staffId: GARY, name: "Gary", sent: false, delivered: false, error: "备料单没发：菜单还空着。改好发票再发，或确认后 force 发。", code: "order_lint" }])
+  assert.deepEqual(db.writes.map((w) => [w.table, w.op]), [["order_events", "insert"]])
+  assert.deepEqual(db.tables.order_events.map((e) => [e.action, e.actor, (e.metadata as Record<string, unknown>).staff_member_id, (e.metadata as Record<string, unknown>).code]), [["chef_sheet_send_failed", "workbench:reassign", GARY, "order_lint"]])
+  assert.equal(sheetSendSummaryZh(out), "Gary 的备料单没发出去（备料单没发：菜单还空着。改好发票再发，或确认后 force 发。），已进收件箱")
+  const down = teamWorld([bluHad])
+  const thrown = await sendSheetsToNewTeam(down as never, { orderId: ORDER.id, team: [GARY], sentBy: "desk", send: async () => { throw new Error("fetch failed") }, now: BEFORE })
+  assert.deepEqual(thrown.map((r) => [r.sent, r.error]), [[false, "fetch failed"]])
+  assert.equal(down.tables.order_events.length, 1)
+})
+
+test("new team · dry run says who would get it and sends nothing; a cancelled party or one under way sends nothing", async () => {
+  const app = invoiceApp()
+  const dry = teamWorld([bluHad])
+  const plan = await sendSheetsToNewTeam(dry as never, { orderId: ORDER.id, team: [GARY], sentBy: "workbench:reassign", send: app.send, dryRun: true, now: BEFORE })
+  assert.deepEqual(plan, [{ staffId: GARY, name: "Gary", sent: false, delivered: false, dryRun: true }])
+  assert.equal(sheetSendSummaryZh(plan), "会自动给 Gary 发备料单")
+  assert.deepEqual([app.calls.length, dry.writes.length], [0, 0])
+  assert.deepEqual(await sendSheetsToNewTeam(teamWorld([bluHad], { order_status: "cancelled" }) as never, { orderId: ORDER.id, team: [GARY], sentBy: "workbench:reassign", send: app.send, now: BEFORE }), [])
+  // 5:30 PM Pacific on the 14th is 01:30Z on the 15th.
+  assert.deepEqual(await sendSheetsToNewTeam(teamWorld([bluHad]) as never, { orderId: ORDER.id, team: [GARY], sentBy: "workbench:reassign", send: app.send, now: Date.parse("2030-11-15T01:31:00Z") }), [])
+  assert.equal(app.calls.length, 0)
+  assert.deepEqual(await sendSheetsToNewTeam(teamWorld([bluHad]) as never, { orderId: ORDER.id, team: [], sentBy: "workbench:reassign", send: app.send, now: BEFORE }), [])
 })

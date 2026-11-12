@@ -293,6 +293,121 @@ export async function logChefNotices(supabase: SupabaseClient, orderId: string, 
   }
 }
 
+// ---- the chef put on a party gets its sheet (owner 2026-11-12, D-1112-01) ---------------
+// 「给师傅更新发也是直接发，不要拖延」: a chef put on a party whose prep sheet has already
+// gone out to someone is sent his own at once - no prompt, and no waiting for the
+// morning. A change notice only goes to a chef who holds a link, so until someone
+// remembered he would have had nothing. Before any sheet has gone out for the party
+// nothing is sent: the day-before send covers the whole team.
+
+/** What the invoice app's POST /api/chef-sheet/send answered, as the caller passes it on. */
+export type SheetSendResult =
+  | { ok: true; url?: string | null; resent?: boolean; sms?: { delivered?: boolean; error?: string | null } | null }
+  | { ok: false; error: string; code?: string | null }
+
+export type SheetSendInput = { orderNo: string; staffMemberId: string; sendSms: true; sentBy: string }
+
+export type SheetAutoSend = {
+  staffId: string
+  name: string
+  /** The invoice app took the send and made him a link. */
+  sent: boolean
+  /** ...and the text with it reached Twilio. */
+  delivered: boolean
+  error?: string
+  code?: string
+  dryRun?: boolean
+}
+
+/** order_events action for a send the invoice app refused or that never got there: no link was made. */
+export const SHEET_SEND_FAILED = "chef_sheet_send_failed"
+
+/**
+ * Send the sheet to everyone on the team who has none, once the party's sheets
+ * are out (teamNeedingSheet). `send` is the call to the invoice app - the
+ * route's, or a test's. One send per chef, one after another; a send that is
+ * refused or throws is written to order_events (SHEET_SEND_FAILED) so the inbox
+ * can list him - a text that went nowhere leaves his link marked failed, and
+ * the inbox finds that by itself. A cancelled party, or one already under way,
+ * sends nothing (moving names then is bookkeeping, as for the chef taken off).
+ * Never throws: the assignment is written before this runs.
+ */
+export async function sendSheetsToNewTeam(
+  supabase: SupabaseClient,
+  input: { orderId: string; team: string[]; sentBy: string; send: (x: SheetSendInput) => Promise<SheetSendResult>; dryRun?: boolean; now?: number },
+): Promise<SheetAutoSend[]> {
+  const team = [...new Set(input.team.filter(Boolean))]
+  if (!team.length) return []
+  const now = input.now ?? Date.now()
+  try {
+    const [{ data: order }, { data: links }] = await Promise.all([
+      supabase.from("orders").select("id, order_no, event_start, order_status").eq("id", input.orderId).maybeSingle(),
+      supabase.from("chef_sheet_links").select("staff_member_id, sent_via, first_opened_at, revoked_at, stale").eq("order_id", input.orderId),
+    ])
+    const o = order as { order_no?: string | null; event_start?: string | null; order_status?: string | null } | null
+    if (!o?.order_no || o.order_status === "cancelled") return []
+    const start = o.event_start ? wallToInstant(o.event_start) : NaN
+    if (Number.isFinite(start) && start <= now) return []
+    const need = teamNeedingSheet(team, (links ?? []) as SheetLink[])
+    if (!need.length) return []
+    const { data: staff } = await supabase.from("staff_members").select("id, display_name, full_name").in("id", need)
+    const nameOf = new Map(((staff ?? []) as Array<{ id: string; display_name: string | null; full_name: string | null }>).map((s) => [s.id, (s.display_name ?? s.full_name ?? "").trim() || "?"]))
+    if (input.dryRun) return need.map((id) => ({ staffId: id, name: nameOf.get(id) ?? "?", sent: false, delivered: false, dryRun: true }))
+    const out: SheetAutoSend[] = []
+    for (const id of need) {
+      const name = nameOf.get(id) ?? "?"
+      let res: SheetSendResult
+      try {
+        res = await input.send({ orderNo: o.order_no, staffMemberId: id, sendSms: true, sentBy: input.sentBy })
+      } catch (e) {
+        res = { ok: false, error: e instanceof Error ? e.message : String(e) }
+      }
+      if (res.ok) {
+        const delivered = res.sms?.delivered === true
+        out.push({ staffId: id, name, sent: true, delivered, ...(delivered ? {} : { error: res.sms?.error || "not_delivered" }) })
+        continue
+      }
+      out.push({ staffId: id, name, sent: false, delivered: false, error: res.error, ...(res.code ? { code: res.code } : {}) })
+      try {
+        await supabase.from("order_events").insert({
+          order_id: input.orderId,
+          actor: input.sentBy,
+          action: SHEET_SEND_FAILED,
+          metadata: { staff_member_id: id, staff_name: name, error: res.error, code: res.code ?? null },
+        })
+      } catch {
+        // reported to the caller all the same
+      }
+    }
+    return out
+  } catch (e) {
+    console.error("[chef-notify] sheet send to the new team failed", e instanceof Error ? e.message : e)
+    return []
+  }
+}
+
+/** "没存手机号" for the errors a person can act on; anything else as it came, short. */
+export function sheetSendErrorZh(error: string | null | undefined): string {
+  const e = String(error ?? "").trim()
+  if (!e || e === "not_delivered") return "原因不明"
+  if (e === "staff_has_no_phone") return "没存手机号"
+  if (e === "sms_skipped") return "没走短信"
+  return e.length > 80 ? `${e.slice(0, 79)}…` : e
+}
+
+/** "备料单已发给 Gary；Blu 的备料单短信没发出去（没存手机号），已进收件箱" for the workbench and the desk. */
+export function sheetSendSummaryZh(results: SheetAutoSend[]): string {
+  const planned = results.filter((r) => r.dryRun).map((r) => r.name)
+  const done = results.filter((r) => !r.dryRun && r.delivered).map((r) => r.name)
+  const bits: string[] = []
+  if (planned.length) bits.push(`会自动给 ${planned.join("、")} 发备料单`)
+  if (done.length) bits.push(`备料单已发给 ${done.join("、")}`)
+  for (const r of results.filter((x) => !x.dryRun && !x.delivered)) {
+    bits.push(`${r.name} 的备料单${r.sent ? "短信" : ""}没发出去（${sheetSendErrorZh(r.error)}），已进收件箱`)
+  }
+  return bits.join("；")
+}
+
 /** "已短信通知 Blu；Gary 没通知到（没存手机号），自己说一声" for the workbench and the desk. */
 export function chefNoticeSummaryZh(results: ChefNoticeResult[]): string {
   const told = results.filter((r) => r.texted).map((r) => r.name)

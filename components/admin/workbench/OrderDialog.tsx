@@ -403,6 +403,7 @@ export function OrderDialog({
   const chefNote = assignments.length > 1 ? `${assignments.length} 位师傅 · 人头平分 ${Math.round(guests / assignments.length)} 人/位` : ""
   const teamDirty = team !== null && (team.length !== assignments.length || team.some((id) => !assignments.find((a) => a.staffId === id)))
   const removedFromTeam = team === null ? [] : assignments.filter((a) => !team.includes(a.staffId)).map((a) => a.name)
+  const addedToTeam = team === null ? [] : team.filter((id) => !assignments.some((a) => a.staffId === id)).map((id) => chefs.find((c) => c.id === id)?.name ?? "新派的师傅")
   const curTab: OTab = tab ?? "money"
   const goTab = (t: OTab) => {
     if (t !== "sms") setInsert(null)
@@ -631,50 +632,32 @@ export function OrderDialog({
   const customerNotes = customerNotesOf(o.invoice_data)
 
   // 发备料单。发票应用每发一次都换一条新链接、把他原来那条作废（2026-11-11）；返回里的 resent
-  // 现在的意思是「他原来有一条，被这条换掉了」，不是「沿用原链接」。confirmed = 上一步已经问过了。
-  const sendSheet = (staffId: string, name: string, confirmed = false) =>
+  // 现在的意思是「他原来有一条，被这条换掉了」，不是「沿用原链接」。
+  const sendSheet = (staffId: string, name: string) =>
     call(`sheet:${staffId}`, async () => {
-      if (!confirmed && !(await askConfirm({ title: "发备料单", message: `把 ${ev ? `${md(ev.ymd)} ${ev.hm}` : "这场"} 的备料单短信发给 ${name}？每发一次都是一条新链接，他之前收到过的会作废，以这条为准。链接在派对结束 6 小时后失效。`, okLabel: "发送" }))) return null
+      if (!(await askConfirm({ title: "发备料单", message: `把 ${ev ? `${md(ev.ymd)} ${ev.hm}` : "这场"} 的备料单短信发给 ${name}？每发一次都是一条新链接，他之前收到过的会作废，以这条为准。链接在派对结束 6 小时后失效。`, okLabel: "发送" }))) return
       const d = await adminJson<{ ok: boolean; url?: string; resent?: boolean; error?: string; sms?: { delivered?: boolean; error?: string } }>(adminKey, "/api/admin/chefs", {
         body: { action: "send_sheet", order_id: o.id, staff_member_id: staffId },
       })
       if (!d.ok || !d.url) throw new Error(d.error ?? "发送失败")
       const why = d.sms?.error === "staff_has_no_phone" ? "这位师傅没存手机号" : d.sms?.error === "sms_skipped" ? "没走短信" : d.sms?.error || "未知原因"
-      const text = d.sms?.delivered ? `已短信发给 ${name}${d.resent ? "（他原来那条链接已作废，这条是新的）" : ""}` : `链接生成了，但短信没发出去（${why}）——自己把链接发给 ${name}。`
-      setSheet({ url: d.url, text })
+      setSheet({
+        url: d.url,
+        text: d.sms?.delivered ? `已短信发给 ${name}${d.resent ? "（他原来那条链接已作废，这条是新的）" : ""}` : `链接生成了，但短信没发出去（${why}）——自己把链接发给 ${name}。`,
+      })
       await load()
-      return text
     })
 
-  const saveTeam = async () => {
-    const saved = await call("assign", async () => {
-      const d = await adminJson<{ ok: boolean; error?: string; notice?: string; needSheet?: Array<{ staffId: string; name: string }> }>(adminKey, "/api/admin/chefs", { body: { action: "assign", order_id: o.id, staff_member_ids: team ?? [] } })
+  const saveTeam = () =>
+    call("assign", async () => {
+      const d = await adminJson<{ ok: boolean; error?: string; notice?: string; sheetNotice?: string }>(adminKey, "/api/admin/chefs", { body: { action: "assign", order_id: o.id, staff_member_ids: team ?? [] } })
       if (!d.ok) throw new Error(d.error ?? "派单失败")
       await Promise.all([load(), onChanged()])
-      // 被换下、拿过备料单的师傅：服务器已经发了「不用去了」并作废他的备料单，这里说一声发给了谁、谁没发到。
-      setMsg(d.notice ? `派单已保存 · ${d.notice}` : "派单已保存")
-      return d
+      // 被换下、拿过备料单的师傅：服务器已经发了「不用去了」并作废他的备料单。这单的备料单已经发出去过的话，
+      // 换上来的人当场收到自己的备料单（老板 2026-11-12 D-1112-01，不问、不等）。这里说一声发给了谁、
+      // 谁没发到——没发到的已经进了收件箱。
+      setMsg(["派单已保存", d.notice, d.sheetNotice].filter(Boolean).join(" · "))
     })
-    // 这单的备料单已经发出去过，而刚派上来的人手里还没有：订单再改时，改单短信只发给已经有备料单
-    // 链接的师傅，不现在发他什么都收不到。发不发还是人点——派单本身不自动给师傅发短信。
-    const need = saved?.needSheet ?? []
-    if (!need.length) return
-    const names = need.map((n) => n.name).join("、")
-    const ok = await askConfirm({
-      title: "新师傅还没有备料单",
-      message: `派单已保存。${saved?.notice ? `${saved.notice}。` : ""}\n\n${names} 还没有这场的备料单。以后订单再改，改单短信只会发给手里已经有备料单的师傅，所以要先发给他一次。\n\n现在把备料单短信发给 ${names}？`,
-      okLabel: "发备料单",
-      cancelLabel: "先不发",
-    })
-    if (!ok) return
-    // 一位：结果显示在下面那条带「复制链接」的提示里（没发成的原因在顶上）。几位：逐个汇总成一句。
-    const results: string[] = []
-    for (const n of need) {
-      const text = await sendSheet(n.staffId, n.name, true)
-      results.push(text ?? `${n.name} 的备料单没发成，在下面「发备料单给 ${n.name}」再点一次`)
-    }
-    if (need.length > 1) setMsg(results.join("；"))
-  }
 
   const sendEmail = () =>
     call("email", async () => {
@@ -1100,6 +1083,11 @@ export function OrderDialog({
               {teamDirty && removedFromTeam.length ? (
                 <div style={{ fontSize: 12, color: "var(--color-accent-700)" }}>
                   保存后 {removedFromTeam.join("、")} 不再是这场的师傅：收到过备料单的会自动收到短信「…那场改给别人了，你不用去，之前的备料单作废」，备料单链接同时作废。
+                </div>
+              ) : null}
+              {teamDirty && addedToTeam.length ? (
+                <div style={{ fontSize: 12, color: "var(--color-accent-700)" }}>
+                  保存后 {addedToTeam.join("、")} 派到这场：这单的备料单已经发出去过的话，会当场自动把备料单短信发给他。
                 </div>
               ) : null}
               {/* 派工计划：几位师傅几台灶、站位、答应过客人什么，和派了几个人对不对得上。 */}

@@ -389,11 +389,14 @@ def render_staff_card(c: dict) -> None:
     print(f"   不用回（电话、微信说过了）: desk ack {phone}"
           + (f"\n   他确认了改动、只是没回 1: desk chef-confirm {phone}" if unconfirmed else ""))
     if "chef_unsent" in kinds:
-        # The change text bounced after the new link was issued and his old one revoked: he holds nothing.
-        # Sending the sheet again is the owner's click (workbench order drawer); this line goes when it lands.
-        print("   改单短信没发到他手上：旧备料单链接已作废，新的他没收到。先看他的手机号对不对，"
-              "再请老板在工作台打开这单点「发备料单给他」重发（发到了这条自己消）。"
-              f"\n   已经从别的路给到他了（微信发了链接、当面说了）: desk chef-confirm {phone}")
+        # A change text that bounced (the new link issued, his old one revoked), or any other sheet send that
+        # did not get to him - the one reassigning makes (2026-11-12, D-1112-01): he holds no sheet he can open.
+        # Sending it again is the owner's click in the order drawer; the line goes when a sheet reaches him or
+        # he opens one. chef-confirm clears only the change-text kind (it marks the notice).
+        print("   备料单没发到他手上，他手里没有能打开的。先看他的手机号对不对，"
+              "再请老板在工作台打开这单点「发备料单给他」重发（发到了、或者他打开了链接，这条自己消）。")
+        if any("改单短信" in (al.get("title") or "") for al in alerts):
+            print(f"   改单短信那条已经从别的路给到他了（微信发了链接、当面说了）: desk chef-confirm {phone}")
 
 
 def render_card(c: dict) -> None:
@@ -504,11 +507,11 @@ def render_card(c: dict) -> None:
 def cmd_next(a):
     data = site_get("/api/admin/desk")
     counts = data.get("counts") or {}
-    # 师傅的几项排最前（2026-11-11）：师傅来短信没回、师傅没确认改动、改单短信没发到（他手里没有
-    # 能打开的备料单，有才显示）；卡片也是它们先出。
+    # 师傅的几项排最前（2026-11-11）：师傅来短信没回、师傅没确认改动、备料单没发到（改单短信或派单时
+    # 发的，他手里没有能打开的备料单，有才显示）；卡片也是它们先出。
     unsent = int(counts.get("chefUnsent") or 0)
     print(f"收件箱 {pt(data.get('serverTime'))} PT · 师傅 {counts.get('chefTexts', 0)} · 师傅没确认改动 {counts.get('chefNotices', 0)}"
-          + (f" · 师傅没收到改单短信 {unsent} ⚠️" if unsent else "")
+          + (f" · 师傅没收到备料单 {unsent} ⚠️" if unsent else "")
           + f" · 未回 {counts.get('unreplied', 0)} · 邮件 {counts.get('emailNew', 0)} · 网站回复 {counts.get('formNew', 0)} · 漏网 {counts.get('silenced', 0)} · 没送达 {counts.get('undelivered', 0)} · 联系不上 {counts.get('unreachedParties', 0)} · 新线索 {counts.get('newLeads', 0)}"
           f" · 订单变动 {counts.get('changedOrders', 0)}（48h 内等确认 {counts.get('heldChanges', 0)}） · planner {counts.get('plannerLive', 0)} · reddit {counts.get('redditNew', 0)}")
     cards = data.get("cards") or []

@@ -31,7 +31,9 @@ import { partyLabelZh } from "@/lib/chef-notify"
 //                 after it was texted; rings inside three hours of the start
 //   chef_unsent   a change text that never went out: listed at once, with the
 //                 chefs' items, because the link it carried replaced his old
-//                 one - he is holding no sheet he can open
+//                 one - he is holding no sheet he can open. The same for a
+//                 chef any other sheet send did not reach: the one reassigning
+//                 makes (D-1112-01), a sheet text that bounced
 //                 (these new alarms never ring 11 PM - 7 AM Pacific, and
 //                 what came in overnight starts ringing at 7:
 //                 lib/reply-audit.ts shouldRingAwake)
@@ -344,8 +346,8 @@ export async function computeInbox(
   // the chef replies 1 or a person marks it confirmed. No table yet = no rows.
   let chefNotices = 0
   let chefUnsent = 0
-  if (noticeGroups.length || noticeBoard.failed.length) {
-    const noticeOrders = await loadNoticeOrders(supabase, [...noticeGroups, ...noticeBoard.failed].map((g) => g.orderId)).catch(() => new Map<string, NoticeOrder>())
+  if (noticeGroups.length || noticeBoard.failed.length || noticeBoard.sheetless.length) {
+    const noticeOrders = await loadNoticeOrders(supabase, [...noticeGroups, ...noticeBoard.failed, ...noticeBoard.sheetless].map((g) => g.orderId)).catch(() => new Map<string, NoticeOrder>())
     const staffById = new Map(staffContacts.map((s) => [s.id, s]))
     const leftOf = (hoursToParty: number | null) =>
       hoursToParty === null
@@ -372,6 +374,33 @@ export async function computeInbox(
         kind: "chef_unsent",
         title: `师傅没收到改单短信 · ${who?.name ?? "师傅"}`,
         body: ["他手里现在没有能打开的备料单", partyLabelZh(o), st.urgent ? leftOf(st.hoursToParty) : null, noticeSummary(g) || `${g.notices.length} 条改动`]
+          .filter(Boolean)
+          .join(" · ")
+          .slice(0, 300),
+        url: `/admin?tab=orders&order=${g.orderId}`,
+        at: new Date(g.at ? Date.parse(g.at) : now).toISOString(),
+        waitedMinutes: st.waitedMinutes,
+        ring: shouldRingAwake(st.waitedMinutes, now) || (st.urgent && awakeHours(now)),
+        urgent: true,
+        explain: true,
+        orderId: g.orderId,
+        phone: toE164(who?.phone ?? null),
+      })
+    }
+    // A sheet sent to him that did not get to him (lib/chef-notices.ts loadSheetless): the send
+    // reassigning makes, or any sheet text that bounced. Same line, same rings, with why.
+    for (const g of noticeBoard.sheetless) {
+      const o = noticeOrders.get(g.orderId)
+      const st = failedSendState(g, o, now)
+      if (!o || !st.show) continue
+      chefUnsent += 1
+      unsentPairs.add(`${g.orderId}:${g.staffId}`)
+      const who = staffById.get(g.staffId)
+      events.push({
+        key: `chef-unsent:${g.orderId}:${g.staffId}`,
+        kind: "chef_unsent",
+        title: `师傅没收到备料单 · ${who?.name ?? "师傅"}`,
+        body: ["他手里现在没有能打开的备料单", partyLabelZh(o), st.urgent ? leftOf(st.hoursToParty) : null, g.reason ? `原因：${g.reason}` : null]
           .filter(Boolean)
           .join(" · ")
           .slice(0, 300),

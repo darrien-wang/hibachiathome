@@ -13,7 +13,19 @@ import { CARD_PROCESSING_RATE, cardProcessingFeeInside, DEFAULT_SALES_TAX_RATE, 
 import { formatTaxRate } from "@/lib/sales-tax-rate"
 import { MAX_CHEFS, normalizeDispatchPlan, rulePlan, type DispatchPlan } from "@/lib/dispatch-plan"
 import { lintOrderStaffing, orderPaidHeads, type OrderForPlan } from "@/lib/dispatch-plan-order"
-import { chefNoticeSummaryZh, chefsRemovedByAssign, helpersRemovedByAssign, logChefNotices, notifyRemovedChefs, teamNeedingSheet, type ChefNoticeResult, type PartyRef, type SheetLink } from "@/lib/chef-notify"
+import {
+  chefNoticeSummaryZh,
+  chefsRemovedByAssign,
+  helpersRemovedByAssign,
+  logChefNotices,
+  notifyRemovedChefs,
+  sendSheetsToNewTeam,
+  sheetSendSummaryZh,
+  type ChefNoticeResult,
+  type PartyRef,
+  type SheetSendInput,
+  type SheetSendResult,
+} from "@/lib/chef-notify"
 import { ackNotices } from "@/lib/chef-notices"
 import { phoneDigits10 } from "@/lib/staff-phones"
 
@@ -30,7 +42,8 @@ export const runtime = "nodejs"
 // 2026-11-11（D-1111-03）：assign / assign_helpers 把人换下来时，收到过备料单的那位自动
 // 收到一条中文短信、备料单链接作废（lib/chef-notify.ts）；dry_run:true 只看不写不发。
 // ack_text = 这位师傅发来的不用回了；confirm_notice = 师傅用别的方式确认了改动。
-// assign 的返回里 needSheet = 这单备料单已经发过、而新名单里还没有的人（改单短信不会发给他）。
+// assign：这单的备料单已经发出去过，新名单里还没有的人当场自动发（老板 2026-11-12 D-1112-01
+// 「给师傅更新发也是直接发」），返回 sheets / sheetNotice 说发给了谁、谁没发到（没发到的进收件箱）。
 // send_sheet：发票应用每发一次都换一条新链接、旧的作废；resent:true = 他原来有一条，被这条换掉了。
 // Money is cents everywhere. Pay per shift = base + (share - head_from) × per_head,
 // share = the chef's head count when several chefs work one party.
@@ -597,29 +610,67 @@ async function tellRemovedChefs(
   }
 }
 
+type SheetIssue = { code?: string; message?: string; messageZh?: string }
+type InvoiceSheetReply =
+  | { ok: true; url: string; expiresAt?: string; resent?: boolean; sms?: { delivered?: boolean; error?: string } }
+  | { ok: false; status: number; error: string; code?: string; blocking?: SheetIssue[] }
+
 /**
- * 这单的备料单已经开始发了，新名单里谁手上还没有：改单短信只发给已经有备料单链接的师傅
- * （发票应用 2026-11-11 的规则），刚换上来的人不发就什么都收不到。只是告诉调用方该给谁发——
- * 发不发还是人点（派单不自动发短信的规矩不变）。还没人收过这单备料单时不提。
+ * 叫发票应用发一份备料单（POST /api/chef-sheet/send）。真正干活的是发票应用（它才有发票快照、
+ * 令牌和 213 线），这里只转发。发票应用说订单缺东西（order_lint，D-1017-02）或派工不够
+ * （staffing_lint）时不发，把缺什么带回来（409）；看过了还要发 = force。连不上、502/504 也算
+ * 没发成，带着原话回来（Cloudflare 会把 5xx 换成它自己的错误页，理由就丢了）。
  */
-async function teamWithoutSheet(
-  supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
-  orderId: string,
-  team: string[],
-): Promise<Array<{ staffId: string; name: string }>> {
-  if (!team.length) return []
+async function sendSheetViaInvoice(input: { orderNo: string; staffMemberId: string; note?: string; sendSms: boolean; sentBy: string; force?: boolean }): Promise<InvoiceSheetReply> {
+  type SheetResp = {
+    ok?: boolean
+    url?: string
+    expiresAt?: string
+    resent?: boolean
+    error?: string
+    message?: string
+    blocking?: SheetIssue[]
+    lint?: Array<SheetIssue & { severity?: string }>
+    sms?: { delivered?: boolean; error?: string }
+  }
   try {
-    const { data: links } = await supabase.from("chef_sheet_links").select("staff_member_id, sent_via, first_opened_at, revoked_at, stale").eq("order_id", orderId)
-    const need = teamNeedingSheet(team, (links ?? []) as SheetLink[])
-    if (!need.length) return []
-    const { data: rows } = await supabase.from("staff_members").select("id, display_name, full_name").in("id", need)
-    const nameOfId = new Map(((rows ?? []) as Array<{ id: string; display_name: string | null; full_name: string | null }>).map((r) => [r.id, (r.display_name ?? r.full_name ?? "").trim() || "?"]))
-    return need.map((id) => ({ staffId: id, name: nameOfId.get(id) ?? "?" }))
+    const res = await fetch(`${INVOICE_APP_ORIGIN}/api/chef-sheet/send`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({
+        orderNo: input.orderNo,
+        staffMemberId: input.staffMemberId,
+        note: input.note || undefined,
+        sendSms: input.sendSms,
+        sentBy: input.sentBy,
+        ...(input.force ? { force: true } : {}),
+      }),
+    })
+    const payload = (await res.json().catch(() => ({}))) as SheetResp
+    if (res.status === 409 && (payload.error === "order_lint" || payload.blocking || payload.lint)) {
+      const missing = [...(payload.blocking ?? []), ...(payload.lint ?? []).filter((x) => x.severity === "blocking")]
+      return {
+        ok: false,
+        status: 409,
+        error: `备料单没发：${missing.map((x) => x.messageZh || x.message).join("；") || payload.message || payload.error}。改好发票再发，或确认后 force 发。`,
+        code: payload.error === "order_lint" ? "order_lint" : "staffing_lint",
+        blocking: missing,
+      }
+    }
+    if (!res.ok || !payload.ok || !payload.url) return { ok: false, status: 400, error: payload.error ?? `发票工具返回 ${res.status}` }
+    return { ok: true, url: payload.url, expiresAt: payload.expiresAt, resent: payload.resent, sms: payload.sms }
   } catch (e) {
-    console.error("[admin/chefs] sheet check failed", e instanceof Error ? e.message : e)
-    return []
+    return { ok: false, status: 400, error: e instanceof Error ? e.message : "连不上发票工具" }
   }
 }
+
+/** The new team's sheets go out through the invoice app, as a person's 发备料单 would. */
+const sendForTeam = async (x: SheetSendInput): Promise<SheetSendResult> => {
+  const r = await sendSheetViaInvoice(x)
+  return r.ok ? { ok: true, url: r.url, resent: r.resent, sms: r.sms ?? null } : { ok: false, error: r.error, code: r.code ?? null }
+}
+const sendNothing = async (): Promise<SheetSendResult> => ({ ok: false, error: "dry_run" })
 
 type Body = Record<string, unknown> & { action?: string }
 const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f-]{36}$/i.test(v)
@@ -769,9 +820,12 @@ export async function POST(request: NextRequest) {
         const toAdd = want.filter((sid) => !have.has(sid))
         // 真被换下来的人：不在新名单里，也不是这单还留着的帮手。
         const removedIds = chefsRemovedByAssign(allRows ?? [], want)
+        // Who the new team's sheets are sent as: the desk's dispatch apply, or the workbench.
+        const sheetSentBy = body.source === "desk" ? "desk" : "workbench:reassign"
         if (body.dry_run === true) {
           const wouldTell = await tellRemovedChefs(supabase, body.order_id, removedIds, `workbench:${actor.alias}`, true)
-          return NextResponse.json({ ok: true, dryRun: true, added: toAdd.length, cancelled: toCancel.length, notified: wouldTell, needSheet: await teamWithoutSheet(supabase, body.order_id, want) })
+          const wouldSend = await sendSheetsToNewTeam(supabase, { orderId: body.order_id, team: want, sentBy: sheetSentBy, send: sendNothing, dryRun: true })
+          return NextResponse.json({ ok: true, dryRun: true, added: toAdd.length, cancelled: toCancel.length, notified: wouldTell, sheets: wouldSend, sheetNotice: sheetSendSummaryZh(wouldSend) })
         }
         if (helperClash.length) await supabase.from("order_staff_assignments").update({ assignment_status: "cancelled", updated_at: now }).in("id", helperClash.map((a) => a.id))
         if (toCancel.length) {
@@ -790,9 +844,11 @@ export async function POST(request: NextRequest) {
         // 被换下的师傅以前没人通知（45 天 6 场，11-09 Blu 收单 13 分钟后被换掉）：收到过备料单的
         // 现在自动收到「那场改给别人了，你不用去」，他的备料单链接作废。新师傅照旧另外发备料单。
         const notified = await tellRemovedChefs(supabase, body.order_id, removedIds, `workbench:${actor.alias}`, false)
-        // 新名单里谁还没有备料单（这单的备料单已经发出去过才提）：工作台接着问要不要现在发。
-        const needSheet = await teamWithoutSheet(supabase, body.order_id, want)
-        return NextResponse.json({ ok: true, added: toAdd.length, cancelled: toCancel.length, notified, notice: chefNoticeSummaryZh(notified), needSheet })
+        // 换上来的人：这单的备料单已经发出去过，他手里还没有，当场发（D-1112-01：不问、不等到早上）。
+        // 改单短信只发给手里已经有链接的师傅，不发他就什么都收不到。没发到的进收件箱（[chef_unsent]）。
+        // 这单还没人收过备料单就不发：前一天照常一起发。
+        const sheets = await sendSheetsToNewTeam(supabase, { orderId: body.order_id, team: want, sentBy: sheetSentBy, send: sendForTeam })
+        return NextResponse.json({ ok: true, added: toAdd.length, cancelled: toCancel.length, notified, notice: chefNoticeSummaryZh(notified), sheets, sheetNotice: sheetSendSummaryZh(sheets) })
       }
       case "assign_helpers": {
         // 这一单的帮手换成这几个人（可以是空）。帮手不计工钱、不分人头；已经是这单师傅的人跳过。
@@ -917,56 +973,20 @@ export async function POST(request: NextRequest) {
         if (!(ord as { invoice_data?: unknown } | null)?.invoice_data) {
           return NextResponse.json({ error: "这单还没在发票工具里存过发票，先保存一次发票再发备料单。" }, { status: 400 })
         }
-        type Issue = { code?: string; message?: string; messageZh?: string }
-        type SheetResp = {
-          ok?: boolean
-          url?: string
-          expiresAt?: string
-          resent?: boolean
-          error?: string
-          message?: string
-          blocking?: Issue[]
-          lint?: Array<Issue & { severity?: string }>
-          staff?: { name?: string }
-          sms?: { delivered?: boolean; error?: string }
+        // 发票工具说订单缺东西（order_lint / staffing_lint）时不发，把缺什么带回工作台（409），
+        // 确认过了带 force:true 再发一次。
+        const sent = await sendSheetViaInvoice({
+          orderNo,
+          staffMemberId: body.staff_member_id,
+          note: str(body.note, 300) || undefined,
+          sendSms: body.send_sms !== false,
+          sentBy: `workbench:${actor.alias}`,
+          force: body.force === true,
+        })
+        if (!sent.ok) {
+          return NextResponse.json({ error: sent.error, ...(sent.code ? { code: sent.code } : {}), ...(sent.blocking ? { blocking: sent.blocking } : {}) }, { status: sent.status })
         }
-        let payload: SheetResp
-        try {
-          const res = await fetch(`${INVOICE_APP_ORIGIN}/api/chef-sheet/send`, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            cache: "no-store",
-            body: JSON.stringify({
-              orderNo,
-              staffMemberId: body.staff_member_id,
-              note: str(body.note, 300) || undefined,
-              sendSms: body.send_sms !== false,
-              sentBy: `workbench:${actor.alias}`,
-              // 发票工具说订单缺东西（order_lint / staffing_lint）时，看过了还要发 = force
-              ...(body.force === true ? { force: true } : {}),
-            }),
-          })
-          payload = (await res.json().catch(() => ({}))) as SheetResp
-          // 订单缺客人该有的东西（D-1017-02）或派工不够：备料单不发，把缺什么带回工作台，
-          // 确认过了带 force:true 再发一次。
-          if (res.status === 409 && (payload.error === "order_lint" || payload.blocking || payload.lint)) {
-            const missing = [...(payload.blocking ?? []), ...(payload.lint ?? []).filter((x) => x.severity === "blocking")]
-            return NextResponse.json(
-              {
-                error: `备料单没发：${missing.map((x) => x.messageZh || x.message).join("；") || payload.message || payload.error}。改好发票再发，或确认后 force 发。`,
-                code: payload.error === "order_lint" ? "order_lint" : "staffing_lint",
-                blocking: missing,
-              },
-              { status: 409 },
-            )
-          }
-          // 502/504 会被 Cloudflare 换成它自己的错误页，理由就丢了——
-          // 用 400 把发票工具的原话带回工作台。
-          if (!res.ok || !payload.ok) return NextResponse.json({ error: payload.error ?? `发票工具返回 ${res.status}` }, { status: 400 })
-        } catch (e) {
-          return NextResponse.json({ error: e instanceof Error ? e.message : "连不上发票工具" }, { status: 400 })
-        }
-        return NextResponse.json({ ok: true, url: payload.url, expiresAt: payload.expiresAt, resent: payload.resent, sms: payload.sms })
+        return NextResponse.json({ ok: true, url: sent.url, expiresAt: sent.expiresAt, resent: sent.resent, sms: sent.sms })
       }
       case "set_cash": {
         if (!isUuid(body.assignment_id)) return NextResponse.json({ error: "assignment_id required" }, { status: 400 })

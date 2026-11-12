@@ -211,23 +211,21 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
     if (replacing.length) {
       const ok = await askConfirm({
         title: `改派给 ${who}`,
-        message: `${replacing.map((s) => `${s.time} ${s.name}：现在是 ${namesOf(s.chefIds)}`).join("\n")}\n\n改完这几单都只有 ${who} 一个人。被换下的师傅如果收到过备料单，会自动收到短信「…那场改给别人了，你不用去」，他的备料单作废。`,
+        message: `${replacing.map((s) => `${s.time} ${s.name}：现在是 ${namesOf(s.chefIds)}`).join("\n")}\n\n改完这几单都只有 ${who} 一个人。被换下的师傅如果收到过备料单，会自动收到短信「…那场改给别人了，你不用去」，他的备料单作废。哪单的备料单已经发出去过，${who} 会当场收到那单的备料单。`,
         okLabel: "改派",
       })
       if (!ok) return
     }
     setAssigning(ci)
     try {
-      // 服务器会通知被换下、拿过备料单的师傅（2026-11-11）；发给了谁、谁没发到，改完说一声。
+      // 服务器会通知被换下、拿过备料单的师傅（2026-11-11），备料单已经发出去过的单子当场把备料单发给
+      // 换上来的人（2026-11-12 D-1112-01）；发给了谁、谁没发到（没发到的进收件箱），改完说一声。
       const notices: string[] = []
-      // 这几单的备料单发出去过、而新派的人还没有：改单短信只发给已经有备料单的师傅，要另外发给他。
-      const noSheet: string[] = []
       for (const s of change) {
-        const r = await adminJson<{ notice?: string; needSheet?: Array<{ staffId: string; name: string }> }>(adminKey, "/api/admin/chefs", { body: { action: "assign", order_id: s.id, staff_member_ids: [chefId] } })
-        if (r.notice) notices.push(`${s.time} ${s.name}：${r.notice}`)
-        if (r.needSheet?.length) noSheet.push(`${s.time} ${s.name}`)
+        const r = await adminJson<{ notice?: string; sheetNotice?: string }>(adminKey, "/api/admin/chefs", { body: { action: "assign", order_id: s.id, staff_member_ids: [chefId] } })
+        const said = [r.notice, r.sheetNotice].filter(Boolean).join("；")
+        if (said) notices.push(`${s.time} ${s.name}：${said}`)
       }
-      if (noSheet.length) notices.push(`${who} 还没有这几场的备料单：${noSheet.join("、")}。用下面的「发 prep sheet」发给他——以后订单再改，改单短信只发给手里已经有备料单的师傅。`)
       if (notices.length) void tell({ title: "改派已保存", message: notices.join("\n") })
     } catch (e) {
       void tell({ title: "没派上", message: e instanceof Error ? e.message : "出错了" })

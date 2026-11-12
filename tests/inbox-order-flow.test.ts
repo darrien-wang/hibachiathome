@@ -380,3 +380,38 @@ test("unsent · the links table unreadable: the line stays, the inbox still answ
   const { events } = await inbox({ tables: { chef_change_notices: [failedRow("f1", NOW - 3 * MIN)] }, missing: ["chef_sheet_links"] })
   assert.deepEqual(kinds(events), ["chef_unsent"])
 })
+
+// ---- a chef a sheet never reached (D-1112-01) -----------------------------------------
+const LIVE_UNTIL = iso(Date.parse("2030-11-15T07:30:00Z"))
+
+test("sheetless · a sheet text that bounced is listed at once with the chefs' items, saying why", async () => {
+  const at = NOW - 3 * MIN
+  const links = [linkRow("L1", { sent_via: "failed", sent_at: iso(at), expires_at: LIVE_UNTIL })]
+  const events = [{ id: "e1", order_id: ORDER_ID, action: "chef_sheet_sent", created_at: iso(at), metadata: { link_id: "L1", staff_member_id: GARY, sms: { error: "Twilio 21211: invalid 'To' number" } } }]
+  const { events: list, counts } = await inbox({ tables: { chef_sheet_links: links, order_events: events }, inbound: [inb(CUSTOMER, NOW - 45 * MIN, "Do you bring the propane?")] })
+  assert.deepEqual(list.map((e) => [e.kind, e.ring]), [["chef_unsent", true], ["sms", true]])
+  const e = list[0]
+  assert.equal(e.title, "师傅没收到备料单 · Gary")
+  assert.equal(e.body, "他手里现在没有能打开的备料单 · 11月14日下午5:30 Irvine（Joyce） · 原因：Twilio 21211: invalid 'To' number")
+  assert.deepEqual([e.key, e.phone, e.waitedMinutes, e.explain], [`chef-unsent:${ORDER_ID}:${GARY}`, GARY_PHONE, 3, true])
+  assert.equal(counts.chefUnsent, 1)
+})
+
+test("sheetless · the send reassigning made was refused: listed from the order's timeline", async () => {
+  const events = [{ id: "r1", order_id: ORDER_ID, action: "chef_sheet_send_failed", created_at: iso(NOW - MIN), metadata: { staff_member_id: GARY, error: "备料单没发：菜单还空着。改好发票再发，或确认后 force 发。" } }]
+  const links = [linkRow("L0", { staff_member_id: "00000000-0000-4000-8000-0000000000b9", first_opened_at: iso(NOW - 20 * H), revoked_at: iso(NOW - 2 * MIN) })]
+  const e = one((await inbox({ tables: { order_events: events, chef_sheet_links: links } })).events, "chef_unsent")
+  assert.equal(e.body, "他手里现在没有能打开的备料单 · 11月14日下午5:30 Irvine（Joyce） · 原因：备料单没发：菜单还空着。改好发票再发，或确认后 force 发。")
+  // Night: on the list, silent until 7.
+  const oneAm = Date.parse("2030-11-14T09:00:00Z")
+  const night = [{ ...events[0], created_at: iso(oneAm - 5 * MIN) }]
+  assert.equal(one((await inbox({ tables: { order_events: night, chef_sheet_links: links } }, oneAm)).events, "chef_unsent").ring, false)
+})
+
+test("sheetless · a failed change text and the dead link it left are one line, the notice's", async () => {
+  const at = NOW - 3 * MIN
+  const links = [...afterFailure(at).slice(0, 1), { ...afterFailure(at)[1], expires_at: LIVE_UNTIL }]
+  const { events, counts } = await inbox({ tables: { chef_change_notices: [failedRow("f1", at)], chef_sheet_links: links } })
+  assert.deepEqual(events.map((e) => [e.kind, e.title]), [["chef_unsent", "师傅没收到改单短信 · Gary"]])
+  assert.equal(counts.chefUnsent, 1)
+})
