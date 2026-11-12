@@ -21,6 +21,8 @@ python scripts/desk/desk.py note   <leadId> "[SOP:f_one] ..."     # 备注标签
 python scripts/desk/desk.py hold   <leadId> <天数>                 # 等客户回；0 撤销
 python scripts/desk/desk.py status <leadId> won|lost|disqualified|qualified|new
 python scripts/desk/desk.py ack    <leadId> [--clear]              # 「不用回」：tapback、过时的客气话
+python scripts/desk/desk.py ack    <师傅手机> [--clear]            # [chef] 那条不用回了（电话、微信说过了）；他再发新的照样进来
+python scripts/desk/desk.py chef-confirm <师傅手机> [--order <单号>]   # 师傅确认了改动但没回「1」（电话里说的、回了句"收到"）：替他标成已确认
 python scripts/desk/desk.py block  <leadId> --why "SEO 代理推销"     # 推销来电：以后打 213 直接挂断（不响、不建线索、不发短信），线索标无效；--clear 撤销。只拦通话里听出来是推销的号码，不按区号拦（老板 10-28）
 python scripts/desk/desk.py fields <leadId> full_name="Ana" guest_count=15 city_or_zip="Granada Hills"
 python scripts/desk/desk.py heard  <leadId> "客人原话" [--as friend]   # 来源（D-1010-02）
@@ -39,6 +41,12 @@ python scripts/desk/desk.py report day|week [--date 2026-10-17]      # 日报/�
 - `HH:MM` 认那一分钟客人的第一条，同一分钟后面那条算没读；那条是 90 秒内刚到的，`HH:MM` 不算数（分不清你读过还是只看了表），要写到秒。`--seen` 对不上客人任何一条短信也不发。
 - 只算客人发来的：我们自己发的（别的会话、App、机器）不算；员工号码（师傅、后勤、老板）不查。
 - 读和发分两次跑，不串在同一条命令里：串着跑，等于没读。
+
+**师傅和改单在收件箱里（11-11 起，D-1111-03）**：`desk next` 的卡片师傅排最前。
+- `[chef]`：师傅发到 213 线、没人回的短信。回「1」（确认改动通知）和单独一句"好的 / 收到"不进来；他名下还有改动没确认时，"收到"会进来，由人定算不算确认（算就 `chef-confirm`）。卡片上是他从昨天起的派对和备料单状态。回他用 `desk send <师傅手机> "中文"`（员工号码不查 `--seen`、不过刹车），只说事，不提采购。15 分钟没回开始响，夜里 23–7 点不响。
+- `[chef_notice]`：改动通知发出 2 小时师傅还没回「1」。离开场不到 3 小时还没确认，老板 App 会响一次电话。催他回 1，或问清楚后 `chef-confirm`。
+- `[order_change]`：客人在派对页提交的改单，一直留到处理完，卡片上 `⚑` 那行写改了什么和客人留言。「改单等确认」= 48 小时内提交、要人确认才写进订单，会响；其余的不响。处理办法照 D-1111-01。
+- `desk scan` 的 G 桶多了「派对页和发票不一致」：一单一行、写明差在哪（发票应用的对账接口）。`desk order plan <单号>` 看派对页，`order set --guests-file` 灌进发票。
 
 **锁单链接**（全部先签规则再缩短）
 ```bash
@@ -73,11 +81,13 @@ python scripts/desk/desk.py order set  <单号> --promo official_weekday=185 --r
 python scripts/desk/desk.py order set  <单号> --chefs 2 --grills 2 --stations "..."   # 派工计划（老板定的）
 python scripts/desk/desk.py order hold <单号> --why "寿星出城，另挑日期"      # 日期待定：派对还在、日期拿掉（日历「日期待定」栏）；客人改期就用它
 python scripts/desk/desk.py order redate <单号> --date 2026-11-14 [--time 18:00]   # 待定的单定了新日期
+python scripts/desk/desk.py order cancel <单号> --why "客人 11/11 短信说不办了" --dry   # 取消订单，先 --dry：订单标取消、派的师傅收到中文短信并撤下、备料单作废、线索标流失
 python scripts/desk/desk.py order preview <单号>
 python scripts/desk/desk.py order remind <单号> --dry              # 前一天提醒，先 --dry；有 !! 缺项不发，核过才 --force
 python scripts/desk/desk.py order send <单号>                      # 发票：邮件 PDF + 短信发链接，不用客人回（先自查、老板看过）
 python scripts/desk/desk.py order email <单号> [--notes-reviewed]
 ```
+- `order cancel` 要老板说了才跑，`--why` 必填（记在订单和线索上）。它不给客人发任何消息，不扣款也不退款；离派对不到 48 小时会打一行 `⚠ … $99 …`，收不收老板定。客人还有别的没办的派对时线索不标流失。工作台订单弹窗「Planner · 派单」页的「取消订单」是同一个动作。改派不用另外通知：工作台 / `dispatch.py apply` 把人换下来时，收到过备料单的师傅自动收到「…那场改给别人了，你不用去，之前的备料单作废」。
 - 改之前先 `--dry` 看 TOTAL；每次 `order set` 会自己拿 TOTAL 和 `desk price`（同样的大人/小孩/日期/桌椅餐具，加上订单自己的加购、优惠和路费）对一遍：对上打 `✓ total check`，差 $1 以上打一大段 `!!! TOTAL CHECK FAILED`，并写出可能的改法（`--retier`、`--promo official_weekday=…`）。存的时候订单在你读之后被改过会 409 `STALE`，什么都没存，重看再改。
 - 人数一变（`--headcount` / `--guests-file` / `--add-adult` / `--add-child` / `--remove-guest`），`official_party*` 那行自动按掏钱人头换档（大人 1、5–12 岁 0.5、往下取整，档位读 `config/pricing-rules.ts` 的 `CLOSED_PARTY_LADDER`）。只有老单有这行（D-1105-01）：11/05 上线前建的、或发票上本来就带人数折扣那行的；之后建的单没有，desk 不加；61+ 不动（人工报价），订单上有 appreciation 顶替人数折扣的不加回，其他优惠一行不动。周中特价那行存的时候由发票引擎按新人数重算（每加一个大人 $5、小孩 $2.45，手改过的多送几盘照留）；同一条命令里 `--promo` 手改的照你的。
 - 存完多出 `+ 引擎按规则：…`（10-24 起，D-1017-02）：该给客人的由发票引擎每次保存时补上——老单的人数折扣、周中特价、20 人以上 / 全套桌椅餐具送的前菜（连托盘，师傅单上才有）、特价规则那几行。手加的行（`--free-item` 送的盘、appreciation、custom）不动；按报价锁定的价格（as quoted / agreed total）不往上加，只在缺项里提醒。送的前菜按人头（10-30 起，规则见 answers.md）：引擎把优惠行和托盘一起调到位，总价不变；`--free-item` 送的同一种算在里面，20 人以上 / 全套该送而不够人头的，差的补在官方行上。旧单存一次才补，没补的 `!` 提醒，`--reconcile` 就行。引擎补完会重印 TOTAL 和 total check。

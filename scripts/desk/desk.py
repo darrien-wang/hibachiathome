@@ -23,6 +23,8 @@
   python scripts/desk/desk.py status <leadId> <new|qualified|won|lost|disqualified>
   python scripts/desk/desk.py contacted <leadId>
   python scripts/desk/desk.py ack    <leadId> [--clear]    「不用回」watermark - tapbacks only
+  python scripts/desk/desk.py ack    <chefPhone> [--clear] a [chef] item settled without a text (called him, WeChat)
+  python scripts/desk/desk.py chef-confirm <chefPhone> [--order RH-…]   he confirmed a change some other way than replying 1
   python scripts/desk/desk.py block  <leadId> [--why "..."] [--clear]   a sales pitch: its calls to 213 are rejected, lead disqualified
   python scripts/desk/desk.py fields <leadId> guest_count=24 city_or_zip=Long\\ Beach
   python scripts/desk/desk.py link deposit --lead <id> --adults 24 --city "Long Beach" [--kids 0]
@@ -46,6 +48,9 @@
   python scripts/desk/desk.py order email <orderNo> [--notes-reviewed]   customer invoice email (+PDF, archived)
   python scripts/desk/desk.py order send  <orderNo>   email the PDF AND text the invoice link, no reply needed (the normal way)
   python scripts/desk/desk.py order remind <orderNo> [--dry]   day before / morning of: email the invoice and text its link, no amounts in the text
+  python scripts/desk/desk.py order cancel <orderNo> --why "..." [--dry]   cancel the order: its chefs are texted (Chinese) and taken
+                                   off, their prep-sheet links die, the lead is marked lost with the reason. Never charges or refunds;
+                                   inside 48 h it prints the $99 line for the owner to decide. --dry shows it all, writes and sends nothing
   python scripts/desk/desk.py calls <phone|leadId>          recordings on the lead (date, length, sid)
   python scripts/desk/desk.py transcribe <phone|leadId> [--last 2] [--sid RE..] [--model small|medium] [--note] [--swap]
                                    local faster-whisper, customer/us on separate channels; --note files it on the lead
@@ -317,8 +322,8 @@ def last_invoice_line(order_id: str | None, balance_cents) -> str:
 
 
 # ---------------------------------------------------------------- renderers --
-def fmt_msg(m: dict, seconds: bool = False) -> str:
-    who = "客" if m.get("direction") == "inbound" else "我"
+def fmt_msg(m: dict, seconds: bool = False, them: str = "客") -> str:
+    who = them if m.get("direction") == "inbound" else "我"
     body = (m.get("body") or "").replace("\n", " ").strip()
     media = int(m.get("media") or 0)  # an MMS has no text; three patio photos printed as blank lines once (10-05)
     if media and not body:
@@ -340,7 +345,46 @@ def brake_line(stats: dict) -> str:
     return f"我方已连发 {run} 条无回复 → 下一条是主动跟进（daily 2 / spacing 3h / 总量封顶 3；24h 内人工已发 {stats.get('ourLast24h', 0)}）"
 
 
+SHEET_STATE = {"opened": "备料单已打开", "sent": "备料单已发、还没打开", "none": "还没发备料单"}
+
+
+def render_staff_card(c: dict) -> None:
+    """A staff number's card (2026-11-11, D-1111-03): a chef's text nobody answered ([chef]), or a change
+    to his party he has not confirmed ([chef_notice]). No lead, no price, no brakes: who he is, the
+    parties he is on, what is open, the thread. These come before the customers' cards."""
+    staff = c.get("staff") or {}
+    phone = c.get("phone") or "-"
+    kinds = c.get("kinds") or []
+    print("━" * 78)
+    head = f"师傅 {staff.get('name') or '-'} · {phone}"
+    if kinds:
+        head += f"   [{' '.join(kinds)}]"
+    if c.get("waitedMinutes") is not None:
+        head += f" 等了 {c['waitedMinutes']} 分钟" + (" ⚠️" if c.get("urgent") else "")
+    if c.get("justArrived"):
+        head += "  ⏳刚到，可能还在打字"
+    print(head)
+    for p in staff.get("parties") or []:
+        when = (p.get("eventStart") or "")[:16].replace("T", " ")  # wall time stored as UTC - never convert
+        print(f"   派对 {p.get('orderNo') or p.get('orderId')}  {when or '日期待定'}  {p.get('city') or '-'} · {p.get('customer') or '-'}"
+              f" · {p.get('guests') or '?'} 人{' · 帮手' if p.get('role') == 'helper' else ''} · {SHEET_STATE.get(p.get('sheet') or 'none', '')}")
+    alerts = c.get("alerts") or []
+    for al in alerts:
+        print(f"   ⚑ {al.get('title') or ''} — {al.get('body') or ''}")
+    thread = c.get("thread") or []
+    print(f"   对话 ({len(thread)}):")
+    for m in thread[-10:]:
+        print(fmt_msg(m, them="师"))
+    print(f"   回他: desk send {phone} \"…\"（中文，只说事，不提采购；员工号码不查 --seen、不过刹车）")
+    unconfirmed = "chef_notice" in kinds or any("没回 1" in (al.get("body") or "") for al in alerts)
+    print(f"   不用回（电话、微信说过了）: desk ack {phone}"
+          + (f"\n   他确认了改动、只是没回 1: desk chef-confirm {phone}" if unconfirmed else ""))
+
+
 def render_card(c: dict) -> None:
+    if c.get("staff"):
+        render_staff_card(c)
+        return
     lead = c.get("lead") or {}
     phone = c.get("phone") or lead.get("phone") or "-"
     stats = c.get("stats") or {}
@@ -445,8 +489,10 @@ def render_card(c: dict) -> None:
 def cmd_next(a):
     data = site_get("/api/admin/desk")
     counts = data.get("counts") or {}
-    print(f"收件箱 {pt(data.get('serverTime'))} PT · 未回 {counts.get('unreplied', 0)} · 邮件 {counts.get('emailNew', 0)} · 网站回复 {counts.get('formNew', 0)} · 漏网 {counts.get('silenced', 0)} · 没送达 {counts.get('undelivered', 0)} · 联系不上 {counts.get('unreachedParties', 0)} · 新线索 {counts.get('newLeads', 0)}"
-          f" · 订单变动 {counts.get('changedOrders', 0)} · planner {counts.get('plannerLive', 0)} · reddit {counts.get('redditNew', 0)}")
+    # 师傅的两项排最前（2026-11-11）：师傅来短信没回、师傅没确认改动；卡片也是它们先出。
+    print(f"收件箱 {pt(data.get('serverTime'))} PT · 师傅 {counts.get('chefTexts', 0)} · 师傅没确认改动 {counts.get('chefNotices', 0)}"
+          f" · 未回 {counts.get('unreplied', 0)} · 邮件 {counts.get('emailNew', 0)} · 网站回复 {counts.get('formNew', 0)} · 漏网 {counts.get('silenced', 0)} · 没送达 {counts.get('undelivered', 0)} · 联系不上 {counts.get('unreachedParties', 0)} · 新线索 {counts.get('newLeads', 0)}"
+          f" · 订单变动 {counts.get('changedOrders', 0)}（48h 内等确认 {counts.get('heldChanges', 0)}） · planner {counts.get('plannerLive', 0)} · reddit {counts.get('redditNew', 0)}")
     cards = data.get("cards") or []
     if not cards:
         print("没有等着我们的事。")
@@ -473,6 +519,8 @@ def cmd_scan(a):
     data = site_get("/api/admin/scan", {"write": "0" if a.no_write else "1"})
     items = data.get("items") or []
     orders = data.get("orders") or []
+    # 派对页和发票不一致的订单（发票应用的对账接口，2026-11-11）：也列在 G 下面，一单一行。
+    reconcile = data.get("reconcile") or []
     summ = data.get("summary") or {}
     print(f"扫描 {pt(data.get('serverTime'))} PT · 池 {data.get('pool')} · "
           + " · ".join(f"{k} {summ.get(k, 0)}" for k, _, _ in BUCKETS))
@@ -493,7 +541,7 @@ def cmd_scan(a):
         if want and key != want:
             continue
         if key == "G":
-            rows = orders
+            rows = orders + [{**r, "reconcile": True} for r in reconcile]
         elif key == "F":
             rows = [it for it in items if it.get("objection")]
         else:
@@ -507,10 +555,15 @@ def cmd_scan(a):
                 when = (it.get("eventStart") or "")[:16].replace("T", " ")
                 dte = it.get("daysToEvent")
                 days = f" ({dte} 天)" if dte is not None else ""
-                gaps = "、".join(it.get("gaps") or [])
                 lead_ref = f"   lead {it.get('leadId')}" if it.get("leadId") else ""
                 print(f"   {it.get('orderNo')} · {it.get('name') or '-'} · {it.get('phone') or '-'} · {when}{days}")
-                print(f"      → 缺：{gaps}{lead_ref}")
+                if it.get("reconcile"):
+                    # The customer's picks are on the party page and not on the invoice (or the other way round):
+                    # desk order plan <no> shows the page, order set --guests-file brings it over.
+                    print(f"      → 派对页和发票不一致：{'；'.join(it.get('diffs') or [])}{lead_ref}")
+                else:
+                    gaps = "、".join(it.get("gaps") or [])
+                    print(f"      → 缺：{gaps}{lead_ref}")
             else:
                 print(line(it) + f"   id {it.get('leadId')}")
         if want and key != "G":
@@ -1359,7 +1412,29 @@ def cmd_contacted(a):
 
 
 def cmd_ack(a):
-    _patch({"action": "ack_replies", "leadId": a.lead, "clear": bool(a.clear)})
+    if is_uuid(a.who):
+        _patch({"action": "ack_replies", "leadId": a.who, "clear": bool(a.clear)})
+        return
+    # A chef's number (2026-11-11): his [chef] item was settled without a text - a call, WeChat.
+    # A watermark like the lead one: what he sent up to now is done, a new text shows again.
+    phone = e164(a.who)
+    if not is_staff_phone(phone):
+        raise SystemExit(f"{phone} 不在员工名单里：客人的「不用回」用线索 id（desk ack <leadId>）")
+    out = site_post("/api/admin/chefs", {"action": "ack_text", "phone": phone, **({"clear": True} if a.clear else {})})
+    print(f"OK    {'撤销了' if a.clear else '标了'}「不用回」 {phone}  {out.get('ackedUntil') or ''}".rstrip())
+
+
+def cmd_chef_confirm(a):
+    """The chef confirmed a change to his party without replying 1 (a call, WeChat, a "收到"): mark his open
+    change notices confirmed, so the inbox line goes and the owner is not rung three hours before the party.
+    --order narrows it to one party. His own "1" does this by itself (app/api/twilio/sms)."""
+    phone = e164(a.phone)
+    payload = {"action": "confirm_notice", "phone": phone}
+    if a.order:
+        payload["order_id"] = _order_row(a.order)["id"]
+    out = site_post("/api/admin/chefs", payload)
+    n = int(out.get("acked") or 0)
+    print(f"OK    {phone} 的 {n} 条改动通知标成已确认" if n else f"--    {phone} 名下没有待确认的改动通知")
 
 
 def cmd_callback(a):
@@ -2147,6 +2222,48 @@ def _plan_rows(state: dict) -> list[dict]:
     return rows
 
 
+def _print_cancel(order_no: str, res: dict) -> None:
+    """What `order cancel` did, or with --dry would do: one line per thing, each chef's text word for word."""
+    dry = bool(res.get("dryRun"))
+    head = f"{res.get('orderNo') or order_no} · {res.get('party') or '-'}"
+    if res.get("nothingToDo"):
+        print(f"--    {head} 已经取消过了，师傅和线索也都处理完了：没有要做的")
+        return
+    tag = "DRY  " if dry else "OK   "
+    state = "（空跑：什么都没写、没发）" if dry else "已取消"
+    print(f"{tag} {head} {'→ 取消' if dry else ''}{state}{'（之前就是取消状态，补上没做完的）' if res.get('already') else ''}")
+    print(f"      原因: {res.get('reason') or ''}")
+    if not res.get("already"):
+        print("      订单: order_status=cancelled · date_lock_status=not_locked · calendar_status=not_synced")
+    chefs = res.get("chefs") or []
+    if not res.get("assignmentsCancelled"):
+        print("      师傅: 这单没派人，不用通知")
+    for c in chefs:
+        who = f"{c.get('name') or '?'} {c.get('phone') or '(没存手机号)'}"
+        if c.get("skipped"):
+            print(f"      师傅: {who} 不发短信（派对时间早就过了），派工撤掉")
+        elif not c.get("text"):
+            continue
+        elif c.get("texted"):
+            print(f"      师傅: {who} 已发 {c.get('sid') or ''}\n            「{c['text']}」")
+        elif dry and c.get("phone"):
+            print(f"      师傅: {who} 会收到\n            「{c['text']}」")
+        else:
+            why = "没存手机号" if c.get("error") == "staff_has_no_phone" or not c.get("phone") else c.get("error") or "没发出去"
+            print(f"      师傅: {who} {'发不了' if dry else '没通知到'}（{why}）→ 自己告诉他\n            「{c['text']}」")
+    if res.get("assignmentsCancelled"):
+        print(f"      派工: {'会撤' if dry else '已撤'} {res['assignmentsCancelled']} 条，备料单链接作废")
+    lead = res.get("lead") or {}
+    if lead.get("markedLost"):
+        print(f"      线索: {lead.get('id')} {lead.get('was')} → lost{'（会记 [lost] … [why] …）' if dry else '，原因已记'}")
+    elif lead:
+        print(f"      线索: {lead.get('id')} 不动 - {lead.get('kept') or ''}")
+    print("      客人: 没有给客人发任何消息；没有扣款、没有退款")
+    for w in ([res["lateFeeNote"]] if res.get("lateFeeNote") else []) + list(res.get("warnings") or []):
+        line = f"      ⚠ {w}"
+        print(f"\033[31m{line}\033[0m" if sys.stdout.isatty() else line)
+
+
 def cmd_order(a):
     if a.op == "find":
         for c in _search(a.ident):
@@ -2173,6 +2290,19 @@ def cmd_order(a):
         if a.rows_out:
             pathlib.Path(a.rows_out).write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
             print(f"   rows written: order set {order_no} --guests-file {a.rows_out}  (check the plates and tables on the order first)")
+        return
+    if a.op == "cancel":
+        # 取消订单 (2026-11-11, D-1111-03). The 11-07 and 11-11 cancellations were six SQL statements by
+        # hand and a text someone had to remember; this is the workbench's cancel action, the same one
+        # the order drawer's button calls (lib/order-cancel.ts): the order's three status columns, every
+        # chef on it texted in Chinese and taken off, their prep-sheet links revoked, the lead marked
+        # lost with the reason. It never charges or refunds - inside 48 h it prints the $99 line and the
+        # owner decides. --dry prints exactly what would happen; nothing is written and nobody is texted.
+        why = (a.why or "").strip()
+        if len(why) < 2:
+            raise SystemExit('order cancel needs --why "..." - the reason goes on the order and on the lead')
+        res = site_post("/api/admin/orders/cancel", {"orderId": order["id"], "reason": why, "dryRun": bool(a.dry), "source": "desk"})
+        _print_cancel(order_no, res)
         return
     if a.op == "hold":
         # 日期待定 (owner 2026-10-04): the party is still on, the date is not -
@@ -3037,7 +3167,10 @@ def main(argv=None):
     p.add_argument("--at", help="when the channel shows it, Pacific: 'YYYY-MM-DD HH:MM' or 'MM-DD HH:MM', ':SS' to order same-minute lines (default now)")
     p.add_argument("--author", help="who wrote it, when not the customer or Rowling"); p.add_argument("--body-file")
     p.set_defaults(fn=cmd_channel)
-    p = sp.add_parser("ack"); p.add_argument("lead"); p.add_argument("--clear", action="store_true"); p.set_defaults(fn=cmd_ack)
+    p = sp.add_parser("ack", help="「不用回」: a lead's messages up to now (lead id), or a chef's texts (his number)")
+    p.add_argument("who", metavar="leadId|chefPhone"); p.add_argument("--clear", action="store_true"); p.set_defaults(fn=cmd_ack)
+    p = sp.add_parser("chef-confirm", help="a chef confirmed a change to his party without replying 1: mark his open change notices confirmed")
+    p.add_argument("phone"); p.add_argument("--order", metavar="RH-…", help="only that party's notices"); p.set_defaults(fn=cmd_chef_confirm)
     p = sp.add_parser("callback", help="ring the owner's App: this customer wants a phone call"); p.add_argument("lead"); p.add_argument("--why"); p.set_defaults(fn=cmd_callback)
     p = sp.add_parser("fields"); p.add_argument("lead"); p.add_argument("pairs", nargs="+"); p.set_defaults(fn=cmd_fields)
     p = sp.add_parser("link"); p.add_argument("kind", choices=["deposit", "planner", "short"]); p.add_argument("url", nargs="?")
@@ -3086,10 +3219,11 @@ def main(argv=None):
     p = sp.add_parser("report"); p.add_argument("kind", choices=["day", "week"])
     p.add_argument("--date", help="YYYY-MM-DD (Pacific). day: default today; week: any day in the week, default the last full Sun-Sat week")
     p.set_defaults(fn=_report)
-    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "plan", "set", "preview", "email", "send", "remind", "hold", "redate"]); p.add_argument("ident")
+    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "plan", "set", "preview", "email", "send", "remind", "hold", "redate", "cancel"]); p.add_argument("ident")
     p.add_argument("--rows-out", help="plan: write the party page's guests as a --guests-file list")
-    p.add_argument("--why", help="hold: why the date is off, kept on the order (e.g. birthday boy out of town, picking a new date)")
-    p.add_argument("--dry", action="store_true", help="remind: print the text, do not send")
+    p.add_argument("--why", help="hold: why the date is off, kept on the order (e.g. birthday boy out of town, picking a new date). "
+                                 "cancel: why the party is off (required; kept on the order and the lead)")
+    p.add_argument("--dry", action="store_true", help="remind: print the text, do not send. cancel: print everything it would do, write and send nothing")
     p.add_argument("--force", action="store_true", help="remind: send even though the order lint lists what the order is missing (checked by a person)")
     p.add_argument("--reconcile", action="store_true", help="set: save the order as it stands, so the invoice engine puts on what the rules owe (D-1017-02)")
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--address"); p.add_argument("--name"); p.add_argument("--email"); p.add_argument("--phone")

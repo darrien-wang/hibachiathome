@@ -16,6 +16,10 @@ call that gets past them fails the run instead of reaching production.
     ladder, and no other line moves; an order booked after it closed
     (D-1105-01) gets none
   - the TOTAL is held against desk price, and a wrong stored discount is loud
+  - desk order cancel posts one request (--dry: dryRun), needs --why, prints
+    each chef's text and the $99 line; desk next prints a chef's card first and
+    as a chef's; desk ack / chef-confirm on a chef's number; desk scan lists
+    party page / invoice differences under G (order-flow rebuild, 2026-11-11)
   - desk send stops over a customer text the sender has not read (the three
     replies of 10-21..24, replayed on fake threads at the second they went
     out), --seen lets it through, --force does not, staff numbers and our own
@@ -630,6 +634,186 @@ def _send_checks() -> None:
           detail=f"{start} {end} {exact}")
 
 
+# ------------------------------------------------- order flow (2026-11-11) --
+# desk order cancel, the chef cards of desk next, desk ack / chef-confirm on a
+# chef's number, and the party-page / invoice lines of desk scan's bucket G
+# (D-1111-03). The site is a fake that records what desk would have posted;
+# what the site itself does with a cancel is tests/order-cancel.test.ts.
+CANCEL_ID = "00000000-0000-4000-8000-000000000001"
+CANCEL_WHY = "Customer texted 11/11: family emergency, not holding the party"
+CANCEL_PARTY = "11月14日下午5:30 Irvine（Joyce）"
+CANCEL_TEXT = f"{CANCEL_PARTY}那场取消了，你不用去，之前的备料单作废。"
+LATE_FEE = "离派对只有 30 小时（不到 48 小时）：按政策可以收 $99 取消费，系统没有扣，收不收由老板定。"
+
+
+def cancel_reply(path: str, payload: dict, **over) -> dict:
+    """POST /api/admin/orders/cancel the way lib/order-cancel.ts answers it (two chefs on the party, one with no phone)."""
+    dry = bool(payload.get("dryRun"))
+    return {"ok": True, "dryRun": dry, "already": False, "nothingToDo": False, "orderId": payload.get("orderId"), "orderNo": ORDER_NO,
+            "customerName": "Joyce Lin", "eventStart": "2030-11-14T17:30:00+00:00", "party": CANCEL_PARTY, "reason": payload.get("reason"),
+            "hoursToParty": 30, "within48h": True, "lateFeeNote": LATE_FEE, "assignmentsCancelled": 2,
+            "chefs": [{"staffId": "s1", "name": "Gary", "phone": CHEF_PHONE, "hadSheet": True, "linksRevoked": 1, "text": CANCEL_TEXT,
+                       "texted": not dry, **({} if dry else {"sid": "SMselfcheck"})},
+                      {"staffId": "s2", "name": "易非", "phone": None, "hadSheet": False, "linksRevoked": 0,
+                       "text": f"{CANCEL_PARTY}那场取消了，你不用去。", "texted": False, "error": "staff_has_no_phone"}],
+            "lead": {"id": LEAD_ID, "was": "won", "markedLost": True}, "warnings": [], **over}
+
+
+class DeskRun:
+    """One desk command against a fake site: its output, exit, what it read and every write it tried.
+    `posts` answers a write (None: any write fails the run); `staff` is the staff list's numbers."""
+
+    def __init__(self, argv: list[str], gets: dict | None = None, posts=None, staff: tuple[str, ...] = ()):
+        self.gets, self.posts, self.staff = gets or {}, posts, staff
+        self.posted: list[tuple[str, dict, str]] = []
+        self.reads: list[str] = []
+        kept = desk.site_get, desk.site_post, desk._search
+        desk.site_get, desk.site_post, desk._search = self.site_get, self.site_post, self.search
+        buf = io.StringIO()
+        self.exit = None
+        try:
+            with contextlib.redirect_stdout(buf):
+                try:
+                    desk.main(argv)
+                except SystemExit as e:
+                    self.exit = e.code
+        finally:
+            desk.site_get, desk.site_post, desk._search = kept
+        self.out = buf.getvalue()
+
+    def search(self, text):
+        return [{"name": "Joyce Lin", "email": "selfcheck@example.com", "phone": "+15555550100", "orders": [{"order_no": ORDER_NO, "id": CANCEL_ID}]}]
+
+    def site_get(self, path, params=None, admin=True, timeout=90):
+        self.reads.append(path)
+        if path == "/api/admin/chefs":
+            return {"ok": True, "chefs": [{"name": "Staff", "phone": p, "status": "active"} for p in self.staff]}
+        if path in self.gets:
+            return copy.deepcopy(self.gets[path])
+        raise RuntimeError(f"selfcheck: unexpected site read {path} {params}")
+
+    def site_post(self, path, payload, method="POST", timeout=90):
+        self.posted.append((path, payload, method))
+        if self.posts is None:
+            raise RuntimeError(f"selfcheck: unexpected site write {path}")
+        return self.posts(path, payload)
+
+    def has(self, *parts: str) -> bool:
+        return all(p in self.out for p in parts)
+
+
+def order_flow_checks() -> None:
+    cancel = ["order", "cancel", ORDER_NO]
+    r = DeskRun([*cancel, "--why", CANCEL_WHY, "--dry"], posts=cancel_reply)
+    check("order cancel --dry: one request, dryRun true, the order's id and the reason - and it is the only thing desk sends",
+          r.exit is None and r.posted == [("/api/admin/orders/cancel", {"orderId": CANCEL_ID, "reason": CANCEL_WHY, "dryRun": True, "source": "desk"}, "POST")], r)
+    check("  prints the plan: DRY, the three order columns, each chef's text word for word, the chef with no number, the lead",
+          r.has(f"DRY   {ORDER_NO} · {CANCEL_PARTY} → 取消（空跑：什么都没写、没发）", f"原因: {CANCEL_WHY}",
+                "order_status=cancelled · date_lock_status=not_locked · calendar_status=not_synced",
+                f"师傅: Gary {CHEF_PHONE} 会收到", f"「{CANCEL_TEXT}」", "师傅: 易非 (没存手机号) 发不了（没存手机号）→ 自己告诉他",
+                "派工: 会撤 2 条，备料单链接作废", f"线索: {LEAD_ID} won → lost"), r)
+    check("  says nothing goes to the customer and no money moves; inside 48 h the $99 line is the owner's to decide",
+          r.has("客人: 没有给客人发任何消息；没有扣款、没有退款", f"⚠ {LATE_FEE}"), r)
+    r = DeskRun([*cancel, "--why", CANCEL_WHY], posts=cancel_reply)
+    check("order cancel for real: dryRun false, OK, the sent text with its sid, the chef nobody could text, the $99 line again",
+          r.exit is None and len(r.posted) == 1 and r.posted[0][1]["dryRun"] is False
+          and r.has(f"OK    {ORDER_NO} · {CANCEL_PARTY} 已取消", f"师傅: Gary {CHEF_PHONE} 已发 SMselfcheck", f"「{CANCEL_TEXT}」",
+                    "师傅: 易非 (没存手机号) 没通知到（没存手机号）→ 自己告诉他", "派工: 已撤 2 条", "→ lost，原因已记", f"⚠ {LATE_FEE}"), r)
+    r = DeskRun(cancel, posts=cancel_reply)
+    check("order cancel without --why: refused before anything is sent", "needs --why" in str(r.exit) and r.posted == [], r)
+    r = DeskRun([*cancel, "--why", " ", "--dry"], posts=cancel_reply)
+    check("  a blank --why is no reason either", "needs --why" in str(r.exit) and r.posted == [], r)
+    r = DeskRun([*cancel, "--why", CANCEL_WHY],
+                posts=lambda p, b: cancel_reply(p, b, already=True, nothingToDo=True, chefs=[], assignmentsCancelled=0, lateFeeNote=None))
+    check("  already cancelled with nobody left to tell: one line saying so", r.has(f"--    {ORDER_NO}", "已经取消过了") and "OK " not in r.out, r)
+    kept_lead = {"id": LEAD_ID, "was": "won", "markedLost": False, "kept": "客人还有一场没办的派对（RH-20300701-0002），线索不标流失"}
+    r = DeskRun([*cancel, "--why", CANCEL_WHY, "--dry"],
+                posts=lambda p, b: cancel_reply(p, b, hoursToParty=96, within48h=False, lateFeeNote=None, lead=kept_lead,
+                                                warnings=["这单已经收过 $19.90，系统不会自动退，退不退由老板定。"]))
+    check("  four days out: no $99 line; money already taken and a lead that stays are both said",
+          "$99" not in r.out and r.has("⚠ 这单已经收过 $19.90", f"线索: {LEAD_ID} 不动 - 客人还有一场没办的派对"), r)
+
+    def refused(path, body):
+        raise _api.ApiError(403, {"ok": False, "error": "只有老板能取消订单"})
+
+    r = DeskRun([*cancel, "--why", CANCEL_WHY], posts=refused)
+    check("  refused by the site (not the owner's key): one readable line, no traceback", "HTTP 403" in str(r.exit) and "只有老板能取消订单" in str(r.exit), r)
+
+    # desk next: a chef's card comes first and reads as a chef's, a customer's card is as it was.
+    chef_card = {
+        "key": f"phone:{CHEF_PHONE}", "kinds": ["chef", "chef_notice"], "waitedMinutes": 20, "urgent": True, "justArrived": False, "lead": None,
+        "phone": CHEF_PHONE,
+        "staff": {"id": "s1", "name": "Gary", "role": "chef", "parties": [
+            {"orderId": CANCEL_ID, "orderNo": ORDER_NO, "eventStart": "2030-11-14T17:30:00+00:00", "city": "Irvine", "customer": "Joyce", "guests": 18,
+             "role": "chef", "sheet": "opened"}]},
+        "alerts": [{"kind": "chef_notice", "title": "师傅没确认改动 · Gary", "body": f"{CANCEL_PARTY} · 8 位加餐具 · 发出 2 小时没回 1"}],
+        "thread": [sms(CHEF_PHONE, "outbound", "2026-11-12 10:00:00", "11月14日 Irvine 那场改了：8 位加餐具。回 1 确认"),
+                   sms(CHEF_PHONE, "inbound", "2026-11-12 12:05:00", "备料单打不开，再发一次")],
+        "orders": [], "stats": {}}
+    change = "RH-20300615-0001 · 48 小时内提交，确认后才写进订单 · Guest Count: 8 adults + 2 kids → 10 adults + 2 kids"
+    customer_card = {
+        "key": f"lead:{LEAD_ID}", "kinds": ["sms", "order_change"], "waitedMinutes": 45, "urgent": True, "phone": PROM_PHONE, "staff": None,
+        "lead": {"id": LEAD_ID, "full_name": "Joyce Lin", "phone": PROM_PHONE, "status": "won", "guest_count": 18},
+        "alerts": [{"kind": "order_change", "title": "改单等确认 · Joyce Lin", "body": change}],
+        "thread": [sms(PROM_PHONE, "inbound", "2026-11-12 11:40:00", "Do you bring the propane?")], "orders": [],
+        "stats": {"lastSpeaker": "customer", "lastAt": "2026-11-12T19:40:00.000Z"}}
+    inbox = {"ok": True, "serverTime": "2026-11-12T20:25:00.000Z", "cards": [chef_card, customer_card],
+             "counts": {"chefTexts": 1, "chefNotices": 1, "unreplied": 1, "changedOrders": 1, "heldChanges": 1}}
+    r = DeskRun(["next"], gets={"/api/admin/desk": inbox})
+    head = r.out.split("\n", 1)[0]
+    check("desk next: the counts open with the chefs' two, and say how many changes wait inside 48 h",
+          "师傅 1 · 师傅没确认改动 1 · 未回 1" in head and "订单变动 1（48h 内等确认 1）" in head, r)
+    chef_part, _, customer_part = r.out.partition("Joyce Lin ·")
+    check("  the chef's card is printed first, as a chef's: name, his party and its sheet, what is open, the thread as 师 / 我",
+          "师傅 Gary" in chef_part and f"师傅 Gary · {CHEF_PHONE}   [chef chef_notice] 等了 20 分钟 ⚠️" in chef_part
+          and f"派对 {ORDER_NO}  2030-11-14 17:30  Irvine · Joyce · 18 人 · 备料单已打开" in chef_part
+          and f"⚑ 师傅没确认改动 · Gary — {CANCEL_PARTY} · 8 位加餐具 · 发出 2 小时没回 1" in chef_part
+          and "师 11-12 12:05  备料单打不开，再发一次" in chef_part and "我 11-12 10:00" in chef_part, r)
+    check("  it says how to answer, how to close it without a text and how to mark the change confirmed - no brake line, no --seen to copy",
+          f"desk send {CHEF_PHONE}" in chef_part and f"desk ack {CHEF_PHONE}" in chef_part and f"desk chef-confirm {CHEF_PHONE}" in chef_part
+          and "刹车: " not in chef_part and "回复带 --seen" not in chef_part, r)
+    check("  the customer's card after it, with the open change and what changed on it, its brake line as before",
+          f"⚑ 改单等确认 · Joyce Lin — {change}" in customer_part and "客 11-12 11:40  Do you bring the propane?" in customer_part
+          and "刹车: 客人最后说话 → 回复不受刹车限制" in customer_part, r)
+    r = DeskRun(["next"], gets={"/api/admin/desk": {**inbox, "cards": [{**chef_card, "kinds": ["chef"], "alerts": []}]}})
+    check("  a plain chef text (no change waiting) does not offer chef-confirm", "desk chef-confirm" not in r.out and f"desk ack {CHEF_PHONE}" in r.out, r)
+
+    # desk ack / chef-confirm on a chef's number.
+    r = DeskRun(["ack", CHEF_PHONE], posts=lambda p, b: {"ok": True, "ackedUntil": "2026-11-12T20:30:00.000Z"}, staff=(CHEF_PHONE,))
+    check("desk ack <chef phone>: checked against the staff list, then ack_text for that number",
+          r.exit is None and r.reads == ["/api/admin/chefs"] and r.posted == [("/api/admin/chefs", {"action": "ack_text", "phone": CHEF_PHONE}, "POST")]
+          and r.has("OK    标了「不用回」"), r)
+    r = DeskRun(["ack", "626-555-0188", "--clear"], posts=lambda p, b: {"ok": True, "cleared": True}, staff=(CHEF_PHONE,))
+    check("  --clear takes it back", r.posted == [("/api/admin/chefs", {"action": "ack_text", "phone": CHEF_PHONE, "clear": True}, "POST")] and r.has("撤销了"), r)
+    r = DeskRun(["ack", PROM_PHONE], posts=lambda p, b: {"ok": True}, staff=(CHEF_PHONE,))
+    check("  a number that is not staff is refused: a customer's 不用回 goes by lead id", "不在员工名单里" in str(r.exit) and r.posted == [], r)
+    r = DeskRun(["ack", LEAD_ID], posts=lambda p, b: {"ok": True})
+    check("  a lead id still marks the lead, exactly as before",
+          r.posted == [("/api/admin/leads", {"action": "ack_replies", "leadId": LEAD_ID, "clear": False}, "PATCH")] and r.reads == [], r)
+    r = DeskRun(["chef-confirm", CHEF_PHONE], posts=lambda p, b: {"ok": True, "acked": 2, "orderIds": [CANCEL_ID]})
+    check("desk chef-confirm <phone>: confirm_notice for that number, and how many it marked",
+          r.posted == [("/api/admin/chefs", {"action": "confirm_notice", "phone": CHEF_PHONE}, "POST")] and r.has("2 条改动通知标成已确认"), r)
+    r = DeskRun(["chef-confirm", CHEF_PHONE, "--order", ORDER_NO], posts=lambda p, b: {"ok": True, "acked": 0})
+    check("  --order narrows it to that party; nothing open is said plainly, not an error",
+          r.exit is None and r.posted[0][1] == {"action": "confirm_notice", "phone": CHEF_PHONE, "order_id": CANCEL_ID} and r.has("没有待确认的改动通知"), r)
+
+    # desk scan, bucket G: the party page and the invoice disagree.
+    diffs = ["派对页 12 位已选菜，发票菜单是空的", "8 位加餐具"]
+    scan = {"ok": True, "serverTime": "2026-11-12T20:25:00.000Z", "pool": 0, "summary": {"G": 2}, "items": [],
+            "orders": [{"orderId": "o2", "orderNo": "RH-20300620-0002", "name": "Darah", "phone": "+15555550101", "leadId": None,
+                        "eventStart": "2030-06-20T18:00:00+00:00", "daysToEvent": 5, "gaps": ["菜单空"]}],
+            "reconcile": [{"orderNo": ORDER_NO, "orderId": CANCEL_ID, "name": "Gillian", "phone": "+15555550100", "leadId": LEAD_ID,
+                           "eventStart": "2030-06-15T17:00:00+00:00", "daysToEvent": 3, "diffs": diffs}]}
+    r = DeskRun(["scan", "--no-write"], gets={"/api/admin/scan": scan})
+    check("desk scan G: the orders' own gaps, then one line per order whose party page and invoice disagree, with every difference",
+          r.has("G 已付未齐 · 2", "RH-20300620-0002 · Darah", "→ 缺：菜单空", f"{ORDER_NO} · Gillian · +15555550100 · 2030-06-15 17:00 (3 天)",
+                f"→ 派对页和发票不一致：{'；'.join(diffs)}   lead {LEAD_ID}"), r)
+    r = DeskRun(["scan", "--no-write"], gets={"/api/admin/scan": {**scan, "summary": {"G": 0}, "orders": [], "reconcile": []}})
+    check("  nothing reported, or the endpoint not there yet: no G block, nothing invented", "已付未齐" not in r.out and "派对页和发票不一致" not in r.out, r)
+    r = DeskRun(["scan", "--no-write"], gets={"/api/admin/scan": {k: v for k, v in scan.items() if k != "reconcile"}})
+    check("  a site that does not send the list yet (old deploy): the gaps as before", r.has("→ 缺：菜单空") and "派对页和发票不一致" not in r.out, r)
+
+
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     tiers_match_the_ts_export()
@@ -993,6 +1177,7 @@ def main() -> int:
 
     quoted_price_checks()
     send_checks()
+    order_flow_checks()
 
     # A request with no "please" stops a send (owner 2026-11-01). Same samples as tests/voice-check.test.ts.
     now = datetime.datetime(2026, 11, 1, 12, 0, tzinfo=datetime.timezone.utc)

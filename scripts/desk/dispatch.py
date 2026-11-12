@@ -251,7 +251,8 @@ def cmd_apply(path):
     plan = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
     for r in plan:
         res = site_post("/api/admin/chefs", {"action": "assign", "order_id": r["orderId"], "staff_member_ids": r["teamIds"]})
-        print(r["day"], r["who"], "→", " + ".join(r["team"]), "ok" if res.get("ok") else res)
+        # A chef this takes off a party he already had the prep sheet for is texted by the site (2026-11-11).
+        print(r["day"], r["who"], "→", " + ".join(r["team"]), "ok" if res.get("ok") else res, *([f"· {res['notice']}"] if res.get("notice") else []))
 
 
 def main():
