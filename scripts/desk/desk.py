@@ -2432,6 +2432,13 @@ def _order_review_ops(a) -> None:
         team = [t for t in team if str(t.get("name") or "").strip().lower() in wanted]
     if not team:
         raise SystemExit("没有可发的人：这单没派师傅，或者 --chef 的名字和派工对不上")
+    # A lead's send already carries the helpers' copies (invoice app, 2026-10-17): sending a helper as well
+    # texted him twice (George 11-12). Helpers go on their own only when no lead is being sent.
+    if any(t.get("role") != "assistant_chef" for t in team):
+        helpers = [t for t in team if t.get("role") == "assistant_chef"]
+        team = [t for t in team if t.get("role") != "assistant_chef"]
+        if helpers:
+            print(f"      帮手 {', '.join(str(h.get('name')) for h in helpers)} 跟主厨那份一起自动发，不单独发")
     note = pathlib.Path(a.note_file).read_text(encoding="utf-8").strip() if a.note_file else ""
     for t in team:
         if a.dry:
