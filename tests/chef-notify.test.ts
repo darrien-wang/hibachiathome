@@ -7,7 +7,20 @@
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { chefNoticeSummaryZh, chefsRemovedByAssign, helpersRemovedByAssign, logChefNotices, notifyRemovedChefs, partyCancelledText, partyLabelZh, removedFromPartyText, type PartyRef } from "../lib/chef-notify"
+import {
+  chefNoticeSummaryZh,
+  chefsRemovedByAssign,
+  helpersRemovedByAssign,
+  logChefNotices,
+  notifyRemovedChefs,
+  partyCancelledText,
+  partyLabelZh,
+  removedFromPartyText,
+  sheetHeld,
+  sheetReachedChef,
+  teamNeedingSheet,
+  type PartyRef,
+} from "../lib/chef-notify"
 import { fakeSupabase } from "./fixtures/fake-supabase"
 
 const ORDER: PartyRef = {
@@ -102,6 +115,33 @@ test("reassigned · a sheet text that bounced and was never opened is not a shee
   const second = sender()
   const [r2] = await notifyRemovedChefs(opened as never, { order: ORDER, staffIds: [GARY], reason: "reassigned", now: BEFORE, send: second.send })
   assert.equal(r2.texted, true, "he opened it, so he knows the party")
+})
+
+test("reassigned · the link changes with every send: the sheet that reached him may be a revoked row, the live one a bounce", async () => {
+  // He got the sheet (l1). A change text then issued l2, revoked l1, and bounced. He still knows the party.
+  const db = world([link("l1", BLU, { first_opened_at: "2030-11-11T01:00:00Z", revoked_at: "2030-11-12T01:00:00Z" }), link("l2", BLU, { sent_via: "failed" })])
+  const { sent, send } = sender()
+  const [r] = await notifyRemovedChefs(db as never, { order: ORDER, staffIds: [BLU], reason: "reassigned", now: BEFORE, send })
+  assert.equal(r.hadSheet, true)
+  assert.equal(r.texted, true)
+  assert.deepEqual(sent.map((m) => m.body), ["11月14日下午5:30 Irvine（Joyce）那场改给别人了，你不用去，之前的备料单作废。"])
+  // Only the live link is revoked; the old row keeps the time it was replaced.
+  assert.equal(r.linksRevoked, 1)
+  assert.deepEqual(db.tables.chef_sheet_links.map((l) => [l.id, l.revoked_at]), [["l1", "2030-11-12T01:00:00Z"], ["l2", new Date(BEFORE).toISOString()]])
+  // Sent twice, both arrived (l1 replaced by l2): one text, one link to revoke.
+  const twice = world([link("l1", BLU, { revoked_at: "2030-11-12T01:00:00Z" }), link("l2", BLU)])
+  const again = sender()
+  const [r2] = await notifyRemovedChefs(twice as never, { order: ORDER, staffIds: [BLU], reason: "reassigned", now: BEFORE, send: again.send })
+  assert.deepEqual([r2.texted, r2.linksRevoked, again.sent.length], [true, 1, 1])
+})
+
+test("reassigned · taken off before and told then, put back without a sheet: there is nothing to tell him twice", async () => {
+  const db = world([link("l1", BLU, { first_opened_at: "2030-11-11T01:00:00Z", revoked_at: "2030-11-12T01:00:00Z" })])
+  const { sent, send } = sender()
+  const [r] = await notifyRemovedChefs(db as never, { order: ORDER, staffIds: [BLU], reason: "reassigned", now: BEFORE, send })
+  assert.equal(r.skipped, "no_sheet")
+  assert.deepEqual(sent, [])
+  assert.deepEqual(db.writes, [])
 })
 
 test("reassigned · names moved on a party that already started are bookkeeping: no text, link left alone", async () => {
@@ -209,4 +249,51 @@ test("the trail · one order event per chef told, with the text and how the send
     links_revoked: 1,
     text: "11月14日下午5:30 Irvine（Joyce）那场改给别人了，你不用去，之前的备料单作废。",
   })
+})
+
+// ---- which sheet a chef holds, and who still needs one -------------------------------
+// The invoice app mints a new link on every send and revokes the one before it
+// (2026-11-11), so a chef and a party have a history of rows, at most one of them live.
+
+test("the sheet in his hands · the live link decides, and stale means void with a new one pending", () => {
+  assert.equal(sheetReachedChef({ sent_via: "twilio", first_opened_at: null }), true)
+  assert.equal(sheetReachedChef({ sent_via: "manual", first_opened_at: null }), true)
+  assert.equal(sheetReachedChef({ sent_via: "failed", first_opened_at: null }), false)
+  assert.equal(sheetReachedChef({ sent_via: "failed", first_opened_at: "2030-11-12T01:00:00Z" }), true, "he opened it, however it got to him")
+  assert.equal(sheetReachedChef({ sent_via: null, first_opened_at: null }), false)
+
+  assert.equal(sheetHeld([], BLU), "none")
+  assert.equal(sheetHeld([link("l1", GARY)], BLU), "none", "somebody else's")
+  assert.equal(sheetHeld([link("l1", BLU)], BLU), "sent")
+  assert.equal(sheetHeld([link("l1", BLU, { first_opened_at: "2030-11-12T01:00:00Z" })], BLU), "opened")
+  assert.equal(sheetHeld([link("l1", BLU, { sent_via: "failed" })], BLU), "undelivered")
+  // Re-sent: the first row is revoked, the second - a new token - is the one he holds.
+  assert.equal(sheetHeld([link("l1", BLU, { first_opened_at: "2030-11-11T01:00:00Z", revoked_at: "2030-11-12T01:00:00Z" }), link("l2", BLU)], BLU), "sent")
+  // A change text that bounced: the sheet he had opened is revoked, the new one never arrived.
+  assert.equal(sheetHeld([link("l1", BLU, { first_opened_at: "2030-11-11T01:00:00Z", revoked_at: "2030-11-12T01:00:00Z" }), link("l2", BLU, { sent_via: "failed" })], BLU), "undelivered")
+  assert.equal(sheetHeld([link("l1", BLU, { revoked_at: "2030-11-12T01:00:00Z" })], BLU), "none", "taken off: nothing live")
+  // The order changed materially after his version: that link shows nothing any more.
+  assert.equal(sheetHeld([link("l1", BLU, { first_opened_at: "2030-11-11T01:00:00Z", stale: true })], BLU), "stale")
+  assert.equal(sheetHeld([link("l1", BLU, { stale: false })], BLU), "sent")
+})
+
+test("who still needs a sheet · once a party's sheets are out, a chef put on it has none and no change text will bring him one", () => {
+  // Nothing has gone out for this party yet: assigning early prompts for nobody.
+  assert.deepEqual(teamNeedingSheet([BLU, GARY], []), [])
+  assert.deepEqual(teamNeedingSheet([GARY], [link("l1", BLU, { sent_via: "failed" })]), [], "a text that bounced is not a sheet that went out")
+  // Blu had the sheet and was replaced (his link is revoked by now): Gary is the one without.
+  const bluOff = link("l1", BLU, { first_opened_at: "2030-11-11T01:00:00Z", revoked_at: "2030-11-12T01:00:00Z" })
+  assert.deepEqual(teamNeedingSheet([GARY], [bluOff]), [GARY])
+  // A second chef added next to one who has it.
+  assert.deepEqual(teamNeedingSheet([BLU, GARY], [link("l1", BLU)]), [GARY])
+  assert.deepEqual(teamNeedingSheet([BLU, GARY, GARY], [link("l1", BLU)]), [GARY], "once each")
+  // Gary was sent it and the text bounced: still without.
+  assert.deepEqual(teamNeedingSheet([GARY], [bluOff, link("l2", GARY, { sent_via: "failed" })]), [GARY])
+  // Sent, re-sent (a new token each time), opened or not: he has one.
+  assert.deepEqual(teamNeedingSheet([GARY], [bluOff, link("l2", GARY)]), [])
+  assert.deepEqual(teamNeedingSheet([GARY], [bluOff, link("l2", GARY, { revoked_at: "2030-11-12T02:00:00Z" }), link("l3", GARY)]), [])
+  // His link is stale: the order changed and the change text is about to bring him the new one - not a person's job.
+  assert.deepEqual(teamNeedingSheet([GARY], [link("l2", GARY, { stale: true })]), [])
+  // His only link was revoked (taken off earlier, now back on): he needs one again.
+  assert.deepEqual(teamNeedingSheet([GARY], [link("l1", BLU), link("l2", GARY, { revoked_at: "2030-11-12T02:00:00Z" })]), [GARY])
 })
