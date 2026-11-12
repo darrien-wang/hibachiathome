@@ -79,6 +79,7 @@ python scripts/desk/desk.py order set  <单号> --guests-file rows.json [--repla
 python scripts/desk/desk.py order set  <单号> --add-extra tables_chairs=27 | edamame=1 | side_shrimp=15   # 买的加购 / 桌椅按人头 / 整桌蛋白份
 python scripts/desk/desk.py order set  <单号> --free-item edamame=2                    # 送的前菜
 python scripts/desk/desk.py order set  <单号> --free-appetizer spring_rolls --dry      # 客人挑的免费前菜（押金页默认 gyoza）
+python scripts/desk/desk.py order set  <单号> --prep-note-file F [--dry]       # 备货备注（备货清单/备货单上这一单那行，300 字内，空文件=清空）：要师傅带的、要注意的写这里或订单备注（D-1112-01，短信不算数）
 python scripts/desk/desk.py order set  <单号> --deal-rate tables_chairs=5 | --deal-free tables_chairs
 python scripts/desk/desk.py order set  <单号> --promo official_weekday=185 --remove-promo X --add-promo appreciation_veteran=50 --promo-label "..."
 python scripts/desk/desk.py order set  <单号> --chefs 2 --grills 2 --stations "..."   # 派工计划（老板定的）

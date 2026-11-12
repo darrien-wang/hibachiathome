@@ -661,14 +661,16 @@ def cancel_reply(path: str, payload: dict, **over) -> dict:
 
 class DeskRun:
     """One desk command against a fake site: its output, exit, what it read and every write it tried.
-    `posts` answers a write (None: any write fails the run); `staff` is the staff list's numbers."""
+    `posts` answers a write (None: any write fails the run); `staff` is the staff list's numbers.
+    `db` answers a direct database read (desk._supabase GET), by path; a write there fails the run."""
 
-    def __init__(self, argv: list[str], gets: dict | None = None, posts=None, staff: tuple[str, ...] = ()):
-        self.gets, self.posts, self.staff = gets or {}, posts, staff
+    def __init__(self, argv: list[str], gets: dict | None = None, posts=None, staff: tuple[str, ...] = (), db=None):
+        self.gets, self.posts, self.staff, self.db = gets or {}, posts, staff, db
         self.posted: list[tuple[str, dict, str]] = []
         self.reads: list[str] = []
-        kept = desk.site_get, desk.site_post, desk._search
-        desk.site_get, desk.site_post, desk._search = self.site_get, self.site_post, self.search
+        self.db_reads: list[str] = []
+        kept = desk.site_get, desk.site_post, desk._search, desk._supabase
+        desk.site_get, desk.site_post, desk._search, desk._supabase = self.site_get, self.site_post, self.search, self.supabase
         buf = io.StringIO()
         self.exit = None
         try:
@@ -678,8 +680,14 @@ class DeskRun:
                 except SystemExit as e:
                     self.exit = e.code
         finally:
-            desk.site_get, desk.site_post, desk._search = kept
+            desk.site_get, desk.site_post, desk._search, desk._supabase = kept
         self.out = buf.getvalue()
+
+    def supabase(self, method, path, data, content_type):
+        if method != "GET" or self.db is None:
+            raise RuntimeError(f"selfcheck: unexpected database {method} {path}")
+        self.db_reads.append(path)
+        return copy.deepcopy(self.db(path))
 
     def search(self, text):
         return [{"name": "Joyce Lin", "email": "selfcheck@example.com", "phone": "+15555550100", "orders": [{"order_no": ORDER_NO, "id": CANCEL_ID}]}]
@@ -828,6 +836,31 @@ def order_flow_checks() -> None:
     r = DeskRun(["chef-confirm", CHEF_PHONE, "--order", ORDER_NO], posts=lambda p, b: {"ok": True, "acked": 0})
     check("  --order narrows it to that party; nothing open is said plainly, not an error",
           r.exit is None and r.posted[0][1] == {"action": "confirm_notice", "phone": CHEF_PHONE, "order_id": CANCEL_ID} and r.has("没有待确认的改动通知"), r)
+
+    # desk order set --prep-note-file (D-1112-01): the 备货备注 through the workbench's set_prep_note, 300 characters.
+    note_file = pathlib.Path(tempfile.mkdtemp()) / "prep-note.txt"
+    note = "带 8 位全套：桌子、8 把椅子、黑桌布、8 套餐具（送的）。5:30 到场摆台。到门口打电话请客人开大门。"
+    note_file.write_bytes(note.encode("utf-8"))
+    current = lambda path: [{"prep_note": "付现金。"}] if path.startswith(f"/rest/v1/orders?select=prep_note&id=eq.{CANCEL_ID}") else []
+    setp = ["order", "set", ORDER_NO, "--prep-note-file", str(note_file)]
+    r = DeskRun([*setp, "--dry"], posts=lambda p, b: {"ok": True}, db=current)
+    check("order set --prep-note-file --dry: the new 备货备注 next to the current one, how long it is, nothing written",
+          r.exit is None and r.posted == [] and r.has(f"DRY   {ORDER_NO} 备货备注（{len(note)}/300 字），没写（--dry）", f"新：{note}", "原：付现金。"), r)
+    r = DeskRun(setp, posts=lambda p, b: {"ok": True}, db=current)
+    check("  for real: one set_prep_note with the order id and the file's text, and what it replaced",
+          r.posted == [("/api/admin/chefs", {"action": "set_prep_note", "order_id": CANCEL_ID, "note": note}, "POST")]
+          and r.has(f"OK    {ORDER_NO} 备货备注（{len(note)}/300 字）：{note}", "原来是：付现金。"), r)
+    note_file.write_bytes(("多带炒饭。" * 61).encode("utf-8"))
+    r = DeskRun(setp, posts=lambda p, b: {"ok": True}, db=current)
+    check("  over 300 characters: refused before anything is read or sent (the site would cut it)",
+          "备货备注最多 300 字，这份 305 字" in str(r.exit) and r.posted == [] and r.db_reads == [], r)
+    note_file.write_bytes(b"  ")
+    r = DeskRun(setp, posts=lambda p, b: {"ok": True}, db=current)
+    check("  an empty file clears it", r.posted == [("/api/admin/chefs", {"action": "set_prep_note", "order_id": CANCEL_ID, "note": ""}, "POST")]
+          and r.has(f"OK    {ORDER_NO} 备货备注 清空"), r)
+    note_file.write_bytes("付现金。".encode("utf-8"))
+    r = DeskRun(setp, posts=lambda p, b: {"ok": True}, db=current)
+    check("  the same note again: nothing written", r.posted == [] and r.has("备货备注没变，不写"), r)
 
     # desk scan, bucket G: the party page and the invoice disagree.
     diffs = ["派对页 12 位已选菜，发票菜单是空的", "8 位加餐具"]

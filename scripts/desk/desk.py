@@ -48,6 +48,7 @@
   python scripts/desk/desk.py order email <orderNo> [--notes-reviewed]   customer invoice email (+PDF, archived)
   python scripts/desk/desk.py order send  <orderNo>   email the PDF AND text the invoice link, no reply needed (the normal way)
   python scripts/desk/desk.py order remind <orderNo> [--dry]   day before / morning of: email the invoice and text its link, no amounts in the text
+  python scripts/desk/desk.py order set  <orderNo> --prep-note-file F [--dry]   the 备货备注 (prep list / cooler sheet line, 300 chars)
   python scripts/desk/desk.py order cancel <orderNo> --why "..." [--dry]   cancel the order: its chefs are texted (Chinese) and taken
                                    off, their prep-sheet links die, the lead is marked lost with the reason. Never charges or refunds;
                                    inside 48 h it prints the $99 line for the owner to decide. --dry shows it all, writes and sends nothing
@@ -2294,6 +2295,35 @@ def _print_cancel(order_no: str, res: dict) -> None:
         print(f"\033[31m{line}\033[0m" if sys.stdout.isatty() else line)
 
 
+# 备货备注 (orders.prep_note): the workbench's set_prep_note keeps 300 characters (app/api/admin/chefs).
+PREP_NOTE_MAX = 300
+
+
+def _set_prep_note(order: dict, order_no: str, path: str, dry: bool) -> None:
+    """备货备注 (orders.prep_note) - the line under this party on the prep list and the cooler sheet: what the
+    chefs must bring or know that is not an order line (D-1112-01: chefs work from the prep list and the order
+    only; a text to the chef does not count). Through the workbench's set_prep_note (owner only). 300 characters
+    at most - the site would cut the rest, so a longer one is refused here; an empty file clears it. --dry prints
+    the new note next to the one it would replace and writes nothing."""
+    note = pathlib.Path(path).read_bytes().decode("utf-8").strip()
+    if len(note) > PREP_NOTE_MAX:
+        raise SystemExit(f"备货备注最多 {PREP_NOTE_MAX} 字，这份 {len(note)} 字：删短了再写（网站会把多出来的截掉）")
+    rows = _supabase("GET", f"/rest/v1/orders?select=prep_note&id=eq.{order['id']}", None, "application/json")
+    was = str(((rows[0] if isinstance(rows, list) and rows else None) or {}).get("prep_note") or "").strip()
+    if note == was:
+        print(f"--    {order_no} 备货备注没变，不写")
+        return
+    head = f"{order_no} 备货备注" + (f"（{len(note)}/{PREP_NOTE_MAX} 字）" if note else " 清空")
+    if dry:
+        print(f"DRY   {head}，没写（--dry）")
+        print(f"      新：{note or '(空)'}")
+        print(f"      原：{was or '(空)'}")
+        return
+    site_post("/api/admin/chefs", {"action": "set_prep_note", "order_id": order["id"], "note": note})
+    print(f"OK    {head}" + (f"：{note}" if note else ""))
+    print(f"      原来是：{was or '(空)'}")
+
+
 def cmd_order(a):
     if a.op == "find":
         for c in _search(a.ident):
@@ -2382,7 +2412,16 @@ def cmd_order(a):
         if a.json:
             print(dump(detail))
         return
-    if a.op == "set" and (a.chefs is not None or a.grills is not None or a.stations is not None or a.plan_rule):
+    invoice_flags = (a.date, a.time, a.address, a.name, a.email, a.phone, a.notes_file, a.travel_miles, a.travel_fee, a.proteins,
+                     a.headcount, a.retier, a.guests_file, a.deal_free, a.deal_rate, a.drop_deal or None, a.free_item, a.add_extra, a.set_extra, a.add_promo, a.remove_promo,
+                     a.free_appetizer, a.free_appetizer_trays, a.add_adult, a.add_child, a.remove_guest, a.promo, a.reconcile or None)
+    no_invoice_change = all(v in (None, False, []) for v in invoice_flags)
+    plan_change = a.chefs is not None or a.grills is not None or a.stations is not None or a.plan_rule
+    if a.op == "set" and a.prep_note_file is not None:
+        _set_prep_note(order, order_no, a.prep_note_file, dry=bool(a.dry))
+        if no_invoice_change and not plan_change:
+            return
+    if a.op == "set" and plan_change:
         # The dispatch plan (2026-10-18): how many chefs and grills this party
         # gets and where they stand. Lives on the order (orders.dispatch_plan,
         # lib/dispatch-plan.ts), read by the prep sheet and the day map; set by
@@ -2406,10 +2445,7 @@ def cmd_order(a):
               + (f"  stations: {plan['stations_note']}" if plan.get("stations_note") else ""))
         for w in res.get("lint") or []:
             print(f"   {'!!' if w.get('severity') == 'blocking' else '! '} {w.get('message')}")
-        invoice_flags = (a.date, a.time, a.address, a.name, a.email, a.phone, a.notes_file, a.travel_miles, a.travel_fee, a.proteins,
-                         a.headcount, a.retier, a.guests_file, a.deal_free, a.deal_rate, a.drop_deal or None, a.free_item, a.add_extra, a.set_extra, a.add_promo, a.remove_promo,
-                         a.free_appetizer, a.free_appetizer_trays, a.add_adult, a.add_child, a.remove_guest, a.promo, a.reconcile or None)
-        if all(v in (None, False, []) for v in invoice_flags):
+        if no_invoice_change:
             return
     inv_order, prefill = _lookup(order)
     if a.op == "preview":
@@ -3262,6 +3298,8 @@ def main(argv=None):
     p.add_argument("--reconcile", action="store_true", help="set: save the order as it stands, so the invoice engine puts on what the rules owe (D-1017-02)")
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--address"); p.add_argument("--name"); p.add_argument("--email"); p.add_argument("--phone")
     p.add_argument("--notes-file"); p.add_argument("--notes-reviewed", action="store_true"); p.add_argument("--json", action="store_true")
+    p.add_argument("--prep-note-file", metavar="F", help="set: the 备货备注 (orders.prep_note, 300 characters, an empty file clears it) - "
+                   "printed under this party on the prep list; with --dry it is only shown next to the current one")
     p.add_argument("--lead", help="lead id for order send when the order does not carry one")
     p.add_argument("--chefs", type=int, metavar="N", help="dispatch plan: chefs on this party (owner override; the prep sheet and day map read it)")
     p.add_argument("--grills", type=int, metavar="N", help="dispatch plan: grills (defaults to --chefs)")
