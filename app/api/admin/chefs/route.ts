@@ -13,7 +13,7 @@ import { CARD_PROCESSING_RATE, cardProcessingFeeInside, DEFAULT_SALES_TAX_RATE, 
 import { formatTaxRate } from "@/lib/sales-tax-rate"
 import { MAX_CHEFS, normalizeDispatchPlan, rulePlan, type DispatchPlan } from "@/lib/dispatch-plan"
 import { lintOrderStaffing, orderPaidHeads, type OrderForPlan } from "@/lib/dispatch-plan-order"
-import { chefNoticeSummaryZh, chefsRemovedByAssign, helpersRemovedByAssign, logChefNotices, notifyRemovedChefs, type ChefNoticeResult, type PartyRef } from "@/lib/chef-notify"
+import { chefNoticeSummaryZh, chefsRemovedByAssign, helpersRemovedByAssign, logChefNotices, notifyRemovedChefs, teamNeedingSheet, type ChefNoticeResult, type PartyRef, type SheetLink } from "@/lib/chef-notify"
 import { ackNotices } from "@/lib/chef-notices"
 import { phoneDigits10 } from "@/lib/staff-phones"
 
@@ -30,6 +30,8 @@ export const runtime = "nodejs"
 // 2026-11-11（D-1111-03）：assign / assign_helpers 把人换下来时，收到过备料单的那位自动
 // 收到一条中文短信、备料单链接作废（lib/chef-notify.ts）；dry_run:true 只看不写不发。
 // ack_text = 这位师傅发来的不用回了；confirm_notice = 师傅用别的方式确认了改动。
+// assign 的返回里 needSheet = 这单备料单已经发过、而新名单里还没有的人（改单短信不会发给他）。
+// send_sheet：发票应用每发一次都换一条新链接、旧的作废；resent:true = 他原来有一条，被这条换掉了。
 // Money is cents everywhere. Pay per shift = base + (share - head_from) × per_head,
 // share = the chef's head count when several chefs work one party.
 
@@ -595,6 +597,30 @@ async function tellRemovedChefs(
   }
 }
 
+/**
+ * 这单的备料单已经开始发了，新名单里谁手上还没有：改单短信只发给已经有备料单链接的师傅
+ * （发票应用 2026-11-11 的规则），刚换上来的人不发就什么都收不到。只是告诉调用方该给谁发——
+ * 发不发还是人点（派单不自动发短信的规矩不变）。还没人收过这单备料单时不提。
+ */
+async function teamWithoutSheet(
+  supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
+  orderId: string,
+  team: string[],
+): Promise<Array<{ staffId: string; name: string }>> {
+  if (!team.length) return []
+  try {
+    const { data: links } = await supabase.from("chef_sheet_links").select("staff_member_id, sent_via, first_opened_at, revoked_at, stale").eq("order_id", orderId)
+    const need = teamNeedingSheet(team, (links ?? []) as SheetLink[])
+    if (!need.length) return []
+    const { data: rows } = await supabase.from("staff_members").select("id, display_name, full_name").in("id", need)
+    const nameOfId = new Map(((rows ?? []) as Array<{ id: string; display_name: string | null; full_name: string | null }>).map((r) => [r.id, (r.display_name ?? r.full_name ?? "").trim() || "?"]))
+    return need.map((id) => ({ staffId: id, name: nameOfId.get(id) ?? "?" }))
+  } catch (e) {
+    console.error("[admin/chefs] sheet check failed", e instanceof Error ? e.message : e)
+    return []
+  }
+}
+
 type Body = Record<string, unknown> & { action?: string }
 const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f-]{36}$/i.test(v)
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "")
@@ -745,7 +771,7 @@ export async function POST(request: NextRequest) {
         const removedIds = chefsRemovedByAssign(allRows ?? [], want)
         if (body.dry_run === true) {
           const wouldTell = await tellRemovedChefs(supabase, body.order_id, removedIds, `workbench:${actor.alias}`, true)
-          return NextResponse.json({ ok: true, dryRun: true, added: toAdd.length, cancelled: toCancel.length, notified: wouldTell })
+          return NextResponse.json({ ok: true, dryRun: true, added: toAdd.length, cancelled: toCancel.length, notified: wouldTell, needSheet: await teamWithoutSheet(supabase, body.order_id, want) })
         }
         if (helperClash.length) await supabase.from("order_staff_assignments").update({ assignment_status: "cancelled", updated_at: now }).in("id", helperClash.map((a) => a.id))
         if (toCancel.length) {
@@ -764,7 +790,9 @@ export async function POST(request: NextRequest) {
         // 被换下的师傅以前没人通知（45 天 6 场，11-09 Blu 收单 13 分钟后被换掉）：收到过备料单的
         // 现在自动收到「那场改给别人了，你不用去」，他的备料单链接作废。新师傅照旧另外发备料单。
         const notified = await tellRemovedChefs(supabase, body.order_id, removedIds, `workbench:${actor.alias}`, false)
-        return NextResponse.json({ ok: true, added: toAdd.length, cancelled: toCancel.length, notified, notice: chefNoticeSummaryZh(notified) })
+        // 新名单里谁还没有备料单（这单的备料单已经发出去过才提）：工作台接着问要不要现在发。
+        const needSheet = await teamWithoutSheet(supabase, body.order_id, want)
+        return NextResponse.json({ ok: true, added: toAdd.length, cancelled: toCancel.length, notified, notice: chefNoticeSummaryZh(notified), needSheet })
       }
       case "assign_helpers": {
         // 这一单的帮手换成这几个人（可以是空）。帮手不计工钱、不分人头；已经是这单师傅的人跳过。

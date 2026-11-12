@@ -252,7 +252,11 @@ def cmd_apply(path):
     for r in plan:
         res = site_post("/api/admin/chefs", {"action": "assign", "order_id": r["orderId"], "staff_member_ids": r["teamIds"]})
         # A chef this takes off a party he already had the prep sheet for is texted by the site (2026-11-11).
-        print(r["day"], r["who"], "→", " + ".join(r["team"]), "ok" if res.get("ok") else res, *([f"· {res['notice']}"] if res.get("notice") else []))
+        # ...and a chef it puts on a party whose sheets are already out has none yet: change notices only go to
+        # chefs who hold a link, so he needs the sheet sent (order drawer / day map), which stays a person's call.
+        need = "、".join(n.get("name") or "?" for n in (res.get("needSheet") or []))
+        print(r["day"], r["who"], "→", " + ".join(r["team"]), "ok" if res.get("ok") else res, *([f"· {res['notice']}"] if res.get("notice") else []),
+              *([f"· {need} 还没有这场的备料单，要另外发"] if need else []))
 
 
 def main():

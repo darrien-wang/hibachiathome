@@ -220,10 +220,14 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
     try {
       // 服务器会通知被换下、拿过备料单的师傅（2026-11-11）；发给了谁、谁没发到，改完说一声。
       const notices: string[] = []
+      // 这几单的备料单发出去过、而新派的人还没有：改单短信只发给已经有备料单的师傅，要另外发给他。
+      const noSheet: string[] = []
       for (const s of change) {
-        const r = await adminJson<{ notice?: string }>(adminKey, "/api/admin/chefs", { body: { action: "assign", order_id: s.id, staff_member_ids: [chefId] } })
+        const r = await adminJson<{ notice?: string; needSheet?: Array<{ staffId: string; name: string }> }>(adminKey, "/api/admin/chefs", { body: { action: "assign", order_id: s.id, staff_member_ids: [chefId] } })
         if (r.notice) notices.push(`${s.time} ${s.name}：${r.notice}`)
+        if (r.needSheet?.length) noSheet.push(`${s.time} ${s.name}`)
       }
+      if (noSheet.length) notices.push(`${who} 还没有这几场的备料单：${noSheet.join("、")}。用下面的「发 prep sheet」发给他——以后订单再改，改单短信只发给手里已经有备料单的师傅。`)
       if (notices.length) void tell({ title: "改派已保存", message: notices.join("\n") })
     } catch (e) {
       void tell({ title: "没派上", message: e instanceof Error ? e.message : "出错了" })
@@ -575,7 +579,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                     <button type="button" className="btn btn-ghost btn-sm" disabled={sending} onClick={() => setSendOpen(false)}>
                       收起
                     </button>
-                    <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>每单一条，带这单的备料单链接；同一单重发会用同一个链接</span>
+                    <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>每单一条，带这单的备料单链接；同一单重发会换一条新链接，他之前那条作废</span>
                   </div>
                 </div>
               ) : null}
