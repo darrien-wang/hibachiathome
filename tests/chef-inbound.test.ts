@@ -20,7 +20,7 @@ test("chef text · a 1 inside something else is not a confirmation", () => {
 })
 
 test("chef text · an acknowledgement needs nobody", () => {
-  for (const t of ["好的", "好的👌", "收到", "收到了，谢谢", "OK", "ok", "Ok!", "好", "嗯嗯", "明白", "知道了", "谢谢", "辛苦了", "👍", "👌", "Liked “Real Hibachi prep sheet”", "thanks", ""]) {
+  for (const t of ["好的", "好的👌", "收到", "收到了，谢谢", "OK", "ok", "Ok!", "好", "嗯嗯", "明白", "知道了", "谢谢", "辛苦了", "好的，明天见", "晚安", "👍", "👌", "Liked “Real Hibachi prep sheet”", "thanks", ""]) {
     assert.equal(classifyChefText(t), "ack", t)
   }
 })

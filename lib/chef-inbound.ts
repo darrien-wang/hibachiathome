@@ -25,7 +25,7 @@ const TAIL = String.raw`[\s。.．!！~～"'“”‘’「」『』]*`
 const CONFIRM = new RegExp(`^${WRAP}(?:[1１]\\s*[,，、.。]?\\s*(?:确认|確認)?了?|(?:已|已经)?(?:确认|確認)了?)${TAIL}$`)
 // Acknowledgements only. 可以 / 行 / 没问题 / yes are answers to something we asked
 // and must reach a person, the same way "yes" does for a customer (lib/courtesy-text.ts).
-const ACK_RUN = /^(?:好的?|好嘞|好滴|好哒|好吧|收到了?|明白了?|知道了|了解了?|嗯+|恩+|哦+|谢谢|多谢|感谢|辛苦了?|ok+|okay|k+|thanks|thankyou|thx|gotit|noted)+$/
+const ACK_RUN = /^(?:好的?|好嘞|好滴|好哒|好吧|收到了?|明白了?|知道了|了解了?|嗯+|恩+|哦+|谢谢|多谢|感谢|辛苦了?|不客气|没事|明天见|回头见|再见|拜拜|晚安|ok+|okay|k+|thanks|thankyou|thx|gotit|noted)+$/
 
 /** "1" (or 确认) and nothing else: the chef confirming a change notice. */
 export function isChefConfirm(body: string | null | undefined): boolean {
