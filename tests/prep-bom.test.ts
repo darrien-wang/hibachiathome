@@ -137,3 +137,20 @@ test("chef pay · the table money counts the party line too, and pieces go by th
   assert.equal(tableChairCents(0, { chairs: pieces.chairsOnly, tables: pieces.bareTables }), 6000)
   assert.equal(tableChairCents(0, { tables: 4 }), 0)
 })
+
+// D-1112-03 (owner 2026-11-12 「不带」): a free little kid (3-4) gets no protein from the 11-13 parties on,
+// whatever the party page picked for them; earlier parties keep what their sheets said.
+test("prep · little kids (3-4) picked steak: no protein from 11-13 on, a kid's portion before", () => {
+  const guests = [
+    { proteins: ["steak", "chicken"], isChild: false },
+    { proteins: ["steak", "chicken"], isChild: true },
+    { proteins: ["steak", "chicken"], isChild: true, isLittle: true },
+  ]
+  const on = (day: string) => ({ mode: "detailed", adultCount: 1, childCount: 2, guests, contactInfo: { eventDate: day } })
+  const servings = (day: string) => orderPrep(on(day) as never, "2026-10-12T00:00:00Z", 1, 2).proteinServings.find((p) => p.id === "steak")
+  assert.deepEqual([servings("2026-11-12")?.adults, servings("2026-11-12")?.kids], [1, 2], "11-12: the little one still on a kid's portion")
+  assert.deepEqual([servings("2026-11-13")?.adults, servings("2026-11-13")?.kids], [1, 1], "11-13: only the 5-12 kid")
+  const steakOz = (day: string) => orderPrep(on(day) as never, "2026-10-12T00:00:00Z", 1, 2).items.find((i) => i.id === "steak")?.qty
+  assert.equal(steakOz("2026-11-12"), 9)
+  assert.equal(steakOz("2026-11-13"), 6.8)
+})

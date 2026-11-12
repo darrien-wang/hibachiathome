@@ -166,7 +166,7 @@ function alt(id: string, qty: number, unit: string): string | undefined {
 // ---- 订单数据（orders.invoice_data 的最小形状）------------------------
 
 type QuickItem = { itemId?: string; category?: string; qty?: number; childQty?: number }
-type GuestRow = { proteins?: unknown[]; isChild?: boolean; noodles?: boolean }
+type GuestRow = { proteins?: unknown[]; isChild?: boolean; isLittle?: boolean; noodles?: boolean }
 type Extra = { id?: string; qty?: number }
 export type InvoiceLite = {
   mode?: string
@@ -175,6 +175,17 @@ export type InvoiceLite = {
   guests?: GuestRow[]
   quickCountItems?: QuickItem[]
   partyExtras?: Extra[]
+  contactInfo?: { eventDate?: string }
+}
+
+/**
+ * 3–4 岁免费小孩不带蛋白（老板 2026-09-30，11-12 再定「不带」，D-1112-03）：11-13 起的派对，派对页
+ * 给他们点了也不算份数，师傅多带炒饭蔬菜。只有明细行分得出谁是 3–4 岁；快速模式照办公室填的数。
+ * 镜像发票仓库 lib/pricing.ts 的 littlesGetNoProtein（同一天改）。
+ */
+export const LITTLES_NO_PROTEIN_FROM = "2026-11-13"
+export function littlesGetNoProtein(inv: InvoiceLite | null | undefined): boolean {
+  return inv?.mode === "detailed" && String(inv?.contactInfo?.eventDate ?? "").slice(0, 10) >= LITTLES_NO_PROTEIN_FROM
 }
 
 export type OrderPrep = {
@@ -238,7 +249,9 @@ export function orderPrep(
   const guests = Array.isArray(data.guests) ? data.guests : []
   const quick = Array.isArray(data.quickCountItems) ? data.quickCountItems : []
   if (data.mode === "detailed" && guests.length) {
+    const noLittle = littlesGetNoProtein(data)
     for (const g of guests) {
+      if (noLittle && g.isChild && g.isLittle) continue
       for (const pid of Array.isArray(g.proteins) ? g.proteins : []) {
         if (typeof pid !== "string") continue
         if (g.isChild) servK[pid] = (servK[pid] ?? 0) + 1
