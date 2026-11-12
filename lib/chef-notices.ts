@@ -66,6 +66,30 @@ export function groupNotices(notices: ChefNotice[]): NoticeGroup[] {
   return [...byKey.values()]
 }
 
+/**
+ * Open notices, grouped, for chefs who are still on the party. A chef who was
+ * taken off it after the notice went (reassigned, or the party cancelled) has
+ * nothing left to confirm: his notice must not sit on the list or ring the
+ * owner about a party he is not cooking. When the assignments cannot be read,
+ * nothing is filtered - an extra line beats a missing one.
+ */
+export async function loadOpenNoticeGroups(supabase: SupabaseClient): Promise<NoticeGroup[]> {
+  const groups = groupNotices(await loadOpenNotices(supabase))
+  if (!groups.length) return groups
+  try {
+    const { data, error } = await supabase
+      .from("order_staff_assignments")
+      .select("order_id, staff_member_id")
+      .in("order_id", [...new Set(groups.map((g) => g.orderId))])
+      .in("assignment_status", ["tentative", "confirmed", "completed"])
+    if (error) return groups
+    const on = new Set(((data ?? []) as Array<{ order_id: string; staff_member_id: string }>).map((a) => `${a.order_id}:${a.staff_member_id}`))
+    return groups.filter((g) => on.has(`${g.orderId}:${g.staffId}`))
+  } catch {
+    return groups
+  }
+}
+
 export type NoticeState = {
   /** Belongs on the list: two hours without a "1", or urgent. */
   show: boolean
@@ -202,9 +226,8 @@ export async function ringUnackedNotices(
     openOf?: typeof openCallback
   } = {},
 ): Promise<NoticeRing[]> {
-  const open = await loadOpenNotices(supabase)
-  if (!open.length) return []
-  const groups = groupNotices(open)
+  const groups = await loadOpenNoticeGroups(supabase)
+  if (!groups.length) return []
   const orders = await loadNoticeOrders(supabase, groups.map((g) => g.orderId))
   // Only while there is still time to act on it: once the party has started the list keeps it, the phone does not ring.
   const due = groups.filter((g) => {

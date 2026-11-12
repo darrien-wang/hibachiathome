@@ -8,7 +8,7 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { CHEF_NOTICE_WHY, LIVE_PARTY_RING_HOURS_PT, isAlarm, isChefNoticeAlarm, isLivePartyAlarm, requestCallback, withinRingHours, type RingOutcome } from "../lib/callback-ring"
-import { ackNotices, ackNoticesFromPhone, groupNotices, loadOpenNotices, noticeAlarmText, noticeState, noticeSummary, onStaffText, ringUnackedNotices, type ChefNotice } from "../lib/chef-notices"
+import { ackNotices, ackNoticesFromPhone, groupNotices, loadOpenNoticeGroups, loadOpenNotices, noticeAlarmText, noticeState, noticeSummary, onStaffText, ringUnackedNotices, type ChefNotice } from "../lib/chef-notices"
 import { fakeSupabase, type Row } from "./fixtures/fake-supabase"
 
 const ORDER_ID = "00000000-0000-4000-8000-0000000000a1"
@@ -22,11 +22,16 @@ const H = 3600_000
 const notice = (id: string, sentAt: number, over: Partial<ChefNotice> = {}): ChefNotice => ({ id, order_id: ORDER_ID, staff_member_id: GARY, summary: "8 位加餐具", sent_at: new Date(sentAt).toISOString(), acked_at: null, ...over })
 const group = (sentAt: number) => groupNotices([notice("n1", sentAt)])[0]
 
-function world(notices: Row[], over: { missing?: boolean; marks?: Row[]; order?: Row } = {}) {
+function world(notices: Row[], over: { missing?: boolean; marks?: Row[]; order?: Row; assignments?: Row[] } = {}) {
   return fakeSupabase(
     {
       ...(over.missing ? {} : { chef_change_notices: notices }),
       orders: [{ ...ORDER, ...over.order }],
+      // Gary and Blu are both on the party unless a test takes one off.
+      order_staff_assignments: over.assignments ?? [
+        { id: "as1", order_id: ORDER_ID, staff_member_id: GARY, assignment_status: "confirmed" },
+        { id: "as2", order_id: ORDER_ID, staff_member_id: BLU, assignment_status: "confirmed" },
+      ],
       staff_members: [
         { id: GARY, display_name: "Gary", full_name: null, phone: "6265550102", role: "chef" },
         { id: BLU, display_name: "Blu", full_name: null, phone: "(626) 555-0101", role: "chef" },
@@ -96,6 +101,17 @@ test("open notices · only unconfirmed ones that were actually sent", async () =
   const sent = START - 5 * H
   const db = world([notice("n1", sent), notice("n2", sent, { acked_at: new Date(sent + 60_000).toISOString() }), { ...notice("n3", sent), sent_at: null }])
   assert.deepEqual((await loadOpenNotices(db as never)).map((n) => n.id), ["n1"])
+})
+
+test("open notices · a chef taken off the party has nothing left to confirm: not listed, never rung", async () => {
+  const sent = START - 20 * H
+  const off = [{ id: "as1", order_id: ORDER_ID, staff_member_id: GARY, assignment_status: "cancelled" }, { id: "as2", order_id: ORDER_ID, staff_member_id: BLU, assignment_status: "confirmed" }]
+  const db = world([notice("n1", sent), notice("n2", sent, { staff_member_id: BLU })], { assignments: off })
+  assert.deepEqual((await loadOpenNoticeGroups(db as never)).map((g) => g.staffId), [BLU])
+  const { calls, request } = ringer()
+  const out = await ringUnackedNotices(db as never, START - 2 * H, { request, openOf: noCallback })
+  assert.deepEqual(out.map((r) => r.chef), ["Blu"])
+  assert.equal(calls.length, 1)
 })
 
 test("the chef's 1 · confirms everything he has open, leaves a line on the order, touches nobody else", async () => {

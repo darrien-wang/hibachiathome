@@ -37,7 +37,13 @@ type World = { tables?: Record<string, Row[]>; missing?: string[]; outbound?: Tw
 
 async function inbox(w: World, now = NOW) {
   const db = fakeSupabase(
-    { staff_members: [{ id: GARY, display_name: "Gary", full_name: null, phone: "6260000102", role: "chef" }], orders: [ORDER], ...(w.tables ?? {}) },
+    {
+      staff_members: [{ id: GARY, display_name: "Gary", full_name: null, phone: "6260000102", role: "chef" }],
+      orders: [ORDER],
+      // Gary is the chef on the party unless a test says otherwise.
+      order_staff_assignments: [{ id: "as1", order_id: ORDER_ID, staff_member_id: GARY, assignment_status: "confirmed" }],
+      ...(w.tables ?? {}),
+    },
     { missing: w.missing ?? [] },
   )
   const saved = { fetch: globalThis.fetch, sid: process.env.TWILIO_ACCOUNT_SID, token: process.env.TWILIO_AUTH_TOKEN, caller: process.env.TWILIO_CALLER_ID }
@@ -250,6 +256,9 @@ test("notice · inside three hours of the party it rings, and sits above the cus
 
 test("notice · confirmed, cancelled or not there at all: nothing shown, nothing broken", async () => {
   assert.deepEqual(kinds((await inbox({ tables: { chef_change_notices: [noticeRow("n1", NOW - 5 * H, { acked_at: iso(NOW - 4 * H) })] } })).events), [])
+  // Reassigned after the notice went out: he is off the party, there is nothing for him to confirm.
+  const offParty = [{ id: "as1", order_id: ORDER_ID, staff_member_id: GARY, assignment_status: "cancelled" }]
+  assert.deepEqual(kinds((await inbox({ tables: { chef_change_notices: [noticeRow("n1", NOW - 5 * H)], order_staff_assignments: offParty } })).events), [])
   assert.deepEqual(kinds((await inbox({ tables: { orders: [{ ...ORDER, order_status: "cancelled" }], chef_change_notices: [noticeRow("n1", NOW - 5 * H)] } })).events), [])
   // Card A not deployed: the table does not exist. The rest of the inbox still answers.
   const { events, counts } = await inbox({ missing: ["chef_change_notices"], inbound: [inb(GARY_PHONE, NOW - 20 * MIN, "备料单打不开，再发一次")] })

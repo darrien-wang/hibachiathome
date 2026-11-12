@@ -11,7 +11,7 @@ import { isLookupBlock } from "@/lib/phone-line-type"
 import { isStaffNumber, loadStaffContacts, staffOnNumber } from "@/lib/staff-phones"
 import { openChefText } from "@/lib/chef-inbound"
 import { OPEN_REQUEST_STATUSES, ORPHAN_REQUEST_LOOKBACK_MS, changeRequestBody, changeRequestOpen, changeRequestRings, isHeldRequest } from "@/lib/change-requests"
-import { groupNotices, loadNoticeOrders, loadOpenNotices, noticeState, noticeSummary, type NoticeOrder } from "@/lib/chef-notices"
+import { loadNoticeOrders, loadOpenNoticeGroups, noticeState, noticeSummary, type NoticeOrder } from "@/lib/chef-notices"
 import { partyLabelZh } from "@/lib/chef-notify"
 
 // 收件箱. "What needs a person right now", computed fresh each call and kept
@@ -289,7 +289,7 @@ export async function computeInbox(
   // bare 好的 / 收到 shows only while a notice of his is still unconfirmed, and
   // anything else is a chef waiting on us - until we text him back, or someone
   // marks the thread handled (chef:ack:<number> in lead_watch_notified).
-  const noticeGroups = groupNotices(await loadOpenNotices(supabase))
+  const noticeGroups = await loadOpenNoticeGroups(supabase)
   const chefHandled = new Map<string, number>()
   {
     const { data: marks } = await supabase.from("lead_watch_notified").select("key, notified_at").like("key", "chef:ack:%").limit(200)
