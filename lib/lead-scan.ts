@@ -577,6 +577,9 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
   // (D-1017-02: a free appetizer owed by rule, a deal item not on the party,
   // travel never measured...). Blocking items read "!!".
   const orderGaps: OrderGap[] = []
+  // The reconcile below asks the same app: both go out together, so a slow invoice app costs the scan one wait, not two.
+  const askReconcile = opts.reconcile ?? opts.lint !== false
+  const reportedSoon = askReconcile ? fetchReconcile(ORDER_HORIZON_DAYS) : Promise.resolve(null)
   const lints = opts.lint === false ? new Map<string, OrderLint>() : await fetchOrderLints(orders.map((o) => o.id))
   for (const o of orders) {
     const inv = o.invoice_data ?? {}
@@ -613,8 +616,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
   // An offline scan (lint: false) does not ask; an app that does not answer
   // (not deployed yet, down) lists nothing.
   const reconcileGaps: ReconcileGap[] = []
-  const askReconcile = opts.reconcile ?? opts.lint !== false
-  const reported = askReconcile ? await fetchReconcile(ORDER_HORIZON_DAYS) : null
+  const reported = await reportedSoon
   if (reported?.length) {
     const byNo = new Map(orders.filter((o) => o.order_no).map((o) => [o.order_no as string, o]))
     for (const r of reported) {

@@ -2176,6 +2176,13 @@ def _print_invoice(order_no: str, data: dict) -> None:
         print(f"   custom deal: {json.dumps(data['customDeal'], ensure_ascii=False)[:200]}")
     notes = (c.get("specialNotes") or "").strip()
     print(f"   NOTES(客户会看到): {notes or '(空)'}")
+    # What the customer wrote to us on the party page (invoice_data.customerNotes, 2026-11-11): the
+    # workbench drawer shows the same list. An order without the field prints nothing.
+    for n in data.get("customerNotes") or []:
+        text = (n.get("text") if isinstance(n, dict) else n if isinstance(n, str) else "") or ""
+        if text.strip():
+            at = n.get("at") if isinstance(n, dict) else None
+            print(f"   客人留言{(' ' + pt(at)) if at else ''}: {' '.join(text.split())}")
 
 
 def _party_plan(order: dict) -> dict | None:
@@ -2335,6 +2342,10 @@ def cmd_order(a):
         row = detail.get("order") if isinstance(detail.get("order"), dict) else {}
         if not data:
             data = row.get("invoice_data") or {}
+        # The customer's notes live on the stored invoice; the lookup's prefill may not carry them.
+        stored = row.get("invoice_data") if isinstance(row.get("invoice_data"), dict) else {}
+        if not data.get("customerNotes") and stored.get("customerNotes"):
+            data = {**data, "customerNotes": stored["customerNotes"]}
         _print_invoice(order_no, data)
         print(last_invoice_line(order["id"], row.get("balance_due_cents", order.get("balance_due_cents"))))
         _print_plan(row, detail.get("staffing"))

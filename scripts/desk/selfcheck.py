@@ -1164,6 +1164,12 @@ def main() -> int:
                                          "fix": "order set <order> --reconcile"}], "warnings": []}
     r = Run(party, op="show", lint=missing)
     check("order show prints the ⚠ 缺项 block with the fix", r.has("⚠ 缺项（1 项拦着备料单和前一天的提醒）", "!! 按规则该有", "改法：order set <order> --reconcile"), r)
+    check("  an order with no customerNotes prints no 客人留言 line", "客人留言" not in r.out, r)
+    noted = {**party, "customerNotes": [{"at": "2026-11-10T16:24:00.000Z", "text": "Surprise birthday,\nentrance thru the side gate", "source": "party_page"},
+                                        {"at": "", "text": "  ", "source": "party_page"}, "Call when you arrive"]}
+    r = Run(noted, op="show", lint=missing)
+    check("order show prints what the customer wrote on the party page (invoice_data.customerNotes), blanks skipped",
+          r.has("客人留言 11-10 08:24: Surprise birthday, entrance thru the side gate", "客人留言: Call when you arrive") and r.out.count("客人留言") == 2, r)
     r = Run(party, op="remind", lint=missing)
     check("order remind refuses an order the lint says is missing something", r.texted is None and "not sent" in str(r.exit) and r.has("!! 按规则该有"), r)
     r = Run(party, "--dry", op="remind", lint=missing)
