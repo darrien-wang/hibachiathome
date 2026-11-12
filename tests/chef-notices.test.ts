@@ -4,11 +4,37 @@
 // "1" is listed, and one still open three hours before the party rings the
 // owner. The table arrives with the invoice app's deploy: until then every
 // read is empty and every write a no-op, which is tested too.
+// A notice whose text never went out (no sms_sid, summary 【短信没发出去：…】) is
+// its own case: the link it carried replaced his old one, so he holds no sheet
+// until one reaches him again - the second half of this file.
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { CHEF_NOTICE_WHY, LIVE_PARTY_RING_HOURS_PT, isAlarm, isChefNoticeAlarm, isLivePartyAlarm, requestCallback, withinRingHours, type RingOutcome } from "../lib/callback-ring"
-import { ackNotices, ackNoticesFromPhone, groupNotices, loadOpenNoticeGroups, loadOpenNotices, noticeAlarmText, noticeState, noticeSummary, onStaffText, ringUnackedNotices, type ChefNotice } from "../lib/chef-notices"
+import {
+  FAILED_SEND_MARK,
+  NOTICE_LOOKBACK_MS,
+  RESEND_MARGIN_MS,
+  ackNotices,
+  ackNoticesFromPhone,
+  failedSendAlarmText,
+  failedSendState,
+  groupFailedSends,
+  groupNotices,
+  isFailedSend,
+  loadNoticeBoard,
+  loadOpenNoticeGroups,
+  loadOpenNotices,
+  noticeAlarmText,
+  noticeAt,
+  noticeState,
+  noticeSummary,
+  onStaffText,
+  ringUnackedNotices,
+  sheetReachedSince,
+  type ChefNotice,
+  type SentLink,
+} from "../lib/chef-notices"
 import { fakeSupabase, type Row } from "./fixtures/fake-supabase"
 
 const ORDER_ID = "00000000-0000-4000-8000-0000000000a1"
@@ -22,10 +48,11 @@ const H = 3600_000
 const notice = (id: string, sentAt: number, over: Partial<ChefNotice> = {}): ChefNotice => ({ id, order_id: ORDER_ID, staff_member_id: GARY, summary: "8 位加餐具", sent_at: new Date(sentAt).toISOString(), acked_at: null, ...over })
 const group = (sentAt: number) => groupNotices([notice("n1", sentAt)])[0]
 
-function world(notices: Row[], over: { missing?: boolean; marks?: Row[]; order?: Row; assignments?: Row[] } = {}) {
+function world(notices: Row[], over: { missing?: boolean; marks?: Row[]; order?: Row; assignments?: Row[]; links?: Row[]; noLinksTable?: boolean } = {}) {
   return fakeSupabase(
     {
       ...(over.missing ? {} : { chef_change_notices: notices }),
+      ...(over.noLinksTable ? {} : { chef_sheet_links: over.links ?? [] }),
       orders: [{ ...ORDER, ...over.order }],
       // Gary and Blu are both on the party unless a test takes one off.
       order_staff_assignments: over.assignments ?? [
@@ -39,7 +66,7 @@ function world(notices: Row[], over: { missing?: boolean; marks?: Row[]; order?:
       order_events: [],
       lead_watch_notified: over.marks ?? [],
     },
-    over.missing ? { missing: ["chef_change_notices"] } : {},
+    { missing: [...(over.missing ? ["chef_change_notices"] : []), ...(over.noLinksTable ? ["chef_sheet_links"] : [])] },
   )
 }
 
@@ -253,4 +280,223 @@ test("ring · an order with no lead cannot use the callback ring: reported, the 
   const out = await ringUnackedNotices(db as never, START - 2 * H, { request, openOf: noCallback })
   assert.deepEqual(out.map((r) => r.skipped), ["no_lead"])
   assert.equal(calls.length, 0)
+})
+
+// ---- a change text that never went out ---------------------------------------------
+// Card A's contract (2026-11-11): the row has no sms_sid and its summary opens with
+// 【短信没发出去：. The new link was issued and the old one revoked before the text
+// bounced, so that chef has no sheet he can open.
+
+const WHY_FAILED = "【短信没发出去：Twilio 21211 号码无效】8 位加餐具"
+const failed = (id: string, at: number | null, over: Partial<ChefNotice> = {}): ChefNotice => ({ id, order_id: ORDER_ID, staff_member_id: GARY, summary: WHY_FAILED, sent_at: at === null ? null : new Date(at).toISOString(), acked_at: null, sms_sid: "", ...over })
+const at = (ms: number) => new Date(ms).toISOString()
+// A prep-sheet link row. Every send is a new row with a new token; the one before it gets revoked_at.
+const link = (id: string, over: Partial<SentLink> & Row = {}): SentLink & Row => ({ id, token: `tok-${id}`, order_id: ORDER_ID, staff_member_id: GARY, sent_via: "twilio", sent_at: null, first_opened_at: null, revoked_at: null, stale: false, ...over })
+
+test("failed send · what counts as one: no sms_sid and the summary card A writes", () => {
+  assert.equal(WHY_FAILED.startsWith(FAILED_SEND_MARK), true)
+  assert.equal(isFailedSend({ summary: WHY_FAILED, sms_sid: "" }), true)
+  assert.equal(isFailedSend({ summary: WHY_FAILED, sms_sid: null }), true)
+  assert.equal(isFailedSend({ summary: WHY_FAILED }), true)
+  assert.equal(isFailedSend({ summary: `  ${WHY_FAILED}`, sms_sid: " " }), true)
+  assert.equal(isFailedSend({ summary: WHY_FAILED, sms_sid: "SM0123" }), false, "a text with a Twilio id went out")
+  assert.equal(isFailedSend({ summary: "8 位加餐具", sms_sid: "" }), false, "an empty sid alone is not card A's mark")
+  assert.equal(isFailedSend({ summary: "8 位加餐具（上次【短信没发出去：…】）", sms_sid: "" }), false, "the mark opens the summary")
+  assert.equal(isFailedSend({ summary: null, sms_sid: null }), false)
+})
+
+test("failed send · when it happened: sent_at, else the row's created_at, else unknown", () => {
+  assert.equal(noticeAt({ sent_at: at(START - 5 * H), created_at: at(START - 6 * H) }), at(START - 5 * H))
+  assert.equal(noticeAt({ sent_at: null, created_at: at(START - 6 * H) }), at(START - 6 * H))
+  assert.equal(noticeAt({ sent_at: null }), null)
+  assert.equal(noticeAt({ sent_at: "not a date", created_at: null }), null)
+})
+
+test("failed send · it is not a text waiting for a 1, and one chef on one party is one line", () => {
+  const t = START - 30 * H
+  const rows = [notice("n1", t - H), failed("f1", t), failed("f2", t + H), failed("f3", t, { staff_member_id: BLU })]
+  assert.deepEqual(groupNotices(rows).map((g) => [g.staffId, g.notices.map((n) => n.id)]), [[GARY, ["n1"]]])
+  const groups = groupFailedSends(rows)
+  assert.deepEqual(groups.map((g) => [g.staffId, g.notices.map((n) => n.id), g.at]), [[GARY, ["f1", "f2"], at(t + H)], [BLU, ["f3"], at(t)]])
+  assert.equal(noticeSummary(groups[0]), WHY_FAILED, "the reason and the change, once")
+})
+
+test("failed send · a later text that did go out to him on that party makes it history; an earlier one does not", () => {
+  const t = START - 30 * H
+  assert.deepEqual(groupFailedSends([failed("f1", t), notice("n2", t + H)]), [], "the later text carried a newer link")
+  assert.deepEqual(groupFailedSends([notice("n0", t - H), failed("f1", t)]).map((g) => g.notices.map((n) => n.id)), [["f1"]])
+  // Blu's text going out says nothing about Gary's.
+  assert.deepEqual(groupFailedSends([failed("f1", t), notice("n2", t + H, { staff_member_id: BLU })]).map((g) => g.staffId), [GARY])
+  // Two failures, a delivery between them: the second failure stands.
+  assert.deepEqual(groupFailedSends([failed("f1", t), notice("n2", t + H), failed("f3", t + 2 * H)]).map((g) => g.notices.map((n) => n.id)), [["f3"]])
+  // No time on the row: it cannot be placed against the other texts and is kept.
+  assert.deepEqual(groupFailedSends([failed("f1", null), notice("n2", t + H)]).map((g) => [g.notices.map((n) => n.id), g.at]), [[["f1"], null]])
+})
+
+test("failed send · state: on the list from the moment it failed, urgent three hours out, same ends as any notice", () => {
+  const t = START - 30 * H
+  const g = { at: at(t) }
+  assert.deepEqual(failedSendState(g, ORDER, t), { show: true, urgent: false, waitedMinutes: 0, hoursToParty: 30 }, "no two-hour wait")
+  assert.deepEqual(failedSendState(g, ORDER, t + 40 * 60_000), { show: true, urgent: false, waitedMinutes: 40, hoursToParty: 29.3 })
+  assert.equal(failedSendState(g, ORDER, START - 3 * H - 60_000).urgent, false)
+  assert.equal(failedSendState(g, ORDER, START - 3 * H).urgent, true)
+  // No grace either: there is nothing for him to read and answer.
+  assert.deepEqual(failedSendState({ at: at(START - 2 * H) }, ORDER, START - 2 * H + 60_000), { show: true, urgent: true, waitedMinutes: 1, hoursToParty: 2 })
+  assert.equal(failedSendState(g, { ...ORDER, order_status: "cancelled" }, START - H).show, false)
+  assert.equal(failedSendState(g, ORDER, START + 61 * 60_000).show, false)
+  assert.equal(failedSendState(g, ORDER, START + 30 * 60_000).show, true)
+  assert.equal(failedSendState(g, null, START - H).show, false)
+  assert.deepEqual(failedSendState(g, { ...ORDER, event_start: null }, t + H), { show: true, urgent: false, waitedMinutes: 60, hoursToParty: null })
+  assert.deepEqual(failedSendState({ at: null }, ORDER, START - 10 * H), { show: true, urgent: false, waitedMinutes: 0, hoursToParty: 10 })
+})
+
+test("he holds a sheet again · a re-send is a new link: what counts is the live one, sent after the failure", () => {
+  const t = START - 30 * H
+  const g = { orderId: ORDER_ID, staffId: GARY, at: at(t) }
+  // Straight after the failure: his old link is revoked, the one the failed text carried is live and never arrived.
+  const old = link("L1", { sent_at: at(t - 20 * H), first_opened_at: at(t - 19 * H), revoked_at: at(t) })
+  const carried = link("L2", { sent_via: "failed", sent_at: at(t) })
+  assert.equal(sheetReachedSince(g, [old, carried]), false)
+  // The owner sends it again: L2 is revoked, L3 - another row, another token - is texted to him.
+  const resent = link("L3", { sent_at: at(t + 10 * 60_000) })
+  assert.notEqual(resent.token, carried.token)
+  assert.equal(sheetReachedSince(g, [old, { ...carried, revoked_at: at(t + 10 * 60_000) }, resent]), true)
+  assert.equal(sheetReachedSince(g, [link("L3", { sent_via: "manual", sent_at: at(t + 10 * 60_000) })]), true, "handed over by hand counts")
+  // That re-send's own text bounces: he holds nothing again.
+  assert.equal(sheetReachedSince(g, [link("L3", { sent_via: "failed", sent_at: at(t + 10 * 60_000) })]), false)
+  // A re-send that worked, then one more whose text bounced: the one that worked is revoked now.
+  assert.equal(sheetReachedSince(g, [{ ...resent, revoked_at: at(t + 20 * 60_000) }, link("L4", { sent_via: "failed", sent_at: at(t + 20 * 60_000) })]), false)
+})
+
+test("he holds a sheet again · the link the failed text carried is not its own cure, opening it is", () => {
+  const t = START - 30 * H
+  const g = { orderId: ORDER_ID, staffId: GARY, at: at(t) }
+  // Should card A stamp that link as texted at about the moment the notice failed, it still did not arrive.
+  assert.equal(sheetReachedSince(g, [link("L2", { sent_at: at(t + 5_000) })]), false)
+  assert.equal(sheetReachedSince(g, [link("L2", { sent_at: at(t + RESEND_MARGIN_MS) })]), false)
+  assert.equal(sheetReachedSince(g, [link("L2", { sent_at: at(t + RESEND_MARGIN_MS + 1_000) })]), true)
+  // He opened the live link after the failure (someone passed him the URL): he has it.
+  assert.equal(sheetReachedSince(g, [link("L2", { sent_via: "failed", sent_at: at(t), first_opened_at: at(t + 3 * 60_000) })]), true)
+  // Opened before the failure, or opened on a link that has since been replaced: not in his hands.
+  assert.equal(sheetReachedSince(g, [link("L2", { sent_via: "failed", first_opened_at: at(t - 60_000) })]), false)
+  assert.equal(sheetReachedSince(g, [link("L1", { first_opened_at: at(t + 3 * 60_000), sent_at: at(t + 2 * 60_000), revoked_at: at(t + 5 * 60_000) })]), false)
+  // Somebody else's sheet, or another party's, is not his.
+  assert.equal(sheetReachedSince(g, [link("L9", { staff_member_id: BLU, sent_at: at(t + H) })]), false)
+  assert.equal(sheetReachedSince(g, [link("L9", { order_id: "00000000-0000-4000-8000-0000000000a9", sent_at: at(t + H) })]), false)
+  assert.equal(sheetReachedSince(g, []), false)
+})
+
+test("he holds a sheet again · a failed row with no time on it goes by the live link alone", () => {
+  const g = { orderId: ORDER_ID, staffId: GARY, at: null }
+  assert.equal(sheetReachedSince(g, [link("L2", { sent_via: "failed" })]), false)
+  assert.equal(sheetReachedSince(g, [link("L2", { sent_via: "failed", revoked_at: at(START - 9 * H) }), link("L3", { sent_at: at(START - 9 * H) })]), true)
+  assert.equal(sheetReachedSince(g, [link("L2", { sent_via: "failed", first_opened_at: at(START - 9 * H) })]), true)
+  assert.equal(sheetReachedSince(g, [link("L1", { sent_at: at(START - 20 * H), revoked_at: at(START - 10 * H) })]), false, "a revoked link is not held")
+})
+
+test("open notices · a failed row is kept without a sent_at; an unsent row that is not marked failed is not a notice yet", async () => {
+  const t = START - 5 * H
+  const db = world([failed("f1", null), failed("f2", t), { ...notice("n3", t), sent_at: null }, failed("f4", t, { acked_at: at(t + 60_000) })])
+  assert.deepEqual((await loadOpenNotices(db as never)).map((n) => n.id).sort(), ["f1", "f2"])
+})
+
+test("open notices · only the last two weeks are read, oldest first: old unconfirmed rows do not pile onto every poll", async () => {
+  const now = START - 5 * H
+  const rows = [
+    notice("recent", now - 2 * H),
+    notice("ancient", now - NOTICE_LOOKBACK_MS - H),
+    failed("cured-long-ago", now - NOTICE_LOOKBACK_MS - 24 * H),
+    failed("today", now - H),
+    notice("edge", now - NOTICE_LOOKBACK_MS),
+    // No sent_at, dated by created_at only: the window applies to that as well.
+    failed("undated-old", null, { created_at: at(now - NOTICE_LOOKBACK_MS - H) }),
+    failed("undated-new", null, { created_at: at(now - 30 * 60_000) }),
+    failed("no-time-at-all", null),
+  ]
+  assert.deepEqual((await loadOpenNotices(world(rows) as never, now)).map((n) => n.id), ["no-time-at-all", "edge", "recent", "today", "undated-new"])
+  const board = await loadNoticeBoard(world(rows) as never, now)
+  assert.deepEqual(board.waiting.map((g) => g.notices.map((n) => n.id)), [["edge", "recent"]])
+  assert.deepEqual(board.failed.map((g) => [g.notices.map((n) => n.id), g.at]), [[["no-time-at-all", "today", "undated-new"], at(now - 30 * 60_000)]])
+})
+
+test("board · the failed send and the texts waiting for a 1 are read apart; a chef off the party is on neither", async () => {
+  const t = START - 20 * H
+  const rows = [notice("n1", t - H), failed("f1", t), notice("n2", t, { staff_member_id: BLU })]
+  const board = await loadNoticeBoard(world(rows, { links: [link("L2", { sent_via: "failed", sent_at: at(t) })] }) as never)
+  assert.deepEqual(board.waiting.map((g) => [g.staffId, g.notices.map((n) => n.id)]), [[GARY, ["n1"]], [BLU, ["n2"]]])
+  assert.deepEqual(board.failed.map((g) => [g.staffId, g.notices.map((n) => n.id)]), [[GARY, ["f1"]]])
+  const off = [{ id: "as1", order_id: ORDER_ID, staff_member_id: GARY, assignment_status: "cancelled" }, { id: "as2", order_id: ORDER_ID, staff_member_id: BLU, assignment_status: "confirmed" }]
+  const after = await loadNoticeBoard(world(rows, { assignments: off }) as never)
+  assert.deepEqual([after.waiting.map((g) => g.staffId), after.failed], [[BLU], []])
+})
+
+test("board · sending the sheet again clears the failed send, though the link is a different row with a different token", async () => {
+  const t = START - 20 * H
+  const before = [link("L1", { sent_at: at(t - 20 * H), revoked_at: at(t) }), link("L2", { sent_via: "failed", sent_at: at(t) })]
+  assert.equal((await loadNoticeBoard(world([failed("f1", t)], { links: before }) as never)).failed.length, 1)
+  const after = [before[0], { ...before[1], revoked_at: at(t + 8 * 60_000) }, link("L3", { sent_at: at(t + 8 * 60_000) })]
+  assert.deepEqual((await loadNoticeBoard(world([failed("f1", t)], { links: after }) as never)).failed, [])
+  // The row is still unconfirmed in the table - nobody acked it, the sheet answered it.
+  assert.equal((await loadOpenNotices(world([failed("f1", t)], { links: after }) as never)).length, 1)
+  // When the links cannot be read the line stays: an extra line beats a missing one.
+  assert.equal((await loadNoticeBoard(world([failed("f1", t)], { noLinksTable: true }) as never)).failed.length, 1)
+})
+
+test("the chef's 1 · does not confirm a text he never got; a later text that reached him covers it", async () => {
+  const t = START - 5 * H
+  // He answers 1 to the earlier text. The failed one came after it and he has not seen it.
+  const db = world([notice("n1", t - H), failed("f1", t)])
+  assert.deepEqual(await ackNoticesFromPhone(db as never, "6265550102", t + 60_000), { acked: 1, orderIds: [ORDER_ID], staffIds: [GARY] })
+  assert.deepEqual(db.tables.chef_change_notices.map((r) => [r.id, Boolean(r.acked_at)]), [["n1", true], ["f1", false]])
+  assert.equal((await loadNoticeBoard(db as never)).failed.length, 1, "still on the list")
+  // A failed text followed by one that went out: his 1 answers the newer text, and with it the older change.
+  const both = world([failed("f1", t), notice("n2", t + H)])
+  assert.equal((await ackNoticesFromPhone(both as never, "6265550102", t + 2 * H)).acked, 2)
+  assert.deepEqual(both.tables.chef_change_notices.map((r) => Boolean(r.acked_at)), [true, true])
+  // Only a failed text open: his 1 (to something else) stamps nothing.
+  const only = world([failed("f1", t)])
+  assert.equal((await ackNoticesFromPhone(only as never, "6265550102", t + H)).acked, 0)
+  assert.deepEqual(only.writes, [])
+})
+
+test("confirmed by hand · a person can vouch for a text that never went out (he got the sheet some other way)", async () => {
+  const t = START - 5 * H
+  const db = world([notice("n1", t - H), failed("f1", t), failed("f2", t, { staff_member_id: BLU })])
+  const out = await ackNotices(db as never, { staffIds: [GARY], via: "manual:Darrien", includeFailed: true, now: t + H })
+  assert.equal(out.acked, 2)
+  assert.deepEqual(db.tables.chef_change_notices.map((r) => [r.id, Boolean(r.acked_at)]), [["n1", true], ["f1", true], ["f2", false]])
+  assert.deepEqual((await loadNoticeBoard(db as never)).failed.map((g) => g.staffId), [BLU])
+})
+
+test("ring · a text that never went out, three hours before the party: its own words, once, with his other open texts", async () => {
+  assert.equal(failedSendAlarmText("Gary", ORDER), "师傅未确认：Gary 没收到 11月14日下午5:30 Irvine（Joyce）那场的改单短信，手里没有能打开的备料单，派对不到 3 小时就开始。")
+  assert.equal(isChefNoticeAlarm(failedSendAlarmText("Gary", ORDER)), true, "rides the same alarm kind: same hours, same dedupe")
+  const db = world([notice("n1", START - 20 * H), failed("f1", START - 10 * H)], { links: [link("L2", { sent_via: "failed", sent_at: at(START - 10 * H) })] })
+  const { calls, request } = ringer()
+  assert.deepEqual(await ringUnackedNotices(db as never, START - 3 * H - 60_000, { request, openOf: noCallback }), [], "not before three hours")
+  const out = await ringUnackedNotices(db as never, START - 2.5 * H, { request, openOf: noCallback })
+  assert.equal(calls.length, 1, "one call for this chef and this party")
+  assert.deepEqual(calls[0], { leadId: LEAD_ID, phone: "6265550102", name: "Gary", why: failedSendAlarmText("Gary", ORDER), source: "chef_notice:f1" })
+  assert.deepEqual(out.map((r) => [r.chef, r.failedSend, r.rang, r.notices]), [["Gary", true, true, ["f1", "n1"]]])
+  assert.deepEqual(db.tables.lead_watch_notified.map((m) => m.key).sort(), ["cn:ring:f1", "cn:ring:n1"])
+  const again = ringer()
+  assert.deepEqual(await ringUnackedNotices(db as never, START - 2.3 * H, { request: again.request, openOf: noCallback }), [])
+})
+
+test("ring · a failure inside three hours rings on the next sweep, no fifteen-minute grace; a sheet sent again means no call", async () => {
+  const t = START - 2 * H
+  const links = [link("L2", { sent_via: "failed", sent_at: at(t) })]
+  const { calls, request } = ringer()
+  const out = await ringUnackedNotices(world([failed("f1", t)], { links }) as never, t + 2 * 60_000, { request, openOf: noCallback })
+  assert.deepEqual(out.map((r) => [r.failedSend, r.rang]), [[true, true]])
+  assert.equal(calls.length, 1)
+  const fixed = [{ ...links[0], revoked_at: at(t + 5 * 60_000) }, link("L3", { sent_at: at(t + 5 * 60_000) })]
+  const quiet = ringer()
+  assert.deepEqual(await ringUnackedNotices(world([failed("f1", t)], { links: fixed }) as never, t + 10 * 60_000, { request: quiet.request, openOf: noCallback }), [])
+  assert.equal(quiet.calls.length, 0)
+  // Dry run: planned, nothing written, nobody called.
+  const dry = world([failed("f1", t)], { links })
+  const plan = await ringUnackedNotices(dry as never, t + 2 * 60_000, { dryRun: true, request: quiet.request, openOf: noCallback })
+  assert.deepEqual(plan.map((r) => [r.failedSend, r.dryRun, r.why]), [[true, true, failedSendAlarmText("Gary", ORDER)]])
+  assert.deepEqual(dry.writes, [])
 })

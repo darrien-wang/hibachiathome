@@ -8,6 +8,9 @@
 //   - a change notice the chef has not confirmed shows after two hours and rings
 //     inside three hours of the party - and nothing breaks while that table does
 //     not exist yet
+//   - a change text that never went out (card A marks the row) is listed at once
+//     with the chefs' items and rings: the link it carried replaced his old one,
+//     so he holds no sheet until one reaches him again
 // In-memory database; Twilio is two canned lists behind a replaced fetch.
 //   npm test
 import { test } from "node:test"
@@ -22,6 +25,8 @@ const OURS = "+12137707788"
 const GARY_PHONE = "+16260000102"
 const CUSTOMER = "+19090000142"
 const GARY = "00000000-0000-4000-8000-0000000000b2"
+const BLU = "00000000-0000-4000-8000-0000000000b1"
+const BLU_PHONE = "+16260000101"
 const ORDER_ID = "00000000-0000-4000-8000-0000000000a1"
 // Noon Pacific on Wed Nov 13 2030. The party below is 5:30 PM Pacific the next day: 29.5 hours out.
 const NOW = Date.parse("2030-11-13T20:00:00Z")
@@ -271,4 +276,107 @@ test("notice · confirmed, cancelled or not there at all: nothing shown, nothing
   const { events, counts } = await inbox({ missing: ["chef_change_notices"], inbound: [inb(GARY_PHONE, NOW - 20 * MIN, "备料单打不开，再发一次")] })
   assert.deepEqual(kinds(events), ["chef"])
   assert.equal(counts.chefNotices, 0)
+})
+
+// ---- a change text that never went out -------------------------------------------
+// Card A's mark (2026-11-11): no sms_sid, summary opening with 【短信没发出去：. By then the
+// new link is issued and his old one revoked, so the chef has no sheet he can open.
+
+const WHY_FAILED = "【短信没发出去：Twilio 21211 号码无效】8 位加餐具"
+const failedRow = (id: string, at: number, over: Row = {}): Row => ({ id, order_id: ORDER_ID, staff_member_id: GARY, summary: WHY_FAILED, sent_at: iso(at), acked_at: null, sms_sid: "", ...over })
+// Prep-sheet links: every send is a new row with a new token, and the one before it gets revoked_at.
+const linkRow = (id: string, over: Row = {}): Row => ({ id, token: `tok-${id}`, order_id: ORDER_ID, staff_member_id: GARY, sent_via: "twilio", sent_at: null, first_opened_at: null, revoked_at: null, stale: false, ...over })
+// What the failed change text leaves behind: the old link revoked, the new one live and never delivered.
+const afterFailure = (at: number): Row[] => [linkRow("L1", { sent_at: iso(at - 20 * H), first_opened_at: iso(at - 19 * H), revoked_at: iso(at) }), linkRow("L2", { sent_via: "failed", sent_at: iso(at) })]
+
+test("unsent · listed the moment it fails, in its own words, and it rings - no two-hour wait", async () => {
+  const at = NOW - 3 * MIN
+  const { events, counts } = await inbox({ tables: { chef_change_notices: [failedRow("f1", at)], chef_sheet_links: afterFailure(at) } })
+  const e = one(events, "chef_unsent")
+  assert.equal(e.title, "师傅没收到改单短信 · Gary")
+  assert.equal(e.body, "他手里现在没有能打开的备料单 · 11月14日下午5:30 Irvine（Joyce） · 【短信没发出去：Twilio 21211 号码无效】8 位加餐具")
+  assert.deepEqual([e.ring, e.urgent, e.explain, e.waitedMinutes], [true, true, true, 3])
+  assert.equal(e.key, `chef-unsent:${ORDER_ID}:${GARY}`)
+  assert.equal(e.at, iso(at))
+  assert.equal(e.url, `/admin?tab=orders&order=${ORDER_ID}`)
+  assert.equal(e.phone, GARY_PHONE)
+  assert.equal(e.orderId, ORDER_ID)
+  assert.deepEqual([counts.chefUnsent, counts.chefNotices, counts.chefTexts], [1, 0, 0])
+  // The very minute it failed.
+  assert.equal(one((await inbox({ tables: { chef_change_notices: [failedRow("f1", NOW)], chef_sheet_links: afterFailure(NOW) } })).events, "chef_unsent").ring, true)
+})
+
+test("unsent · it sits with the chefs' items, above a customer who has waited longer", async () => {
+  const staff = [{ id: GARY, display_name: "Gary", full_name: null, phone: "6260000102", role: "chef" }, { id: BLU, display_name: "Blu", full_name: null, phone: "6260000101", role: "chef" }]
+  const { events } = await inbox({
+    tables: { staff_members: staff, chef_change_notices: [failedRow("f1", NOW - 3 * MIN)], chef_sheet_links: afterFailure(NOW - 3 * MIN) },
+    inbound: [inb(BLU_PHONE, NOW - 20 * MIN, "这场要带桌子吗"), inb(CUSTOMER, NOW - 45 * MIN, "Do you bring the propane?")],
+  })
+  assert.deepEqual(events.map((e) => [e.kind, e.ring]), [["chef_unsent", true], ["chef", true], ["sms", true]])
+})
+
+test("unsent · inside three hours of the party the line says how long is left, and it rings the whole time", async () => {
+  const start = Date.parse("2030-11-15T01:30:00Z")
+  const at = start - 2.5 * H
+  const { events } = await inbox({ tables: { chef_change_notices: [failedRow("f1", at - 5 * MIN)], chef_sheet_links: afterFailure(at - 5 * MIN) } }, at)
+  assert.equal(one(events, "chef_unsent").body, "他手里现在没有能打开的备料单 · 11月14日下午5:30 Irvine（Joyce） · 离开场 3 小时 · 【短信没发出去：Twilio 21211 号码无效】8 位加餐具")
+  // It failed at 9:30 AM and nobody fixed it. Five and a half hours on it is between ring windows...
+  const morning = start - 8 * H
+  const tables = { chef_change_notices: [failedRow("f1", morning)], chef_sheet_links: afterFailure(morning) }
+  assert.equal(one((await inbox({ tables }, start - 3 * H - 60 * MIN)).events, "chef_unsent").ring, false, "four hours out, between windows")
+  // ...but three hours from the party it is as loud as an unconfirmed notice is.
+  assert.equal(one((await inbox({ tables }, at)).events, "chef_unsent").ring, true)
+})
+
+test("unsent · the same hours as the other new alarms: on the list all night, silent 11 PM-7 AM Pacific, ringing from 7", async () => {
+  const oneAm = Date.parse("2030-11-14T09:00:00Z")
+  const tables = { chef_change_notices: [failedRow("f1", oneAm - 10 * MIN)], chef_sheet_links: afterFailure(oneAm - 10 * MIN) }
+  assert.deepEqual((await inbox({ tables }, oneAm)).events.map((e) => [e.kind, e.ring, e.urgent]), [["chef_unsent", false, true]])
+  const sevenAm = Date.parse("2030-11-14T15:00:00Z")
+  assert.equal(one((await inbox({ tables }, sevenAm - MIN)).events, "chef_unsent").ring, false, "6:59 AM")
+  assert.equal(one((await inbox({ tables }, sevenAm)).events, "chef_unsent").ring, true, "7:00 AM, six hours after it failed")
+  const elevenPm = Date.parse("2030-11-14T07:00:00Z")
+  const late = { chef_change_notices: [failedRow("f1", elevenPm - 10 * MIN)], chef_sheet_links: afterFailure(elevenPm - 10 * MIN) }
+  assert.equal(one((await inbox({ tables: late }, elevenPm - MIN)).events, "chef_unsent").ring, true, "10:59 PM")
+  assert.equal(one((await inbox({ tables: late }, elevenPm)).events, "chef_unsent").ring, false, "11:00 PM")
+})
+
+test("unsent · sending the sheet again clears it: a new link with a new token, the failed one revoked", async () => {
+  const at = NOW - 30 * MIN
+  const resent = [afterFailure(at)[0], { ...afterFailure(at)[1], revoked_at: iso(NOW - 5 * MIN) }, linkRow("L3", { sent_at: iso(NOW - 5 * MIN) })]
+  const { events, counts } = await inbox({ tables: { chef_change_notices: [failedRow("f1", at)], chef_sheet_links: resent } })
+  assert.deepEqual(kinds(events), [])
+  assert.equal(counts.chefUnsent, 0)
+  // That re-send's own text bounced as well: he still holds nothing, the line stays.
+  const bounced = [afterFailure(at)[0], { ...afterFailure(at)[1], revoked_at: iso(NOW - 5 * MIN) }, linkRow("L3", { sent_via: "failed", sent_at: iso(NOW - 5 * MIN) })]
+  assert.deepEqual(kinds((await inbox({ tables: { chef_change_notices: [failedRow("f1", at)], chef_sheet_links: bounced } })).events), ["chef_unsent"])
+  // He opened the link the failed text was carrying (someone passed it to him): he has it.
+  const opened = [afterFailure(at)[0], { ...afterFailure(at)[1], first_opened_at: iso(NOW - 2 * MIN) }]
+  assert.deepEqual(kinds((await inbox({ tables: { chef_change_notices: [failedRow("f1", at)], chef_sheet_links: opened } })).events), [])
+})
+
+test("unsent · gone when a later text reaches him, a person vouches, he is off the party, or the party is off", async () => {
+  const at = NOW - 3 * H
+  const links = afterFailure(at)
+  // The next change text went out: it carried a newer link, and it waits for his 1 like any other.
+  const later = await inbox({ tables: { chef_change_notices: [failedRow("f1", at), noticeRow("n2", NOW - 130 * MIN, { sms_sid: "SM2" })], chef_sheet_links: links } })
+  assert.deepEqual(kinds(later.events), ["chef_notice"])
+  assert.deepEqual(kinds((await inbox({ tables: { chef_change_notices: [failedRow("f1", at, { acked_at: iso(NOW - MIN) })], chef_sheet_links: links } })).events), [])
+  const offParty = [{ id: "as1", order_id: ORDER_ID, staff_member_id: GARY, assignment_status: "cancelled" }]
+  assert.deepEqual(kinds((await inbox({ tables: { chef_change_notices: [failedRow("f1", at)], chef_sheet_links: links, order_staff_assignments: offParty } })).events), [])
+  assert.deepEqual(kinds((await inbox({ tables: { orders: [{ ...ORDER, order_status: "cancelled" }], chef_change_notices: [failedRow("f1", at)], chef_sheet_links: links } })).events), [])
+  // An hour into the party there is nothing left to send.
+  assert.deepEqual(kinds((await inbox({ tables: { chef_change_notices: [failedRow("f1", at)], chef_sheet_links: links } }, Date.parse("2030-11-15T02:31:00Z"))).events), [])
+})
+
+test("unsent · one line per chef per party: an earlier text he has not confirmed does not get a second line", async () => {
+  const at = NOW - 10 * MIN
+  const { events, counts } = await inbox({ tables: { chef_change_notices: [noticeRow("n1", NOW - 5 * H, { sms_sid: "SM1" }), failedRow("f1", at)], chef_sheet_links: afterFailure(at) } })
+  assert.deepEqual(kinds(events), ["chef_unsent"])
+  assert.deepEqual([counts.chefUnsent, counts.chefNotices], [1, 0])
+})
+
+test("unsent · the links table unreadable: the line stays, the inbox still answers", async () => {
+  const { events } = await inbox({ tables: { chef_change_notices: [failedRow("f1", NOW - 3 * MIN)] }, missing: ["chef_sheet_links"] })
+  assert.deepEqual(kinds(events), ["chef_unsent"])
 })

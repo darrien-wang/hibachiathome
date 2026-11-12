@@ -11,7 +11,7 @@ import { isLookupBlock } from "@/lib/phone-line-type"
 import { isStaffNumber, loadStaffContacts, staffOnNumber } from "@/lib/staff-phones"
 import { openChefText } from "@/lib/chef-inbound"
 import { OPEN_REQUEST_STATUSES, ORPHAN_REQUEST_LOOKBACK_MS, changeRequestBody, changeRequestOpen, changeRequestRings, isHeldRequest } from "@/lib/change-requests"
-import { loadNoticeOrders, loadOpenNoticeGroups, noticeState, noticeSummary, type NoticeOrder } from "@/lib/chef-notices"
+import { failedSendState, loadNoticeBoard, loadNoticeOrders, noticeState, noticeSummary, type NoticeOrder } from "@/lib/chef-notices"
 import { partyLabelZh } from "@/lib/chef-notify"
 
 // 收件箱. "What needs a person right now", computed fresh each call and kept
@@ -29,8 +29,12 @@ import { partyLabelZh } from "@/lib/chef-notify"
 //                 customers, rings from 15 minutes on (2026-11-11, D-1111-03)
 //   chef_notice   a chef who has not confirmed a change to his party two hours
 //                 after it was texted; rings inside three hours of the start
-//                 (these three new alarms never ring 11 PM - 7 AM Pacific:
-//                 lib/reply-audit.ts awakeHours)
+//   chef_unsent   a change text that never went out: listed at once, with the
+//                 chefs' items, because the link it carried replaced his old
+//                 one - he is holding no sheet he can open
+//                 (these new alarms never ring 11 PM - 7 AM Pacific, and
+//                 what came in overnight starts ringing at 7:
+//                 lib/reply-audit.ts shouldRingAwake)
 //   reddit        someone on a watched subreddit asked for hibachi / a private
 //                 chef in the last day and nobody has marked it handled
 // `key` is stable per event so the app can dedupe / snooze; `ring` says
@@ -56,7 +60,7 @@ const FORM_LOOKBACK_MS = 7 * 24 * 3600_000
 
 export type InboxEvent = {
   key: string
-  kind: "lead" | "call" | "sms" | "email" | "form" | "deposit" | "order_change" | "reddit" | "party_contact" | "audit" | "undelivered" | "call_summary" | "chef" | "chef_notice"
+  kind: "lead" | "call" | "sms" | "email" | "form" | "deposit" | "order_change" | "reddit" | "party_contact" | "audit" | "undelivered" | "call_summary" | "chef" | "chef_notice" | "chef_unsent"
   title: string
   body: string
   url: string
@@ -123,6 +127,8 @@ export type InboxCounts = {
   chefTexts: number
   /** Chefs who have not confirmed a change notice (two hours on, or inside three hours of the party). */
   chefNotices: number
+  /** Chefs whose change text never went out: they hold no working prep sheet until one is sent again. */
+  chefUnsent: number
   /** Orders with a change filed within 48 hours of the party that nobody has confirmed yet. */
   heldChanges: number
 }
@@ -289,7 +295,8 @@ export async function computeInbox(
   // bare 好的 / 收到 shows only while a notice of his is still unconfirmed, and
   // anything else is a chef waiting on us - until we text him back, or someone
   // marks the thread handled (chef:ack:<number> in lead_watch_notified).
-  const noticeGroups = await loadOpenNoticeGroups(supabase)
+  const noticeBoard = await loadNoticeBoard(supabase, now)
+  const noticeGroups = noticeBoard.waiting
   const chefHandled = new Map<string, number>()
   {
     const { data: marks } = await supabase.from("lead_watch_notified").select("key, notified_at").like("key", "chef:ack:%").limit(200)
@@ -336,22 +343,58 @@ export async function computeInbox(
   // party it rings here and lead-watch calls the owner's App. Gone the moment
   // the chef replies 1 or a person marks it confirmed. No table yet = no rows.
   let chefNotices = 0
-  if (noticeGroups.length) {
-    const noticeOrders = await loadNoticeOrders(supabase, noticeGroups.map((g) => g.orderId)).catch(() => new Map<string, NoticeOrder>())
+  let chefUnsent = 0
+  if (noticeGroups.length || noticeBoard.failed.length) {
+    const noticeOrders = await loadNoticeOrders(supabase, [...noticeGroups, ...noticeBoard.failed].map((g) => g.orderId)).catch(() => new Map<string, NoticeOrder>())
     const staffById = new Map(staffContacts.map((s) => [s.id, s]))
+    const leftOf = (hoursToParty: number | null) =>
+      hoursToParty === null
+        ? null
+        : hoursToParty > 0
+          ? `离开场 ${hoursToParty < 1 ? `${Math.max(1, Math.round(hoursToParty * 60))} 分钟` : `${Math.round(hoursToParty)} 小时`}`
+          : "已经开场"
+    // A change text that never went out (card A: no sms_sid, summary 【短信没发出去：…】). Every
+    // send issues a new link and revokes the one before, so this chef has no sheet he can open:
+    // it is listed the moment it fails, not two hours later, and rings like a person waiting on
+    // us - and, like an unconfirmed notice, the whole time once the party is three hours away.
+    // It goes when a sheet reaches him again (lib/chef-notices.ts sheetReachedSince), when a
+    // later text does go out, or when a person marks it (confirm_notice).
+    const unsentPairs = new Set<string>()
+    for (const g of noticeBoard.failed) {
+      const o = noticeOrders.get(g.orderId)
+      const st = failedSendState(g, o, now)
+      if (!o || !st.show) continue
+      chefUnsent += 1
+      unsentPairs.add(`${g.orderId}:${g.staffId}`)
+      const who = staffById.get(g.staffId)
+      events.push({
+        key: `chef-unsent:${g.orderId}:${g.staffId}`,
+        kind: "chef_unsent",
+        title: `师傅没收到改单短信 · ${who?.name ?? "师傅"}`,
+        body: ["他手里现在没有能打开的备料单", partyLabelZh(o), st.urgent ? leftOf(st.hoursToParty) : null, noticeSummary(g) || `${g.notices.length} 条改动`]
+          .filter(Boolean)
+          .join(" · ")
+          .slice(0, 300),
+        url: `/admin?tab=orders&order=${g.orderId}`,
+        at: new Date(g.at ? Date.parse(g.at) : now).toISOString(),
+        waitedMinutes: st.waitedMinutes,
+        ring: shouldRingAwake(st.waitedMinutes, now) || (st.urgent && awakeHours(now)),
+        urgent: true,
+        explain: true,
+        orderId: g.orderId,
+        phone: toE164(who?.phone ?? null),
+      })
+    }
     for (const g of noticeGroups) {
+      // One line per chef per party: with no sheet in his hands, "has not confirmed" adds nothing.
+      if (unsentPairs.has(`${g.orderId}:${g.staffId}`)) continue
       const o = noticeOrders.get(g.orderId)
       const st = noticeState(g, o, now)
       if (!o || !st.show) continue
       chefNotices += 1
       const who = staffById.get(g.staffId)
       const waited = st.waitedMinutes
-      const left =
-        st.hoursToParty === null
-          ? null
-          : st.hoursToParty > 0
-            ? `离开场 ${st.hoursToParty < 1 ? `${Math.max(1, Math.round(st.hoursToParty * 60))} 分钟` : `${Math.round(st.hoursToParty)} 小时`}`
-            : "已经开场"
+      const left = leftOf(st.hoursToParty)
       events.push({
         key: `chef-notice:${g.orderId}:${g.staffId}`,
         kind: "chef_notice",
@@ -900,7 +943,7 @@ export async function computeInbox(
 
   // Chefs first (owner 2026-11-11: a chef's text must not queue behind the
   // customers), then whatever rings, then newest.
-  const chefFirst = (e: InboxEvent) => (e.kind === "chef" || e.kind === "chef_notice" ? 0 : 1)
+  const chefFirst = (e: InboxEvent) => (e.kind === "chef" || e.kind === "chef_notice" || e.kind === "chef_unsent" ? 0 : 1)
   events.sort((a, b) => chefFirst(a) - chefFirst(b) || (a.ring === b.ring ? b.at.localeCompare(a.at) : a.ring ? -1 : 1))
   return {
     counts: {
@@ -917,6 +960,7 @@ export async function computeInbox(
       callSummaries,
       chefTexts,
       chefNotices,
+      chefUnsent,
       heldChanges,
     },
     events,

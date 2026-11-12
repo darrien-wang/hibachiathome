@@ -345,12 +345,21 @@ def brake_line(stats: dict) -> str:
     return f"我方已连发 {run} 条无回复 → 下一条是主动跟进（daily 2 / spacing 3h / 总量封顶 3；24h 内人工已发 {stats.get('ourLast24h', 0)}）"
 
 
-SHEET_STATE = {"opened": "备料单已打开", "sent": "备料单已发、还没打开", "none": "还没发备料单"}
+# What he holds for the party (lib/chef-notify.ts sheetHeld). Every send is a new link and the one before
+# it dies; stale = the order changed materially after his version, that link is void, a new one is pending.
+SHEET_STATE = {
+    "opened": "备料单已打开",
+    "sent": "备料单已发、还没打开",
+    "stale": "订单改过，他手里那版备料单已作废，新的还没发到",
+    "undelivered": "备料单短信没发到，他手里没有能打开的",
+    "none": "还没发备料单",
+}
 
 
 def render_staff_card(c: dict) -> None:
-    """A staff number's card (2026-11-11, D-1111-03): a chef's text nobody answered ([chef]), or a change
-    to his party he has not confirmed ([chef_notice]). No lead, no price, no brakes: who he is, the
+    """A staff number's card (2026-11-11, D-1111-03): a chef's text nobody answered ([chef]), a change to
+    his party he has not confirmed ([chef_notice]), or a change text that never reached him, which leaves
+    him with no prep sheet he can open ([chef_unsent]). No lead, no price, no brakes: who he is, the
     parties he is on, what is open, the thread. These come before the customers' cards."""
     staff = c.get("staff") or {}
     phone = c.get("phone") or "-"
@@ -379,6 +388,12 @@ def render_staff_card(c: dict) -> None:
     unconfirmed = "chef_notice" in kinds or any("没回 1" in (al.get("body") or "") for al in alerts)
     print(f"   不用回（电话、微信说过了）: desk ack {phone}"
           + (f"\n   他确认了改动、只是没回 1: desk chef-confirm {phone}" if unconfirmed else ""))
+    if "chef_unsent" in kinds:
+        # The change text bounced after the new link was issued and his old one revoked: he holds nothing.
+        # Sending the sheet again is the owner's click (workbench order drawer); this line goes when it lands.
+        print("   改单短信没发到他手上：旧备料单链接已作废，新的他没收到。先看他的手机号对不对，"
+              "再请老板在工作台打开这单点「发备料单给他」重发（发到了这条自己消）。"
+              f"\n   已经从别的路给到他了（微信发了链接、当面说了）: desk chef-confirm {phone}")
 
 
 def render_card(c: dict) -> None:
@@ -489,9 +504,12 @@ def render_card(c: dict) -> None:
 def cmd_next(a):
     data = site_get("/api/admin/desk")
     counts = data.get("counts") or {}
-    # 师傅的两项排最前（2026-11-11）：师傅来短信没回、师傅没确认改动；卡片也是它们先出。
+    # 师傅的几项排最前（2026-11-11）：师傅来短信没回、师傅没确认改动、改单短信没发到（他手里没有
+    # 能打开的备料单，有才显示）；卡片也是它们先出。
+    unsent = int(counts.get("chefUnsent") or 0)
     print(f"收件箱 {pt(data.get('serverTime'))} PT · 师傅 {counts.get('chefTexts', 0)} · 师傅没确认改动 {counts.get('chefNotices', 0)}"
-          f" · 未回 {counts.get('unreplied', 0)} · 邮件 {counts.get('emailNew', 0)} · 网站回复 {counts.get('formNew', 0)} · 漏网 {counts.get('silenced', 0)} · 没送达 {counts.get('undelivered', 0)} · 联系不上 {counts.get('unreachedParties', 0)} · 新线索 {counts.get('newLeads', 0)}"
+          + (f" · 师傅没收到改单短信 {unsent} ⚠️" if unsent else "")
+          + f" · 未回 {counts.get('unreplied', 0)} · 邮件 {counts.get('emailNew', 0)} · 网站回复 {counts.get('formNew', 0)} · 漏网 {counts.get('silenced', 0)} · 没送达 {counts.get('undelivered', 0)} · 联系不上 {counts.get('unreachedParties', 0)} · 新线索 {counts.get('newLeads', 0)}"
           f" · 订单变动 {counts.get('changedOrders', 0)}（48h 内等确认 {counts.get('heldChanges', 0)}） · planner {counts.get('plannerLive', 0)} · reddit {counts.get('redditNew', 0)}")
     cards = data.get("cards") or []
     if not cards:
@@ -1427,7 +1445,9 @@ def cmd_ack(a):
 def cmd_chef_confirm(a):
     """The chef confirmed a change to his party without replying 1 (a call, WeChat, a "收到"): mark his open
     change notices confirmed, so the inbox line goes and the owner is not rung three hours before the party.
-    --order narrows it to one party. His own "1" does this by itself (app/api/twilio/sms)."""
+    --order narrows it to one party. His own "1" does this by itself (app/api/twilio/sms) - except for a
+    change text that never went out ([chef_unsent]): he cannot confirm what he did not get, so that one
+    goes only when a sheet reaches him again or when a person vouches for it here."""
     phone = e164(a.phone)
     payload = {"action": "confirm_notice", "phone": phone}
     if a.order:

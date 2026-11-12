@@ -827,7 +827,8 @@ export async function POST(request: NextRequest) {
           staffIds = ((rows ?? []) as Array<{ id: string; phone: string | null }>).filter((r) => phoneDigits10(r.phone) === digits).map((r) => r.id)
         }
         if (!staffIds.length) return NextResponse.json({ error: "phone or staff_member_id required（要是员工名单里的号码）" }, { status: 400 })
-        const out = await ackNotices(supabase, { staffIds, orderId: isUuid(body.order_id) ? body.order_id : null, via: `manual:${actor.alias}` })
+        // 人工确认连「短信没发出去」的那条一起标掉：他是从别的路拿到备料单的（微信发了链接、当面给了）。
+        const out = await ackNotices(supabase, { staffIds, orderId: isUuid(body.order_id) ? body.order_id : null, via: `manual:${actor.alias}`, includeFailed: true })
         return NextResponse.json({ ok: true, acked: out.acked, orderIds: out.orderIds })
       }
       case "issue_assets": {

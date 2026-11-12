@@ -16,6 +16,7 @@ import { PARTY_SIZE_CUSTOM_FROM, calcSimpleEstimate, calcTravelFee, checkWeekday
 import { cityOf } from "@/lib/customers"
 import { instantToWallIso } from "@/lib/first-response"
 import { loadStaffContacts, staffOnNumber, type StaffContact } from "@/lib/staff-phones"
+import { sheetHeld, type SheetLink } from "@/lib/chef-notify"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -45,6 +46,8 @@ const LEAD_COLUMNS =
 const ORDER_COLUMNS =
   "id, order_no, customer_name, customer_phone, customer_email, event_start, event_address, guest_adult_count, guest_child_count, order_status, deposit_status, details_status, quoted_total_cents, balance_due_cents, source_metadata, created_at"
 const TAG = /\[(callback|occasion|why|data|SOP:[^\]]+)\]/i
+// Inbox items that sit on a chef's number, not a customer's (lib/inbox.ts).
+const CHEF_KINDS = new Set<string>(["chef", "chef_notice", "chef_unsent"])
 const AUTO_QUOTE = /price is \$([\d,.]+) for (.+?) \((.+?)\)\./
 const ORIGIN_ZIP = homeBaseOrigin()
 
@@ -108,7 +111,10 @@ async function ordersFor(supabase: SupabaseClient, phone: string | null, email: 
   return (data ?? []) as OrderRow[]
 }
 
-type StaffParty = { orderId: string; orderNo: string | null; eventStart: string | null; city: string | null; customer: string | null; guests: number; role: string; sheet: "none" | "sent" | "opened" }
+// sheet = what he holds for the party right now (lib/chef-notify.ts sheetHeld): opened / sent, stale
+// (the order changed materially after his version, that link is void and a new one is pending),
+// undelivered (a link was made but its text never reached him), none.
+type StaffParty = { orderId: string; orderNo: string | null; eventStart: string | null; city: string | null; customer: string | null; guests: number; role: string; sheet: ReturnType<typeof sheetHeld> }
 
 /**
  * A staff member's parties from yesterday on, soonest first: what a text from
@@ -131,17 +137,16 @@ async function staffParties(supabase: SupabaseClient, staffIds: string[], now: n
     .sort((a, b) => String(a.o.event_start ?? "").localeCompare(String(b.o.event_start ?? "")))
     .slice(0, 8)
   if (!list.length) return []
+  // Live links only: every send replaces the one before it (the invoice app revokes it), so the
+  // row that is not revoked is the one in his hands - if its text got through and it is not stale.
   const { data: links } = await supabase
     .from("chef_sheet_links")
-    .select("order_id, staff_member_id, first_opened_at")
+    .select("order_id, staff_member_id, sent_via, first_opened_at, revoked_at, stale")
     .in("order_id", list.map((x) => x.r.order_id))
     .in("staff_member_id", staffIds)
     .is("revoked_at", null)
-  const sheetOf = new Map<string, "sent" | "opened">()
-  for (const l of (links ?? []) as Array<{ order_id: string; staff_member_id: string; first_opened_at: string | null }>) {
-    const key = `${l.order_id}:${l.staff_member_id}`
-    if (l.first_opened_at || !sheetOf.has(key)) sheetOf.set(key, l.first_opened_at ? "opened" : "sent")
-  }
+  const linksOf = new Map<string, SheetLink[]>()
+  for (const l of (links ?? []) as Array<SheetLink & { order_id: string }>) linksOf.set(l.order_id, [...(linksOf.get(l.order_id) ?? []), l])
   return list.map(({ r, o }) => ({
     orderId: r.order_id,
     orderNo: (o.order_no as string | null) ?? null,
@@ -150,7 +155,7 @@ async function staffParties(supabase: SupabaseClient, staffIds: string[], now: n
     customer: ((o.customer_name as string | null) ?? "").trim().split(/\s+/)[0] || null,
     guests: Number(o.guest_adult_count ?? 0) + Number(o.guest_child_count ?? 0),
     role: r.assignment_role === "assistant_chef" ? "helper" : "chef",
-    sheet: sheetOf.get(`${r.order_id}:${r.staff_member_id}`) ?? "none",
+    sheet: sheetHeld(linksOf.get(r.order_id) ?? [], r.staff_member_id),
   }))
 }
 
@@ -450,14 +455,14 @@ export async function GET(request: NextRequest) {
   const cards = []
   for (const g of groups.values()) {
     let lead: LeadRow | null = null
-    // [chef] and unconfirmed change notices ride on the chef's number: no lead behind them.
-    const staffOn = g.events.some((e) => e.kind === "chef" || e.kind === "chef_notice") ? staffOnNumber(staffContacts, g.phone) : []
+    // [chef], unconfirmed change notices and change texts that never went out ride on the chef's number: no lead behind them.
+    const staffOn = g.events.some((e) => CHEF_KINDS.has(e.kind)) ? staffOnNumber(staffContacts, g.phone) : []
     if (g.leadId) lead = await leadById(supabase, g.leadId)
     if (!lead && g.phone && !staffOn.length) lead = await leadByPhone(supabase, g.phone)
     cards.push(await buildCard(supabase, quiet, { lead, phone: g.phone, orderId: g.orderId, events: g.events, staff: staffOn }, now))
   }
   // Chefs first, then the urgent, then whoever has waited longest.
-  const chefCard = (c: { kinds: string[] }) => (c.kinds.includes("chef") || c.kinds.includes("chef_notice") ? 1 : 0)
+  const chefCard = (c: { kinds: string[] }) => (c.kinds.some((k) => CHEF_KINDS.has(k)) ? 1 : 0)
   cards.sort((a, b) => chefCard(b) - chefCard(a) || (b.urgent === a.urgent ? (b.waitedMinutes ?? 0) - (a.waitedMinutes ?? 0) : b.urgent ? 1 : -1))
   return NextResponse.json({ ok: true, serverTime: new Date(now).toISOString(), counts, redditNew: counts.redditNew, cards })
 }

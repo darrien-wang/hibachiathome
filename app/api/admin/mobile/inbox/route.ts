@@ -28,8 +28,9 @@ export async function GET(request: NextRequest) {
   const LOUD_AS_SMS = new Set(["email", "form", "audit", "undelivered", "chef"])
   // Loud only while they ring: a change the customer filed inside 48 hours that
   // nobody has confirmed, a chef who has not confirmed a change three hours
-  // before his party. Otherwise they stay quiet lines, as order changes were.
-  const LOUD_WHILE_RINGING = new Set(["order_change", "chef_notice"])
+  // before his party, a chef whose change text never went out (he holds no
+  // sheet he can open). Otherwise they stay quiet lines, as order changes were.
+  const LOUD_WHILE_RINGING = new Set(["order_change", "chef_notice", "chef_unsent"])
   const slim = events.map(({ leadId: _l, phone: _p, orderId: _o, justArrived: _j, ...rest }) => ({
     ...rest,
     kind: LOUD_AS_SMS.has(rest.kind) || (rest.ring && LOUD_WHILE_RINGING.has(rest.kind)) ? "sms" : rest.kind,
