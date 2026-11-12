@@ -80,6 +80,7 @@ python scripts/desk/desk.py order set  <单号> --add-extra tables_chairs=27 | e
 python scripts/desk/desk.py order set  <单号> --free-item edamame=2                    # 送的前菜
 python scripts/desk/desk.py order set  <单号> --free-appetizer spring_rolls --dry      # 客人挑的免费前菜（押金页默认 gyoza）
 python scripts/desk/desk.py order set  <单号> --prep-note-file F [--dry]       # 备货备注（备货清单/备货单上这一单那行，300 字内，空文件=清空）：要师傅带的、要注意的写这里或订单备注（D-1112-01，短信不算数）
+python scripts/desk/desk.py order check 2026-11-12 [--json]                 # 派对当天 10:00 核对（D-1112-01，只读）：每场印备货清单那行、订单备注、过敏、师傅手里的备料单，再列「别处有、订单和备货清单上没有」的要求。!! = 先补：答应的桌椅/桌布/餐具发票上是 0；过敏或「海鲜最后做」只在内部备注/线索备注里。! = 提醒：几点到、门禁、场合、只看不吃、双份、答应带的、场地、忌口。补法照每条的「改法」（订单备注 --notes-file，备货备注 --prep-note-file，桌椅餐具写成订单行）。desk order show 的 ⚠ 缺项也会列那两项 !!
 python scripts/desk/desk.py order set  <单号> --deal-rate tables_chairs=5 | --deal-free tables_chairs
 python scripts/desk/desk.py order set  <单号> --promo official_weekday=185 --remove-promo X --add-promo appreciation_veteran=50 --promo-label "..."
 python scripts/desk/desk.py order set  <单号> --chefs 2 --grills 2 --stations "..."   # 派工计划（老板定的）

@@ -40,6 +40,7 @@ import tempfile
 
 import _api
 import desk
+import party_check
 
 
 def _no_network(*args, **kwargs):
@@ -164,14 +165,16 @@ class Run:
     `created_at` is the order row's (None: the search has no time, as an order booked after the ladder closed reads)."""
 
     def __init__(self, prefill: dict, *args: str, op: str = "set", reply: dict | None = None, lint: dict | None = None,
-                 created_at: str | None = None):
+                 created_at: str | None = None, db=None):
         self.prefill, self.saved, self.priced = prefill, None, []
         self.reply, self.lint, self.texted = reply or {}, lint, None
         self.created_at = created_at
+        self.db = db
         desk._search = self.search
         desk.invoice_post = self.invoice_post
         desk.site_get = self.site_get
         desk.site_post = self.site_post
+        desk._supabase = self.supabase
         buf = io.StringIO()
         self.exit = None
         with contextlib.redirect_stdout(buf):
@@ -184,6 +187,12 @@ class Run:
     def search(self, text):
         row = {"order_no": ORDER_NO, "id": "00000000-0000-4000-8000-000000000001", **({"created_at": self.created_at} if self.created_at else {})}
         return [{"name": "Self Check", "email": "selfcheck@example.com", "phone": "+15555550100", "orders": [row]}]
+
+    def supabase(self, method, path, data, content_type):
+        # order show's party check reads the database directly; without a test's db there is none (no gaps of its own).
+        if method != "GET" or self.db is None:
+            raise RuntimeError(f"selfcheck: no database here ({method} {path})")
+        return copy.deepcopy(self.db(path))
 
     def invoice_post(self, path, payload, timeout=120):
         if path == "/api/self-service/orders/lookup":
@@ -708,6 +717,300 @@ class DeskRun:
 
     def has(self, *parts: str) -> bool:
         return all(p in self.out for p in parts)
+
+
+# ---------------------------------------------------------------- 派对当天核对 (D-1112-01) --
+# The real parties of 11-11/11-12 as they stood before they were fixed by hand (phones, addresses and long
+# notes trimmed to what matters), and the same parties as they stand now: every gap is found in the first,
+# none in the second. Hosts who bring their own setup are never a setup gap.
+
+def fake_db(tables: dict):
+    """desk's direct database reads against rows in memory: in.() and eq. filters, the rest of the query ignored."""
+    def get(path: str):
+        table, _, query = path.partition("?")
+        rows = list(tables.get(table.rsplit("/", 1)[-1], []))
+        for part in query.split("&"):
+            col, _, cond = part.partition("=")
+            if col in ("select", "order", "limit") or not cond:
+                continue
+            if cond.startswith("in.("):
+                vals = set(cond[4:-1].split(","))
+                rows = [r for r in rows if str(r.get(col)) in vals]
+            elif cond.startswith("eq."):
+                rows = [r for r in rows if str(r.get(col)) == cond[3:]]
+        return rows
+    return get
+
+
+def pc_guest(name: str, *proteins: str, allergy: str = "", tc: bool = False, ut: bool = False, note: str = "", child: bool = False) -> dict:
+    return {"name": name, "proteins": list(proteins), "foodAllergy": allergy, "tablesChairs": tc, "utensils": ut, "note": note, "isChild": child}
+
+
+def pc_party(order_no: str, start: str, *, name: str, notes: str = "", internal=None, prep_note=None, setup=None, deal=None, guests=None,
+             extras=None, mode: str = "detailed", customer_notes=None, lead_notes=(), requests=(), sms=(), sheet_notes=(), chef_sms=(),
+             team=(), links=(), notices=(), address: str = "1 Test Way, Palm Springs, CA 92262") -> dict:
+    inv = {"mode": mode, "contactInfo": {"specialNotes": notes}, "guests": list(guests or []), "partyExtras": list(extras or [])}
+    if deal is not None:
+        inv["customDeal"] = deal
+    if customer_notes is not None:
+        inv["customerNotes"] = customer_notes
+    order = {"id": f"id-{order_no}", "order_no": order_no, "customer_name": name, "customer_phone": "+15555550188", "event_start": start,
+             "event_address": address, "order_status": "active", "internal_notes": internal, "prep_note": prep_note, "setup_selection": setup,
+             "source_metadata": {}, "invoice_data": inv}
+    return {"order": order, "prep": None, "team": list(team), "links": list(links), "notices": list(notices),
+            "lead_notes": [{"at": a, "note": n} for a, n in lead_notes], "requests": [{"at": a, "message": m} for a, m in requests],
+            "customer_sms": [{"at": a, "direction": d, "body": b} for a, d, b in sms],
+            "sheet_notes": [{"at": a, "note": n, "chef": c} for a, n, c in sheet_notes],
+            "chef_sms": [{"at": a, "body": b, "chef": c} for a, b, c in chef_sms]}
+
+
+def pc_kinds(party: dict) -> list[tuple[str, str]]:
+    return [(g["severity"], g["kind"]) for g in party_check.gaps_of(party)]
+
+
+GEORGE_INTERNAL = ("[call] 10-04 10:47 老板接 George 来电 25 分钟 + 当场短信备忘：Fri 11/13 8PM，40 大人，两种蛋白，春卷 4 盘免费（一人一个），"
+                   "多带炒饭、带 sriracha，牛排 35 / 鸡 30 / 虾 15。两个师傅两个烤台，7:00–7:30 到场；场地要平地（草地也行）。"
+                   "客人有对虾过敏的，海鲜最后做。牛排是 top sirloin，虾每份 5 只大虾。桌椅餐具客人自己准备。尾款活动后付，客人选现金。")
+GEORGE_NOTES_BEFORE = ("Tables, chairs, plates and silverware provided by the host. Two chefs, two grills. Spring rolls for everyone (4 trays), "
+                       "extra fried rice and sriracha on us. Steak is top sirloin; 5 large shrimp per serving.")
+GEORGE_NOTES_NOW = ("Tables, chairs, plates and silverware provided by the host. Two chefs, two grills. Spring rolls for everyone (4 trays), "
+                    "extra fried rice and sriracha on us. Chefs arrive 7:00-7:30 PM to set up; the grills go on flat ground (grass is fine). "
+                    "One guest is allergic to shrimp: cook all seafood last. Steak is top sirloin; 5 large shrimp per serving.")
+GEORGE_PREP_NOW = "两位师傅、两台灶，7:00–7:30 到场，烤炉放平地（草地可以）。有客人对虾过敏：海鲜最后做。多带炒饭，带 sriracha。客人自备桌椅餐具。付现金。"
+
+
+def george(notes: str, prep_note=None) -> dict:  # RH-20261004-3574, 11/13 Corona
+    return pc_party("RH-20261004-3574", "2026-11-13T20:00:00+00:00", name="George Test", notes=notes, internal=GEORGE_INTERNAL, prep_note=prep_note,
+                    mode="quick", extras=[{"id": "spring_rolls", "qty": 4}], deal={"flatOff": 60, "freeExtraIds": ["spring_rolls"]},
+                    lead_notes=[("2026-10-04T17:53:00Z", "[承诺] extra fried rice")], address="1 Test Way, Corona, CA 92882")
+
+
+ANDREA_INTERNAL = ("[10-09 owner] Tables/chairs/linens + place settings for 8 are FREE (owner option A, 09-29: she covers the $599 minimum; total "
+                   "stays $639.40). Theme Gold Rim black-on-black was OUR pick, not hers - owner 10-09: bring the black-gold set as a surprise.\n"
+                   "10-17 老板：已经答应过的不受 D-1017-01 影响。09-29 答应桌椅+餐具全送（卡在 $599 最低消费里）。")
+ANDREA_SETUP = {"pkg": "full", "cloth": "black", "guests": 8, "source": "rentals_page", "themeId": "goldrim", "chosenAt": "2026-09-29T22:07:18.989Z",
+                "variantId": "black-on-black"}
+ANDREA_NOTES_NOW = ("Tables, chairs, black linens and place settings for 8 are included at no charge. Ready to start at 6:30: the chef arrives "
+                    "about 5:30 PM to set up. To get in the gate to the driveway, call Andrea at 555-555-0123.")
+ANDREA_PREP_NOW = "带 8 位全套：桌子、8 把椅子、黑桌布、8 套金边黑盘餐具（送的）。5:30 到场摆台，6:30 准时开始。到门口打 555-555-0123 请 Andrea 开大门进车道。"
+
+
+def andrea(fixed: bool) -> dict:  # RH-20260929-2057, 11/12 Palm Springs
+    names = ["Tim", "Andrea", "Chris", "Katie", "Tracy", "Maureen", "Shaun", "Raj"]
+    return pc_party("RH-20260929-2057", "2026-11-12T18:30:00+00:00", name="Andrea Test", notes=ANDREA_NOTES_NOW if fixed else "",
+                    internal=ANDREA_INTERNAL, prep_note=ANDREA_PREP_NOW if fixed else None, setup=ANDREA_SETUP,
+                    deal={"freeExtraIds": ["tables_chairs", "utensils"]}, extras=[{"id": "gyoza", "qty": 2}],
+                    guests=[pc_guest(n, "steak", "shrimp", tc=fixed, ut=fixed) for n in names],
+                    requests=[("2026-10-20T18:28:00Z", "Call Andrea to get in the gate to the driveway at 555-555-0123\n\nSubmitted from the party planner: 8 adults.")],
+                    lead_notes=[("2026-09-29T20:23:00Z", "[data] 09-29 13:15 she came back on her own and asked to confirm: Thu 2026-11-12, 8 people, 6:30 - and "
+                                                         "specifically that the team arrive early enough to be READY at 6:30, which is already how we work.")],
+                    sheet_notes=[("2026-11-11T18:08:00Z", "老板今早把这场改派给你（原来是 Gary）。Palm Springs 8 位，6:30 开始，订了桌椅，5:30 左右到摆台。"
+                                                          "8 位的桌椅、黑桌布、餐具都是送的，不收钱。老板交代：带黑金那套餐具（Gold Rim），给客人一个惊喜。客人付现金。", "JASON")])
+
+
+def corrina(fixed: bool) -> dict:  # RH-20260930-3990, 11/12 Los Angeles
+    guests = [pc_guest("Karen", "steak", "shrimp", allergy="No mushrooms")] + [pc_guest(f"Guest {i}", "steak", "salmon") for i in range(1, 18)]
+    return pc_party("RH-20260930-3990", "2026-11-12T19:00:00+00:00", name="Corrina Test", guests=guests, extras=[{"id": "gyoza", "qty": 1.8}],
+                    notes=("Wedding after-party dinner. Dinner is for 18; two more friends will stop by to watch and won't eat (they'll sit a little "
+                           "away from the table).") if fixed else "",
+                    prep_note="婚礼后的晚宴。做 18 位；另有 2 位朋友只看不吃，会坐远一点。Karen 不要蘑菇。送饺子 18 个。付现金。" if fixed else None,
+                    requests=[("2026-11-11T03:37:00Z", "⏰ WITHIN 48H OF EVENT — customer requests this change, needs staff confirmation before it takes effect.\n\n"
+                                                       "It's their wedding after party dinner\n\nSubmitted from the party planner: 18 adults.")],
+                    lead_notes=[("2026-11-12T03:30:00Z", "[data] 11-11 19:28 问'有两位因为上班不能全程、不吃饭，只看行不行' → 19:3x 回：可以看；问这两位是不是在 18 人名单里。"),
+                                ("2026-11-12T03:33:00Z", "[data] 11-11 19:30–19:31 她说那两位是 18 位之外的，会让他们坐远一点 → 回可以，订单不动（18 位）。"
+                                                         "19:3x 已短信告诉 Blu：吃饭 18 位，另有 2 位只看不吃。")],
+                    sheet_notes=[("2026-11-11T03:33:00Z", "菜单今晚刚填齐：18 位都是大人。Karen 不吃蘑菇，她那份别放蘑菇。送的前菜是饺子 18 个。客人付现金。", "Blu")],
+                    address="1 Test Way, Los Angeles, CA 90068")
+
+
+JEFFREY_NOTES = ("NO BUTTER: cook everything with oil (the host asked, no butter for anyone). 11 adults + 1 toddler (2, free, rice and veggies). "
+                 "10 chairs: the toddler uses a high chair and one adult a wheelchair (they bring both), so leave room for them at the tables. "
+                 "Alon: double salmon (his only pick). Chef arrives at 4 PM to set up; the party starts at 5. | 1 kid aged 3-4 (free)")
+
+
+def jeffrey(fixed: bool) -> dict:  # RH-20261107-5825, 11/14 Valencia
+    guests = [pc_guest(n, "steak", "chicken", tc=True, ut=True) for n in ("Adi", "Tal", "Ari", "Karen", "Lisa", "Arielle", "Eric", "Jeff", "Laura")]
+    guests += [pc_guest("Dov", "steak", "salmon", tc=True, ut=True), pc_guest("Alon", *(["salmon", "salmon"] if fixed else ["salmon"]), tc=True, ut=True),
+               pc_guest("Dove", "steak", ut=True, note="3-4 yrs (free)", child=True)]
+    return pc_party("RH-20261107-5825", "2026-11-14T17:00:00+00:00", name="Jeffrey Test", guests=guests, extras=[{"id": "gyoza", "qty": 1.2}],
+                    notes=("Dov's birthday. " if fixed else "") + JEFFREY_NOTES,
+                    deal={"note": "Plates and utensils on us (owner, call 11-07); tables and chairs at $10 a guest", "freeExtraIds": ["utensils"]},
+                    requests=[("2026-11-09T12:40:00Z", "Birthday for Dov!\n\nSubmitted from the party planner: 11 adults, 1 kid.")],
+                    lead_notes=[("2026-11-07T21:49:00Z", "【来电小结】客户问派对，15成人1童，已说明套餐及蛋白选择，桌椅餐具另收费；客户回电或在线办理"),
+                                ("2026-11-07T22:46:00Z", "[promised] 11-07 14:37 第二通电话：桌椅桌布 $10/人照收、餐具免；**KOSHER MEAT：有犹太洁食客人，按市价买 kosher 肉，"
+                                                         "kosher 那份先做**；**用油不用黄油**（客人要求换油，老板同意）。"),
+                                ("2026-11-07T22:47:00Z", "[data] 11-07 14:47 Jeff 更新：只有 11 人；**不需要 kosher 肉了**；**不能用黄油** → 回：11 位、不要 kosher、全部用油。"),
+                                ("2026-11-09T19:16:00Z", "[data] 11-09 11:15 'Alon would like double salmon, the app wouldn't let me select double portion' → "
+                                                         "订单备注加 'Alon: double salmon (his only pick)' + 回一句确认。")],
+                    address="1 Test Way, Valencia, CA 91354")
+
+
+def verlener(fixed: bool) -> dict:  # RH-20261111-9315, 11/12 Corona
+    guests = [pc_guest(n, "steak", "shrimp") for n in ("Demarii", "Meelah", "Vee", "Michael", "Zoey", "Onie")]
+    return pc_party("RH-20261111-9315", "2026-11-12T19:00:00+00:00", name="Verlener Test", guests=guests, notes="Birthday party." if fixed else "",
+                    extras=[{"id": "spring_rolls", "qty": 1.6}, {"id": "diy_rice_shrimp", "qty": 2}],
+                    lead_notes=[("2026-11-09T18:27:00Z", "[occasion] birthday · [SOP:deposit_ask] 11-09 10:2x 模板 I（生日快乐 + 牛肉/自制酱）+ 自动报价链接")],
+                    sheet_notes=[("2026-11-11T18:07:00Z", "老板今早改派给你。生日派对，16 位：12 大 2 小 + 2 个 3-4 岁免费（按规矩不带蛋白、多给炒饭蔬菜）。"
+                                                          "炒饭加料虾 2 份、鸡 2 份是客人另加的。客人付现金。", "Gary")],
+                    address="1 Test Way, Corona, CA 92879")
+
+
+def kande(fixed: bool) -> dict:  # RH-20260921-9601, 12/05 San Diego
+    internal = ("Deal (owner, 9/20): $50/head for 60+ guests, menu chicken + beef; guests who skip meat get salmon + tofu; tables, chairs and utensils free; "
+                "3 chefs; wedding after-party (Kande + fiance Elvis). Start time and exact address TBD (18:00 is a placeholder).")
+    notes = ("Wedding reception for Kande and Elvis at the Catalina Room. Chefs arrive around 5:00 PM, cook right outside on 3 grills; dinner around 6:00. "
+             "Tables: the venue's round tables, set up by the couple. We bring white plates and gold flatware for 64, plus 2-3 long folding tables "
+             "with black tablecloths as backup. No cups.") if fixed else "Wedding reception for Kande and Elvis at the Catalina Room. Chefs arrive around 5:00 PM."
+    prep = "3 位师傅 3 台灶，5 点到，在门外平地做。带 64 套白盘金餐具，另带 2–3 张长折叠桌和黑桌布备用。用场地的圆桌，新人自己布置。" if fixed else None
+    return pc_party("RH-20260921-9601", "2026-12-05T18:00:00+00:00", name="Kande Test", mode="quick", internal=internal, notes=notes, prep_note=prep,
+                    deal={"note": "agreed 9/20", "adultRate": 50, "onlyAgreed": True, **({"freeExtraIds": ["utensils"]} if fixed else {})},
+                    extras=[{"id": "utensils", "qty": 64}] if fixed else [], address="1 Test Way, San Diego, CA 92109")
+
+
+def party_check_checks() -> None:
+    g = party_check.gaps_of(george(GEORGE_NOTES_BEFORE))
+    check("party check · George (RH-20261004-3574) before: the shrimp allergy / seafood-last only in internal notes blocks; arrival 7:00-7:30 and the flat ground warn",
+          [(x["severity"], x["kind"]) for x in g] == [("block", "allergy"), ("warn", "arrival"), ("warn", "site")]
+          and "海鲜最后做" in g[0]["evidence"][0]["text"] and g[0]["evidence"][0]["label"] == "内部备注"
+          and g[2]["title"] == "场地（平地）：订单备注里没有")
+    check("  host brings tables, chairs and tableware: no setup gap; extra rice and sriracha are in the notes: no bring gap",
+          not any(x["kind"] in ("setup",) or x["kind"].startswith("bring") for x in g))
+    check("  George now (notes and 备货备注 fixed 11-12): nothing", pc_kinds(george(GEORGE_NOTES_NOW, GEORGE_PREP_NOW)) == [])
+
+    g = party_check.gaps_of(andrea(False))
+    check("party check · Andrea (RH-20260929-2057) before: free tables, linens, place settings in notes + setup_selection + the deal, 0 on the invoice: blocking",
+          g and g[0]["severity"] == "block" and g[0]["kind"] == "setup" and g[0]["title"] == "答应的桌椅、桌布、餐具，发票上一件都没有：备货清单不装车"
+          and {e["label"] for e in g[0]["evidence"]} >= {"租赁页选了 09-29", "优惠约定", "内部备注"})
+    check("  the gate call only on the party page, and the 5:30 / ready-by-6:30 arrival, warn",
+          ("warn", "gate") in [(x["severity"], x["kind"]) for x in g] and ("warn", "arrival") in [(x["severity"], x["kind"]) for x in g]
+          and next(x for x in g if x["kind"] == "gate")["evidence"][0]["label"] == "派对页留言 10-20")
+    check("  Andrea now (rows ticked, notes and 备货备注 written): nothing", pc_kinds(andrea(True)) == [])
+
+    check("party check · Corrina (RH-20260930-3990) before: the wedding after-party (party page) and 2 spectators (texts, notes) warn; Karen's mushrooms are on her row",
+          pc_kinds(corrina(False)) == [("warn", "occasion:wedding"), ("warn", "spectators")])
+    check("  Corrina now: nothing", pc_kinds(corrina(True)) == [])
+
+    g = party_check.gaps_of(jeffrey(False))
+    check("party check · Jeffrey (RH-20261107-5825) before: Dov's birthday (party page) warns, Alon's double salmon on a single-salmon row warns",
+          [(x["severity"], x["kind"]) for x in g] == [("warn", "occasion:birthday"), ("warn", "double")] and g[1]["title"].startswith("Alon 要双份 salmon"))
+    check("  the kosher 'cook first' was taken back (不需要 kosher 肉了), no butter is in the notes, tables at $10 a guest is no promise: none of them is a gap",
+          not any(x["kind"] in ("allergy", "setup") or x["kind"].startswith("diet") for x in g))
+    check("  Jeffrey now (Alon two salmon, birthday in the notes): nothing - Dov's birthday next to Alon's double is not Dov's double",
+          pc_kinds(jeffrey(True)) == [])
+
+    check("party check · Verlener (RH-20261111-9315) before: [occasion] birthday only in the lead's notes warns",
+          pc_kinds(verlener(False)) == [("warn", "occasion:birthday")])
+    check("  Verlener now: nothing", pc_kinds(verlener(True)) == [])
+
+    marissa = pc_party("RH-20260910-5026", "2026-12-12T18:00:00+00:00", name="Marissa Test", mode="quick",
+                       notes="60th birthday. Guests want to START EATING at 6:00 PM - chef arrival ~5:15 PM for setup. No tables/chairs/tableware (customer providing).",
+                       internal="2026-09-09: 30 adults x $59.90. Customer declined tables/chairs/tableware. Wants to START EATING at 6:00 PM - schedule chef arrival ~5:15 PM.",
+                       extras=[{"id": "gyoza", "qty": 1}])
+    saundra = pc_party("RH-20261017-9824", "2026-12-31T18:00:00+00:00", name="Saundra Test",
+                       internal="10-17 11:17 成交：跨年夜家庭聚餐，Palm Desert。门口要用 call box 呼叫；主人自备桌椅。",
+                       prep_note="小区有门禁：到了在门口对讲机（call box）呼叫，不用密码。主人有桌椅。")
+    check("party check · hosts who bring their own (RH-20261004-3574, RH-20260910-5026, RH-20261017-9824): never a setup gap",
+          all(not any(k == "setup" for _, k in pc_kinds(p)) for p in (george(GEORGE_NOTES_BEFORE), marissa, saundra)) and pc_kinds(marissa) == [])
+
+    check("party check · Kande (RH-20260921-9601, 12/05) before: tables, chairs and utensils free in the internal notes, 0 on the invoice: blocking",
+          party_check.gaps_of(kande(False))[:1] and party_check.gaps_of(kande(False))[0]["title"] == "答应的桌椅、餐具，发票上一件都没有：备货清单不装车")
+    check("  Kande now (64 place settings on the invoice, the venue's tables, folding tables only as backup): no setup gap",
+          not any(k == "setup" for _, k in pc_kinds(kande(True))))
+
+    quiet = pc_party("RH-20301101-0001", "2030-11-02T18:00:00+00:00", name="Quiet Test", guests=[pc_guest("Ann", "steak", "chicken")],
+                     sms=[("2030-10-20T18:00:00Z", "outbound", "Any allergies we should know about? And what's the celebration?"),
+                          ("2030-10-20T18:01:00Z", "outbound", "Happy birthday to her! Tables & chairs are $10 a guest if you'd like them."),
+                          ("2030-10-20T18:05:00Z", "inbound", "No allergies here! Do you guys provide tables?"),
+                          ("2030-10-20T18:06:00Z", "inbound", "My brother won't eat pork though")],
+                     internal="问过敏：没有过敏。",
+                     lead_notes=[("2030-10-21T18:00:00Z", "[owner] 她回信后：先弄清是什么空间（公寓/院子/有没有阳台、车道），给具体摆法（灶放车道/阳台、客人室内）。"),
+                                 ("2030-10-21T18:05:00Z", "[data] 先弄清有没有阳台，问她要不要加桌椅？")])
+    check("party check · false alarms stay out: our own questions and offers, 'no allergies', a question about tables, a planning note, one guest's pork",
+          pc_kinds(quiet) == [])
+    # What the run over the next three weeks of real parties (11-16 to 12-31) raised by mistake, before it was tightened.
+    seen = pc_party("RH-20301101-0002", "2030-11-25T18:00:00+00:00", name="Seen Test",
+                    guests=[pc_guest("Emma", "steak", "chicken", allergy="Gluten", tc=True), pc_guest("Natalie", "salmon", "chicken", allergy="Egg", tc=True)],
+                    notes=("Allergy plates are cooked first on a clean griddle and served before anything else. Emma is gluten-free: salt and gluten-free soy "
+                           "sauce. The chef arrives around 6:30 PM to set up; cooking starts at 7."),
+                    prep_note="FULL TABLES, CHAIRS, LINENS for 12 (free deal) - chef arrives ~5 PM to set up. No plates/silverware ordered (customer uses own).",
+                    sms=[("2030-10-20T18:00:00Z", "outbound", "Gluten-free plates are cooked first and seasoned with salt and gluten-free soy sauce."),
+                         ("2030-10-20T18:01:00Z", "outbound", "Yes, we bring our homemade yum yum and ginger sauces, plus sriracha."),
+                         ("2030-10-20T18:02:00Z", "inbound", "For 35 we send two chefs, each with their own grill, so everyone's served together"),
+                         ("2030-10-20T18:03:00Z", "inbound", "And what are the meat and vegetarian options")],
+                    lead_notes=[("2030-10-21T18:00:00Z", "[data] 全套含餐具 $659（没说）。Fri 11/27 (Thanksgiving week = holiday floor $50)。"),
+                                ("2030-10-21T18:01:00Z", "[data] 11-11 17:58–17:59 三问：坐着吃还是自助排队 / 客人 4–5 点到、6:30–7 开饭 / 有没有寿司 → 18:0x 一条答完。"),
+                                ("2030-10-21T18:02:00Z", "[data] 10-06 问烤台要多大地方 → 按 §8 比喻答：烤台 king-size 床大小的平地。"),
+                                ("2030-10-21T18:03:00Z", "[data] 11:30 选 6 PM → 带时间链接，师傅 5:30 到。")])
+    check("  nor do: 'plates' that are food, the 'free' of gluten-free, a host who uses their own tableware, a quote option, two chefs' own grills, "
+          "a holiday as a price period, a menu question, the guests' arrival, our space spec, what we always bring, a superseded arrival time",
+          pc_kinds(seen) == [], None, json.dumps(party_check.gaps_of(seen), ensure_ascii=False)[:600])
+
+    # the pieces it reads with
+    check("party check · times: 7:00-7:30 PM, 4 PM, 5 点半, 18:00; a note's own stamps ('11-11 19:28', '19:3x') are not times asked for",
+          party_check.times_in("Chefs arrive 7:00-7:30 PM to set up") == {"7:00", "7:30"} and party_check.times_in("Chef arrives at 4 PM") == {"4:00"}
+          and party_check.times_in("5 点半到场") == {"5:30"} and party_check.times_in("开始 18:00") == {"6:00"}
+          and party_check.times_in("11-11 19:28 问 → 19:3x 回：可以看") == set())
+    check("party check · the party page's words without the 48-hour line or the planner summary; a lead note's tagged parts only",
+          party_check.page_words("⏰ WITHIN 48H OF EVENT — needs staff confirmation.\n\nGate code 4321\n\nSubmitted from the party planner: 8 adults.") == "Gate code 4321"
+          and party_check.lead_segments("[callback] no chasing. [data] 8 adults, start 6:30 [SOP:x] template") == ["8 adults, start 6:30"]
+          and party_check.lead_segments("【来电小结】客人问桌椅") == ["客人问桌椅"])
+    check("party check · city from the address, the comma before CA or not",
+          [party_check.city_of(a) for a in ("1 Test Way, Palm Springs, CA 92262", "11968 Gorham Ave, Los Angeles CA 90049", "")] == ["Palm Springs", "Los Angeles", ""])
+    link = lambda **o: {"staff_member_id": "s1", "sent_via": "twilio", "first_opened_at": None, "revoked_at": None, "stale": False, "change_pending_since": None, **o}
+    team = [{"id": "s1", "name": "Blu", "role": "lead_chef"}, {"id": "s2", "name": "易非", "role": "assistant_chef"}]
+    base = pc_party("RH-20301112-0001", "2030-11-12T18:00:00+00:00", name="Sheet Test", team=team)
+    lines = lambda p, today: party_check.sheet_lines(p, today)
+    check("party check · the sheet: before the party day 'not sent yet' is the day-before send's; on the day it is !!; a helper's line is never !!",
+          lines(base, "2030-11-10") == [("· ", "Blu：还没发备料单（前一天统一发）"), ("· ", "易非 (帮手)：还没发备料单（前一天统一发）")]
+          and lines(base, "2030-11-12") == [("!!", "Blu：手里没有备料单"), ("· ", "易非 (帮手)：手里没有备料单")])
+    opened = {**base, "links": [link(first_opened_at="2030-11-11T20:00:00Z")]}
+    check("  the latest version, opened, the last change confirmed: ✓",
+          lines({**opened, "notices": [{"staff_member_id": "s1", "sent_at": "2030-11-12T16:00:00Z", "acked_at": "2030-11-12T16:05:00Z", "sms_sid": "SM1"}]}, "2030-11-12")[0]
+          == ("✓", "Blu：最新版，已打开，改单通知 11-12 08:00 已回 1"))
+    check("  a void (stale) sheet, a change text that never went out, or one with no 1: flagged",
+          lines({**base, "links": [link(stale=True, change_pending_since="2030-11-12T16:00:00Z")]}, "2030-11-12")[0][0] == "!!"
+          and lines({**opened, "notices": [{"staff_member_id": "s1", "sent_at": "2030-11-12T16:00:00Z", "acked_at": None, "sms_sid": ""}]}, "2030-11-12")[0]
+          == ("!!", "Blu：最新版，已打开，改单短信 11-12 08:00 没发出去")
+          and lines({**opened, "notices": [{"staff_member_id": "s1", "sent_at": "2030-11-12T16:00:00Z", "acked_at": None, "sms_sid": "SM1"}]}, "2030-11-12")[0][0] == "! "
+          and lines({**base, "links": [link(sent_via="failed")]}, "2030-11-12")[0] == ("!!", "Blu：备料单短信没发到，他手里没有能打开的"))
+
+    # desk order check: the day's parties, read-only; desk order show: the blocking ones in its 缺项 block.
+    p = andrea(False)
+    o = {**p["order"], "id": "00000000-0000-4000-8000-0000000000e1", "event_start": "2030-11-12T18:30:00+00:00"}
+    tables = {
+        "orders": [o],
+        "order_staff_assignments": [{"order_id": o["id"], "staff_member_id": "s-jason", "assignment_role": "lead_chef", "assignment_status": "confirmed"}],
+        "staff_members": [{"id": "s-jason", "display_name": "JASON", "full_name": None, "phone": "+15555550177"}],
+        "chef_sheet_links": [], "chef_change_notices": [],
+        "order_events": [{"order_id": o["id"], "action": "chef_sheet_sent", "created_at": "2030-11-11T18:08:00Z",
+                          "metadata": {"note": p["sheet_notes"][0]["note"], "staff_name": "JASON"}}],
+        "invoice_update_requests": [{"order_id": o["id"], "created_at": "2030-10-20T18:28:00Z", "customer_message": p["requests"][0]["message"]}],
+        "lead_touchpoints": [],
+    }
+    prep = {"ok": True, "orders": [{"id": o["id"], "orderNo": o["order_no"], "timeLabel": "6:30 PM", "adults": 8, "kids": 0, "menuKnown": True,
+                                    "proteinLine": "Steak ×8 · Shrimp ×8", "extrasLine": "Gyoza 20pcs", "cooler": {"note": None}}]}
+    r = DeskRun(["order", "check", "2030-11-12"], gets={"/api/admin/prep": prep, "/api/admin/sms-thread": {"messages": []}}, db=fake_db(tables))
+    check("desk order check <date>: one block per party - prep line, notes, allergies, the chef's sheet - then the gaps, !! first, each with its fix",
+          r.exit is None and r.has("派对当天核对 2030-11-12 · 1 场 · 缺项 3（1 项要先补）", "RH-20260929-2057 · 6:30 PM · Palm Springs · Andrea · 8 大 · 师傅 JASON",
+                                   "备货：Steak ×8 · Shrimp ×8 | Gyoza 20pcs", "订单备注（客人看得到）：(空)", "过敏：无",
+                                   "备料单 ·  JASON：还没发备料单（前一天统一发）",
+                                   "!! 答应的桌椅、桌布、餐具，发票上一件都没有：备货清单不装车", "!  门禁 / 到了打电话：订单备注里没有",
+                                   "派对页留言 10-20：Call Andrea to get in the gate", "改法：写进订单备注")
+          and r.out.index("!! 答应的") < r.out.index("!  门禁"), r)
+    check("  it reads and never writes: the prep list, the texts and the database, nothing posted",
+          r.posted == [] and set(r.reads) == {"/api/admin/prep", "/api/admin/sms-thread"} and r.db_reads and all(x.startswith("/rest/v1/") for x in r.db_reads), r)
+    r = DeskRun(["order", "check", "11/12"], gets={}, db=fake_db({}))
+    check("  a date that is not YYYY-MM-DD is refused before anything is read", "YYYY-MM-DD" in str(r.exit) and r.reads == [] and r.db_reads == [], r)
+
+    show_db = fake_db({**tables, "orders": [{**o, "id": "00000000-0000-4000-8000-000000000001"}],
+                       "order_events": [], "invoice_update_requests": []})
+    lint = {"ok": True, "blocking": [], "warnings": []}
+    r = Run(invoice(adults=8, proteins=prot(steak=(8, 0), shrimp=(8, 0))), op="show", lint=lint, db=show_db)
+    check("desk order show: the setup promised and not on the invoice is a !! 缺项 line, with where it was promised and the fix",
+          r.has("⚠ 缺项（1 项拦着备料单和前一天的提醒）", "!! 答应的桌椅、桌布、餐具，发票上一件都没有：备货清单不装车（租赁页选了 09-29「全套 · black · 8 位」",
+                "改法：写成订单行") and "门禁" not in r.out, r)
+    r = Run(invoice(adults=8, proteins=prot(steak=(8, 0), shrimp=(8, 0))), op="show", lint=lint)
+    check("  no database to read: the block is the invoice lint's alone, and show still prints", r.has("✓ 缺项：无") and r.exit is None, r)
 
 
 def order_flow_checks() -> None:
@@ -1249,6 +1552,7 @@ def main() -> int:
     quoted_price_checks()
     send_checks()
     order_flow_checks()
+    party_check_checks()
 
     # A request with no "please" stops a send (owner 2026-11-01). Same samples as tests/voice-check.test.ts.
     now = datetime.datetime(2026, 11, 1, 12, 0, tzinfo=datetime.timezone.utc)

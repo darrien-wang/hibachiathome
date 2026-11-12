@@ -49,6 +49,9 @@
   python scripts/desk/desk.py order send  <orderNo>   email the PDF AND text the invoice link, no reply needed (the normal way)
   python scripts/desk/desk.py order remind <orderNo> [--dry]   day before / morning of: email the invoice and text its link, no amounts in the text
   python scripts/desk/desk.py order set  <orderNo> --prep-note-file F [--dry]   the 备货备注 (prep list / cooler sheet line, 300 chars)
+  python scripts/desk/desk.py order check <YYYY-MM-DD> [--json]   派对当天核对 (D-1112-01, 10:00 on the day): per party, what the prep
+                                   list and the order carry, the chef's sheet, and every requirement found elsewhere that they do not
+                                   (!! = fix first). Reads only.
   python scripts/desk/desk.py order cancel <orderNo> --why "..." [--dry]   cancel the order: its chefs are texted (Chinese) and taken
                                    off, their prep-sheet links die, the lead is marked lost with the reason. Never charges or refunds;
                                    inside 48 h it prints the $99 line for the owner to decide. --dry shows it all, writes and sends nothing
@@ -79,6 +82,7 @@ import urllib.parse
 from zoneinfo import ZoneInfo
 
 from _api import ROOT, ApiError, _supabase, dump, e164, invoice_post, is_uuid, pt, read_text_arg, site_get, site_post
+import party_check
 
 TAPBACK = re.compile(r"^(liked|loved|laughed at|emphasized|disliked|questioned)\s", re.I)
 THUMB = re.compile(r"^\U0001F44D[\U0001F3FB-\U0001F3FF]?️?[\s.!]*$")
@@ -1652,11 +1656,30 @@ def _order_lint(order: dict) -> dict | None:
     return res if isinstance(res, dict) and res.get("ok") else None
 
 
-def _print_lint(lint: dict | None) -> int:
-    """The ⚠ 缺项 block: blocking items (!!) then warnings (!), each with its fix. Returns how many block."""
-    if lint is None:
+def _party_blocking(order: dict) -> list[dict]:
+    """The two gaps the owner made blocking (D-1112-01), from the order's own notes, the lead's notes, the party
+    page, the notes sent with the chef's sheet and the deal: setup promised and not on the invoice, an allergy or
+    a cook-it-last instruction the chef cannot see. As the lint's items: messageZh, fix (+ where it was found)."""
+    try:
+        parties = party_check.load_parties([order["id"]], lambda path: _supabase("GET", path, None, "application/json"), site_get, None, texts=False)
+    except (Exception, SystemExit) as e:  # noqa: BLE001 - a check that cannot read must not stop `order show`
+        print(f"   (派对核对没读到：{e})")
+        return []
+    out = []
+    for g in party_check.gaps_of(parties[0], blocking_only=True) if parties else []:
+        where = "；".join(f"{e['label']}「{party_check._short(e['text'], 60)}」" for e in g["evidence"][:2])
+        out.append({"messageZh": g["title"] + (f"（{where}）" if where else ""), "fix": g["fix"]})
+    return out
+
+
+def _print_lint(lint: dict | None, extra: list[dict] | None = None) -> int:
+    """The ⚠ 缺项 block: blocking items (!!) then warnings (!), each with its fix. Returns how many block.
+    `extra` = blocking items of desk's own party check (setup promised and not on the invoice; an allergy
+    the chef cannot see), printed in the same block like the invoice lint's."""
+    if lint is None and not extra:
         return 0
-    blocking, warnings = lint.get("blocking") or [], lint.get("warnings") or []
+    lint = lint or {}
+    blocking, warnings = [*(lint.get("blocking") or []), *(extra or [])], lint.get("warnings") or []
     if not blocking and not warnings:
         print("   ✓ 缺项：无")
         return 0
@@ -2325,6 +2348,20 @@ def _set_prep_note(order: dict, order_no: str, path: str, dry: bool) -> None:
 
 
 def cmd_order(a):
+    if a.op == "check":
+        # 派对当天核对 (owner 2026-11-12, D-1112-01): 10:00 on the party day, every party that day. Chefs work
+        # from the prep list and the order only - 「只要没列在这个上面的…师傅都会忘」 - so this prints what those
+        # carry and every requirement found elsewhere (internal notes, the lead's notes, the party page, texts,
+        # what we told the chef, the deal, the setup they picked) that they do not. Reads only
+        # (scripts/desk/party_check.py); the fixes are `order set` (notes, setup lines, --prep-note-file).
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.ident or ""):
+            raise SystemExit("order check <YYYY-MM-DD> - the party day, on the Pacific clock")
+        parties = party_check.load_day(a.ident, site_get, lambda path: _supabase("GET", path, None, "application/json"))
+        for line in party_check.render_day(a.ident, parties):
+            print(line)
+        if a.json:
+            print(dump([{"orderNo": p["order"].get("order_no"), "gaps": party_check.gaps_of(p)} for p in parties]))
+        return
     if a.op == "find":
         for c in _search(a.ident):
             for o in c.get("orders") or []:
@@ -2402,7 +2439,7 @@ def cmd_order(a):
         _print_invoice(order_no, data)
         print(last_invoice_line(order["id"], row.get("balance_due_cents", order.get("balance_due_cents"))))
         _print_plan(row, detail.get("staffing"))
-        _print_lint(_order_lint(order))
+        _print_lint(_order_lint(order), _party_blocking(order))
         if row.get("internal_notes"):
             print(f"   内部备注(客户看不到): {str(row['internal_notes'])[:300]}")
         try:
@@ -3289,7 +3326,7 @@ def main(argv=None):
     p = sp.add_parser("report"); p.add_argument("kind", choices=["day", "week"])
     p.add_argument("--date", help="YYYY-MM-DD (Pacific). day: default today; week: any day in the week, default the last full Sun-Sat week")
     p.set_defaults(fn=_report)
-    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "plan", "set", "preview", "email", "send", "remind", "hold", "redate", "cancel"]); p.add_argument("ident")
+    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "plan", "set", "preview", "email", "send", "remind", "hold", "redate", "cancel", "check"]); p.add_argument("ident")
     p.add_argument("--rows-out", help="plan: write the party page's guests as a --guests-file list")
     p.add_argument("--why", help="hold: why the date is off, kept on the order (e.g. birthday boy out of town, picking a new date). "
                                  "cancel: why the party is off (required; kept on the order and the lead)")
