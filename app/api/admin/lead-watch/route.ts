@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 
 import { escapeHtml } from "@/lib/escape-html"
-import { notAQuestion } from "@/lib/courtesy-text"
 import {
   PARTY_CONTACT_FIRST_TEXT_H,
   PARTY_CONTACT_MIN_ORDER_AGE_MS,
@@ -31,6 +30,8 @@ import { ringOpenCallbacks } from "@/lib/callback-ring"
 import { ringUnackedNotices } from "@/lib/chef-notices"
 import { isDefaultLeaveQuote } from "@/lib/lead-scan"
 import { loadQuiet } from "@/lib/lead-hold"
+import { lastOutboundByPeer, smsWaiting } from "@/lib/sms-waiting"
+import { isStaffNumber, loadStaffDigits } from "@/lib/staff-phones"
 import { cityForZip } from "@/lib/zip-city"
 import { MISSED_CALL_TEXT, missedCallTouchpointId } from "@/lib/missed-call"
 import { isBlockedNumber, loadBlockedDigits } from "@/lib/blocked-callers"
@@ -63,6 +64,10 @@ export const maxDuration = 60
 // (5 min / 120 min / on) are what was hard-coded here until 2026-09-21.
 const MAX_LEAD_AGE_HOURS = 24
 const SMS_LOOKBACK_HOURS = 24
+// The sweep of the last day reads this many texts a side, as the inbox does (lib/sms-thread.ts
+// fetchLastByPeer). It read 60: on 2026-11-12 the 60 newest texts we had sent reached back only to
+// the small hours, so a question answered at 18:27 the evening before was listed as waiting 16 hours.
+const SMS_SWEEP_PAGE = 800
 // Missed-call backstop window: long enough to cover a sweep that was late,
 // short enough that a text still reads as "we saw you call".
 const MISSED_CALL_LOOKBACK_MS = 60 * 60_000
@@ -232,11 +237,11 @@ function describeDate(iso: string): string {
 
 type TwilioMessage = { sid: string; from: string; to: string; body: string | null; date_sent: string | null; date_created: string; num_media?: string }
 
-async function listTwilio(query: string): Promise<TwilioMessage[]> {
+async function listTwilio(query: string, pageSize = 60): Promise<TwilioMessage[]> {
   const sid = process.env.TWILIO_ACCOUNT_SID
   const token = process.env.TWILIO_AUTH_TOKEN
   if (!sid || !token) return []
-  const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json?${query}&PageSize=60`, {
+  const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json?${query}&PageSize=${pageSize}`, {
     headers: { Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString("base64")}` },
     cache: "no-store",
   })
@@ -628,40 +633,27 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
 
   // ---- customer texts nobody answered ------------------------------------
   const cutoff = now - SMS_LOOKBACK_HOURS * 3600_000
-  const [inbound, outbound] = await Promise.all([listTwilio(`To=${encodeURIComponent(ours)}`), listTwilio(`From=${encodeURIComponent(ours)}`)])
+  const [inbound, outbound] = await Promise.all([
+    listTwilio(`To=${encodeURIComponent(ours)}`, SMS_SWEEP_PAGE),
+    listTwilio(`From=${encodeURIComponent(ours)}`, SMS_SWEEP_PAGE),
+  ])
 
   // 挂起中的线索不提醒（老板 2026-09-23 定）：客人说了他会回头找我们，那条
   // "Thanks, I'll get back to you" 不是在等我们回，一直提醒只是噪音。规则和
   // 手机收件箱共用一份，见 lib/lead-hold.ts。
   const quiet = await loadQuiet(supabase, now)
 
-  const lastOut = new Map<string, number>()
-  for (const m of outbound) if (!lastOut.has(m.to)) lastOut.set(m.to, when(m))
-  // Per number: the newest inbound, and the newest one that says something.
-  // A "Loved …" reaction or a bare "thanks" after a real question (or photos)
-  // must not hide it - same rule as the inbox, lib/sms-thread.ts foldLastByPeer.
-  const mediaCount = (m: TwilioMessage) => Number(m.num_media ?? 0) || 0
-  const newest = new Map<string, TwilioMessage>()
-  const newestReal = new Map<string, TwilioMessage>()
-  for (const m of inbound) {
-    if (!newest.has(m.from)) newest.set(m.from, m)
-    if (!newestReal.has(m.from) && (mediaCount(m) > 0 || !notAQuestion(m.body ?? ""))) newestReal.set(m.from, m)
-  }
-  const humanSms: Array<Record<string, unknown>> = []
-  for (const [from, n] of newest) {
-    const at = when(n)
-    if (at < cutoff || isTestNumber(from)) continue
-    if ((lastOut.get(from) ?? 0) >= at) continue
-    const real = newestReal.get(from)
-    const m = real && when(real) > (lastOut.get(from) ?? 0) ? real : n
-    const mAt = when(m)
-    const media = mediaCount(m)
-    const body = (m.body ?? "").trim()
-    // 挂起中、老板标过「不用回」、或者这条本来就不是问题 —— 一条规则，见
-    // lib/lead-hold.ts loadQuiet（老板 2026-09-24：免得一直提醒）。图片没有正文，不走"不是问题"那条。
-    if (quiet.quiet(from, mAt, media > 0 ? undefined : body)) continue
-    humanSms.push({ kind: "sms", sid: m.sid, from, minutesWaiting: Math.round((now - mAt) / 60_000), body: (body || (media > 0 ? `[${media} image(s)]` : "")).slice(0, 400) })
-  }
+  const lastOut = lastOutboundByPeer(outbound)
+  // A chef's or a helper's number is not a customer waiting: their texts have their own place in
+  // the inbox, and a "1" confirming a change text is filed by the system (lib/chef-notices.ts).
+  const staffDigits = await loadStaffDigits(supabase)
+  const humanSms: Array<Record<string, unknown>> = smsWaiting(inbound, outbound, {
+    now,
+    cutoff,
+    pageSize: SMS_SWEEP_PAGE,
+    skip: (from) => isTestNumber(from) || isStaffNumber(staffDigits, from),
+    quiet: (from, at, body) => quiet.quiet(from, at, body),
+  })
 
   // ---- missed calls nobody texted back (2026-09-27 audit) -----------------
   // The <Dial action> handler texts a caller nobody picked up for, but a caller
