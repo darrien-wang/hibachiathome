@@ -369,6 +369,8 @@ def sources(party: dict) -> list[dict]:
     for n in party.get("sheet_notes") or []:
         add("chef", f"发备料单附言 {_md(n.get('at'))}{(' · ' + n['chef']) if n.get('chef') else ''}", n.get("at"), n.get("note") or "")
     for m in party.get("chef_sms") or []:
+        if m.get("auto"):
+            continue  # the system's own sheet texts repeat the sheet: not a requirement found elsewhere
         add("chef", f"发给师傅的短信 {_md(m.get('at'))}{(' · ' + m['chef']) if m.get('chef') else ''}", m.get("at"), m.get("body") or "")
     deal = invoice_of(order).get("customDeal")
     if isinstance(deal, dict) and str(deal.get("note") or "").strip():
@@ -745,7 +747,8 @@ def load_day(date: str, site_get, db_get) -> list[dict]:
     return load_parties([e["id"] for e in entries], db_get, site_get, date, {e["id"]: e for e in entries})
 
 
-def load_parties(order_ids: list[str], db_get, site_get, date: str | None, prep_by_id: dict | None = None, *, texts: bool = True) -> list[dict]:
+def load_parties(order_ids: list[str], db_get, site_get, date: str | None, prep_by_id: dict | None = None, *, texts: bool = True,
+                 chef_auto: bool = False) -> list[dict]:
     ids = _q(order_ids)
     orders = _safe(lambda: db_get(f"/rest/v1/orders?select={ORDER_COLUMNS}&id=in.({ids})&order=event_start.asc"), [])
     asg = _safe(lambda: db_get(f"/rest/v1/order_staff_assignments?select=order_id,staff_member_id,assignment_role&order_id=in.({ids})"
@@ -808,12 +811,19 @@ def load_parties(order_ids: list[str], db_get, site_get, date: str | None, prep_
                 if not t.get("phone"):
                     continue
                 for m in thread(t["phone"]):
-                    if not isinstance(m, dict) or m.get("direction") != "outbound" or CHEF_AUTO.search(str(m.get("body") or "")):
+                    if not isinstance(m, dict) or m.get("direction") != "outbound":
+                        continue
+                    # The system's own prep-sheet and change texts: left out of the 10:00 check (they carry the
+                    # sheet itself), kept for the reviewer (chef_auto) - with their carrier status, since an
+                    # undelivered one is a chef who never got the note (Eason 11-11, RH-20261107-5825).
+                    auto = bool(CHEF_AUTO.search(str(m.get("body") or "")))
+                    if auto and not chef_auto:
                         continue
                     if lo and not (lo <= str(m.get("at") or "")[:10] <= start):
                         continue
                     if _mentions_party(m.get("body") or "", o, day):
-                        party["chef_sms"].append({"at": m.get("at"), "body": m.get("body"), "chef": t["name"]})
+                        party["chef_sms"].append({"at": m.get("at"), "body": m.get("body"), "chef": t["name"], "status": m.get("status"),
+                                                  **({"auto": True} if auto else {})})
         parties.append(party)
     return parties
 

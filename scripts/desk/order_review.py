@@ -82,7 +82,7 @@ def load(order_no: str, site_get, db_get, now: _dt.datetime | None = None) -> di
             prep_entry = next((e for e in prep.get("orders") or [] if isinstance(e, dict) and e.get("id") == order["id"]), None)
         except Exception:
             prep_entry = None
-    party = party_check.load_parties([order["id"]], db_get, site_get, day or None, {order["id"]: prep_entry} if prep_entry else None)[0]
+    party = party_check.load_parties([order["id"]], db_get, site_get, day or None, {order["id"]: prep_entry} if prep_entry else None, chef_auto=True)[0]
     gaps = party_check.gaps_of(party)
     # A plain UTC "Z" stamp: a "+00:00" offset would reach PostgREST as a space and match nothing.
     stamp_now = (now or _dt.datetime.now(_dt.timezone.utc)).astimezone(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -160,6 +160,11 @@ def _snapshot_lines(snap: dict) -> list[str]:
     out.append("      蛋白 " + " · ".join(f"{p.get('label')} {p.get('servings')} 份（{p.get('sub')}）" for p in snap.get("proteins") or []))
     out.append("      装备 " + " · ".join(f"{s.get('label')} ×{s.get('qty')}" for s in snap.get("setup") or []))
     out.append("      食材 " + " · ".join(f"{f.get('label')} {f.get('amount')}".strip() for f in snap.get("food") or [] if f.get("group") != "sauce"))
+    # The load list's sauce and misc rows too (Jeffrey 11-12: "Butter 6 oz" printed on a no-butter party, and
+    # the reviewer could not see it from here).
+    sauces = [f"{f.get('label')} {f.get('amount')}".strip() for f in snap.get("food") or [] if f.get("group") == "sauce"]
+    if sauces:
+        out.append("      酱料/杂项 " + " · ".join(sauces))
     out.append(f"      过敏 {'; '.join(snap.get('allergies') or []) or '无'}")
     for n in snap.get("notes") or []:
         out.append(f"      备注 {n}")
@@ -225,7 +230,9 @@ def render(packet: dict) -> list[str]:
     for n in party.get("lead_notes") or []:
         items.append((n.get("at"), "记", "备注", str(n.get("note") or "").strip()))
     for c in party.get("chef_sms") or []:
-        items.append((c.get("at"), "师", c.get("chef") or "", str(c.get("body") or "").strip()))
+        status = str(c.get("status") or "")
+        flag = f" ⚠ 短信没送到（{status}）" if status in ("undelivered", "failed") else ""
+        items.append((c.get("at"), "师", f"{c.get('chef') or ''}{'·系统' if c.get('auto') else ''}", str(c.get("body") or "").strip() + flag))
     # Whole text, never cut: Andres 11-12 - a 3,412-character call note cut at 1,500 hid the
     # customer's "I would put the tables out"; what the reviewer cannot read, it cannot check.
     for at, who, kind, text in sorted(items, key=lambda x: str(x[0] or "")):
