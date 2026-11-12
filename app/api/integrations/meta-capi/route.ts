@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { can, resolveAdminActor } from "@/lib/admin-auth"
 import { CRON_PURPOSE_META_CAPI, isCronCall } from "@/lib/cron-key"
+import { inChunks } from "@/lib/in-chunks"
 import { buildEvent, isDecline, metaCapiToken, sendCapiEvents, type CapiEvent } from "@/lib/meta-capi"
 
 export const runtime = "nodejs"
@@ -17,6 +18,15 @@ export const dynamic = "force-dynamic"
 // The sweep looks back 7 days (Meta's limit for event_time) and sends each
 // event once: Contact when a Meta lead first writes back with something that
 // is not a no, Purchase + Schedule when a Meta customer's date is locked.
+//
+// A read the database refuses ends the sweep before anything is sent (500,
+// naming the read). It is not an empty answer: an event sent without the
+// click's browser, without the booking's payment id or without the list of
+// what was already sent goes on file as sent and is never corrected, while the
+// next sweep, 15 minutes later, finds the same events again. From 2026-10-26
+// to 2026-11-12 the click lookup was refused on every sweep (its URL had grown
+// past what the API answers, lib/in-chunks.ts), the error was dropped, and 35
+// events went out as system_generated with the browser on file.
 
 const LOOKBACK_DAYS = 7
 const DEFAULT_BOOKING_VALUE_CENTS = 60_000
@@ -80,6 +90,7 @@ export async function POST(request: NextRequest) {
   const supabase = createServerSupabaseClient()
   if (!supabase) return NextResponse.json({ ok: false, error: "supabase not configured" }, { status: 500 })
   const since = new Date(Date.now() - LOOKBACK_DAYS * 86400_000).toISOString()
+  const refused = (read: string, error: { message: string }) => NextResponse.json({ ok: false, error: `${read}: ${error.message}` }, { status: 500 })
 
   // Every Meta lead that could still produce an event: clicked in the last
   // 7 days, or older but its customer booked in the last 7 days (below).
@@ -90,7 +101,7 @@ export async function POST(request: NextRequest) {
     .is("merged_into", null)
     .gte("created_at", new Date(Date.now() - 60 * 86400_000).toISOString())
     .limit(2000)
-  if (leadErr) return NextResponse.json({ ok: false, error: leadErr.message }, { status: 500 })
+  if (leadErr) return refused("leads", leadErr)
   const leads = ((leadRows ?? []) as LeadRow[]).filter((l) => l.status !== "disqualified")
   const byPhone = new Map<string, LeadRow>()
   const byEmail = new Map<string, LeadRow>()
@@ -103,8 +114,10 @@ export async function POST(request: NextRequest) {
 
   const fbclids = Array.from(new Set(leads.map((l) => l.fbclid).filter(Boolean))) as string[]
   const ctx = new Map<string, { fbp: string | null; user_agent: string | null; ip: string | null }>()
-  for (let i = 0; i < fbclids.length; i += 200) {
-    const { data } = await supabase.from("meta_click_context").select("fbclid, fbp, user_agent, ip").in("fbclid", fbclids.slice(i, i + 200))
+  // A click id is about 190 characters: the list is cut by its length in the URL, not by a count.
+  for (const part of inChunks(fbclids)) {
+    const { data, error } = await supabase.from("meta_click_context").select("fbclid, fbp, user_agent, ip").in("fbclid", part)
+    if (error) return refused("meta_click_context", error)
     for (const r of (data ?? []) as Array<{ fbclid: string; fbp: string | null; user_agent: string | null; ip: string | null }>) ctx.set(r.fbclid, r)
   }
   const userFor = (l: LeadRow, email?: string | null, phone?: string | null) => {
@@ -127,13 +140,14 @@ export async function POST(request: NextRequest) {
   const recent = leads.filter((l) => l.created_at >= since)
   const recentIds = recent.map((l) => l.id)
   const inbound = new Map<string, Array<{ at: string; text: string }>>()
-  for (let i = 0; i < recentIds.length; i += 200) {
-    const { data } = await supabase
+  for (const part of inChunks(recentIds)) {
+    const { data, error } = await supabase
       .from("lead_touchpoints")
       .select("lead_id, occurred_at, raw_payload_json")
-      .in("lead_id", recentIds.slice(i, i + 200))
+      .in("lead_id", part)
       .in("touchpoint_type", ["sms_inbound", "email_inbound"])
       .order("occurred_at", { ascending: true })
+    if (error) return refused("lead_touchpoints", error)
     for (const r of (data ?? []) as Array<{ lead_id: string; occurred_at: string; raw_payload_json: Record<string, unknown> | null }>) {
       const p = r.raw_payload_json ?? {}
       const text = String(p.Body ?? p.body ?? p.text ?? p.snippet ?? p.subject ?? "")
@@ -149,12 +163,13 @@ export async function POST(request: NextRequest) {
   }
 
   // ---- Purchase: a Meta customer locked a date ------------------------------
-  const { data: orderRows } = await supabase
+  const { data: orderRows, error: orderErr } = await supabase
     .from("orders")
     .select("id, created_at, quoted_total_cents, customer_email, customer_phone, source_ref, source_metadata")
     .eq("deposit_status", "paid_verified")
     .gte("created_at", since)
     .limit(500)
+  if (orderErr) return refused("orders", orderErr)
   const orders = (orderRows ?? []) as Array<{
     id: string
     created_at: string
@@ -166,8 +181,9 @@ export async function POST(request: NextRequest) {
   }>
   const bookingIds = orders.map((o) => o.source_ref).filter((s): s is string => Boolean(s && /^[0-9a-f-]{36}$/i.test(s)))
   const sessionOf = new Map<string, string>()
-  if (bookingIds.length) {
-    const { data } = await supabase.from("bookings").select("id, payment_intent_id, stripe_session_id").in("id", bookingIds)
+  for (const part of inChunks(bookingIds)) {
+    const { data, error } = await supabase.from("bookings").select("id, payment_intent_id, stripe_session_id").in("id", part)
+    if (error) return refused("bookings", error)
     for (const b of (data ?? []) as Array<{ id: string; payment_intent_id: string | null; stripe_session_id: string | null }>) {
       const tx = b.payment_intent_id || b.stripe_session_id
       if (tx) sessionOf.set(b.id, tx)
@@ -199,10 +215,11 @@ export async function POST(request: NextRequest) {
   // ---- Already sent? ----------------------------------------------------------
   const ids = candidates.map((c) => c.eventId)
   const sent = new Set<string>()
-  for (let i = 0; i < ids.length; i += 200) {
-    let q = supabase.from("meta_capi_events").select("event_name, event_id").in("event_id", ids.slice(i, i + 200)).eq("ok", true)
+  for (const part of inChunks(ids)) {
+    let q = supabase.from("meta_capi_events").select("event_name, event_id").in("event_id", part).eq("ok", true)
     q = testEventCode ? q.eq("test_event_code", testEventCode) : q.is("test_event_code", null)
-    const { data } = await q
+    const { data, error } = await q
+    if (error) return refused("meta_capi_events", error)
     for (const r of (data ?? []) as Array<{ event_name: string; event_id: string }>) sent.add(`${r.event_name}|${r.event_id}`)
   }
   const todo = candidates.filter((c) => !sent.has(`${c.eventName}|${c.eventId}`))
