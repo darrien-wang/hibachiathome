@@ -195,9 +195,9 @@ def render(packet: dict) -> list[str]:
                    + (f" · 备注 {g.get('note')}" if str(g.get("note") or "").strip() else ""))
     for key in ("partyExtras", "partyWideAddons", "quickCountItems", "promotions", "customDeal"):
         if inv.get(key) not in (None, [], {}):
-            out.append(f"   {key}: {json.dumps(inv.get(key), ensure_ascii=False)[:600]}")
+            out.append(f"   {key}: {json.dumps(inv.get(key), ensure_ascii=False)}")
     if o.get("setup_selection"):
-        out.append(f"   setup_selection: {json.dumps(o.get('setup_selection'), ensure_ascii=False)[:300]}")
+        out.append(f"   setup_selection: {json.dumps(o.get('setup_selection'), ensure_ascii=False)}")
     out.append(f"   订单备注（客人看得到，印在备料单上）：{contact.get('specialNotes') or '（空）'}")
     out.append(f"   备货备注（印在装车单和备料单上）：{o.get('prep_note') or '（空）'}")
     out.append(f"   内部备注（客人和师傅都看不到）：{o.get('internal_notes') or '（空）'}")
@@ -226,9 +226,11 @@ def render(packet: dict) -> list[str]:
         items.append((n.get("at"), "记", "备注", str(n.get("note") or "").strip()))
     for c in party.get("chef_sms") or []:
         items.append((c.get("at"), "师", c.get("chef") or "", str(c.get("body") or "").strip()))
+    # Whole text, never cut: Andres 11-12 - a 3,412-character call note cut at 1,500 hid the
+    # customer's "I would put the tables out"; what the reviewer cannot read, it cannot check.
     for at, who, kind, text in sorted(items, key=lambda x: str(x[0] or "")):
         text = re.sub(r"\s+", " ", text)
-        out.append(f"   {party_check._mdhm(at)} {who}·{kind}  {text[:1500]}")
+        out.append(f"   {party_check._mdhm(at)} {who}·{kind}  {text}")
     out += ["━" * 78,
             f"审查完：desk order review {o.get('order_no')} --pass --summary \"核了几条、都在哪\"  或  --fail --summary \"缺什么、该怎么补\"",
             "（--pass 只在【一】没有要先补的缺项时才记得上；订单或对话之后再变，这次审查自动作废）"]
