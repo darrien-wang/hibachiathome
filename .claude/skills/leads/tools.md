@@ -87,7 +87,7 @@ python scripts/desk/desk.py order remind <单号> --dry              # 前一天
 python scripts/desk/desk.py order send <单号>                      # 发票：邮件 PDF + 短信发链接，不用客人回（先自查、老板看过）
 python scripts/desk/desk.py order email <单号> [--notes-reviewed]
 ```
-- `order cancel` 要老板说了才跑，`--why` 必填（记在订单和线索上）。它不给客人发任何消息，不扣款也不退款；离派对不到 48 小时会打一行 `⚠ … $99 …`，收不收老板定。客人还有别的没办的派对时线索不标流失。工作台订单弹窗「Planner · 派单」页的「取消订单」是同一个动作。改派不用另外通知：工作台 / `dispatch.py apply` 把人换下来时，收到过备料单的师傅自动收到「…那场改给别人了，你不用去，之前的备料单作废」。
+- `order cancel` 要老板说了才跑，`--why` 必填（记在订单和线索上）。它不给客人发任何消息，不扣款也不退款；离派对不到 48 小时会打一行 `⚠ … $99 …`，收不收老板定。客人还有别的派对（没办的，或以前办过的）时线索不标流失。工作台订单弹窗「Planner · 派单」页的「取消订单」是同一个动作。改派不用另外通知：工作台 / `dispatch.py apply` 把人换下来时，收到过备料单的师傅自动收到「…那场改给别人了，你不用去，之前的备料单作废」。
 - 改之前先 `--dry` 看 TOTAL；每次 `order set` 会自己拿 TOTAL 和 `desk price`（同样的大人/小孩/日期/桌椅餐具，加上订单自己的加购、优惠和路费）对一遍：对上打 `✓ total check`，差 $1 以上打一大段 `!!! TOTAL CHECK FAILED`，并写出可能的改法（`--retier`、`--promo official_weekday=…`）。存的时候订单在你读之后被改过会 409 `STALE`，什么都没存，重看再改。
 - 人数一变（`--headcount` / `--guests-file` / `--add-adult` / `--add-child` / `--remove-guest`），`official_party*` 那行自动按掏钱人头换档（大人 1、5–12 岁 0.5、往下取整，档位读 `config/pricing-rules.ts` 的 `CLOSED_PARTY_LADDER`）。只有老单有这行（D-1105-01）：11/05 上线前建的、或发票上本来就带人数折扣那行的；之后建的单没有，desk 不加；61+ 不动（人工报价），订单上有 appreciation 顶替人数折扣的不加回，其他优惠一行不动。周中特价那行存的时候由发票引擎按新人数重算（每加一个大人 $5、小孩 $2.45，手改过的多送几盘照留）；同一条命令里 `--promo` 手改的照你的。
 - 存完多出 `+ 引擎按规则：…`（10-24 起，D-1017-02）：该给客人的由发票引擎每次保存时补上——老单的人数折扣、周中特价、20 人以上 / 全套桌椅餐具送的前菜（连托盘，师傅单上才有）、特价规则那几行。手加的行（`--free-item` 送的盘、appreciation、custom）不动；按报价锁定的价格（as quoted / agreed total）不往上加，只在缺项里提醒。送的前菜按人头（10-30 起，规则见 answers.md）：引擎把优惠行和托盘一起调到位，总价不变；`--free-item` 送的同一种算在里面，20 人以上 / 全套该送而不够人头的，差的补在官方行上。旧单存一次才补，没补的 `!` 提醒，`--reconcile` 就行。引擎补完会重印 TOTAL 和 total check。

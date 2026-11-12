@@ -174,7 +174,7 @@ test("cancel · money already taken and pay already settled are named, never mov
   assert.deepEqual(plan.warnings, ["这单已经收过 $19.90，系统不会自动退，退不退由老板定。", "有 1 位师傅这场的工钱已经结过（提前结算），取消后要在下一期结算里扣回。"])
 })
 
-test("cancel · a customer with another party still to come keeps the lead", async () => {
+test("cancel · a customer with another party of theirs, still to come or already held, keeps the lead", async () => {
   const other = { id: "00000000-0000-4000-8000-0000000000a2", order_no: "RH-20301120-0002", event_start: "2030-12-24T18:00:00+00:00", order_status: "active", deposit_status: "paid_verified", customer_phone: "(626) 555-0100", source_metadata: {} }
   const db = world({ orders: [other] })
   const { send } = sender()
@@ -183,8 +183,16 @@ test("cancel · a customer with another party still to come keeps the lead", asy
   assert.equal(db.tables.leads[0].status, "won")
   assert.deepEqual(db.tables.lead_touchpoints, [])
   assert.equal(db.tables.orders[0].order_status, "cancelled")
-  // A cancelled or a past party of theirs does not keep it.
-  const gone = world({ orders: [{ ...other, order_status: "cancelled" }, { ...other, id: "x3", order_no: "RH-20300101-0003", event_start: "2030-01-01T18:00:00+00:00" }] })
+  // A party we already cooked for them keeps it too: a returning customer is not a lead that got away.
+  const returning = world({ orders: [{ ...other, id: "x3", order_no: "RH-20300101-0003", event_start: "2030-01-01T18:00:00+00:00", customer_phone: "+19095550111", source_metadata: { lead_id: LEAD_ID } }] })
+  assert.deepEqual(ok(await cancelOrder(returning as never, { orderId: ORDER_ID, reason: REASON, actor: "desk:owner", dryRun: true, now: FOUR_DAYS_OUT })).lead, {
+    id: LEAD_ID,
+    was: "won",
+    markedLost: false,
+    kept: "客人之前办过派对（RH-20300101-0003），是老客人，线索不标流失",
+  })
+  // A cancelled one, or somebody else's, does not.
+  const gone = world({ orders: [{ ...other, order_status: "cancelled" }, { ...other, id: "x4", order_no: "RH-20300101-0004", customer_phone: "+19095550111" }] })
   assert.equal(ok(await cancelOrder(gone as never, { orderId: ORDER_ID, reason: REASON, actor: "desk:owner", dryRun: true, now: FOUR_DAYS_OUT })).lead?.markedLost, true)
 })
 

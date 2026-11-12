@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { notifyRemovedChefs, partyLabelZh, type ChefNoticeResult } from "@/lib/chef-notify"
-import { instantToWallIso, wallToInstant } from "@/lib/first-response"
+import { wallToInstant } from "@/lib/first-response"
 import type { SendSmsResult } from "@/lib/sms-thread"
 
 // Cancel an order (order-flow rebuild 2026-11-11, D-1111-03).
@@ -18,7 +18,8 @@ import type { SendSmsResult } from "@/lib/sms-thread"
 //   3. the record  an order_cancelled event with the reason and who was told,
 //                  and a pending cancel_calendar job, as the reference queues
 //   4. the lead    marked lost with the reason ([lost] … [why] …) - unless the
-//                  customer has another party coming up
+//                  customer has another party with us, still to come or already
+//                  held: then they are a customer, and the lead stays as it is
 //
 // It never charges anything. Inside 48 hours the policy allows a $99 fee
 // (D-1006-04): the result says so and leaves the decision to the owner.
@@ -142,24 +143,28 @@ export async function cancelOrder(
     let kept: string | undefined
     if (closed) kept = `线索已经是 ${lead.status}`
     else {
-      // Another party of theirs still to come = still a customer; "lost" would be wrong.
+      // Another paid party of theirs that is not cancelled - on this lead or this number - means they
+      // are a customer whatever happens to this one (the lead scan reads it the same way): one still
+      // to come, or one we already cooked. "lost" would rewrite a customer as a lead that got away.
+      const mine = digits10(order.customer_phone)
+      const filters = [`source_metadata->>lead_id.eq.${lead.id}`, ...(mine.length === 10 ? [`customer_phone.ilike.%${mine}%`] : [])]
       const { data: others } = await supabase
         .from("orders")
         .select("id, order_no, event_start, order_status, customer_phone, source_metadata")
         .eq("deposit_status", "paid_verified")
         .neq("id", order.id)
-        .or("order_status.is.null,order_status.neq.cancelled")
-        .or(`event_start.is.null,event_start.gte.${instantToWallIso(now)}`)
-        .limit(500)
-      const mine = digits10(order.customer_phone)
-      const upcoming = ((others ?? []) as Array<{ id: string; order_no: string | null; event_start: string | null; order_status: string | null; customer_phone: string | null; source_metadata: Record<string, unknown> | null }>).find((o) => {
+        .or(filters.join(","))
+        .limit(50)
+      type Other = { id: string; order_no: string | null; event_start: string | null; order_status: string | null; customer_phone: string | null; source_metadata: Record<string, unknown> | null }
+      const theirs = ((others ?? []) as Other[]).filter((o) => {
         if (o.id === order.id || o.order_status === "cancelled") return false
         const sameLead = (o.source_metadata ?? {}).lead_id === lead!.id
         const samePhone = mine.length === 10 && digits10(o.customer_phone) === mine
-        if (!sameLead && !samePhone) return false
-        return !o.event_start || wallToInstant(o.event_start) > now
+        return sameLead || samePhone
       })
-      if (upcoming) kept = `客人还有一场没办的派对（${upcoming.order_no ?? upcoming.id}），线索不标流失`
+      const toCome = theirs.find((o) => !o.event_start || wallToInstant(o.event_start) > now)
+      if (toCome) kept = `客人还有一场没办的派对（${toCome.order_no ?? toCome.id}），线索不标流失`
+      else if (theirs.length) kept = `客人之前办过派对（${theirs[0].order_no ?? theirs[0].id}），是老客人，线索不标流失`
     }
     leadPlan = { id: lead.id, was: lead.status, markedLost: !kept, ...(kept ? { kept } : {}) }
   } else {
