@@ -14,15 +14,26 @@
 // those clicks had them stored. They are on file as sent, so they were never
 // sent again.
 //
+// And nobody was told for those 17 days: pg_cron does not read what the sweep
+// answers. So a cron sweep that answers anything but ok:true is counted in
+// workbench_settings (meta_capi.health), the 4th in a row mails ops, and so
+// does the first sweep that works again (lib/meta-capi-health.ts; the lines
+// and the mails themselves are in tests/meta-capi-health.test.ts). The second
+// half of this file runs the route for that: what counts, what does not (a
+// dry run, a run by hand), and what goes on file when Meta refuses a batch or
+// the file cannot be written.
+//
 // Real supabase-js (2.89.0, the version in production) against an in-process
 // API that refuses a long URL the way production does. fetch is replaced for
-// the whole file: nothing here can reach Supabase or Meta.
+// the whole file: nothing here can reach Supabase, Meta or the mail provider.
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { createClient } from "@supabase/supabase-js"
 import { CRON_PURPOSE_META_CAPI, cronKeyFor } from "../lib/cron-key"
 import { IN_LIST_MAX_CHARS, inChunks, inListCost } from "../lib/in-chunks"
+import { META_CAPI_HEALTH_KEY } from "../lib/meta-capi-health"
+import type { SweepHealth } from "../lib/sweep-health"
 
 type Row = Record<string, unknown>
 
@@ -31,22 +42,42 @@ const API = "https://stub0stub0stub0stub0.supabase.co"
 // Production, 2026-10-26: 25,004 characters was the last URL answered, 25,202 the first refused.
 const API_URL_LIMIT = 25_100
 const CRON_BASE = "test-cron-base"
+const OWNER_KEY = "test-owner-key"
+const OPS = "ops@realhibachi.test"
 
 process.env.SUPABASE_URL = API
 process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role"
 process.env.LEAD_WATCH_CRON_KEY = CRON_BASE
+process.env.ADMIN_DASH_KEY = OWNER_KEY
 process.env.META_CAPI_TOKEN = "test-capi-token"
 process.env.NEXT_PUBLIC_META_PIXEL_ID = "1234567890"
+// Ops mail goes to the stand-in below: a key so that it is sent at all, and
+// none of the switches that would keep it in the log or send it another way.
+process.env.RESEND_API_KEY = "test-mail-key"
+process.env.EMAIL_TO = OPS
+process.env.EMAIL_FROM = "Real Hibachi <notify@realhibachi.test>"
+process.env.ALLOW_DEV_EMAIL_SEND = "true"
+for (const name of ["CLOUDFLARE_EMAIL_ACCOUNT_ID", "CLOUDFLARE_EMAIL_API_TOKEN", "SUPPRESS_EXTERNAL_NOTIFICATIONS", "VERCEL_ENV", "VERCEL_GIT_COMMIT_REF"]) delete process.env[name]
 
 type World = {
   tables: Record<string, Row[]>
   /** Tables whose reads the API turns away, whatever their length. */
   down: Set<string>
+  /** Tables the database lets nobody write. */
+  noWrite: Set<string>
+  /** What Meta does with a batch: takes it, refuses it (an expired token), or never answers. */
+  meta: "takes" | "refuses" | "silent"
   /** Every read: the table, the URL's length, the values of its `in` filter. */
   reads: Array<{ table: string; length: number; values: string[] }>
   refused: string[]
-  /** Events posted to Meta's endpoint. */
+  /** Events Meta took. */
   toMeta: Row[]
+  /** Mails the mail provider took. */
+  mails: Array<{ to: string[]; subject: string; text: string }>
+  /** The mail provider turns every mail away. */
+  mailDown: boolean
+  /** What the function log would show: every console.error during a sweep. */
+  log: string[]
 }
 
 let world: World | null = null
@@ -63,7 +94,16 @@ function matches(row: Row, column: string, filter: string): boolean {
 }
 
 const badRequest = () => new Response("Bad Request", { status: 400, headers: { "content-type": "text/plain; charset=utf-8" } })
-const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json; charset=utf-8" } })
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8" } })
+/** An error PostgREST explains: JSON with the database's code. */
+const dbError = (status: number, code: string, message: string) => json({ code, details: null, hint: null, message }, status)
+
+/** What Meta answers once the token has run out. */
+const EXPIRED = { message: "Error validating access token: Session has expired on Thursday, 12-Nov-26 10:00:00 PST.", type: "OAuthException", code: 190, error_subcode: 463, fbtrace_id: "test" }
+const EXPIRED_LINE = "Meta HTTP 400: Error validating access token: Session has expired on Thursday, 12-Nov-26 10:00:00 PST. (code 190/463)"
+
+/** meta_capi_events in production: one row per real event (meta_capi_events_real_uniq, test runs excepted). */
+const eventKey = (r: Row) => (r.test_event_code == null ? `${r.event_name}|${r.event_id}` : null)
 
 globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
   const href = input instanceof Request ? input.url : String(input)
@@ -71,15 +111,33 @@ globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) =>
   const w = world
   if (!w) throw new Error(`fetch outside a sweep: ${href.slice(0, 80)}`)
   if (href.startsWith("https://graph.facebook.com/")) {
+    if (w.meta === "silent") throw new TypeError("fetch failed", { cause: Object.assign(new Error("connect ETIMEDOUT 203.0.113.9:443"), { code: "ETIMEDOUT" }) })
+    if (w.meta === "refuses") return json({ error: EXPIRED }, 400)
     const sent = (JSON.parse(String(init?.body)) as { data: Row[] }).data
     w.toMeta.push(...sent)
     return json({ events_received: sent.length, messages: [], fbtrace_id: "test" })
+  }
+  if (href === "https://api.resend.com/emails") {
+    if (w.mailDown) return json({ message: "API key is invalid" }, 403)
+    const mail = JSON.parse(String(init?.body)) as { to: string[]; subject: string; text: string }
+    w.mails.push({ to: mail.to, subject: mail.subject, text: mail.text })
+    return json({ id: "test-mail" })
   }
   if (!href.startsWith(`${API}/rest/v1/`)) throw new Error(`unexpected fetch ${href.slice(0, 80)}`)
   const url = new URL(href)
   const table = url.pathname.slice("/rest/v1/".length)
   if (method === "POST") {
-    w.tables[table] = [...(w.tables[table] ?? []), ...(JSON.parse(String(init?.body)) as Row[])]
+    if (w.noWrite.has(table)) return dbError(403, "42501", `permission denied for table ${table}`)
+    const body = JSON.parse(String(init?.body)) as Row | Row[]
+    const rows = Array.isArray(body) ? body : [body]
+    // An upsert replaces the row with the same key; an insert only adds.
+    const key = url.searchParams.get("on_conflict")
+    const kept = (w.tables[table] ?? []).filter((old) => !key || !rows.some((r) => r[key] === old[key]))
+    if (table === "meta_capi_events") {
+      const onFile = new Set(kept.map(eventKey))
+      if (rows.some((r) => eventKey(r) && onFile.has(eventKey(r)))) return dbError(409, "23505", 'duplicate key value violates unique constraint "meta_capi_events_real_uniq"')
+    }
+    w.tables[table] = [...kept, ...rows]
     return new Response(null, { status: 201 })
   }
   if (method !== "GET") throw new Error(`unexpected ${method} ${table}`)
@@ -111,15 +169,27 @@ const BOOKED = uuid(2)
 const ORDER = uuid(9001)
 const BOOKING = uuid(8001)
 
+type WorldOptions = {
+  down?: string[]
+  noWrite?: string[]
+  meta?: World["meta"]
+  sent?: Row[]
+  mailDown?: boolean
+  /** The health record already in workbench_settings. */
+  health?: SweepHealth
+  /** This many leads, all two days old, wrote back yesterday: more events than one batch of 50 carries. */
+  replies?: number
+}
+
 /**
  * The 60-day list as it stood on 2026-11-12: 174 Meta leads, the browser of
  * every click on file. One wrote back two days ago, one locked a date yesterday.
  */
-function makeWorld(over: { down?: string[]; sent?: Row[] } = {}): World {
+function makeWorld(over: WorldOptions = {}): World {
   const leads = Array.from({ length: 174 }, (_, i) => ({
     id: uuid(i + 1),
-    created_at: ago(3 + (i % 50)),
-    first_seen_at: ago(3 + (i % 50)),
+    created_at: ago(over.replies ? 2 : 3 + (i % 50)),
+    first_seen_at: ago(over.replies ? 2 : 3 + (i % 50)),
     email: `lead${i + 1}@example.com`,
     phone: `626555${1000 + i}`,
     fbclid: clickId(i + 1),
@@ -132,36 +202,56 @@ function makeWorld(over: { down?: string[]; sent?: Row[] } = {}): World {
     tables: {
       leads,
       meta_click_context: leads.map((l) => ({ fbclid: l.fbclid, fbp: FBP, user_agent: UA, ip: IP })),
-      lead_touchpoints: [{ lead_id: REPLIED, touchpoint_type: "sms_inbound", occurred_at: ago(2), raw_payload_json: { Body: "Is Nov 21 open for 14 people?" } }],
+      lead_touchpoints: over.replies
+        ? leads.slice(0, over.replies).map((l) => ({ lead_id: l.id, touchpoint_type: "sms_inbound", occurred_at: ago(1), raw_payload_json: { Body: "Yes, Saturday works" } }))
+        : [{ lead_id: REPLIED, touchpoint_type: "sms_inbound", occurred_at: ago(2), raw_payload_json: { Body: "Is Nov 21 open for 14 people?" } }],
       orders: [{ id: ORDER, created_at: ago(1), quoted_total_cents: 98_000, customer_email: "lead2@example.com", customer_phone: "6265551001", source_ref: BOOKING, source_metadata: { lead_id: BOOKED }, deposit_status: "paid_verified" }],
       bookings: [{ id: BOOKING, payment_intent_id: "pi_test_123", stripe_session_id: null }],
       meta_capi_events: over.sent ?? [],
+      workbench_settings: over.health ? [{ key: META_CAPI_HEALTH_KEY, value: over.health, updated_at: over.health.last_attempt_at, updated_by: "meta-capi cron" }] : [],
     },
     down: new Set(over.down ?? []),
+    noWrite: new Set(over.noWrite ?? []),
+    meta: over.meta ?? "takes",
     reads: [],
     refused: [],
     toMeta: [],
+    mails: [],
+    mailDown: over.mailDown ?? false,
+    log: [],
   }
 }
 
-type Answer = { ok: boolean; sent?: number; withBrowserContext?: number; error?: string; errors?: unknown[] }
+type Answer = { ok: boolean; dry?: boolean; sent?: number; withBrowserContext?: number; error?: string; errors?: unknown[]; events?: unknown[] }
 
-async function sweep(w: World): Promise<{ status: number; body: Answer }> {
+/**
+ * One call of the route. As pg_cron makes it unless told otherwise: `hand` is
+ * the owner's key without ?consumer=cron, `dry` adds ?dry=1, `testCode` adds
+ * ?test_event_code=.
+ */
+async function sweep(w: World, how: { hand?: boolean; dry?: boolean; testCode?: string } = {}): Promise<{ status: number; body: Answer }> {
   const { NextRequest } = await import("next/server")
   const { POST } = await import("../app/api/integrations/meta-capi/route")
+  const query = [how.hand ? "" : "consumer=cron", how.dry ? "dry=1" : "", how.testCode ? `test_event_code=${how.testCode}` : ""].filter(Boolean).join("&")
+  const print = console.error
+  console.error = (...args: unknown[]) => void w.log.push(args.map(String).join(" "))
   world = w
   try {
     const res = await POST(
-      new NextRequest("http://localhost/api/integrations/meta-capi?consumer=cron", {
+      new NextRequest(`http://localhost/api/integrations/meta-capi?${query}`, {
         method: "POST",
-        headers: { "x-admin-key": cronKeyFor(CRON_PURPOSE_META_CAPI, CRON_BASE) as string },
+        headers: { "x-admin-key": how.hand ? OWNER_KEY : (cronKeyFor(CRON_PURPOSE_META_CAPI, CRON_BASE) as string) },
       }),
     )
     return { status: res.status, body: (await res.json()) as Answer }
   } finally {
     world = null
+    console.error = print
   }
 }
+
+/** The sweep's health record as stored, if it is there. */
+const health = (w: World) => w.tables.workbench_settings.find((r) => r.key === META_CAPI_HEALTH_KEY)?.value as SweepHealth | undefined
 
 const names = (events: Row[]) => events.map((e) => `${e.event_name} ${e.event_id}`).sort()
 const THREE = [`Contact reply-${REPLIED}`, "Purchase pi_test_123", `Schedule lock-${ORDER}`]
@@ -221,6 +311,216 @@ for (const table of ["leads", "meta_click_context", "lead_touchpoints", "orders"
     assert.deepEqual(w.tables.meta_capi_events, [])
   })
 }
+
+// ---- Who is told when it keeps failing ---------------------------------------------
+// pg_cron does not read any of the answers above. So each cron sweep leaves
+// its outcome in workbench_settings, and ops is mailed at the fourth failure
+// in a row (an hour of sweeps), every 12 hours after that, and once when a
+// sweep works again.
+
+test("meta-capi sweep · a cron sweep that works starts the record: the first one makes the row, and nobody is mailed", async () => {
+  const w = makeWorld()
+  assert.equal(health(w), undefined)
+  await sweep(w)
+  await sweep(w)
+  assert.equal(w.tables.workbench_settings.length, 1, "one row, written over by every sweep")
+  assert.equal(w.tables.workbench_settings[0].updated_by, "meta-capi cron")
+  const h = health(w) as SweepHealth
+  assert.deepEqual({ fail_streak: h.fail_streak, last_error: h.last_error, alerted_at: h.alerted_at }, { fail_streak: 0, last_error: null, alerted_at: null })
+  assert.equal(h.last_ok_at, h.last_attempt_at)
+  assert.ok(Date.parse(String(h.last_ok_at)) >= NOW)
+  assert.deepEqual(w.mails, [])
+  assert.deepEqual(w.log, [], "a sweep that works has nothing for the function log")
+})
+
+test("meta-capi sweep · a read refused on every cron sweep: each one counted, one mail at the fourth, one more when it works again", async () => {
+  const w = makeWorld({ down: ["meta_click_context"] })
+  for (let n = 1; n <= 3; n++) {
+    await sweep(w)
+    assert.equal(health(w)?.fail_streak, n)
+  }
+  assert.equal(w.mails.length, 0, "three failed sweeps are not yet news")
+  await sweep(w)
+  assert.equal(w.mails.length, 1)
+  assert.deepEqual(w.mails[0].to, [OPS])
+  assert.equal(w.mails[0].subject, "⚠️ Meta 回传（回话 / 锁单）出错 · 连续失败 4 次")
+  assert.match(w.mails[0].text, /最后一次错误：meta_click_context: Bad Request/)
+  assert.match(w.mails[0].text, /\/rest\/v1\/meta_click_context/)
+  await sweep(w)
+  assert.equal(w.mails.length, 1, "the next reminder is 12 hours away")
+  const failing = health(w) as SweepHealth
+  assert.deepEqual(
+    { fail_streak: failing.fail_streak, last_error: failing.last_error, last_ok_at: failing.last_ok_at },
+    { fail_streak: 5, last_error: "meta_click_context: Bad Request", last_ok_at: null },
+  )
+  assert.ok(failing.alerted_at)
+  assert.deepEqual(names(w.toMeta), [], "events went to Meta while the read was refused")
+  // The record keeps the last error only; the function log has every failed sweep.
+  assert.deepEqual(w.log, Array(5).fill("[meta-capi] sweep failed: meta_click_context: Bad Request"))
+
+  // The database answers again: the three events of the outage go out, and ops hears that too.
+  w.down.clear()
+  const back = await sweep(w)
+  assert.deepEqual({ ok: back.body.ok, sent: back.body.sent }, { ok: true, sent: 3 })
+  assert.equal(w.mails.length, 2)
+  assert.equal(w.mails[1].subject, "✅ Meta 回传（回话 / 锁单）恢复了")
+  assert.match(w.mails[1].text, /之前连续失败 5 次/)
+  assert.match(w.mails[1].text, /这一轮发出 3 条事件/)
+  assert.deepEqual({ fail_streak: health(w)?.fail_streak, last_error: health(w)?.last_error }, { fail_streak: 0, last_error: null })
+  await sweep(w)
+  assert.equal(w.mails.length, 2)
+})
+
+test("meta-capi sweep · a dry run, a run by hand and a test-event run are not the schedule: not counted, not mailed, and they clear nothing", async () => {
+  const stored: SweepHealth = { fail_streak: 3, last_attempt_at: ago(0.01), last_ok_at: ago(0.04), last_error: "leads: Bad Request", alerted_at: null }
+  const w = makeWorld({ down: ["leads"], health: stored })
+  const before = JSON.stringify(w.tables.workbench_settings)
+  // Each of these fails. From the schedule it would be the fourth in a row, and a mail.
+  for (const how of [{ dry: true }, { hand: true }, { hand: true, dry: true }, { testCode: "TEST123" }]) {
+    const { status, body } = await sweep(w, how)
+    assert.deepEqual({ status, error: body.error }, { status: 500, error: "leads: Bad Request" }, JSON.stringify(how))
+  }
+  // Each of these works. From the schedule it would end the streak.
+  w.down.clear()
+  const dry = await sweep(w, { dry: true })
+  assert.deepEqual({ ok: dry.body.ok, dry: dry.body.dry, due: dry.body.events?.length }, { ok: true, dry: true, due: 3 })
+  assert.deepEqual(names(w.toMeta), [], "a dry run sent events")
+  const hand = await sweep(w, { hand: true })
+  assert.deepEqual({ ok: hand.body.ok, sent: hand.body.sent }, { ok: true, sent: 3 })
+
+  assert.equal(JSON.stringify(w.tables.workbench_settings), before)
+  assert.deepEqual(w.reads.filter((r) => r.table === "workbench_settings"), [], "the record was read")
+  assert.deepEqual(w.mails, [])
+  // The schedule's own next sweep is the one that counts.
+  await sweep(w)
+  assert.equal(health(w)?.fail_streak, 0)
+})
+
+test("meta-capi sweep · a batch Meta refuses: the sweep fails in Meta's words, nothing goes on file, and once Meta takes it the batch is on file and stays sent", async () => {
+  const w = makeWorld({ meta: "refuses" })
+  const refused = await sweep(w)
+  assert.equal(refused.status, 200)
+  assert.deepEqual({ ok: refused.body.ok, sent: refused.body.sent, error: refused.body.error }, { ok: false, sent: 0, error: EXPIRED_LINE })
+  assert.deepEqual(refused.body.errors, [{ error: EXPIRED }])
+  // One row per real event: a row for the refusal would keep the success below off the file.
+  assert.deepEqual(w.tables.meta_capi_events, [])
+  assert.deepEqual({ fail_streak: health(w)?.fail_streak, last_error: health(w)?.last_error }, { fail_streak: 1, last_error: EXPIRED_LINE })
+
+  w.meta = "takes"
+  const taken = await sweep(w)
+  assert.deepEqual({ ok: taken.body.ok, sent: taken.body.sent, error: taken.body.error }, { ok: true, sent: 3, error: undefined })
+  assert.deepEqual(names(w.tables.meta_capi_events), THREE)
+  assert.equal(health(w)?.fail_streak, 0)
+  const after = await sweep(w)
+  assert.deepEqual({ ok: after.body.ok, sent: after.body.sent }, { ok: true, sent: 0 })
+  assert.equal(w.toMeta.length, 3, "the batch went to Meta a second time")
+})
+
+test("meta-capi sweep · Meta does not answer: a failed sweep, not a crash, and nothing on file", async () => {
+  const w = makeWorld({ meta: "silent" })
+  const { status, body } = await sweep(w)
+  const line = "Meta: no answer (fetch failed: ETIMEDOUT)"
+  assert.equal(status, 200)
+  assert.deepEqual({ ok: body.ok, sent: body.sent, error: body.error }, { ok: false, sent: 0, error: line })
+  assert.deepEqual(w.tables.meta_capi_events, [])
+  assert.deepEqual({ fail_streak: health(w)?.fail_streak, last_error: health(w)?.last_error }, { fail_streak: 1, last_error: line })
+})
+
+test("meta-capi sweep · sent, and the file cannot be written: the sweep fails and says the batch goes out again", async () => {
+  const w = makeWorld({ noWrite: ["meta_capi_events"] })
+  const { status, body } = await sweep(w)
+  const line = "meta_capi_events insert: permission denied for table meta_capi_events (3 sent to Meta and not on file: the next sweep sends them again)"
+  assert.equal(status, 200)
+  assert.deepEqual({ ok: body.ok, sent: body.sent, error: body.error }, { ok: false, sent: 3, error: line })
+  assert.equal(w.toMeta.length, 3)
+  assert.deepEqual({ fail_streak: health(w)?.fail_streak, last_error: health(w)?.last_error }, { fail_streak: 1, last_error: line })
+  // And it does go out again: that is why this is a failed sweep and not a detail.
+  await sweep(w)
+  assert.equal(w.toMeta.length, 6)
+  assert.equal(health(w)?.fail_streak, 2)
+})
+
+test("meta-capi sweep · more events than one batch: nothing more is sent after a batch that cannot be put on file, while a refused batch does not hold up the next", async () => {
+  const unwritable = makeWorld({ replies: 60, noWrite: ["meta_capi_events"] })
+  const stopped = await sweep(unwritable)
+  assert.deepEqual({ ok: stopped.body.ok, sent: stopped.body.sent }, { ok: false, sent: 50 })
+  assert.match(String(stopped.body.error), /^meta_capi_events insert: .* \(50 sent to Meta and not on file/)
+  assert.equal(unwritable.toMeta.length, 50, "the second batch (12 events) was sent with nowhere to put it")
+
+  const expired = makeWorld({ replies: 60, meta: "refuses" })
+  const refused = await sweep(expired)
+  assert.equal(refused.body.errors?.length, 2, "both batches were offered to Meta")
+  assert.equal(refused.body.error, EXPIRED_LINE, "the same refusal is said once")
+
+  const fine = makeWorld({ replies: 60 })
+  const all = await sweep(fine)
+  assert.deepEqual({ ok: all.body.ok, sent: all.body.sent, onFile: fine.tables.meta_capi_events.length }, { ok: true, sent: 62, onFile: 62 })
+})
+
+test("meta-capi sweep · no token: a failed sweep like any other, and a dry run does not need one", async () => {
+  const w = makeWorld()
+  const token = process.env.META_CAPI_TOKEN
+  delete process.env.META_CAPI_TOKEN
+  try {
+    const { status, body } = await sweep(w)
+    assert.equal(status, 200)
+    assert.deepEqual(body, { ok: false, error: "META_CAPI_TOKEN not set" })
+    assert.deepEqual({ fail_streak: health(w)?.fail_streak, last_error: health(w)?.last_error }, { fail_streak: 1, last_error: "META_CAPI_TOKEN not set" })
+    assert.equal((await sweep(w, { dry: true })).body.ok, true)
+    assert.deepEqual(names(w.toMeta), [])
+  } finally {
+    process.env.META_CAPI_TOKEN = token
+  }
+})
+
+test("meta-capi sweep · the bookkeeping never changes the answer: a record that cannot be read is left alone, one that cannot be saved still mails", async () => {
+  const stored: SweepHealth = { fail_streak: 3, last_attempt_at: ago(0.01), last_ok_at: ago(0.04), last_error: "leads: Bad Request", alerted_at: null }
+
+  const FAILED = "[meta-capi] sweep failed: leads: Bad Request"
+
+  // Not read. This failure is the fourth; "1" written over the 3 would put the mail off by an hour.
+  const unread = makeWorld({ down: ["leads", "workbench_settings"], health: stored })
+  const a = await sweep(unread)
+  assert.deepEqual({ status: a.status, error: a.body.error }, { status: 500, error: "leads: Bad Request" })
+  assert.deepEqual(health(unread), stored)
+  assert.deepEqual(unread.mails, [])
+  assert.deepEqual(unread.log, [FAILED, "[meta-capi] health record not read, sweep not counted Bad Request"])
+
+  // Read but not saved: the fourth failure is still the fourth, and ops is told.
+  const unsaved = makeWorld({ down: ["leads"], noWrite: ["workbench_settings"], health: stored })
+  const b = await sweep(unsaved)
+  assert.deepEqual({ status: b.status, error: b.body.error }, { status: 500, error: "leads: Bad Request" })
+  assert.deepEqual(health(unsaved), stored)
+  assert.equal(unsaved.mails.length, 1)
+  assert.deepEqual(unsaved.log, [FAILED, "[meta-capi] health record not saved permission denied for table workbench_settings"])
+
+  // The mail provider turns the mail away: counted all the same, and the function log says the mail did not go.
+  const unmailed = makeWorld({ down: ["leads"], health: stored, mailDown: true })
+  const c = await sweep(unmailed)
+  assert.deepEqual({ status: c.status, error: c.body.error }, { status: 500, error: "leads: Bad Request" })
+  assert.equal(health(unmailed)?.fail_streak, 4)
+  assert.deepEqual(unmailed.log, [FAILED, "[meta-capi] health mail not sent ⚠️ Meta 回传（回话 / 锁单）出错 · 连续失败 4 次 resend_http_403: API key is invalid"])
+
+  // And a sweep that works answers the same with the record out of reach.
+  const fine = makeWorld({ down: ["workbench_settings"] })
+  const d = await sweep(fine)
+  assert.deepEqual({ status: d.status, ok: d.body.ok, sent: d.body.sent }, { status: 200, ok: true, sent: 3 })
+})
+
+test("meta-capi sweep · no database configured: the sweep says so, and there is nowhere to count it", async () => {
+  const w = makeWorld()
+  const url = process.env.SUPABASE_URL
+  delete process.env.SUPABASE_URL
+  try {
+    const { status, body } = await sweep(w)
+    assert.equal(status, 500)
+    assert.deepEqual(body, { ok: false, error: "supabase not configured" })
+    assert.deepEqual([w.reads, w.mails, w.toMeta], [[], [], []])
+    assert.ok(w.log.includes("[meta-capi] sweep failed: supabase not configured"), w.log.join(" / "))
+  } finally {
+    process.env.SUPABASE_URL = url
+  }
+})
 
 // ---- lib/in-chunks.ts ------------------------------------------------------------
 

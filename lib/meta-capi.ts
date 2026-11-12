@@ -109,14 +109,31 @@ export function buildEvent(e: CapiEvent): Record<string, unknown> {
 
 export type CapiResult = { ok: boolean; status: number; body: unknown }
 
+/** Why a request got no answer, in a few words. The token is in the URL, so nothing of a URL goes into the text. */
+function noAnswerReason(error: unknown): string {
+  const e = error as { message?: unknown; cause?: { code?: unknown; message?: unknown } } | null
+  const parts = [e?.message, e?.cause?.code ?? e?.cause?.message].filter((s): s is string => typeof s === "string" && s !== "")
+  return (parts.join(": ") || String(error)).replace(/access_token=[^&\s"')]+/g, "access_token=...").slice(0, 200)
+}
+
+/**
+ * Never throws. status 0 means Meta was not asked (no token) or did not
+ * answer (DNS, reset, timeout): not taken, like a refusal, so the sweep can
+ * report it instead of dying mid-run.
+ */
 export async function sendCapiEvents(events: Record<string, unknown>[], testEventCode?: string): Promise<CapiResult> {
   const token = metaCapiToken()
   if (!token) return { ok: false, status: 0, body: { error: "META_CAPI_TOKEN not set" } }
-  const res = await fetch(`${GRAPH}/${metaPixelId()}/events?access_token=${encodeURIComponent(token)}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ data: events, ...(testEventCode ? { test_event_code: testEventCode } : {}) }),
-  })
+  let res: Response
+  try {
+    res = await fetch(`${GRAPH}/${metaPixelId()}/events?access_token=${encodeURIComponent(token)}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ data: events, ...(testEventCode ? { test_event_code: testEventCode } : {}) }),
+    })
+  } catch (error) {
+    return { ok: false, status: 0, body: { error: `no answer (${noAnswerReason(error)})` } }
+  }
   let body: unknown = null
   try {
     body = await res.json()

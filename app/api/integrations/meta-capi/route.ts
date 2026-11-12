@@ -4,6 +4,19 @@ import { can, resolveAdminActor } from "@/lib/admin-auth"
 import { CRON_PURPOSE_META_CAPI, isCronCall } from "@/lib/cron-key"
 import { inChunks } from "@/lib/in-chunks"
 import { buildEvent, isDecline, metaCapiToken, sendCapiEvents, type CapiEvent } from "@/lib/meta-capi"
+import {
+  META_CAPI_CADENCE,
+  META_CAPI_HEALTH_KEY,
+  TOKEN_NOT_SET,
+  failingMail,
+  metaRefused,
+  readRefused,
+  recoveredMail,
+  sentNotOnFile,
+  sweepOutcome,
+  type SweepRead,
+} from "@/lib/meta-capi-health"
+import { recordSweepHealth } from "@/lib/sweep-health-store"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -27,6 +40,13 @@ export const dynamic = "force-dynamic"
 // to 2026-11-12 the click lookup was refused on every sweep (its URL had grown
 // past what the API answers, lib/in-chunks.ts), the error was dropped, and 35
 // events went out as system_generated with the browser on file.
+//
+// pg_cron never reads what the sweep answers, so the cron sweep keeps count
+// itself: anything but ok:true is a failure in workbench_settings
+// (meta_capi.health), the 4th in a row mails ops, then one mail every 12
+// hours, and one when a sweep works again (lib/meta-capi-health.ts). A run by
+// hand, a dry run and a test-event run are not the schedule and are not
+// counted.
 
 const LOOKBACK_DAYS = 7
 const DEFAULT_BOOKING_VALUE_CENTS = 60_000
@@ -73,24 +93,15 @@ async function saveContext(request: NextRequest) {
   return NextResponse.json({ ok: true })
 }
 
-export async function POST(request: NextRequest) {
-  const params = request.nextUrl.searchParams
-  if (params.get("action") === "context") return saveContext(request)
+type Answer = { status: number; body: { ok: boolean; error?: string; sent?: number } & Record<string, unknown> }
 
-  const cron = isCronCall(request, CRON_PURPOSE_META_CAPI)
-  if (!cron) {
-    const actor = await resolveAdminActor(request)
-    if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-    if (!can(actor, "board")) return NextResponse.json({ error: "没有看板权限" }, { status: 403 })
-  }
-  const dry = params.get("dry") === "1"
-  const testEventCode = params.get("test_event_code")?.trim() || undefined
-  if (!dry && !metaCapiToken()) return NextResponse.json({ ok: false, error: "META_CAPI_TOKEN not set" }, { status: 200 })
+async function sweep(dry: boolean, testEventCode: string | undefined): Promise<Answer> {
+  if (!dry && !metaCapiToken()) return { status: 200, body: { ok: false, error: TOKEN_NOT_SET } }
 
   const supabase = createServerSupabaseClient()
-  if (!supabase) return NextResponse.json({ ok: false, error: "supabase not configured" }, { status: 500 })
+  if (!supabase) return { status: 500, body: { ok: false, error: "supabase not configured" } }
   const since = new Date(Date.now() - LOOKBACK_DAYS * 86400_000).toISOString()
-  const refused = (read: string, error: { message: string }) => NextResponse.json({ ok: false, error: `${read}: ${error.message}` }, { status: 500 })
+  const refused = (read: SweepRead, error: { message: string }): Answer => ({ status: 500, body: { ok: false, error: readRefused(read, error.message) } })
 
   // Every Meta lead that could still produce an event: clicked in the last
   // 7 days, or older but its customer booked in the last 7 days (below).
@@ -231,22 +242,35 @@ export async function POST(request: NextRequest) {
     withBrowserContext: todo.filter((c) => c.user.userAgent).length,
   }
   if (dry) {
-    return NextResponse.json({
-      ok: true,
-      dry: true,
-      ...summary,
-      events: todo.map((c) => ({ event: c.eventName, at: c.eventTime, lead: c.leadId, order: c.orderId ?? null, value: c.valueCents ?? null, website: Boolean(c.user.userAgent) })),
-    })
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        dry: true,
+        ...summary,
+        events: todo.map((c) => ({ event: c.eventName, at: c.eventTime, lead: c.leadId, order: c.orderId ?? null, value: c.valueCents ?? null, website: Boolean(c.user.userAgent) })),
+      },
+    }
   }
 
   let okCount = 0
   const errors: unknown[] = []
+  const failures: string[] = []
   for (let i = 0; i < todo.length; i += 50) {
     const batch = todo.slice(i, i + 50)
     const res = await sendCapiEvents(batch.map(buildEvent), testEventCode)
-    if (res.ok) okCount += batch.length
-    else errors.push(res.body)
-    await supabase.from("meta_capi_events").insert(
+    if (!res.ok) {
+      // Nothing goes on file for a batch Meta did not take. meta_capi_events
+      // holds one row per real event (unique on event_name + event_id), so a
+      // row for the refusal would keep the later success off the file and the
+      // event would go out again on every sweep. The next sweep finds it still
+      // unsent; what Meta said is in this answer and in the health record.
+      errors.push(res.body)
+      failures.push(metaRefused(res))
+      continue
+    }
+    okCount += batch.length
+    const { error: fileError } = await supabase.from("meta_capi_events").insert(
       batch.map((c) => ({
         event_name: c.eventName,
         event_id: c.eventId,
@@ -255,10 +279,50 @@ export async function POST(request: NextRequest) {
         event_time: c.eventTime,
         value_cents: c.valueCents ?? null,
         test_event_code: testEventCode ?? null,
-        ok: res.ok,
+        ok: true,
         response: res.body as object,
       })),
     )
+    if (fileError) {
+      // Sent and not on file: the next sweep sends this batch again. No more
+      // batches now - each would be one more that cannot be put on file.
+      failures.push(sentNotOnFile(batch.length, fileError.message))
+      break
+    }
   }
-  return NextResponse.json({ ok: errors.length === 0, sent: okCount, ...summary, errors: errors.slice(0, 3) })
+  return {
+    status: 200,
+    body: { ok: failures.length === 0, ...(failures.length ? { error: [...new Set(failures)].slice(0, 3).join(" | ") } : {}), sent: okCount, ...summary, errors: errors.slice(0, 3) },
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const params = request.nextUrl.searchParams
+  if (params.get("action") === "context") return saveContext(request)
+
+  const cron = isCronCall(request, CRON_PURPOSE_META_CAPI)
+  if (!cron) {
+    const actor = await resolveAdminActor(request)
+    if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+    if (!can(actor, "board")) return NextResponse.json({ error: "没有看板权限" }, { status: 403 })
+  }
+  const dry = params.get("dry") === "1"
+  const testEventCode = params.get("test_event_code")?.trim() || undefined
+
+  let answer: Answer
+  try {
+    answer = await sweep(dry, testEventCode)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.error("[meta-capi] sweep crashed", error)
+    answer = { status: 500, body: { ok: false, error: message } }
+  }
+  if (cron && !dry && !testEventCode) {
+    const sent = answer.body.sent ?? 0
+    await recordSweepHealth(
+      { key: META_CAPI_HEALTH_KEY, name: "meta-capi", cadence: META_CAPI_CADENCE, failingMail, recoveredMail: (prev, nowMs) => recoveredMail(prev, nowMs, sent) },
+      sweepOutcome(answer.body),
+    )
+  }
+  return NextResponse.json(answer.body, { status: answer.status })
 }

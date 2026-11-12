@@ -6,44 +6,26 @@
 // quote, and nothing said so: pg_cron does not read responses. So the route
 // keeps a streak in workbench_settings and mails ops when it crosses these
 // lines, and once more when it comes back.
+//
+// The stored record and the decisions are lib/sweep-health.ts, shared with the
+// Conversions API sweep. The lines and the mails here are this sync's own.
 
-/** Stored at workbench_settings key META_LEADS_HEALTH_KEY. */
-export type SweepHealth = {
-  fail_streak: number
-  last_attempt_at: string | null
-  last_ok_at: string | null
-  last_error: string | null
-  alerted_at: string | null
-}
+import { alertDue as dueAt, hoursSince, nextHealth as next, type AlertCadence, type SweepHealth, type SweepOutcome } from "@/lib/sweep-health"
 
+export { hoursSince, readHealth, type SweepHealth, type SweepOutcome } from "@/lib/sweep-health"
+
+/** The record is stored at this workbench_settings key. */
 export const META_LEADS_HEALTH_KEY = "meta_leads.health"
 /** 15 sweeps x 2 min = half an hour of failing before the first mail. */
 export const META_LEADS_ALERT_FIRST = 15
 /** Then one reminder every 360 sweeps = 12 hours. */
 export const META_LEADS_ALERT_EVERY = 360
 
-export type SweepOutcome = { ok: true } | { ok: false; error: string }
-
-const EMPTY: SweepHealth = { fail_streak: 0, last_attempt_at: null, last_ok_at: null, last_error: null, alerted_at: null }
-
-/** The stored row, or a clean slate when it is missing or malformed. */
-export function readHealth(value: unknown): SweepHealth {
-  if (!value || typeof value !== "object") return { ...EMPTY }
-  const v = value as Partial<SweepHealth>
-  const s = (x: unknown) => (typeof x === "string" && x ? x : null)
-  return {
-    fail_streak: typeof v.fail_streak === "number" && v.fail_streak >= 0 ? Math.floor(v.fail_streak) : 0,
-    last_attempt_at: s(v.last_attempt_at),
-    last_ok_at: s(v.last_ok_at),
-    last_error: s(v.last_error),
-    alerted_at: s(v.alerted_at),
-  }
-}
+const CADENCE: AlertCadence = { first: META_LEADS_ALERT_FIRST, every: META_LEADS_ALERT_EVERY }
 
 /** Mail at the 15th failure in a row, then every 360 more. */
 export function alertDue(streak: number): boolean {
-  if (streak < META_LEADS_ALERT_FIRST) return false
-  return (streak - META_LEADS_ALERT_FIRST) % META_LEADS_ALERT_EVERY === 0
+  return dueAt(streak, CADENCE)
 }
 
 /**
@@ -52,24 +34,7 @@ export function alertDue(streak: number): boolean {
  * to alert and just worked again, so mail "back".
  */
 export function nextHealth(prev: SweepHealth, outcome: SweepOutcome, nowIso: string): { health: SweepHealth; alert: boolean; recovered: boolean } {
-  if (outcome.ok) {
-    const recovered = prev.fail_streak >= META_LEADS_ALERT_FIRST
-    return { health: { fail_streak: 0, last_attempt_at: nowIso, last_ok_at: nowIso, last_error: null, alerted_at: prev.alerted_at }, alert: false, recovered }
-  }
-  const streak = prev.fail_streak + 1
-  const alert = alertDue(streak)
-  return {
-    health: { fail_streak: streak, last_attempt_at: nowIso, last_ok_at: prev.last_ok_at, last_error: outcome.error.slice(0, 500), alerted_at: alert ? nowIso : prev.alerted_at },
-    alert,
-    recovered: false,
-  }
-}
-
-/** Hours since an ISO time, one decimal; null when unknown. */
-export function hoursSince(iso: string | null, nowMs: number): number | null {
-  if (!iso) return null
-  const t = Date.parse(iso)
-  return Number.isFinite(t) ? Math.round(((nowMs - t) / 3600_000) * 10) / 10 : null
+  return next(prev, outcome, nowIso, CADENCE)
 }
 
 /** The ops mail for a failing streak. Chinese for the owner; the error stays as Meta wrote it. */
