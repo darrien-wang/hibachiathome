@@ -465,7 +465,7 @@ Two things move those numbers:
 
 **Upgrades move it up, by choice.** Filet mignon is +$8 per guest, premium sea scallops +$6, spiny lobster tail +$12. Filet and lobster are the two people actually pick.
 
-In practice a party that upgrades lands around **$65 a head**, not $80 — most guests take one upgrade, not three. Extra sides are ordered by the tray for the table rather than per person: gyoza $15, edamame $10, noodles $5. None of it is required, and plenty of parties add nothing at all.
+In practice a party that upgrades lands around **$65 a head**, not $80 — most guests swap one protein, not both. Extra sides are ordered by the tray for the table rather than per person: gyoza $15, edamame $10, noodles $5. None of it is required, and plenty of parties add nothing at all.
 
 ## Travel: the first 50 miles are free
 

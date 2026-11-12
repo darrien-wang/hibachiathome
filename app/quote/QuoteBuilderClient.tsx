@@ -22,7 +22,9 @@ import {
   type RegionCode,
 } from "@/config/regional-policies"
 import {
+  EXTRA_PROTEIN_PRICE,
   GUEST_TIERS,
+  INCLUDED_PROTEINS_PER_PERSON,
   displayRange,
   formatDisplayRange,
   MINIMUM_SPEND,
@@ -2230,7 +2232,13 @@ export default function QuoteBuilderClient() {
                       )
                     })}
                   </div>
-                  <p className="text-xs leading-snug text-clay-600">Per guest who chooses it, on top of the 2 regular proteins.</p>
+                  {/* An upgrade replaces one of the guest's 2 proteins; it is not a third one (the
+                      invoice's calcGuestProteinCost). "On top of the 2 regular proteins" read
+                      filet + scallops + lobster for $26 a guest: it is $36, and $56 with chicken
+                      and shrimp kept (2026-11-11). One line at 360 px: keep it this short. */}
+                  <p className="text-xs leading-snug text-clay-600">
+                    Swaps one of a guest&apos;s {INCLUDED_PROTEINS_PER_PERSON} proteins. Extra protein: ${EXTRA_PROTEIN_PRICE} more.
+                  </p>
                 </div>
 
                 {shouldShowWeatherCard && weatherPreview ? (

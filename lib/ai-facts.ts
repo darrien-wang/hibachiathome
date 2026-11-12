@@ -66,6 +66,13 @@ export function getAiFacts(now = new Date()): { summary: string; sections: FactS
     .map((b) => (b.start === b.end ? `${b.label} (${b.start})` : `${b.label} (${b.start} to ${b.end})`))
   const platterOn = !LARGE_PARTY_PLATTER.until || today <= LARGE_PARTY_PLATTER.until
   const addOn = (id: string) => sides.find((s) => s.id === id)
+  const premiumName = (p: { name: string }) => p.name.replace(/ Upgrade$/, "")
+  // One guest with chicken, shrimp and every premium, as the invoice bills it
+  // (calcGuestProteinCost): each upgrade, plus the extra-protein price for
+  // each protein past the included ones. $56 today, not the $26 of upgrades.
+  const allPremiumsExample =
+    premiumProteins.reduce((sum, p) => sum + p.price, 0) +
+    Math.max(0, 2 + premiumProteins.length - INCLUDED_PROTEINS_PER_PERSON) * EXTRA_PROTEIN_PRICE
 
   const pricing: string[] = [
     `Standard rate, any day: ${usd2(adult.price)} per adult (13+), ${usd2(child.price)} per child (5-12), kids under 5 eat free.`,
@@ -79,7 +86,11 @@ export function getAiFacts(now = new Date()): { summary: string; sections: FactS
       : []),
     `Travel: first ${TRAVEL_FREE_RADIUS_MILES} driving miles free, then ${usd(TRAVEL_RATE_PER_MILE)} per mile. Most of Los Angeles and Orange County is inside the free radius.`,
     ...(isPromotionActive("call_out_fee_waived") ? ["No chef call-out fee right now (waived)."] : []),
-    `Premium protein upgrades, per guest: ${premiumProteins.map((p) => `${p.name.replace(/ Upgrade$/, "")} +${usd(p.price)}`).join(", ")}. A third protein is +${usd(EXTRA_PROTEIN_PRICE)} per guest.`,
+    // As the invoice prices a guest's proteins (calcGuestProteinCost): an
+    // upgrade replaces one of the included 2; a protein past them is the
+    // extra-protein price, plus its upgrade if premium. "A third protein is
+    // +$10" left a premium third at $10 (2026-11-11).
+    `Premium protein upgrades, per guest: ${premiumProteins.map((p) => `${premiumName(p)} +${usd(p.price)}`).join(", ")}. An upgrade swaps one of the guest's ${INCLUDED_PROTEINS_PER_PERSON} included proteins; it does not add one. A protein beyond the ${INCLUDED_PROTEINS_PER_PERSON} is +${usd(EXTRA_PROTEIN_PRICE)} per guest, plus its upgrade if premium (${premiumProteins.map((p) => `${premiumName(p)} +${usd(EXTRA_PROTEIN_PRICE + p.price)}`).join(", ")}). Example: chicken, shrimp and all ${premiumProteins.length} premiums for one guest = +${usd(allPremiumsExample)}.`,
     `Add-ons: ${[
       addOn("gyoza") && `gyoza ${usd(addOn("gyoza")!.price)} per tray of 10`,
       addOn("spring-rolls") && `spring rolls ${usd(addOn("spring-rolls")!.price)} per tray of 10`,

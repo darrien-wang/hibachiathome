@@ -1,0 +1,43 @@
+Local production build of a9738fa9 (both commits), 2026-11-11, before any push.
+`CI=true pnpm install --frozen-lockfile` inside the worktree (19.5 s), then `pnpm build`:
+  ✓ Compiled successfully
+  ✓ Generating static pages (160/160)
+  ├ ○ /quote    26.7 kB    149 kB
+  exit=0
+(11-09: SWC's minifier broke the /quote prerender with an inlined helper; this build prerendered it.)
+
+Homepage SSR guard (.next/server/app/index.html): size 77546 | h1 1 | jsonld 4 (same as the 11-06 to 11-09 builds).
+
+Built output, grep:
+- /quote client chunk .next/static/chunks/app/quote/page-f121808329c5b0ab.js:
+    caption  (0,l.jsxs)("p",{className:"text-xs leading-snug text-clay-600",children:["Swaps one of a guest's ",E.eF," proteins. Extra protein: $",E.Fh," more."]})
+    upgrades j=s*function(e){let t=[];e.steak&&t.push(K.steak),e.shrimp&&t.push(K.shrimp),e.lobster&&t.push(K.lobster);
+             let a=Math.max(0,t.length-E.eF);return ee(t.reduce((e,t)=>e+t,0)+a*E.Fh)}(e.addOns)
+    The helper is inlined as a function on its own parameter; it reads nothing from the enclosing scope
+    but the price table (K), the two config constants and roundCurrency (ee).
+- Old strings anywhere in .next/static or .next/server: none of "on top of the 2 regular proteins",
+  "Add lobster or filet upgrades", "priced per guest as add-ons", "most guests take one upgrade, not three",
+  "A third protein is +$10 per guest".
+- .next/server/app/llms.txt.body: "- Premium protein upgrades, per guest: Filet Mignon +$8, Premium Sea Scallops +$6,
+  Spiny Lobster Tail +$12. An upgrade swaps one of the guest's 2 included proteins; it does not add one. A protein
+  beyond the 2 is +$10 per guest, plus its upgrade if premium (Filet Mignon +$18, Premium Sea Scallops +$16, Spiny
+  Lobster Tail +$22). Example: chicken, shrimp and all 3 premiums for one guest = +$56."
+- Prerendered pages: hibachi-at-home.html "Swap in lobster or filet!" x2; hibachi-at-home/newport-beach.html
+  "each swaps one of a guest" x4; blog/hibachi-at-home-cost-los-angeles.html "most guests swap one protein, not both" x2.
+
+Built bundle in the browser pane (`npm run start`, port 3000; a temporary "marketing-built" entry in
+.claude/launch.json, restored right after the server started). The page loaded page-f121808329c5b0ab.js.
+Same flow as browser-check.txt: rh_quote_unlock test seed set from /robots.txt (a text page, no tags), every
+non-GET fetch and sendBeacon on /quote answered by an in-page stub (it caught the /api/landing-quote POST and
+Google Analytics / Ads / bzr.openai.com hits; any tag hit sent before the stub went in, e.g. the page view on
+load, may have reached Google Analytics with hostname localhost). Seed removed afterwards.
+  The 11-08 party (7 adults + 1 kid, Mon 11/23, Indio, 7:00 PM), filet + scallops + lobster tail:
+    7 adults × $59.90 | $419.30
+    1 kid × $29.90 | $29.90
+    Travel · Indio | $62
+    Premium upgrades (Filet Mignon, Scallops, Lobster Tail) | up to +$288
+    card $661.20–$799.40; under the buttons "Swaps one of a guest's 2 proteins. Extra protein: $10 more."
+    local-prod-build-11-08-party-all-three.jpg
+  Network to the server: GETs only (slot-availability 503 x2, travel-fee 200 x2, weather 200 x3).
+  Console: the slot-availability 503s and a 404 for /_vercel/insights/script.js (Vercel's analytics script,
+  served only on Vercel). Server log: no errors.

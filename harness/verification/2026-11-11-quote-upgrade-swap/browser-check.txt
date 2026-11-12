@@ -1,0 +1,36 @@
+Local `npm run dev` (this branch, port 3000, nothing else on it), http://localhost:3000/quote in the
+browser pane, 2026-11-11. Same method as 2026-11-08: the contact step was skipped by seeding
+localStorage rh_quote_unlock with test values ((213) 555-0100, test@example.com), and an in-page
+stub answered every non-GET fetch and sendBeacon. It caught the one /api/landing-quote POST from
+"Text me this quote" and the page's analytics hits (Google Analytics / Ads / ccm collect, bzr.openai.com),
+so none of them left the browser. The /privacy-policy page used to seed localStorage loaded before
+the stub, so its tag-manager page view (hostname localhost) may have reached Google Analytics.
+The worktree has no .env.local (no database, Twilio or Resend keys). Network to the local server:
+GETs only (travel-fee 200, weather 200 x2, slot-availability 503 for the missing database keys).
+The seed was removed afterwards. Travel to Indio is the local lookup's $62.20, not production's.
+
+Copy under the three upgrade buttons (Filet mignon +$8 / Scallops +$6 / Lobster tail +$12, unchanged):
+  before: "Per guest who chooses it, on top of the 2 regular proteins."
+  after:  "Swaps one of a guest's 2 proteins. Extra protein: $10 more."
+          (2 and $10 read from INCLUDED_PROTEINS_PER_PERSON / EXTRA_PROTEIN_PRICE)
+  A first wording, "... An extra protein is $10 more.", measured 339 px against a 335 px column at 375
+  wide and left "more." alone on a second line; the shorter one is 314 px. Checked: one line at 375 and
+  at 360 (321 px column), document scrollWidth = viewport (no sideways scroll) at both.
+
+The 11-08 party: Standard, Mon 11/23 (Thanksgiving week), Indio, 7 adults + 1 kid, 7:00 PM, step 3
+  before any upgrade                  [card $661.20]
+    7 adults × $59.90 | $419.30
+    1 kid × $29.90 | $29.90
+    Travel · Indio | $62
+    $599 event minimum applied | +$149.80
+  filet + scallops + lobster tail     [card $661.20–$799.40]   local-desktop-11-08-party-all-three.jpg,
+                                                               local-375-11-08-party-all-three.jpg
+    7 adults × $59.90 | $419.30
+    1 kid × $29.90 | $29.90
+    Travel · Indio | $62
+    Premium upgrades (Filet Mignon, Scallops, Lobster Tail) | up to +$288     (11-08 check: up to +$208)
+    (no minimum line: $449.20 + $288 = $737.20; + $62.20 travel = $799.40, the card's high end)
+  filet + lobster tail (scallops off) [card $661.20–$671.40]
+    Premium upgrades (Filet Mignon, Lobster Tail) | up to +$160               (unchanged: 8 x $20)
+
+Console: the slot-availability 503 only. Dev server log: no errors.

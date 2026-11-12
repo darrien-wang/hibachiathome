@@ -1,6 +1,8 @@
 import {
   GUEST_TIERS,
   WEEKDAY_SPECIAL,
+  EXTRA_PROTEIN_PRICE,
+  INCLUDED_PROTEINS_PER_PERSON,
   MINIMUM_SPEND as RULES_MINIMUM_SPEND,
   FULL_SETUP_PER_GUEST as RULES_FULL_SETUP,
   whiteClothFee as rulesWhiteClothFee,
@@ -129,14 +131,35 @@ const MINIMUM_SPEND = RULES_MINIMUM_SPEND
 const WEEKDAY_SAVER_ADULT_PRICE = GUEST_TIERS.adult.weekdayPrice
 const WEEKDAY_SAVER_KID_PRICE = GUEST_TIERS.child.weekdayPrice
 
+// The upgrade on each premium protein, as the invoice prices it (lib/pricing.ts
+// PREMIUM_PROTEINS): what one serving adds over a regular protein.
 const ADD_ON_PER_GUEST = {
-  steak: 8,
-  shrimp: 6,
-  lobster: 12,
+  steak: 8, // filet mignon
+  shrimp: 6, // scallops
+  lobster: 12, // lobster tail
 } as const
 
 function roundCurrency(value: number): number {
   return Math.round(value * 100) / 100
+}
+
+/**
+ * The most the picked upgrades add for one guest: that guest has every one of
+ * them, priced the way the invoice prices a guest's proteins
+ * (calcGuestProteinCost). An upgrade takes the place of one of the guest's 2
+ * included proteins; past those 2 a protein is an extra one, $10 on top of its
+ * upgrade. So one or two picks cost their upgrades, and all three cost $36
+ * (8 + 6 + 12 + 10), not $26. Until 2026-11-11 /quote added the three up and
+ * said "on top of the 2 regular proteins": on 11-08 a customer read her 8
+ * guests' $208 as chicken + shrimp + all three, which is $448.
+ */
+export function upgradesPerGuestHigh(addOns: QuoteAddOns): number {
+  const upgrades: number[] = []
+  if (addOns.steak) upgrades.push(ADD_ON_PER_GUEST.steak)
+  if (addOns.shrimp) upgrades.push(ADD_ON_PER_GUEST.shrimp)
+  if (addOns.lobster) upgrades.push(ADD_ON_PER_GUEST.lobster)
+  const beyondIncluded = Math.max(0, upgrades.length - INCLUDED_PROTEINS_PER_PERSON)
+  return roundCurrency(upgrades.reduce((sum, fee) => sum + fee, 0) + beyondIncluded * EXTRA_PROTEIN_PRICE)
 }
 
 function normalizeGuests(input: number): number {
@@ -213,12 +236,8 @@ export function calculateQuote(input: QuoteInput, travelFeeRangeOverride?: Quote
 
   const travelFeeRange = travelFeeRangeOverride ?? getTravelFeeRange(input.location)
 
-  const selectedUpgradeUnitPrice =
-    (input.addOns.steak ? ADD_ON_PER_GUEST.steak : 0) +
-    (input.addOns.shrimp ? ADD_ON_PER_GUEST.shrimp : 0) +
-    (input.addOns.lobster ? ADD_ON_PER_GUEST.lobster : 0)
-
-  const addOnBaseHigh = guestCount * selectedUpgradeUnitPrice
+  // High end: every guest takes every picked upgrade (low end: nobody does).
+  const addOnBaseHigh = guestCount * upgradesPerGuestHigh(input.addOns)
   const addOnTotalRange: QuoteRange = {
     low: 0,
     high: roundCurrency(addOnBaseHigh),

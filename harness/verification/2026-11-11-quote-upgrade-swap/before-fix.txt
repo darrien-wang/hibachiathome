@@ -1,0 +1,60 @@
+1) The new and updated tests run against untouched origin/main f9a84888 (lib/quote-builder.ts, lib/ai-facts.ts as they are live):
+✖ minimum · Nicole 11-08: 7 adults + 1 kid with all three upgrades are past $599, so there is no minimum line (2.7028ms)
+✔ minimum · 4 adults + scallops are still under $599: the minimum tops up to $599 with the upgrade inside it (1.4612ms)
+✔ minimum · rentals count toward it like upgrades: 4 adults + full setup + scallops top up $275.40 (0.2205ms)
+✔ minimum · travel stays outside it, as on the invoice (0.2535ms)
+✖ minimum · every party up to 14 adults, either plan: the lines add up to what the invoice bills (1.4026ms)
+✔ weekday saving · 8 adults on a Tuesday with all three upgrades save $40; on food alone it read $0 (0.2255ms)
+✖ swap · one or two upgrades cost just their upgrades: they take the place of the 2 included proteins (0.743ms)
+✖ swap · all three on one guest are a third protein: $36, never $26 (0.1362ms)
+✖ swap · every pick, 1-30 guests, either plan: the upgrades' high end is what the invoice bills that many guests (3.8388ms)
+✖ swap · the 11-08 party: all three read 'up to +$208'; it is $288, and chicken + shrimp + all three is $448 (0.3507ms)
+✖ swap · the prices are the menu's and the pricing rules' (0.1629ms)
+✖ llms.txt · an upgrade swaps one of the 2, and a premium past the 2 carries its upgrade (13.8719ms)
+ℹ tests 12
+ℹ pass 4
+ℹ fail 8
+  208 !== 288
+  616.3 !== 686.3
+  TypeError: (0 , import_quote_builder.upgradesPerGuestHigh) is not a function
+  26 !== 36
+   (upgradesPerGuestHigh is new, so three of them fail on the import; the llms.txt one fails on the old line, quoted in 2.)
+
+2) /quote's upgrade figures, old vs new (scratch upgrade-figures.ts, no network):
+
+=== BEFORE (origin/main f9a84888)
+8 adults, Sat 12/5, Standard, no setup: upgrades 'up to' / price card high end
+  filet             +$64   ($8/guest)   card high $599
+  scallops          +$48   ($6/guest)   card high $599
+  lobster           +$96   ($12/guest)   card high $599
+  filet+scallops    +$112  ($14/guest)   card high $599
+  filet+lobster     +$160  ($20/guest)   card high $639.2
+  scallops+lobster  +$144  ($18/guest)   card high $623.2
+  all three         +$208  ($26/guest)   card high $687.2
+11-08 party (7 adults + 1 kid, Mon 11/23, all three, no travel): upgrades up to +$208, card $599-$657.2, minimum line +$0
+llms.txt: - Premium protein upgrades, per guest: Filet Mignon +$8, Premium Sea Scallops +$6, Spiny Lobster Tail +$12. A third protein is +$10 per guest.
+
+=== AFTER (this branch)
+8 adults, Sat 12/5, Standard, no setup: upgrades 'up to' / price card high end
+  filet             +$64   ($8/guest)   card high $599
+  scallops          +$48   ($6/guest)   card high $599
+  lobster           +$96   ($12/guest)   card high $599
+  filet+scallops    +$112  ($14/guest)   card high $599
+  filet+lobster     +$160  ($20/guest)   card high $639.2
+  scallops+lobster  +$144  ($18/guest)   card high $623.2
+  all three         +$288  ($36/guest)   card high $767.2
+11-08 party (7 adults + 1 kid, Mon 11/23, all three, no travel): upgrades up to +$288, card $599-$737.2, minimum line +$0
+llms.txt: - Premium protein upgrades, per guest: Filet Mignon +$8, Premium Sea Scallops +$6, Spiny Lobster Tail +$12. An upgrade swaps one of the guest's 2 included proteins; it does not add one. A protein beyond the 2 is +$10 per guest, plus its upgrade if premium (Filet Mignon +$18, Premium Sea Scallops +$16, Spiny Lobster Tail +$22). Example: chicken, shrimp and all 3 premiums for one guest = +$56.
+
+3) The new figures against the invoice engine's own code (invoice origin/main lib/pricing.ts exported unchanged, it imports nothing; scratch cross-check-invoice.ts):
+invoice origin/main 5ab32a1: INCLUDED_PROTEINS_PER_PERSON=2, EXTRA_REGULAR_PROTEIN_PRICE=10, PREMIUM=[["scallops",6],["filet_mignon",8],["lobster_tail",12]]
+none                               guest=[chicken, shrimp]  invoice calcGuestProteinCost=$0  /quote upgradesPerGuestHigh=$0  invoice quick-count x8=$0  OK
+filet_mignon                       guest=[filet_mignon, chicken]  invoice calcGuestProteinCost=$8  /quote upgradesPerGuestHigh=$8  invoice quick-count x8=$64  OK
+scallops                           guest=[scallops, chicken]  invoice calcGuestProteinCost=$6  /quote upgradesPerGuestHigh=$6  invoice quick-count x8=$48  OK
+filet_mignon+scallops              guest=[filet_mignon, scallops]  invoice calcGuestProteinCost=$14  /quote upgradesPerGuestHigh=$14  invoice quick-count x8=$112  OK
+lobster_tail                       guest=[lobster_tail, chicken]  invoice calcGuestProteinCost=$12  /quote upgradesPerGuestHigh=$12  invoice quick-count x8=$96  OK
+filet_mignon+lobster_tail          guest=[filet_mignon, lobster_tail]  invoice calcGuestProteinCost=$20  /quote upgradesPerGuestHigh=$20  invoice quick-count x8=$160  OK
+scallops+lobster_tail              guest=[scallops, lobster_tail]  invoice calcGuestProteinCost=$18  /quote upgradesPerGuestHigh=$18  invoice quick-count x8=$144  OK
+filet_mignon+scallops+lobster_tail guest=[filet_mignon, scallops, lobster_tail]  invoice calcGuestProteinCost=$36  /quote upgradesPerGuestHigh=$36  invoice quick-count x8=$288  OK
+chicken+shrimp+filet+scallops+lobster for one guest: $56; x8 = $448
+all 8 picks match the invoice
