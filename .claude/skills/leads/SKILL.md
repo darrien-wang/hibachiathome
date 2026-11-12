@@ -210,7 +210,7 @@ A、B 由机器发（§3 表）。人要手发的首条：机器让出来的（�
 
 - **乞求词**：`just checking in`、`touching base`、`haven't heard back from you`、`sorry to bother you`、`whenever you get a chance`、`are you still interested`、`any update?`、`we'd love to have your business`、`hope to hear from you`、`take your time`。它们把**我们的等待**摆到客人面前；台阶留给他，问句落在他的派对上，不落在我们的报价上（09-14）。道歉只在我们真出错时说一次，不为跟进道歉。
 - **假话**：假档期、假竞争客户、假到期、编评价数和单量。姿态可以演（不急、要和后厨核一下），事实不能编；判据是客人有没有因此吃亏（09-18）。
-- **酒**：不主动提；客人问饮料时可以说 `We bring sake for the adults, it's included.`，泛称 alcohol/liquor/beer/wine 不写（运营商 30955）。
+- **酒**：不主动提；客人问饮料时可以说 `We bring sake for the adults, it's included.`，泛称 alcohol/liquor/beer/wine 不写（运营商 30955）。公共场合（公共沙滩、公园）不带 sake，私人沙滩照常（D-1112-02，见 `answers.md`「沙滩派对」）。
 - **押金**：公开页面和评论不写押金、不写 "no deposit"；私聊递链接时一句话说它做什么即可，不当卖点（D-1006-04）。
 - **税**：定下来之前（报价、跟进、确认档期）一个字不提税和付款方式（D-1006-05）；不说 "no tax / tax-free"。
 - **桌椅全包的错觉**："setup & cleanup included"、"we bring everything" 这类会被读成桌椅免费的话不写（10-08）。
