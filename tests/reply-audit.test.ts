@@ -4,7 +4,7 @@
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { needsAnswer, openTurn, ptHour, shouldRing, silencedByDecision, type AuditItem, type AuditLead } from "../lib/reply-audit"
+import { awakeHours, awakeMinutes, needsAnswer, openTurn, ptHour, shouldRing, shouldRingAwake, silencedByDecision, type AuditItem, type AuditLead } from "../lib/reply-audit"
 
 const sms = (at: string, body: string, media = 0): AuditItem => ({ at, kind: "sms", type: "sms_inbound", body, media })
 const lead = (over: Partial<AuditLead> = {}): AuditLead => ({
@@ -72,4 +72,36 @@ test("ring · first three hours always; then one 14-minute window every three ho
   assert.equal(shouldRing(365, tenAm), true, "six hours in: rings again")
   assert.equal(shouldRing(365, twoAm), false, "not at 2 AM")
   assert.equal(shouldRing(180 + 180 * 10 + 5, tenAm), true, "still ringing after a day and a half")
+})
+
+test("ring · the new alarms: never 11 PM-7 AM Pacific, and their three-hour clock only runs while the owner is awake", () => {
+  // November 2030, PST. pt(1) = 1:00 AM on the 14th.
+  const pt = (h: number, m = 0, day = 14) => Date.parse(`2030-11-${day}T00:00:00-08:00`) + (h * 60 + m) * 60_000
+  assert.deepEqual([awakeHours(pt(6, 59)), awakeHours(pt(7)), awakeHours(pt(22, 59)), awakeHours(pt(23))], [false, true, true, false])
+
+  assert.equal(awakeMinutes(pt(12), pt(15, 10)), 190)
+  assert.equal(awakeMinutes(pt(0, 30), pt(7)), 0, "the night does not count")
+  assert.equal(awakeMinutes(pt(0, 30), pt(7, 25)), 25)
+  assert.equal(awakeMinutes(pt(22, 50, 13), pt(7, 5)), 15, "ten minutes before 11 PM, five after 7 AM")
+  assert.equal(awakeMinutes(pt(12, 0, 13), pt(12)), 16 * 60, "a whole day has sixteen waking hours")
+  assert.equal(awakeMinutes(pt(12, 0, 11), pt(13)), 3 * 16 * 60 + 60)
+  assert.equal(awakeMinutes(pt(12), pt(12)), 0)
+  assert.equal(awakeMinutes(pt(13), pt(12)), 0)
+
+  // In the daytime it is shouldRing, minute for minute.
+  for (const w of [0, 10, 180, 190, 200, 365]) assert.equal(shouldRingAwake(w, pt(12) + w * 60_000), shouldRing(w, pt(12) + w * 60_000), `${w} minutes after noon`)
+
+  // Something that came in at 1 AM: silent through the night, loud from 7 for its first three hours.
+  assert.equal(shouldRingAwake(60, pt(2)), false)
+  assert.equal(shouldRingAwake(359, pt(6, 59)), false)
+  assert.equal(shouldRingAwake(360, pt(7)), true)
+  assert.equal(shouldRing(360, pt(7)), false, "the plain clock had spent those three hours asleep")
+  assert.equal(shouldRingAwake(360 + 179, pt(9, 59)), true)
+  assert.equal(shouldRingAwake(360 + 200, pt(10, 20)), false, "between windows, as in the daytime")
+  assert.equal(shouldRingAwake(360 + 365, pt(13, 5)), true, "six waking hours in: rings again")
+
+  // 10:50 PM: ten minutes of ringing, the night, then the rest of its three hours from 7.
+  assert.equal(shouldRingAwake(5, pt(22, 55, 13)), true)
+  assert.equal(shouldRingAwake(15, pt(23, 5, 13)), false)
+  assert.equal(shouldRingAwake(490, pt(7)), true)
 })

@@ -106,6 +106,13 @@ test("chef · a text after midnight is on the list and does not ring until 7 AM 
   assert.equal(one(morning.events, "chef").ring, true)
 })
 
+test("chef · a text from 1 AM that nobody answered starts ringing at 7, not at the next three-hour window", async () => {
+  const sevenAm = Date.parse("2030-11-14T15:00:00Z")
+  const text = [inb(GARY_PHONE, sevenAm - 6 * H, "到家了，现金 $800 明天给你")]
+  assert.equal(one((await inbox({ inbound: text }, sevenAm - MIN)).events, "chef").ring, false, "6:59 AM")
+  assert.equal(one((await inbox({ inbound: text }, sevenAm)).events, "chef").ring, true, "7:00 AM")
+})
+
 test("chef · 好的 and a bare 1 are not waiting on anyone; our reply closes a question", async () => {
   assert.deepEqual(kinds((await inbox({ outbound: [out(GARY_PHONE, NOW - 30 * MIN, "明天早 30 分钟到")], inbound: [inb(GARY_PHONE, NOW - 20 * MIN, "好的")] })).events), [])
   assert.deepEqual(kinds((await inbox({ inbound: [inb(GARY_PHONE, NOW - 20 * MIN, "1")] })).events), [])

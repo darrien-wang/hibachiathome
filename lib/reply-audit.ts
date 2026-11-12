@@ -104,16 +104,44 @@ export function shouldRing(waitedMin: number, nowMs: number): boolean {
 }
 
 // The alarms added with the order-flow rebuild (2026-11-11: a chef's text, a
-// change held inside 48 hours, a chef who has not confirmed) are new noise on
-// the owner's phone, and chefs text after midnight when a late party wraps up.
-// None of them rings between 11 PM and 7 AM Pacific; they are on the list the
-// whole time and start ringing in the morning. A customer's text keeps the
-// policy above, first three hours included, as it always has.
+// change held inside 48 hours, a chef who has not confirmed, a change text
+// that never reached the chef) are new noise on the owner's phone, and chefs
+// text after midnight when a late party wraps up. None of them rings between
+// 11 PM and 7 AM Pacific; they are on the list the whole time and start
+// ringing in the morning. A customer's text keeps the policy above, first
+// three hours included, as it always has.
 export const NEW_ALARM_HOURS_PT: [number, number] = [7, 23]
 
 export function awakeHours(nowMs: number): boolean {
   const h = ptHour(nowMs)
   return h >= NEW_ALARM_HOURS_PT[0] && h < NEW_ALARM_HOURS_PT[1]
+}
+
+/** Minutes between two instants that fell inside those waking hours. (Pacific is whole hours off UTC, so hour edges line up.) */
+export function awakeMinutes(fromMs: number, toMs: number): number {
+  if (!(toMs > fromMs)) return 0
+  const awakePerDay = (NEW_ALARM_HOURS_PT[1] - NEW_ALARM_HOURS_PT[0]) * 60
+  const days = Math.floor((toMs - fromMs) / 86400_000)
+  let total = days * awakePerDay
+  let t = fromMs + days * 86400_000
+  while (t < toMs) {
+    const edge = Math.min(toMs, (Math.floor(t / 3600_000) + 1) * 3600_000)
+    if (awakeHours(t)) total += (edge - t) / 60_000
+    t = edge
+  }
+  return Math.round(total)
+}
+
+/**
+ * The ring policy for those alarms: shouldRing's schedule, never at night, and
+ * its clock runs only while the owner is awake. Something that arrived at 1 AM
+ * has waited zero minutes at 7 and gets its three loud hours then - with the
+ * plain clock they were spent asleep and the first ring came at the next
+ * three-hour window, as late as mid-morning.
+ */
+export function shouldRingAwake(waitedMin: number, nowMs: number): boolean {
+  if (!awakeHours(nowMs)) return false
+  return shouldRing(awakeMinutes(nowMs - waitedMin * 60_000, nowMs), nowMs)
 }
 
 // ---- loader --------------------------------------------------------------------

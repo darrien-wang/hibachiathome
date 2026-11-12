@@ -5,7 +5,7 @@ import { fetchLastByPeer, prettyPhone, toE164 } from "@/lib/sms-thread"
 import { CHANNEL_OUT } from "@/lib/channel-messages"
 import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-forms"
 import { payloadColumns, payloadFrom } from "@/lib/payload-select"
-import { awakeHours, findOpenTurns, shouldRing } from "@/lib/reply-audit"
+import { awakeHours, findOpenTurns, shouldRing, shouldRingAwake } from "@/lib/reply-audit"
 import { OPT_OUT_REASON_PREFIX } from "@/lib/sms-opt-out"
 import { isLookupBlock } from "@/lib/phone-line-type"
 import { isStaffNumber, loadStaffContacts, staffOnNumber } from "@/lib/staff-phones"
@@ -323,7 +323,7 @@ export async function computeInbox(
       url: who[0] ? `/admin?tab=chefs&chef=${who[0].id}&ctab=sms` : "/admin?tab=chefs",
       at: open.at,
       waitedMinutes: waited,
-      ring: waited >= CHEF_RING_AFTER_MIN && awakeHours(now) && shouldRing(waited, now),
+      ring: waited >= CHEF_RING_AFTER_MIN && shouldRingAwake(waited, now),
       urgent: waited >= CHEF_RING_AFTER_MIN,
       justArrived: now - atMs < SMS_GRACE_MS,
       ...(open.ackOnly ? { explain: true } : {}),

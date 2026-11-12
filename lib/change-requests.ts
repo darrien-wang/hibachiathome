@@ -1,5 +1,5 @@
 import { wallToInstant } from "@/lib/first-response"
-import { awakeHours, shouldRing } from "@/lib/reply-audit"
+import { shouldRingAwake } from "@/lib/reply-audit"
 
 // Customer change requests in the inbox (order-flow rebuild 2026-11-11, D-1111-03).
 //
@@ -45,12 +45,13 @@ export function changeRequestOpen(r: ChangeRequestLite, order: ChangeOrderLite |
  * Whether it rings. A held change is a customer waiting on us with a party
  * inside two days, so it follows the same policy as an unanswered text
  * (lib/reply-audit.ts shouldRing): the first three hours, then a window every
- * three hours - but never at night (awakeHours): a party page saved at 1 AM is
- * on the list and rings from 7. Anything else was already applied to the order
- * when it was filed and stays a quiet line, as before.
+ * three hours - but never at night (shouldRingAwake): a party page saved at
+ * 1 AM is on the list and rings from 7, for its first three hours from then.
+ * Anything else was already applied to the order when it was filed and stays
+ * a quiet line, as before.
  */
 export function changeRequestRings(r: ChangeRequestLite, waitedMinutes: number, now: number): boolean {
-  return isHeldRequest(r) && awakeHours(now) && shouldRing(waitedMinutes, now)
+  return isHeldRequest(r) && shouldRingAwake(waitedMinutes, now)
 }
 
 const BLANK_BEFORE = /^(not provided|latest stored values|none|n\/a|-|—)?$/i
