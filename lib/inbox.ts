@@ -10,7 +10,7 @@ import { OPT_OUT_REASON_PREFIX } from "@/lib/sms-opt-out"
 import { isLookupBlock } from "@/lib/phone-line-type"
 import { isStaffNumber, loadStaffContacts, staffOnNumber } from "@/lib/staff-phones"
 import { openChefText } from "@/lib/chef-inbound"
-import { OPEN_REQUEST_STATUSES, changeRequestBody, changeRequestOpen, changeRequestRings, isHeldRequest } from "@/lib/change-requests"
+import { OPEN_REQUEST_STATUSES, ORPHAN_REQUEST_LOOKBACK_MS, changeRequestBody, changeRequestOpen, changeRequestRings, isHeldRequest } from "@/lib/change-requests"
 import { groupNotices, loadNoticeOrders, loadOpenNotices, noticeState, noticeSummary, type NoticeOrder } from "@/lib/chef-notices"
 import { partyLabelZh } from "@/lib/chef-notify"
 
@@ -383,15 +383,19 @@ export async function computeInbox(
   const payRows = (paid ?? []) as Array<{ id: string; order_id: string | null; amount_cents: number | null; paid_at: string }>
   // Every open change request, however old (2026-11-11): the 24-hour window
   // this used to have is how twelve of them fell off the list unhandled.
-  // lib/change-requests.ts decides which still belong here.
+  // lib/change-requests.ts decides which still belong here. The phone polls
+  // this every 10 seconds, so the first read is the small columns only (and
+  // leaves out old rows tied to no order, which can never show); what changed
+  // and what the customer wrote are fetched below for the few rows that do.
   const { data: changes } = await supabase
     .from("invoice_update_requests")
-    .select("id, order_id, external_order_id, request_source, status, customer_name, customer_message, change_summary, created_at")
+    .select("id, order_id, external_order_id, request_source, status, customer_name, created_at")
     .in("status", [...OPEN_REQUEST_STATUSES])
+    .or(`order_id.not.is.null,external_order_id.not.is.null,created_at.gte.${new Date(now - ORPHAN_REQUEST_LOOKBACK_MS).toISOString()}`)
     .order("created_at", { ascending: false })
     .limit(100)
   type ChangeRow = { id: string; order_id: string | null; external_order_id: string | null; request_source: string | null; status: string; customer_name: string | null; customer_message: string | null; change_summary: unknown; created_at: string }
-  const changeRows = (changes ?? []) as ChangeRow[]
+  const changeRows = ((changes ?? []) as Array<Omit<ChangeRow, "customer_message" | "change_summary">>).map((c) => ({ ...c, customer_message: null, change_summary: null }) as ChangeRow)
   type InboxOrder = { id: string; order_no: string | null; customer_name: string | null; customer_phone: string | null; event_start: string | null; order_status: string | null; source_ref: string | null }
   const INBOX_ORDER_COLUMNS = "id, order_no, customer_name, customer_phone, event_start, order_status, source_ref"
   const orderIds = Array.from(new Set([...payRows.map((p) => p.order_id), ...changeRows.map((c) => c.order_id)].filter((x): x is string => Boolean(x))))
@@ -463,6 +467,17 @@ export async function computeInbox(
     const g = changeGroups.get(key) ?? { order: o, rows: [] }
     g.rows.push(c)
     changeGroups.set(key, g)
+  }
+  const shownChangeIds = Array.from(changeGroups.values()).flatMap((g) => g.rows.map((r) => r.id))
+  if (shownChangeIds.length) {
+    const { data: details } = await supabase.from("invoice_update_requests").select("id, change_summary, customer_message").in("id", shownChangeIds)
+    const detailById = new Map(((details ?? []) as Array<{ id: string; change_summary: unknown; customer_message: string | null }>).map((d) => [d.id, d]))
+    for (const g of changeGroups.values()) {
+      for (const r of g.rows) {
+        const d = detailById.get(r.id)
+        if (d) Object.assign(r, { change_summary: d.change_summary, customer_message: d.customer_message })
+      }
+    }
   }
   let heldChanges = 0
   for (const g of changeGroups.values()) {
