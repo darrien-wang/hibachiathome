@@ -8,6 +8,7 @@ import { addDays, copyText, dowZh, md, money, prettyPhone, ptToday, stamp } from
 import { APPRENTICE_ASSIST, APPRENTICE_WATCH, FILE_KIND_LABELS, FILE_STATUS_LABELS, METHOD_LABELS, METHOD_SHORT, shiftNet, weekStartOf, type AssetRow, type ChefDetail, type ChefFile, type SettleMethod, type ShiftRow } from "./chef-types"
 import type { ChefTabKey } from "./ChefsTab"
 import { LogisticsSettle } from "./LogisticsSettle"
+import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
 import { BILLING_LABELS, CHAIR_ONLY_CENTS, chefPayCents, docState, rateLabel, TABLE_CHAIR_PER_HEAD_CENTS, TABLE_ONLY_CENTS, taxMissing } from "@/lib/chef-pay"
 import { assetRank } from "@/lib/staff-assets"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
@@ -23,6 +24,8 @@ const SETTLE_COLS = "minmax(0,1fr) 84px 88px 88px 96px 76px"
 
 const TABS: Array<[ChefTabKey, string]> = [
   ["shifts", "场次"],
+  // 师傅发到 213 线的短信（2026-11-11）：以前工作台里没有地方看，收件箱的 [chef] 提醒点进来就是这一页。
+  ["sms", "短信"],
   ["profile", "资料 · 工价"],
   ["perf", "评价 · 准时"],
   ["docs", "证件 · 报税"],
@@ -517,6 +520,33 @@ export function ChefDialog({
       <div className="dialog-col" style={{ gap: 18 }}>
         {msg ? <div className="notice">{msg}</div> : null}
         {!d ? <div className="empty">读取中…</div> : null}
+
+        {d && c && tab === "sms" ? (
+          c.phone ? (
+            <SmsThreadPanel
+              adminKey={adminKey}
+              phone={c.phone}
+              peerLabel={name}
+              header={
+                <div className="kicker" style={{ padding: "10px 0", borderBottom: "1px solid var(--color-line)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                  <span>短信 · {settings.business.support_phone} · 给师傅写中文，只说事</span>
+                  {/* 电话里、微信上已经说过了：这条不用再回，手机不再提醒；他再发新的照样进来。 */}
+                  <button
+                    type="button"
+                    className="wb-chip wb-chip-sm"
+                    disabled={!!busy}
+                    title="到此为止：收件箱和手机都不再提醒这位师傅之前发来的。他再发新消息照样响。"
+                    onClick={() => void post("ack_text", { action: "ack_text", staff_member_id: chefId }, "已标「不用回」")}
+                  >
+                    {busy === "ack_text" ? "…" : "不用回"}
+                  </button>
+                </div>
+              }
+            />
+          ) : (
+            <div className="empty">这位员工没存手机号，短信看不了也发不了。</div>
+          )
+        ) : null}
 
         {d && tab === "shifts" ? (
           <>

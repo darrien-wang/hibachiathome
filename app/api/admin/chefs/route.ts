@@ -13,6 +13,9 @@ import { CARD_PROCESSING_RATE, cardProcessingFeeInside, DEFAULT_SALES_TAX_RATE, 
 import { formatTaxRate } from "@/lib/sales-tax-rate"
 import { MAX_CHEFS, normalizeDispatchPlan, rulePlan, type DispatchPlan } from "@/lib/dispatch-plan"
 import { lintOrderStaffing, orderPaidHeads, type OrderForPlan } from "@/lib/dispatch-plan-order"
+import { chefNoticeSummaryZh, logChefNotices, notifyRemovedChefs, type ChefNoticeResult, type PartyRef } from "@/lib/chef-notify"
+import { ackNotices } from "@/lib/chef-notices"
+import { phoneDigits10 } from "@/lib/staff-phones"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -24,6 +27,9 @@ export const runtime = "nodejs"
 //   GET ?id=<staff uuid>   -> { chef, shifts, performance, files, settlements, assets }
 //   GET ?file=<file uuid>  -> 302 to a signed URL (1 h) of the stored file
 //   POST { action, ... }   -> see ACTIONS below
+// 2026-11-11（D-1111-03）：assign / assign_helpers 把人换下来时，收到过备料单的那位自动
+// 收到一条中文短信、备料单链接作废（lib/chef-notify.ts）；dry_run:true 只看不写不发。
+// ack_text = 这位师傅发来的不用回了；confirm_notice = 师傅用别的方式确认了改动。
 // Money is cents everywhere. Pay per shift = base + (share - head_from) × per_head,
 // share = the chef's head count when several chefs work one party.
 
@@ -561,6 +567,32 @@ async function voidManualCashFinal(supabase: NonNullable<ReturnType<typeof creat
 
 // ---------------------------------------------------------------- writes
 
+const PARTY_COLUMNS = "id, order_no, customer_name, event_start, event_address, source_metadata"
+
+/**
+ * 换下来的师傅：收到过备料单的发短信、链接作废，并各记一条 chef_removed_notified。
+ * 派单本身已经写完才走到这里，所以这一步出什么错都不往外抛，只在返回里说谁没通知到。
+ */
+async function tellRemovedChefs(
+  supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>,
+  orderId: string,
+  removedIds: string[],
+  actor: string,
+  dryRun: boolean,
+): Promise<ChefNoticeResult[]> {
+  if (!removedIds.length) return []
+  try {
+    const { data: party } = await supabase.from("orders").select(PARTY_COLUMNS).eq("id", orderId).maybeSingle()
+    if (!party) return []
+    const results = await notifyRemovedChefs(supabase, { order: party as unknown as PartyRef, staffIds: removedIds, reason: "reassigned", dryRun })
+    if (!dryRun) await logChefNotices(supabase, orderId, actor, "reassigned", results)
+    return results
+  } catch (e) {
+    console.error("[admin/chefs] removed-chef notice failed", e instanceof Error ? e.message : e)
+    return []
+  }
+}
+
 type Body = Record<string, unknown> & { action?: string }
 const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f-]{36}$/i.test(v)
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "")
@@ -704,10 +736,17 @@ export async function POST(request: NextRequest) {
         // 帮手那几行不归这里管；但被派成师傅的人不能同时还是这单的帮手。
         const existing = (allRows ?? []).filter((a) => a.assignment_role !== HELPER_ROLE)
         const helperClash = (allRows ?? []).filter((a) => a.assignment_role === HELPER_ROLE && want.includes(a.staff_member_id))
-        if (helperClash.length) await supabase.from("order_staff_assignments").update({ assignment_status: "cancelled", updated_at: now }).in("id", helperClash.map((a) => a.id))
         const have = new Set((existing ?? []).map((a) => a.staff_member_id))
         const toCancel = (existing ?? []).filter((a) => !want.includes(a.staff_member_id))
         const toAdd = want.filter((sid) => !have.has(sid))
+        // 真被换下来的人：不在新名单里，也不是这单还留着的帮手。
+        const stayingHelpers = new Set((allRows ?? []).filter((a) => a.assignment_role === HELPER_ROLE && !want.includes(a.staff_member_id)).map((a) => a.staff_member_id))
+        const removedIds = Array.from(new Set(toCancel.map((a) => a.staff_member_id).filter((sid) => !stayingHelpers.has(sid))))
+        if (body.dry_run === true) {
+          const wouldTell = await tellRemovedChefs(supabase, body.order_id, removedIds, `workbench:${actor.alias}`, true)
+          return NextResponse.json({ ok: true, dryRun: true, added: toAdd.length, cancelled: toCancel.length, notified: wouldTell })
+        }
+        if (helperClash.length) await supabase.from("order_staff_assignments").update({ assignment_status: "cancelled", updated_at: now }).in("id", helperClash.map((a) => a.id))
         if (toCancel.length) {
           const { error } = await supabase.from("order_staff_assignments").update({ assignment_status: "cancelled", updated_at: now }).in("id", toCancel.map((a) => a.id))
           if (error) throw error
@@ -721,7 +760,10 @@ export async function POST(request: NextRequest) {
         if (e2) throw e2
         const { data: names } = want.length ? await supabase.from("staff_members").select("display_name, full_name").in("id", want) : { data: [] }
         await supabase.from("order_events").insert({ order_id: body.order_id, actor: `workbench:${actor.alias}`, action: "chef_assigned", metadata: { staff_member_ids: want, names: (names ?? []).map((n) => n.display_name ?? n.full_name), cancelled: toCancel.length } })
-        return NextResponse.json({ ok: true, added: toAdd.length, cancelled: toCancel.length })
+        // 被换下的师傅以前没人通知（45 天 6 场，11-09 Blu 收单 13 分钟后被换掉）：收到过备料单的
+        // 现在自动收到「那场改给别人了，你不用去」，他的备料单链接作废。新师傅照旧另外发备料单。
+        const notified = await tellRemovedChefs(supabase, body.order_id, removedIds, `workbench:${actor.alias}`, false)
+        return NextResponse.json({ ok: true, added: toAdd.length, cancelled: toCancel.length, notified, notice: chefNoticeSummaryZh(notified) })
       }
       case "assign_helpers": {
         // 这一单的帮手换成这几个人（可以是空）。帮手不计工钱、不分人头；已经是这单师傅的人跳过。
@@ -733,6 +775,12 @@ export async function POST(request: NextRequest) {
         const keep = wantH.filter((sid) => !leads.has(sid))
         const drop = helpersNow.filter((a) => !keep.includes(a.staff_member_id))
         const add = keep.filter((sid) => !helpersNow.some((a) => a.staff_member_id === sid))
+        // 撤下来的帮手如果拿过备料单，同样要告诉他；还是这单师傅的人不算撤下。
+        const droppedIds = Array.from(new Set(drop.map((a) => a.staff_member_id).filter((sid) => !leads.has(sid))))
+        if (body.dry_run === true) {
+          const wouldTell = await tellRemovedChefs(supabase, body.order_id, droppedIds, `workbench:${actor.alias}`, true)
+          return NextResponse.json({ ok: true, dryRun: true, added: add.length, removed: drop.length, notified: wouldTell })
+        }
         if (drop.length) {
           const { error } = await supabase.from("order_staff_assignments").update({ assignment_status: "cancelled", updated_at: now }).in("id", drop.map((a) => a.id))
           if (error) throw error
@@ -745,7 +793,41 @@ export async function POST(request: NextRequest) {
           const { data: namesH } = keep.length ? await supabase.from("staff_members").select("display_name, full_name").in("id", keep) : { data: [] }
           await supabase.from("order_events").insert({ order_id: body.order_id, actor: `workbench:${actor.alias}`, action: "helpers_assigned", metadata: { staff_member_ids: keep, names: (namesH ?? []).map((n) => n.display_name ?? n.full_name) } })
         }
-        return NextResponse.json({ ok: true, added: add.length, removed: drop.length })
+        const notifiedH = await tellRemovedChefs(supabase, body.order_id, droppedIds, `workbench:${actor.alias}`, false)
+        return NextResponse.json({ ok: true, added: add.length, removed: drop.length, notified: notifiedH, notice: chefNoticeSummaryZh(notifiedH) })
+      }
+      case "ack_text": {
+        // 「这位师傅发来的不用回了」：电话里说过了、微信上回了。收件箱 [chef] 那条到此为止，
+        // 他再发新的照样进来（水位线，和线索的「不用回」一个意思；lib/inbox.ts 读它）。clear:true 撤销。
+        const digits = phoneDigits10(str(body.phone, 30))
+        let who = digits
+        if (!who && isUuid(body.staff_member_id)) {
+          const { data: st } = await supabase.from("staff_members").select("phone").eq("id", body.staff_member_id).maybeSingle()
+          who = phoneDigits10((st as { phone?: string | null } | null)?.phone ?? null)
+        }
+        if (!who) return NextResponse.json({ error: "phone or staff_member_id required（这位员工要存了手机号）" }, { status: 400 })
+        const key = `chef:ack:${who}`
+        if (body.clear === true) {
+          const { error } = await supabase.from("lead_watch_notified").delete().eq("key", key)
+          if (error) throw error
+          return NextResponse.json({ ok: true, cleared: true })
+        }
+        const { error } = await supabase.from("lead_watch_notified").upsert({ key, kind: "chef", notified_at: now }, { onConflict: "key" })
+        if (error) throw error
+        return NextResponse.json({ ok: true, ackedUntil: now })
+      }
+      case "confirm_notice": {
+        // 师傅没回「1」，但用别的方式确认了改动（电话、微信、回了句"收到"）：替他把没确认的
+        // 改动通知标成已确认。order_id 只标那一场；不给就是他名下全部。
+        let staffIds: string[] = isUuid(body.staff_member_id) ? [body.staff_member_id] : []
+        const digits = phoneDigits10(str(body.phone, 30))
+        if (!staffIds.length && digits) {
+          const { data: rows } = await supabase.from("staff_members").select("id, phone").not("phone", "is", null)
+          staffIds = ((rows ?? []) as Array<{ id: string; phone: string | null }>).filter((r) => phoneDigits10(r.phone) === digits).map((r) => r.id)
+        }
+        if (!staffIds.length) return NextResponse.json({ error: "phone or staff_member_id required（要是员工名单里的号码）" }, { status: 400 })
+        const out = await ackNotices(supabase, { staffIds, orderId: isUuid(body.order_id) ? body.order_id : null, via: `manual:${actor.alias}` })
+        return NextResponse.json({ ok: true, acked: out.acked, orderIds: out.orderIds })
       }
       case "issue_assets": {
         // 领用登记：一次可以发一整套（帽子 + 厨师服 + 围裙）。同一个人、同一件、

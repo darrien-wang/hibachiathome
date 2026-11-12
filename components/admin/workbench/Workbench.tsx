@@ -35,7 +35,7 @@ import { displayName, eventParts, LEAD_STATUS_LABELS, LEAD_TAG_CLASS, leadUnrepl
 
 type Tab = "board" | "leads" | "orders" | "planner" | "chefs" | "customers" | "reviews" | "warehouse" | "cal" | "settings"
 const TAB_TITLES: Record<Tab, string> = { board: "看板", leads: "线索", orders: "订单", planner: "Planner", chefs: "员工", customers: "客户", reviews: "好评", warehouse: "仓库", cal: "日历", settings: "设置" }
-const CHEF_TABS = new Set(["shifts", "profile", "perf", "docs", "settle", "files"])
+const CHEF_TABS = new Set(["shifts", "profile", "perf", "docs", "settle", "files", "sms"])
 
 type SearchHit = {
   key: string

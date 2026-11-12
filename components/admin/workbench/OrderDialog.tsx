@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { adminJson, AdminApiError } from "./api"
 import { coolerSheetHtml, type CoolerParty } from "@/lib/cooler-sheet"
 import { Chip, Dialog, DialogHead, Field, Kicker, Lines, PhoneIcon, Tag } from "./ui"
-import { askConfirm, tell } from "./ask"
+import { askConfirm, askPrompt, tell } from "./ask"
 import {
   copyText,
   digits10,
@@ -43,6 +43,9 @@ import { ORDER_SOP_STEPS } from "@/lib/order-sop"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 import { DEFAULT_SALES_TAX_RATE, normalizePricingTerms, pricingTermsFor, type PricingTerms, zelleVenmoPriceOf } from "@/config/pricing-rules"
 import { formatTaxRate } from "@/lib/sales-tax-rate"
+import { customerNotesOf, noteSourceLabel } from "@/lib/customer-notes"
+import { cancelDoneLines, cancelPlanLines } from "@/lib/order-cancel-lines"
+import type { CancelOutcome } from "@/lib/order-cancel"
 
 // 尾款口径（决策日志 D-1006-05/06，2026-10-06）：10-06 起建的单一个标价两张账——现金 =
 // 标价含税；刷卡 = 标价 + 派对地址的销售税 + 刷卡手续费 3%。两张账全由
@@ -399,6 +402,7 @@ export function OrderDialog({
   const chefLabel = assignments.length ? assignments.map((a) => a.name).join(" + ") : "未派"
   const chefNote = assignments.length > 1 ? `${assignments.length} 位师傅 · 人头平分 ${Math.round(guests / assignments.length)} 人/位` : ""
   const teamDirty = team !== null && (team.length !== assignments.length || team.some((id) => !assignments.find((a) => a.staffId === id)))
+  const removedFromTeam = team === null ? [] : assignments.filter((a) => !team.includes(a.staffId)).map((a) => a.name)
   const curTab: OTab = tab ?? "money"
   const goTab = (t: OTab) => {
     if (t !== "sms") setInsert(null)
@@ -444,6 +448,36 @@ export function OrderDialog({
       setHoldTime("")
       await Promise.all([load(), onChanged()])
     })
+
+  // 取消订单（2026-11-11，D-1111-03）：以前只能手写 SQL。先问原因（必填，记在订单和线索上），
+  // 再让服务器空跑一遍，把会发生什么——给哪位师傅发什么短信、线索怎么动、48 小时内的 $99
+  // 提示——原样摆出来，确认了才真取消。不给客人发任何消息，不扣款不退款。
+  const cancelThisOrder = async () => {
+    if (busy) return
+    const typed = await askPrompt({
+      title: "取消订单",
+      message: `取消 ${first || "客人"}${ev ? ` ${md(ev.ymd)} ${ev.hm}` : ""} 这一单。\n\n取消原因（必填，会记在订单和线索上）：`,
+      placeholder: "例如：客人 11/11 短信说家里有事，不办了",
+      okLabel: "下一步",
+    })
+    if (typed == null) return
+    const reason = typed.trim()
+    if (reason.length < 2) {
+      void tell({ title: "没有取消", message: "取消原因必填。" })
+      return
+    }
+    await call("cancel", async () => {
+      const plan = await adminJson<CancelOutcome>(adminKey, "/api/admin/orders/cancel", { body: { orderId: o.id, reason, dryRun: true } })
+      if (plan.nothingToDo) {
+        void tell({ title: "已经取消过了", message: cancelPlanLines(plan).join("\n") })
+        return
+      }
+      if (!(await askConfirm({ title: "确认取消订单", message: cancelPlanLines(plan).join("\n"), okLabel: "取消订单", cancelLabel: "先不取消", danger: true }))) return
+      const done = await adminJson<CancelOutcome>(adminKey, "/api/admin/orders/cancel", { body: { orderId: o.id, reason } })
+      await Promise.all([load(), onChanged()])
+      void tell({ title: "订单已取消", message: cancelDoneLines(done).join("\n") })
+    })
+  }
 
   // 「这条不回了」：把水位线推到现在，手机和巡检都不再提醒这一刻之前的消息。
   // 唯一实现在 /api/admin/leads（lib/lead-hold.ts 读它），这里只是第二个入口。
@@ -594,13 +628,15 @@ export function OrderDialog({
     })
 
   const travel = invoiceTravelFee(o.invoice_data)
+  const customerNotes = customerNotesOf(o.invoice_data)
 
   const saveTeam = () =>
     call("assign", async () => {
-      const d = await adminJson<{ ok: boolean; error?: string }>(adminKey, "/api/admin/chefs", { body: { action: "assign", order_id: o.id, staff_member_ids: team ?? [] } })
+      const d = await adminJson<{ ok: boolean; error?: string; notice?: string }>(adminKey, "/api/admin/chefs", { body: { action: "assign", order_id: o.id, staff_member_ids: team ?? [] } })
       if (!d.ok) throw new Error(d.error ?? "派单失败")
       await Promise.all([load(), onChanged()])
-      setMsg("派单已保存")
+      // 被换下、拿过备料单的师傅：服务器已经发了「不用去了」并作废他的备料单，这里说一声发给了谁、谁没发到。
+      setMsg(d.notice ? `派单已保存 · ${d.notice}` : "派单已保存")
     })
 
   const sendSheet = (staffId: string, name: string) =>
@@ -749,6 +785,24 @@ export function OrderDialog({
         ))}
       </div>
       {msg ? <div className="notice" style={{ margin: "12px 20px 0" }}>{msg}</div> : null}
+      {/* 客人在派对页上写给我们的话（invoice_data.customerNotes，发票应用存的）：以前只躺在改单请求里，
+          订单上看不到——惊喜生日走侧门、到了打电话开大门。没有这个字段就什么都不显示。 */}
+      {customerNotes.length ? (
+        <div className="notice notice-accent" style={{ margin: "12px 20px 0", padding: "10px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+          <div className="kicker" style={{ color: "var(--color-accent)" }}>客人留言</div>
+          {customerNotes.map((n, i) => (
+            <div key={i} style={{ fontSize: 13, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+              {n.text}
+              {n.at || n.source ? (
+                <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
+                  {" "}
+                  · {[n.at ? stamp(n.at) : "", noteSourceLabel(n.source)].filter(Boolean).join(" · ")}
+                </span>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {curTab === "money" ? (
         <div className="dialog-grid">
@@ -1020,6 +1074,12 @@ export function OrderDialog({
                   </button>
                 </div>
               ) : null}
+              {/* 换人会通知到人（2026-11-11）：保存之前先说清楚谁会收到短信，免得点错了才发现。 */}
+              {teamDirty && removedFromTeam.length ? (
+                <div style={{ fontSize: 12, color: "var(--color-accent-700)" }}>
+                  保存后 {removedFromTeam.join("、")} 不再是这场的师傅：收到过备料单的会自动收到短信「…那场改给别人了，你不用去，之前的备料单作废」，备料单链接同时作废。
+                </div>
+              ) : null}
               {/* 派工计划：几位师傅几台灶、站位、答应过客人什么，和派了几个人对不对得上。 */}
               <DispatchPlanPanel adminKey={adminKey} order={o} staffing={detail?.staffing} cooksFallback={assignments.length} viewerRole={viewerRole} onSaved={async () => { await Promise.all([load(), onChanged()]) }} />
               <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>多位师傅同场时人头平均分，每位按自己那份算工钱；改人数后自动重分。备料单按发票里存的份量生成，改了发票要再发一次。</div>
@@ -1032,6 +1092,11 @@ export function OrderDialog({
             {ev && o.order_status !== "cancelled" ? (
               <button type="button" className="btn btn-secondary btn-left" disabled={!!busy} onClick={() => void putOnHold()} title="付了押金、日期还没定：从日历上拿掉，订单和押金留着">
                 {busy === "hold" ? "处理中…" : "日期待定（hold）"}
+              </button>
+            ) : null}
+            {viewerRole === "owner" && o.order_status !== "cancelled" ? (
+              <button type="button" className="btn btn-secondary btn-left" disabled={!!busy} onClick={() => void cancelThisOrder()} title="客人不办了：订单标取消，派的师傅自动收到短信，线索标流失。会先问原因、再让你确认。">
+                {busy === "cancel" ? "处理中…" : "取消订单"}
               </button>
             ) : null}
             <button type="button" className="btn btn-secondary btn-left" disabled={!!busy} onClick={() => void call("planner", async () => toSms(`Here's your party planner - set up the tables and share it with your guests so everyone picks their own proteins: ${await plannerLink()}`))}>
@@ -1169,6 +1234,14 @@ export function OrderDialog({
                     <strong>{ORDER_EVENT_LABELS[e.action] ?? e.action}</strong>
                     {e.metadata && typeof e.metadata.title === "string" ? <span style={{ color: "var(--color-neutral-600)" }}> · {e.metadata.title}</span> : null}
                     {e.action === "chef_assigned" && Array.isArray(e.metadata?.names) ? <span style={{ color: "var(--color-neutral-600)" }}> · {(e.metadata!.names as string[]).join(" + ") || "清空"}</span> : null}
+                    {e.action === "chef_removed_notified" && typeof e.metadata?.staff_name === "string" ? (
+                      <span style={{ color: "var(--color-neutral-600)" }}>
+                        {" "}
+                        · {e.metadata.staff_name}
+                        {(e.metadata.sms as { error?: string } | undefined)?.error ? "（短信没发出去）" : ""}
+                      </span>
+                    ) : null}
+                    {e.action.startsWith("order_cancelled") && typeof e.metadata?.reason === "string" ? <span style={{ color: "var(--color-neutral-600)" }}> · {e.metadata.reason}</span> : null}
                     <span style={{ color: "var(--color-neutral-500)" }}> · {e.actor}</span>
                   </span>
                   <span style={{ color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>{stamp(e.created_at)}</span>

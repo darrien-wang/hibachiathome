@@ -11,7 +11,7 @@ import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 
 // 员工（厨师 / 后勤）· 名单（按周看场次、工价、评价、结余）+ 份额（每位师傅占这周总人数的比例）+ 素材库（按天看所有师傅传的照片视频）.
 
-export type ChefTabKey = "shifts" | "profile" | "perf" | "docs" | "settle" | "files"
+export type ChefTabKey = "shifts" | "profile" | "perf" | "docs" | "settle" | "files" | "sms"
 
 export function ChefsTab({
   adminKey,

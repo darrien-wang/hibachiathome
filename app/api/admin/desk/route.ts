@@ -13,6 +13,9 @@ import { driveFromBaseToZip } from "@/lib/base-drive"
 import { HEARD_LABELS, SOURCE_QUESTION, isHeardChannel, partyStage, sourceAsk } from "@/lib/heard-from"
 import { homeBaseOrigin } from "@/config/home-base"
 import { PARTY_SIZE_CUSTOM_FROM, calcSimpleEstimate, calcTravelFee, checkWeekdayEligibility } from "@/config/pricing-rules"
+import { cityOf } from "@/lib/customers"
+import { instantToWallIso } from "@/lib/first-response"
+import { loadStaffContacts, staffOnNumber, type StaffContact } from "@/lib/staff-phones"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -29,6 +32,11 @@ export const dynamic = "force-dynamic"
 //   GET /api/admin/desk                 one card per waiting item (lib/inbox.ts)
 //   GET /api/admin/desk?lead=<id>       one card for that lead
 //   GET /api/admin/desk?phone=<e164>    one card for that number
+//
+// A waiting item from a staff number ([chef], or a change notice the chef has
+// not confirmed) is a card too, of another kind: no lead, no price - who it
+// is, his parties from yesterday on, the thread. Those cards come first
+// (2026-11-11, D-1111-03: a chef's text sat 18 hours behind the customers).
 //
 // No rules live here - what to say is the leads skill's job.
 
@@ -100,6 +108,52 @@ async function ordersFor(supabase: SupabaseClient, phone: string | null, email: 
   return (data ?? []) as OrderRow[]
 }
 
+type StaffParty = { orderId: string; orderNo: string | null; eventStart: string | null; city: string | null; customer: string | null; guests: number; role: string; sheet: "none" | "sent" | "opened" }
+
+/**
+ * A staff member's parties from yesterday on, soonest first: what a text from
+ * him is most likely about, and whether he holds a prep sheet for it.
+ * event_start is the PT wall clock stored as UTC, so "yesterday" is too.
+ */
+async function staffParties(supabase: SupabaseClient, staffIds: string[], now: number): Promise<StaffParty[]> {
+  if (!staffIds.length) return []
+  type Joined = { order_id: string; staff_member_id: string; assignment_role: string | null; orders: Record<string, unknown> | Array<Record<string, unknown>> | null }
+  const { data: rows } = await supabase
+    .from("order_staff_assignments")
+    .select("order_id, staff_member_id, assignment_role, orders!inner(id, order_no, customer_name, event_start, event_address, guest_adult_count, guest_child_count, order_status)")
+    .in("staff_member_id", staffIds)
+    .in("assignment_status", ["tentative", "confirmed", "completed"])
+    .gte("orders.event_start", instantToWallIso(now - 86400_000))
+    .limit(40)
+  const list = ((rows ?? []) as unknown as Joined[])
+    .map((r) => ({ r, o: (Array.isArray(r.orders) ? r.orders[0] : r.orders) ?? null }))
+    .filter((x): x is { r: Joined; o: Record<string, unknown> } => Boolean(x.o) && x.o!.order_status !== "cancelled")
+    .sort((a, b) => String(a.o.event_start ?? "").localeCompare(String(b.o.event_start ?? "")))
+    .slice(0, 8)
+  if (!list.length) return []
+  const { data: links } = await supabase
+    .from("chef_sheet_links")
+    .select("order_id, staff_member_id, first_opened_at")
+    .in("order_id", list.map((x) => x.r.order_id))
+    .in("staff_member_id", staffIds)
+    .is("revoked_at", null)
+  const sheetOf = new Map<string, "sent" | "opened">()
+  for (const l of (links ?? []) as Array<{ order_id: string; staff_member_id: string; first_opened_at: string | null }>) {
+    const key = `${l.order_id}:${l.staff_member_id}`
+    if (l.first_opened_at || !sheetOf.has(key)) sheetOf.set(key, l.first_opened_at ? "opened" : "sent")
+  }
+  return list.map(({ r, o }) => ({
+    orderId: r.order_id,
+    orderNo: (o.order_no as string | null) ?? null,
+    eventStart: (o.event_start as string | null) ?? null,
+    city: cityOf(o.event_address as string | null),
+    customer: ((o.customer_name as string | null) ?? "").trim().split(/\s+/)[0] || null,
+    guests: Number(o.guest_adult_count ?? 0) + Number(o.guest_child_count ?? 0),
+    role: r.assignment_role === "assistant_chef" ? "helper" : "chef",
+    sheet: sheetOf.get(`${r.order_id}:${r.staff_member_id}`) ?? "none",
+  }))
+}
+
 /** The instant quote already priced this party with the date the customer typed. */
 function quotedFrom(thread: SmsMessage[]) {
   for (let i = thread.length - 1; i >= 0; i--) {
@@ -148,12 +202,15 @@ async function priceFor(row: LeadRow, hint: LeadEventHint | null) {
 async function buildCard(
   supabase: SupabaseClient,
   quiet: Awaited<ReturnType<typeof loadQuiet>>,
-  input: { lead: LeadRow | null; phone: string | null; orderId?: string | null; events?: InboxEvent[] },
+  input: { lead: LeadRow | null; phone: string | null; orderId?: string | null; events?: InboxEvent[]; staff?: StaffContact[] },
   now: number,
 ) {
   const lead = input.lead
   const phone = toE164(lead?.phone ?? input.phone)
   const phones = phone ? [phone] : []
+  // A staff card: his parties stand where a customer's price would.
+  const staffOn = input.staff ?? []
+  const parties = staffOn.length ? await staffParties(supabase, staffOn.map((s) => s.id), now).catch(() => [] as StaffParty[]) : []
   const [thread, touchpoints, hint, orders, channel] = await Promise.all([
     phones.length ? fetchSmsThreads(phones, 80).catch(() => [] as SmsMessage[]) : Promise.resolve([] as SmsMessage[]),
     lead
@@ -312,8 +369,11 @@ async function buildCard(
     calls,
     emails,
     channelMessages,
-    // Lines that are not a message: pre-party contact flags from lead-watch.
-    alerts: (input.events ?? []).filter((e) => e.kind === "party_contact").map((e) => ({ kind: e.kind, title: e.title, body: e.body })),
+    // Staff number: who it is and the parties he is on (null for a customer's card).
+    staff: staffOn.length ? { id: staffOn[0].id, name: staffOn.map((s) => s.name).join(" / "), role: staffOn[0].role, parties } : null,
+    // Lines that are not a message: pre-party contact flags from lead-watch, an
+    // open change request with what changed, a change notice a chef has not confirmed.
+    alerts: (input.events ?? []).filter((e) => e.kind === "party_contact" || e.explain).map((e) => ({ kind: e.kind, title: e.title, body: e.body })),
     forms,
     thread: thread.map((m) => ({ sid: m.sid, direction: m.direction, at: m.at, body: m.body, status: m.status, media: m.media, tapback: m.direction === "inbound" && isTapback(m.body ?? "") })),
     quoted: quotedFrom(thread),
@@ -344,12 +404,15 @@ export async function GET(request: NextRequest) {
   // ---- one card ------------------------------------------------------------
   const leadParam = q.get("lead")?.trim()
   const phoneParam = toE164(q.get("phone"))
+  const staffContacts = await loadStaffContacts(supabase)
   if (leadParam || phoneParam) {
     let lead: LeadRow | null = null
     if (leadParam && /^[0-9a-f-]{36}$/i.test(leadParam)) lead = await leadById(supabase, leadParam)
-    if (!lead && phoneParam) lead = await leadByPhone(supabase, phoneParam)
+    // A staff number is not a lead (lib/staff-phones.ts): its card is the chef's.
+    const staffOn = !lead && phoneParam ? staffOnNumber(staffContacts, phoneParam) : []
+    if (!lead && phoneParam && !staffOn.length) lead = await leadByPhone(supabase, phoneParam)
     if (!lead && !phoneParam) return NextResponse.json({ ok: false, error: "lead not found" }, { status: 404 })
-    const card = await buildCard(supabase, quiet, { lead, phone: phoneParam }, now)
+    const card = await buildCard(supabase, quiet, { lead, phone: phoneParam, staff: staffOn }, now)
     return NextResponse.json({ ok: true, serverTime: new Date(now).toISOString(), cards: [card] })
   }
 
@@ -387,10 +450,14 @@ export async function GET(request: NextRequest) {
   const cards = []
   for (const g of groups.values()) {
     let lead: LeadRow | null = null
+    // [chef] and unconfirmed change notices ride on the chef's number: no lead behind them.
+    const staffOn = g.events.some((e) => e.kind === "chef" || e.kind === "chef_notice") ? staffOnNumber(staffContacts, g.phone) : []
     if (g.leadId) lead = await leadById(supabase, g.leadId)
-    if (!lead && g.phone) lead = await leadByPhone(supabase, g.phone)
-    cards.push(await buildCard(supabase, quiet, { lead, phone: g.phone, orderId: g.orderId, events: g.events }, now))
+    if (!lead && g.phone && !staffOn.length) lead = await leadByPhone(supabase, g.phone)
+    cards.push(await buildCard(supabase, quiet, { lead, phone: g.phone, orderId: g.orderId, events: g.events, staff: staffOn }, now))
   }
-  cards.sort((a, b) => (b.urgent === a.urgent ? (b.waitedMinutes ?? 0) - (a.waitedMinutes ?? 0) : b.urgent ? 1 : -1))
+  // Chefs first, then the urgent, then whoever has waited longest.
+  const chefCard = (c: { kinds: string[] }) => (c.kinds.includes("chef") || c.kinds.includes("chef_notice") ? 1 : 0)
+  cards.sort((a, b) => chefCard(b) - chefCard(a) || (b.urgent === a.urgent ? (b.waitedMinutes ?? 0) - (a.waitedMinutes ?? 0) : b.urgent ? 1 : -1))
   return NextResponse.json({ ok: true, serverTime: new Date(now).toISOString(), counts, redditNew: counts.redditNew, cards })
 }
