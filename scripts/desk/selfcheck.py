@@ -165,8 +165,11 @@ class Run:
     `created_at` is the order row's (None: the search has no time, as an order booked after the ladder closed reads)."""
 
     def __init__(self, prefill: dict, *args: str, op: str = "set", reply: dict | None = None, lint: dict | None = None,
-                 created_at: str | None = None, db=None):
+                 created_at: str | None = None, db=None, review: tuple | None = None):
         self.prefill, self.saved, self.priced = prefill, None, []
+        # 审查者 gate (2026-11-12): the remind / send-sheet cases below are about the text, so the order reads as
+        # reviewed unless a case passes `review` - its own (fresh, why) - to test the gate itself.
+        self.review = review or (True, "selfcheck: reviewed")
         self.reply, self.lint, self.texted = reply or {}, lint, None
         self.created_at = created_at
         self.db = db
@@ -175,6 +178,8 @@ class Run:
         desk.site_get = self.site_get
         desk.site_post = self.site_post
         desk._supabase = self.supabase
+        kept_gate = desk._review_gate
+        desk._review_gate = self.review_gate
         buf = io.StringIO()
         self.exit = None
         with contextlib.redirect_stdout(buf):
@@ -182,7 +187,16 @@ class Run:
                 desk.main(["order", op, ORDER_NO, *args])
             except SystemExit as e:
                 self.exit = e.code
+            finally:
+                desk._review_gate = kept_gate
         self.out = buf.getvalue()
+
+    def review_gate(self, order_no, a, what):
+        fresh, why = self.review
+        print(f"审查  {'✓' if fresh else '✗'} {why}")
+        if fresh or getattr(a, "skip_review", False):
+            return True, why
+        return False, f"{what}没发：{why}。先审查（/order-review {order_no}），过了再发"
 
     def search(self, text):
         row = {"order_no": ORDER_NO, "id": "00000000-0000-4000-8000-000000000001", **({"created_at": self.created_at} if self.created_at else {})}
@@ -1566,6 +1580,14 @@ def main() -> int:
     check("  a clean order is texted as before", bool(r.texted) and r.has("✓ 缺项：无"), r)
     body = (r.texted or {}).get("body", "")
     check("  the text links the invoice and quotes no amount", "/d/selfcheck" in body and "$" not in body and "balance" not in body.lower(), r)
+    clean = {"ok": True, "blocking": [], "warnings": []}
+    r = Run(party, op="remind", lint=clean, review=(False, "这单还没审查过"))
+    check("  审查者: an order nobody reviewed is not texted, and says to review first",
+          r.texted is None and "先审查" in str(r.exit) and r.has("审查  ✗ 这单还没审查过"), r)
+    r = Run(party, "--dry", op="remind", lint=clean, review=(False, "11-12 14:00 审查过，之后订单变了"))
+    check("  --dry on an unreviewed order shows the text and the hold", r.texted is None and r.has("DRY   See you", "HOLD") and "先审查" in r.out, r)
+    r = Run(party, "--skip-review", "--why", "老板说先发", op="remind", lint=clean, review=(False, "这单还没审查过"))
+    check("  --skip-review with a reason sends anyway", bool(r.texted) and r.has("OK    texted"), r)
 
     quoted_price_checks()
     send_checks()
@@ -1601,6 +1623,37 @@ def main() -> int:
     check("price: a swap costs the premium, an extra the side price (filet $8 / $18)",
           desk.SWAP_PREMIUM == {"scallops": 6.0, "filet": 8.0, "lobster": 12.0}
           and desk.protein_quote({"foodSubtotal": 700, "travelFee": 0}, {"filet": 1}, {"filet": 1})["total"] == 726.0)
+
+    # 审查者 (owner 2026-11-12): a link goes out only after a review that still holds.
+    import order_review
+    base_order = {"id": CANCEL_ID, "order_no": ORDER_NO, "event_start": "2030-11-14T17:30:00+00:00", "event_address": "1 Main St, Irvine, CA 92618",
+                  "order_status": "active", "prep_note": "付现金。", "internal_notes": "", "setup_selection": None,
+                  "invoice_data": {"guests": [{"name": "Joyce", "proteins": ["steak", "shrimp"]}], "contactInfo": {"specialNotes": "Birthday."},
+                                   "selectedGratuityRate": 0.2, "pricingTerms": "v2_by_method"}}
+    base_party = {"team": [{"id": "s1", "role": "lead_chef"}], "customer_sms": [{"direction": "inbound", "at": "2030-11-10T18:00:00.000Z", "body": "8 of us"}],
+                  "requests": [], "lead_notes": []}
+    def pk(order=None, party=None, emails=(), forms=(), reviews=()):
+        p = {"order": order or base_order, "party": party or base_party, "emails": list(emails), "forms": list(forms), "reviews": list(reviews)}
+        p["fingerprint"] = order_review.fingerprint(p)
+        return p
+    fp = pk()["fingerprint"]
+    stamp = lambda verdict, f=fp: {"action": order_review.REVIEW_ACTION, "created_at": "2030-11-12T20:00:00Z", "metadata": {"verdict": verdict, "fingerprint": f, "summary": "核了 6 条"}}
+    check("review gate: no review yet -> not fresh", order_review.review_state(pk()) == (False, "这单还没审查过"))
+    check("review gate: a pass for the order as it stands -> fresh", order_review.review_state(pk(reviews=[stamp("pass")]))[0] is True)
+    check("review gate: the newest verdict is a fail -> not fresh, and says it failed",
+          (lambda s: s[0] is False and "没过" in s[1])(order_review.review_state(pk(reviews=[stamp("fail"), stamp("pass")]))))
+    changed = copy.deepcopy(base_order); changed["invoice_data"]["guests"].append({"name": "Shin", "proteins": ["filet_mignon", "chicken"]})
+    check("review gate: a guest added after the pass -> stale, re-review", order_review.review_state(pk(order=changed, reviews=[stamp("pass")]))[0] is False)
+    texted = copy.deepcopy(base_party); texted["customer_sms"].append({"direction": "inbound", "at": "2030-11-12T21:00:00.000Z", "body": "Can we add tables?"})
+    check("review gate: the customer texted after the pass -> stale", order_review.review_state(pk(party=texted, reviews=[stamp("pass")]))[0] is False)
+    ours = copy.deepcopy(base_party); ours["customer_sms"].append({"direction": "outbound", "at": "2030-11-12T21:00:00.000Z", "body": "See you Saturday."})
+    check("review gate: only our own text after the pass -> still fresh", order_review.review_state(pk(party=ours, reviews=[stamp("pass")]))[0] is True)
+    tip = copy.deepcopy(base_order); tip["invoice_data"]["selectedGratuityRate"] = 0.25
+    check("review gate: the gratuity the customer picked on the bill does not void a review", order_review.review_state(pk(order=tip, reviews=[stamp("pass")]))[0] is True)
+    crew = copy.deepcopy(base_party); crew["team"] = [{"id": "s2", "role": "lead_chef"}]
+    check("review gate: a reassigned chef -> stale", order_review.review_state(pk(party=crew, reviews=[stamp("pass")]))[0] is False)
+    check("review email: the quoted thread below a reply is dropped",
+          order_review._email_text({"text": "Carla is pescatarian.\r\n\r\nOn Thu, Nov 12, 2026 at 9:10 AM Real Hibachi <support@realhibachi.com>\r\nwrote:\r\n> Hi Jane"}) == "Carla is pescatarian.")
 
     print()
     if FAILS:

@@ -26,6 +26,9 @@
   python scripts/desk/desk.py ack    <chefPhone> [--clear] a [chef] item settled without a text (called him, WeChat)
   python scripts/desk/desk.py chef-confirm <chefPhone> [--order RH-…]   he confirmed a change some other way than replying 1
   python scripts/desk/desk.py block  <leadId> [--why "..."] [--clear]   a sales pitch: its calls to 213 are rejected, lead disqualified
+  python scripts/desk/desk.py order review <RH-…>            审查者 packet: order, prep line, each chef's live sheet, the whole conversation
+  python scripts/desk/desk.py order review <RH-…> --pass|--fail --summary "…"   the verdict, stamped on the order (fingerprinted)
+  python scripts/desk/desk.py order send-sheet <RH-…> [--chef NAME] [--note-file F] [--dry]   prep-sheet link, only after a review that still holds
   python scripts/desk/desk.py fields <leadId> guest_count=24 city_or_zip=Long\\ Beach
   python scripts/desk/desk.py link deposit --lead <id> --adults 24 --city "Long Beach" [--kids 0]
                                    [--date 2026-10-13] [--time 18:00] [--email e] [--name n] [--est 1258]
@@ -82,6 +85,7 @@ import urllib.parse
 from zoneinfo import ZoneInfo
 
 from _api import ROOT, ApiError, _supabase, dump, e164, invoice_post, is_uuid, pt, read_text_arg, site_get, site_post
+import order_review
 import party_check
 
 TAPBACK = re.compile(r"^(liked|loved|laughed at|emphasized|disliked|questioned)\s", re.I)
@@ -2353,6 +2357,81 @@ def _set_prep_note(order: dict, order_no: str, path: str, dry: bool) -> None:
     print(f"      原来是：{was or '(空)'}")
 
 
+def _db_read(path: str):
+    return _supabase("GET", path, None, "application/json")
+
+
+def _review_gate(order_no: str, a, what: str) -> tuple[bool, str]:
+    """审查者的关卡 (owner 2026-11-12): a link goes out only when the newest review passed for the order
+    as it stands. (fresh, why); --skip-review with --why lets a person send anyway, and it is recorded."""
+    packet = order_review.load(order_no, site_get, _db_read)
+    fresh, why = order_review.review_state(packet)
+    print(f"审查  {'✓' if fresh else '✗'} {why}")
+    if fresh:
+        return True, why
+    if not getattr(a, "skip_review", False):
+        return False, f"{what}没发：{why}。先审查（/order-review {order_no}），过了再发；看过确实要先发，加 --skip-review --why \"…\""
+    reason = (getattr(a, "why", None) or "").strip()
+    if len(reason) < 4:
+        raise SystemExit('--skip-review 要写 --why "为什么不审查就发"')
+    if not getattr(a, "dry", False):
+        row = {"order_id": packet["order"]["id"], "actor": f"desk:{desk_session()}", "action": order_review.SKIP_ACTION,
+               "metadata": {"what": what, "why": reason[:500], "fingerprint": packet["fingerprint"], "state": why[:300]}}
+        _supabase("POST", "/rest/v1/order_events", json.dumps(row, ensure_ascii=False).encode("utf-8"), "application/json")
+    return True, f"没审查就发（{reason}）"
+
+
+def _order_review_ops(a) -> None:
+    """order review: the reviewer's packet, or its verdict (--pass / --fail with --summary).
+    order send-sheet: the chef prep-sheet link, through the same send as the workbench's 发备料单,
+    only after a review that still holds."""
+    if a.op == "review":
+        packet = order_review.load(a.ident, site_get, _db_read)
+        if a.pass_ and a.fail:
+            raise SystemExit("--pass 和 --fail 只能选一个")
+        if not (a.pass_ or a.fail):
+            for line in order_review.render(packet):
+                print(line)
+            return
+        summary = (a.summary or "").strip()
+        if len(summary) < 10:
+            raise SystemExit('审查结论要写清楚：--summary "核了几条、都在哪" 或 "缺什么、该怎么补"')
+        blocking = [g for g in packet["gaps"] if g.get("severity") == "block"]
+        if a.pass_ and blocking:
+            raise SystemExit("记不了通过：机器核对还有要先补的缺项 - " + "；".join(str(g.get("title") or "") for g in blocking))
+        row = {"order_id": packet["order"]["id"], "actor": f"reviewer:{desk_session()}", "action": order_review.REVIEW_ACTION,
+               "metadata": {"verdict": "pass" if a.pass_ else "fail", "summary": summary[:2000], "fingerprint": packet["fingerprint"],
+                            "gaps": len(packet["gaps"]), "links": len(packet["links"])}}
+        _supabase("POST", "/rest/v1/order_events", json.dumps(row, ensure_ascii=False).encode("utf-8"), "application/json")
+        print(f"OK    {a.ident} 审查{'通过' if a.pass_ else '没过'}（指纹 {packet['fingerprint']}）：{summary}")
+        return
+    ok, why = _review_gate(a.ident, a, "备料单")
+    if not ok:
+        raise SystemExit(why)
+    packet = order_review.load(a.ident, site_get, _db_read)
+    team = packet["party"].get("team") or []
+    if a.chef:
+        wanted = {c.strip().lower() for c in a.chef}
+        team = [t for t in team if str(t.get("name") or "").strip().lower() in wanted]
+    if not team:
+        raise SystemExit("没有可发的人：这单没派师傅，或者 --chef 的名字和派工对不上")
+    note = pathlib.Path(a.note_file).read_text(encoding="utf-8").strip() if a.note_file else ""
+    for t in team:
+        if a.dry:
+            print(f"DRY   would send the prep sheet to {t.get('name')} ({t.get('role')})" + (f" with note: {note}" if note else ""))
+            continue
+        payload = {"action": "send_sheet", "order_id": packet["order"]["id"], "staff_member_id": t["id"], "send_sms": True,
+                   **({"note": note} if note else {}), **({"force": True} if a.force else {})}
+        try:
+            out = site_post("/api/admin/chefs", payload)
+        except ApiError as e:
+            print(f"FAIL  {t.get('name')}: HTTP {e.status} {e.payload}")
+            continue
+        sms = out.get("sms") or {}
+        print(f"OK    {t.get('name')}: {out.get('url')}" + ("（换掉了他手上原来那条）" if out.get("resent") else "")
+              + ("" if sms.get("delivered", True) else f" · 短信没发出：{sms.get('error')}"))
+
+
 def cmd_order(a):
     if a.op == "check":
         # 派对当天核对 (owner 2026-11-12, D-1112-01): 10:00 on the party day, every party that day. Chefs work
@@ -2367,6 +2446,9 @@ def cmd_order(a):
             print(line)
         if a.json:
             print(dump([{"orderNo": p["order"].get("order_no"), "gaps": party_check.gaps_of(p)} for p in parties]))
+        return
+    if a.op in ("review", "send-sheet"):
+        _order_review_ops(a)
         return
     if a.op == "find":
         for c in _search(a.ident):
@@ -3086,6 +3168,18 @@ def cmd_order(a):
             # (--add-adult, --free-item, --add-extra) may already be on the order.
             raise SystemExit(f"nothing was saved. Read it again (order show {order_no}), then re-run this command if it still applies.")
         print(f"OK    saved {res.get('orderNo')}  planner_synced={res.get('plannerSynced')}")
+        # 审查者 (owner 2026-11-12): inside 72 hours the system texts the chef a new link about ten
+        # minutes after a change (card A). The review runs in that window, so that link is right too.
+        # (own import names: cmd_order binds _dt and ZoneInfo locally further down, in the remind branch)
+        import datetime as _dt72
+        from zoneinfo import ZoneInfo as _Zone72
+        _ci = (prefill.get("contactInfo") or {}) if isinstance(prefill, dict) else {}
+        try:
+            _start = _dt72.datetime.fromisoformat(f"{str(_ci.get('eventDate') or '')[:10]}T{str(_ci.get('eventTime') or '00:00')[:5]}").replace(tzinfo=_Zone72("America/Los_Angeles"))
+            if 0 <= (_start - _dt72.datetime.now(_Zone72("America/Los_Angeles"))).total_seconds() <= 72 * 3600:
+                print(f"NEXT  派对 72 小时内：系统约 10 分钟后会给师傅发新链接 - 现在审查（/order-review {res.get('orderNo')}），没过就马上补")
+        except ValueError:
+            pass
         # A save lines the host's planner up with this invoice's counts, and
         # until 2026-10-24 it deleted whoever was over them: RH-20261015-3202's
         # under-5 Shiloh, named with two picks, would have gone with a save
@@ -3153,6 +3247,14 @@ def cmd_order(a):
                 print(f"HOLD  {why}——正式发会被拦。改好（order set …）再发，或核过后加 --force")
                 return
             raise SystemExit(f"not sent: {why}. 改好（order set …）再发，或核过后加 --force")
+        # 审查者 (owner 2026-11-12): the invoice link is a link too - it goes out only after a review that still holds.
+        reviewed, review_why = _review_gate(order_no, a, "提醒")
+        if not reviewed:
+            if a.dry:
+                print(f"DRY   {body}")
+                print(f"HOLD  {review_why}")
+                return
+            raise SystemExit(review_why)
         if a.dry:
             print(f"DRY   {body}")
             return
@@ -3332,7 +3434,13 @@ def main(argv=None):
     p = sp.add_parser("report"); p.add_argument("kind", choices=["day", "week"])
     p.add_argument("--date", help="YYYY-MM-DD (Pacific). day: default today; week: any day in the week, default the last full Sun-Sat week")
     p.set_defaults(fn=_report)
-    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "plan", "set", "preview", "email", "send", "remind", "hold", "redate", "cancel", "check"]); p.add_argument("ident")
+    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "plan", "set", "preview", "email", "send", "remind", "hold", "redate", "cancel", "check", "review", "send-sheet"]); p.add_argument("ident")
+    p.add_argument("--pass", dest="pass_", action="store_true", help="review: record that the review passed (needs --summary; refused while the machine check has blocking gaps)")
+    p.add_argument("--fail", action="store_true", help="review: record that the review failed (needs --summary: what is missing and the fix)")
+    p.add_argument("--summary", help="review: the verdict in a sentence or two - what was checked and where it is, or what is missing")
+    p.add_argument("--chef", nargs="+", metavar="NAME", help="send-sheet: only these chefs on the order (default: everyone assigned)")
+    p.add_argument("--note-file", help="send-sheet: a note sent with the sheet (texted and kept on the link)")
+    p.add_argument("--skip-review", action="store_true", help="send-sheet / remind: send although the review is missing or stale (needs --why; recorded)")
     p.add_argument("--rows-out", help="plan: write the party page's guests as a --guests-file list")
     p.add_argument("--why", help="hold: why the date is off, kept on the order (e.g. birthday boy out of town, picking a new date). "
                                  "cancel: why the party is off (required; kept on the order and the lead)")
