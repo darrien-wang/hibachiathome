@@ -7,7 +7,7 @@
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { chefNoticeSummaryZh, logChefNotices, notifyRemovedChefs, partyCancelledText, partyLabelZh, removedFromPartyText, type PartyRef } from "../lib/chef-notify"
+import { chefNoticeSummaryZh, chefsRemovedByAssign, helpersRemovedByAssign, logChefNotices, notifyRemovedChefs, partyCancelledText, partyLabelZh, removedFromPartyText, type PartyRef } from "../lib/chef-notify"
 import { fakeSupabase } from "./fixtures/fake-supabase"
 
 const ORDER: PartyRef = {
@@ -170,6 +170,25 @@ test("cancelled · still news while the party would be on, bookkeeping three hou
   const [b] = await notifyRemovedChefs(world([]) as never, { order: ORDER, staffIds: [BLU], reason: "cancelled", now: Date.parse("2030-11-15T04:31:00Z"), send: after.send })
   assert.equal(b.skipped, "party_over")
   assert.deepEqual(after.sent, [])
+})
+
+test("who is off · a new team removes the cooks it leaves out, not one who stays on as a helper", () => {
+  const cook = (id: string) => ({ staff_member_id: id, assignment_role: "lead_chef" })
+  const helper = (id: string) => ({ staff_member_id: id, assignment_role: "assistant_chef" })
+  // Blu -> Gary: Blu is off.
+  assert.deepEqual(chefsRemovedByAssign([cook(BLU)], [GARY]), [BLU])
+  // Blu + Gary -> Gary: only Blu. Same team again: nobody.
+  assert.deepEqual(chefsRemovedByAssign([cook(BLU), cook(GARY)], [GARY]), [BLU])
+  assert.deepEqual(chefsRemovedByAssign([cook(BLU), cook(GARY)], [GARY, BLU]), [])
+  // Cleared team: everyone who cooked.
+  assert.deepEqual(chefsRemovedByAssign([cook(BLU), cook(GARY)], []), [BLU, GARY])
+  // A helper promoted to cook is not removed; a cook who is also still a helper is still going.
+  assert.deepEqual(chefsRemovedByAssign([cook(BLU), helper(GARY)], [GARY]), [BLU])
+  assert.deepEqual(chefsRemovedByAssign([cook(BLU), helper(BLU)], [GARY]), [])
+  // The helper list: a dropped helper is off, unless he cooks on this party.
+  assert.deepEqual(helpersRemovedByAssign([cook(BLU), helper(GARY), helper(NOPHONE)], [NOPHONE]), [GARY])
+  assert.deepEqual(helpersRemovedByAssign([cook(BLU), helper(BLU)], []), [])
+  assert.deepEqual(helpersRemovedByAssign([cook(BLU), helper(GARY)], [GARY]), [])
 })
 
 test("the trail · one order event per chef told, with the text and how the send went", async () => {

@@ -13,7 +13,7 @@ import { CARD_PROCESSING_RATE, cardProcessingFeeInside, DEFAULT_SALES_TAX_RATE, 
 import { formatTaxRate } from "@/lib/sales-tax-rate"
 import { MAX_CHEFS, normalizeDispatchPlan, rulePlan, type DispatchPlan } from "@/lib/dispatch-plan"
 import { lintOrderStaffing, orderPaidHeads, type OrderForPlan } from "@/lib/dispatch-plan-order"
-import { chefNoticeSummaryZh, logChefNotices, notifyRemovedChefs, type ChefNoticeResult, type PartyRef } from "@/lib/chef-notify"
+import { chefNoticeSummaryZh, chefsRemovedByAssign, helpersRemovedByAssign, logChefNotices, notifyRemovedChefs, type ChefNoticeResult, type PartyRef } from "@/lib/chef-notify"
 import { ackNotices } from "@/lib/chef-notices"
 import { phoneDigits10 } from "@/lib/staff-phones"
 
@@ -567,7 +567,7 @@ async function voidManualCashFinal(supabase: NonNullable<ReturnType<typeof creat
 
 // ---------------------------------------------------------------- writes
 
-const PARTY_COLUMNS = "id, order_no, customer_name, event_start, event_address, source_metadata"
+const PARTY_COLUMNS = "id, order_no, customer_name, event_start, event_address, source_metadata, order_status"
 
 /**
  * 换下来的师傅：收到过备料单的发短信、链接作废，并各记一条 chef_removed_notified。
@@ -584,8 +584,10 @@ async function tellRemovedChefs(
   try {
     const { data: party } = await supabase.from("orders").select(PARTY_COLUMNS).eq("id", orderId).maybeSingle()
     if (!party) return []
-    const results = await notifyRemovedChefs(supabase, { order: party as unknown as PartyRef, staffIds: removedIds, reason: "reassigned", dryRun })
-    if (!dryRun) await logChefNotices(supabase, orderId, actor, "reassigned", results)
+    // 订单已经取消（退款那条路、手改库）而派工还挂着：撤人时说的是「取消了」，不是「改给别人了」。
+    const reason = (party as { order_status?: string | null }).order_status === "cancelled" ? "cancelled" : "reassigned"
+    const results = await notifyRemovedChefs(supabase, { order: party as unknown as PartyRef, staffIds: removedIds, reason, dryRun })
+    if (!dryRun) await logChefNotices(supabase, orderId, actor, reason, results)
     return results
   } catch (e) {
     console.error("[admin/chefs] removed-chef notice failed", e instanceof Error ? e.message : e)
@@ -740,8 +742,7 @@ export async function POST(request: NextRequest) {
         const toCancel = (existing ?? []).filter((a) => !want.includes(a.staff_member_id))
         const toAdd = want.filter((sid) => !have.has(sid))
         // 真被换下来的人：不在新名单里，也不是这单还留着的帮手。
-        const stayingHelpers = new Set((allRows ?? []).filter((a) => a.assignment_role === HELPER_ROLE && !want.includes(a.staff_member_id)).map((a) => a.staff_member_id))
-        const removedIds = Array.from(new Set(toCancel.map((a) => a.staff_member_id).filter((sid) => !stayingHelpers.has(sid))))
+        const removedIds = chefsRemovedByAssign(allRows ?? [], want)
         if (body.dry_run === true) {
           const wouldTell = await tellRemovedChefs(supabase, body.order_id, removedIds, `workbench:${actor.alias}`, true)
           return NextResponse.json({ ok: true, dryRun: true, added: toAdd.length, cancelled: toCancel.length, notified: wouldTell })
@@ -776,7 +777,7 @@ export async function POST(request: NextRequest) {
         const drop = helpersNow.filter((a) => !keep.includes(a.staff_member_id))
         const add = keep.filter((sid) => !helpersNow.some((a) => a.staff_member_id === sid))
         // 撤下来的帮手如果拿过备料单，同样要告诉他；还是这单师傅的人不算撤下。
-        const droppedIds = Array.from(new Set(drop.map((a) => a.staff_member_id).filter((sid) => !leads.has(sid))))
+        const droppedIds = helpersRemovedByAssign(rowsH ?? [], keep)
         if (body.dry_run === true) {
           const wouldTell = await tellRemovedChefs(supabase, body.order_id, droppedIds, `workbench:${actor.alias}`, true)
           return NextResponse.json({ ok: true, dryRun: true, added: add.length, removed: drop.length, notified: wouldTell })

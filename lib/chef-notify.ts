@@ -76,6 +76,27 @@ export function partyCancelledText(o: PartyRef, hadSheet: boolean): string {
   return `${thatParty(o)}取消了，你不用去${hadSheet ? "，之前的备料单作废" : ""}。`
 }
 
+const HELPER_ROLE = "assistant_chef"
+type TeamRow = { staff_member_id: string; assignment_role: string | null }
+
+/**
+ * Who a new team takes off the party (the workbench's `assign`): the cooks on
+ * it now who are not on the new list - unless they stay on as a helper, which
+ * is still going to the party.
+ */
+export function chefsRemovedByAssign(active: TeamRow[], want: string[]): string[] {
+  const stayingHelpers = new Set(active.filter((a) => a.assignment_role === HELPER_ROLE && !want.includes(a.staff_member_id)).map((a) => a.staff_member_id))
+  const cooks = active.filter((a) => a.assignment_role !== HELPER_ROLE)
+  return [...new Set(cooks.map((a) => a.staff_member_id).filter((id) => !want.includes(id) && !stayingHelpers.has(id)))]
+}
+
+/** Who a new helper list takes off the party (`assign_helpers`): the helpers dropped, unless they cook on it. */
+export function helpersRemovedByAssign(active: TeamRow[], wantHelpers: string[]): string[] {
+  const cooks = new Set(active.filter((a) => a.assignment_role !== HELPER_ROLE).map((a) => a.staff_member_id))
+  const helpers = active.filter((a) => a.assignment_role === HELPER_ROLE).map((a) => a.staff_member_id)
+  return [...new Set(helpers.filter((id) => !wantHelpers.includes(id) && !cooks.has(id)))]
+}
+
 export type ChefNoticeResult = {
   staffId: string
   name: string

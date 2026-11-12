@@ -245,3 +245,40 @@ test("cancel · what the workbench shows before and after", async () => {
     "⚠ 离派对只有 30 小时（不到 48 小时）：按政策可以收 $99 取消费，系统没有扣，收不收由老板定。",
   ])
 })
+
+// ---- the route's gate ----------------------------------------------------------
+// No database is configured in these three: a request that got past the gate
+// would answer "supabase not configured", so nothing can be read or written.
+test("cancel route · owner only: no key 401, an agent's key 403, and the owner gets through the gate", async () => {
+  const { NextRequest } = await import("next/server")
+  const { POST } = await import("../app/api/admin/orders/cancel/route")
+  const names = ["ADMIN_DASH_KEY", "AGENT_DASH_KEYS", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"] as const
+  const saved = Object.fromEntries(names.map((n) => [n, process.env[n]]))
+  process.env.ADMIN_DASH_KEY = "owner-test-key"
+  process.env.AGENT_DASH_KEYS = "anna:agent-test-key"
+  delete process.env.SUPABASE_URL
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY
+  const quiet = console.error
+  console.error = () => undefined // lib/supabase.ts says the env is missing; that is the point here
+  const call = async (key: string | null) => {
+    const res = await POST(
+      new NextRequest("http://localhost/api/admin/orders/cancel", {
+        method: "POST",
+        headers: { "content-type": "application/json", ...(key ? { "x-admin-key": key } : {}) },
+        body: JSON.stringify({ orderId: ORDER_ID, reason: REASON, dryRun: true }),
+      }),
+    )
+    return [res.status, ((await res.json()) as { error?: string }).error]
+  }
+  try {
+    assert.deepEqual(await call(null), [401, "unauthorized"])
+    assert.deepEqual(await call("agent-test-key"), [403, "只有老板能取消订单"])
+    assert.deepEqual(await call("owner-test-key"), [500, "supabase not configured"])
+  } finally {
+    console.error = quiet
+    for (const n of names) {
+      if (saved[n] === undefined) delete process.env[n]
+      else process.env[n] = saved[n]
+    }
+  }
+})
