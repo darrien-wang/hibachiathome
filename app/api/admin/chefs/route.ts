@@ -621,7 +621,7 @@ type InvoiceSheetReply =
  * （staffing_lint）时不发，把缺什么带回来（409）；看过了还要发 = force。连不上、502/504 也算
  * 没发成，带着原话回来（Cloudflare 会把 5xx 换成它自己的错误页，理由就丢了）。
  */
-async function sendSheetViaInvoice(input: { orderNo: string; staffMemberId: string; note?: string; sendSms: boolean; sentBy: string; force?: boolean }): Promise<InvoiceSheetReply> {
+async function sendSheetViaInvoice(input: { orderNo: string; staffMemberId: string; note?: string; sendSms: boolean; sentBy: string; force?: boolean; skipReview?: boolean; skipReviewWhy?: string }): Promise<InvoiceSheetReply> {
   type SheetResp = {
     ok?: boolean
     url?: string
@@ -645,6 +645,8 @@ async function sendSheetViaInvoice(input: { orderNo: string; staffMemberId: stri
         sendSms: input.sendSms,
         sentBy: input.sentBy,
         ...(input.force ? { force: true } : {}),
+        // 审查者（2026-11-12）：desk 的 --skip-review，只放过「没审查」这一条，原因记在订单上。
+        ...(input.skipReview ? { skipReview: true, skipReviewWhy: input.skipReviewWhy || undefined } : {}),
       }),
     })
     const payload = (await res.json().catch(() => ({}))) as SheetResp
@@ -982,6 +984,8 @@ export async function POST(request: NextRequest) {
           sendSms: body.send_sms !== false,
           sentBy: `workbench:${actor.alias}`,
           force: body.force === true,
+          skipReview: body.skip_review === true,
+          skipReviewWhy: str(body.skip_review_why, 500) || undefined,
         })
         if (!sent.ok) {
           return NextResponse.json({ error: sent.error, ...(sent.code ? { code: sent.code } : {}), ...(sent.blocking ? { blocking: sent.blocking } : {}) }, { status: sent.status })

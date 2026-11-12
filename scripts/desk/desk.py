@@ -84,7 +84,7 @@ import time
 import urllib.parse
 from zoneinfo import ZoneInfo
 
-from _api import ROOT, ApiError, _supabase, dump, e164, invoice_post, is_uuid, pt, read_text_arg, site_get, site_post
+from _api import INVOICE, ROOT, ApiError, _call, _supabase, dump, e164, invoice_post, is_uuid, pt, read_text_arg, site_get, site_post
 import order_review
 import party_check
 
@@ -2381,6 +2381,20 @@ def _review_gate(order_no: str, a, what: str) -> tuple[bool, str]:
     return True, f"没审查就发（{reason}）"
 
 
+def _review_key(order_no: str) -> str | None:
+    """The invoice app's review key for the order as it stands (lib/order-review.ts, 2026-11-12): recorded on
+    the verdict, so the send endpoint can tell a pass for this version of the order from one for an earlier
+    version. None when the invoice app cannot say: the verdict is still recorded and the desk's own
+    fingerprint still holds, but the send endpoint will read the order as not reviewed."""
+    try:
+        out = _call("GET", INVOICE + "/api/chef-sheet/review-key?" + urllib.parse.urlencode({"orderNo": order_no}), admin=False, timeout=30)
+    except Exception as e:  # noqa: BLE001 - any failure: record without the key, and say so
+        print(f"!     发票应用没给审查 key（{e}）：结论照记，但发送接口会当作没审查")
+        return None
+    key = out.get("key") if isinstance(out, dict) else None
+    return key if isinstance(key, str) and re.fullmatch(r"[0-9a-f]{16}", key) else None
+
+
 def _order_review_ops(a) -> None:
     """order review: the reviewer's packet, or its verdict (--pass / --fail with --summary).
     order send-sheet: the chef prep-sheet link, through the same send as the workbench's 发备料单,
@@ -2402,6 +2416,9 @@ def _order_review_ops(a) -> None:
         row = {"order_id": packet["order"]["id"], "actor": f"reviewer:{desk_session()}", "action": order_review.REVIEW_ACTION,
                "metadata": {"verdict": "pass" if a.pass_ else "fail", "summary": summary[:2000], "fingerprint": packet["fingerprint"],
                             "gaps": len(packet["gaps"]), "links": len(packet["links"])}}
+        key = _review_key(a.ident)
+        if key:
+            row["metadata"]["order_key"] = key
         _supabase("POST", "/rest/v1/order_events", json.dumps(row, ensure_ascii=False).encode("utf-8"), "application/json")
         print(f"OK    {a.ident} 审查{'通过' if a.pass_ else '没过'}（指纹 {packet['fingerprint']}）：{summary}")
         return
@@ -2421,7 +2438,10 @@ def _order_review_ops(a) -> None:
             print(f"DRY   would send the prep sheet to {t.get('name')} ({t.get('role')})" + (f" with note: {note}" if note else ""))
             continue
         payload = {"action": "send_sheet", "order_id": packet["order"]["id"], "staff_member_id": t["id"], "send_sms": True,
-                   **({"note": note} if note else {}), **({"force": True} if a.force else {})}
+                   **({"note": note} if note else {}), **({"force": True} if a.force else {}),
+                   # --skip-review: the send endpoint's review check (invoice lib/order-review.ts) lets this one
+                   # through too, and writes down why; nothing else is forced.
+                   **({"skip_review": True, "skip_review_why": (a.why or "").strip()[:500]} if getattr(a, "skip_review", False) else {})}
         try:
             out = site_post("/api/admin/chefs", payload)
         except ApiError as e:
