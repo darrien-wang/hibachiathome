@@ -882,7 +882,8 @@ export function OrderDialog({
                 value={prepNote}
                 maxLength={300}
                 disabled={viewerRole !== "owner" || logiOwner === undefined}
-                placeholder="写给后勤的话，会印在备料单上；不写就不印"
+                placeholder="写给师傅和后勤的话：印在后勤备货单和师傅的备料单链接上（客人看不到）；不写就不印"
+                title="2026-11-12 起，这里写的会印在师傅备料单链接的「派对前必看 → 办公室备注」里，也印在后勤备货单上。客人看不到。改了它，72 小时内的派对会自动给师傅发新链接。"
                 onChange={(e) => setPrepNote(e.target.value)}
                 onBlur={() => void savePrepNote()}
                 onKeyDown={(e) => {
