@@ -6,6 +6,7 @@ import { fetchLastByPeer, toE164, type LastByPeer } from "@/lib/sms-thread"
 import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-forms"
 import { getCityTravel } from "@/config/city-travel"
 import { fetchOrderLints, gapsWithLint, type OrderLint } from "@/lib/order-lint-client"
+import { fetchReconcile } from "@/lib/reconcile-client"
 
 // The lead scan (线索扫描 skill, 2026-10-01): every open lead sorted into one
 // bucket, each bucket with one action. The buckets encode what the 09-27
@@ -16,7 +17,9 @@ import { fetchOrderLints, gapsWithLint, type OrderLint } from "@/lib/order-lint-
 //
 //   A  欠回复   the customer spoke last (text or call) - answer now
 //   C  热信号   re-quote, deposit page, payment failure, planner activity
-//   G  已付未齐 paid, party soon, address / menu / time still missing
+//   G  已付未齐 paid, party soon, address / menu / time still missing - and,
+//               since 2026-11-11, every order whose party page and invoice
+//               disagree (the invoice app's reconcile, lib/reconcile-client.ts)
 //   B  承诺到期 they named a day to get back to us and it has passed
 //   E  派对临近 party within 7 days, no deposit
 //   D  到期跟进 silent, under the 3-text cap, one follow-up due
@@ -65,12 +68,26 @@ export type OrderGap = {
   gaps: string[]
 }
 
+/** An order whose party page and saved invoice disagree, with each difference in words. */
+export type ReconcileGap = {
+  orderNo: string
+  orderId: string | null
+  name: string | null
+  phone: string | null
+  leadId: string | null
+  eventStart: string | null
+  daysToEvent: number | null
+  diffs: string[]
+}
+
 export type ScanResult = {
   serverTime: string
   pool: number
   summary: Record<Bucket | "F", number>
   items: ScanItem[]
   orders: OrderGap[]
+  /** Party page ≠ invoice, one row per order the invoice app reports (bucket G). Empty when it could not be asked. */
+  reconcile: ReconcileGap[]
   /** false when the invoice app's order lint could not be asked (G then lists the scan's own gaps only). */
   orderLint?: false
 }
@@ -187,7 +204,7 @@ async function fetchAll<T>(build: (from: number, to: number) => PromiseLike<{ da
   return out
 }
 
-export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts: { write?: boolean; lint?: boolean } = {}): Promise<ScanResult> {
+export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts: { write?: boolean; lint?: boolean; reconcile?: boolean } = {}): Promise<ScanResult> {
   const since = new Date(now - POOL_DAYS * DAY_MS).toISOString()
   const [leads, quiet, byPeer, orders] = await Promise.all([
     fetchAll<LeadRow>((from, to) =>
@@ -588,9 +605,38 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     })
   }
 
+  // ---- G, second half: the party page and the invoice disagree ----------------
+  // The customer picks the menu on the party page; until someone saves it into
+  // the invoice the chef's sheet does not have it (11-11: eleven upcoming
+  // orders with a menu on the page and none on the invoice). The invoice app
+  // compares the two; one row here per order it reports, with its differences.
+  // An offline scan (lint: false) does not ask; an app that does not answer
+  // (not deployed yet, down) lists nothing.
+  const reconcileGaps: ReconcileGap[] = []
+  const askReconcile = opts.reconcile ?? opts.lint !== false
+  const reported = askReconcile ? await fetchReconcile(ORDER_HORIZON_DAYS) : null
+  if (reported?.length) {
+    const byNo = new Map(orders.filter((o) => o.order_no).map((o) => [o.order_no as string, o]))
+    for (const r of reported) {
+      const o = byNo.get(r.orderNo)
+      const start = r.eventStart ?? o?.event_start ?? null
+      reconcileGaps.push({
+        orderNo: r.orderNo,
+        orderId: o?.id ?? null,
+        name: o?.customer_name ?? null,
+        phone: toE164(o?.customer_phone ?? null),
+        leadId: str((o?.source_metadata ?? {}).lead_id) || null,
+        eventStart: start,
+        daysToEvent: daysUntil(start ? start.slice(0, 10) : null, now),
+        diffs: r.diffs,
+      })
+    }
+    reconcileGaps.sort((a, b) => String(a.eventStart ?? "9999").localeCompare(String(b.eventStart ?? "9999")))
+  }
+
   const order: Bucket[] = ["A", "C", "B", "E", "D", "H", "G"]
   items.sort((a, b) => order.indexOf(a.bucket) - order.indexOf(b.bucket) || (a.daysToEvent ?? 9999) - (b.daysToEvent ?? 9999) || (a.lastAt ?? "").localeCompare(b.lastAt ?? ""))
-  const summary = { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0, G: orderGaps.length, H: 0 } as Record<Bucket | "F", number>
+  const summary = { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0, G: orderGaps.length + reconcileGaps.length, H: 0 } as Record<Bucket | "F", number>
   for (const it of items) {
     summary[it.bucket] += 1
     if (it.objection) summary.F += 1
@@ -614,6 +660,7 @@ export async function scanLeads(supabase: SupabaseClient, now = Date.now(), opts
     summary,
     items,
     orders: orderGaps,
+    reconcile: reconcileGaps,
     // false: the invoice app's order lint did not answer, so G shows only what the scan sees itself
     ...(lints === null && orders.length > 0 ? { orderLint: false } : {}),
   }
