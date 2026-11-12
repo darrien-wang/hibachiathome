@@ -277,6 +277,25 @@ function withFallback<T>(current: T | null | undefined, fallback: T | undefined)
   return current
 }
 
+/** A landing page's own region label - where the page is about, not where the party is. */
+const REGION_LABEL = /^(southern california|socal|la & orange county|los angeles & orange county)$/i
+
+/**
+ * The lead's city or ZIP after another touchpoint. The first value normally
+ * stays (a later form with nothing typed must not blank it), except when it is
+ * only the landing page's region label and the customer has now typed a town
+ * or a ZIP of their own. 2026-11-12 Victoria's lead kept "Southern California"
+ * from the home estimator over the 90275 she wrote on the contact form 95
+ * seconds later, so the desk card could not price her travel.
+ */
+export function mergeCityOrZip(current: string | null | undefined, incoming: string | undefined): string | undefined {
+  const cur = asNonEmptyString(current)
+  const next = asNonEmptyString(incoming)
+  if (!cur) return next
+  if (next && REGION_LABEL.test(cur) && !REGION_LABEL.test(next)) return next
+  return cur
+}
+
 function withFallbackForUnknown(current: string | null | undefined, fallback: string | undefined): string | undefined {
   const normalized = asNonEmptyString(current)
   if (!normalized) return fallback
@@ -389,7 +408,7 @@ export async function upsertLeadFromContact(
       lead_type: current.lead_type ?? input.leadType,
       inquiry_reason: withFallback(current.inquiry_reason, input.reason),
       source_page: withFallback(current.source_page, input.sourcePage),
-      city_or_zip: withFallback(current.city_or_zip, input.cityOrZip),
+      city_or_zip: mergeCityOrZip(current.city_or_zip, input.cityOrZip),
       guest_count: withFallback(current.guest_count, input.guestCount),
       adult_count: withFallback(current.adult_count, input.adultCount),
       child_count: withFallback(current.child_count, input.childCount),

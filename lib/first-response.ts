@@ -197,6 +197,40 @@ export type LandingContactPayload = {
   eventDate?: string
 }
 
+/** What the site's contact form stored (lead_touchpoints contact_form, written through lib/leads.ts). */
+export type ContactFormPayload = {
+  eventDate?: string
+  guestCount?: string | number
+  cityOrZip?: string
+  message?: string
+}
+
+/**
+ * Why a machine-written first text does not fit a lead who wrote the site's
+ * contact form, or null when there is no form. Template A answers a visitor
+ * who left only a number and an email on the estimator card: it quotes the
+ * card's party and asks for the date. Template B follows the site's automatic
+ * quote. Neither has read the form. 2026-11-12 Victoria left her number on the
+ * home estimator (the card's default 15 adults, no date) and 95 seconds later
+ * wrote the contact form: 25 guests, Dec 18, 90275, "Outdoor". Fourteen minutes
+ * on she was texted "For 15 adults it's $898.50 Fri-Sun or $823.50 Mon-Thu ...
+ * What date are you thinking?". What a customer wrote is answered by a person,
+ * with the customer's own date and count; the reason says what the form holds,
+ * so the desk sees it without opening the lead.
+ */
+export function contactFormMisfit(form: ContactFormPayload | null | undefined): string | null {
+  if (!form) return null
+  const count = String(form.guestCount ?? "").trim()
+  const date = String(form.eventDate ?? "").trim()
+  const said = [
+    count ? `${count} guest${count === "1" ? "" : "s"}` : "",
+    /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : "",
+    String(form.cityOrZip ?? "").trim(),
+    String(form.message ?? "").trim() ? "a message" : "",
+  ].filter(Boolean)
+  return `wrote the contact form${said.length ? `: ${said.join(", ")}` : ""}`
+}
+
 const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 /**

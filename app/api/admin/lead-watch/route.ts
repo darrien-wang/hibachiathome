@@ -9,6 +9,7 @@ import {
   PARTY_CONTACT_URGENT_H,
   PARTY_BILL_AFTER_MS,
   PARTY_BILL_LATEST_MS,
+  type ContactFormPayload,
   type LandingContactPayload,
   instantToWallIso,
   partyContactFirstText,
@@ -21,6 +22,7 @@ import {
   textSignerFor,
   quoteFollowUpPlan,
   shortDate,
+  contactFormMisfit,
   templateAMessage,
   wallTime,
   wallToInstant,
@@ -416,7 +418,7 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
         .from("lead_touchpoints")
         .select("lead_id, touchpoint_type, raw_payload_json, created_at")
         .in("lead_id", ids)
-        .in("touchpoint_type", ["agent_first_response", "landing_contact", "landing_quote_text"])
+        .in("touchpoint_type", ["agent_first_response", "landing_contact", "landing_quote_text", "contact_form"])
     : { data: [] as Array<{ lead_id: string; touchpoint_type: string; raw_payload_json: unknown; created_at: string }> }
 
   const autoSent: Array<Record<string, unknown>> = []
@@ -430,15 +432,20 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
     const ageMin = Math.round((now - new Date(lead.created_at).getTime()) / 60_000)
     const contact = tps.find((t) => t.touchpoint_type === "landing_contact")
     const gotQuote = tps.some((t) => t.touchpoint_type === "landing_quote_text")
+    // The site's contact form, newest first: what the customer wrote is a person's to answer
+    // (lib/first-response.ts contactFormMisfit - 2026-11-12 Victoria wrote 25 guests for Dec 18 and was
+    // texted the card's default "For 15 adults ... What date are you thinking?").
+    const form = tps.filter((t) => t.touchpoint_type === "contact_form").sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+    const formWhy = contactFormMisfit((form?.raw_payload_json ?? null) as ContactFormPayload | null)
 
     // Left contact details, never reached the quote step: send the price.
     if (contact && !gotQuote) {
       if (ageMin < watch.grace_minutes) continue
       const payload = (contact.raw_payload_json ?? {}) as LandingContactPayload
-      if (!watch.auto_first_response || (payload.eventDate && describeDate(payload.eventDate))) {
-        // A date is already on file, so the approved "what date?" wording does
-        // not fit - hand this one to a person instead of improvising.
-        humanLeads.push({ kind: "lead", leadId: lead.id, phone, email: lead.email, city: lead.city_or_zip, minutesWaiting: ageMin, summary: lead.latest_message })
+      if (!watch.auto_first_response || (payload.eventDate && describeDate(payload.eventDate)) || formWhy) {
+        // A date is already on file, or the customer wrote the contact form: the approved
+        // "what date?" wording does not fit - hand this one to a person instead of improvising.
+        humanLeads.push({ kind: "lead", leadId: lead.id, phone, email: lead.email, city: lead.city_or_zip, minutesWaiting: ageMin, summary: lead.latest_message, ...(formWhy ? { why: formWhy } : {}) })
         continue
       }
       const msg = templateAMessage(payload)
@@ -518,6 +525,10 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
       }
       if (!phone || lead.sms_blocked_at) {
         human(phone ? "sms blocked" : "no phone")
+        continue
+      }
+      if (formWhy) {
+        human(formWhy)
         continue
       }
       const payload = (quoteTp?.raw_payload_json ?? {}) as { adults?: number; kids?: number; eventDate?: string; cityName?: string }

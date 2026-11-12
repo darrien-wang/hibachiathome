@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import {
+  contactFormMisfit,
   instantToWallIso,
   partyContactFirstText,
   partyContactSecondText,
@@ -178,6 +179,25 @@ test("template B hands edge cases to a person", () => {
   assert.ok(quoteFollowUpPlan({ adults: 10, kids: 0, eventDate: "2026-10-09", todayPt: today }).send)
   // 60 adults is the top of the engine's ladder and stays automatic.
   assert.ok(quoteFollowUpPlan({ adults: 60, kids: 0, eventDate: "2026-11-01", todayPt: today }).send)
+})
+
+// 2026-11-12 Victoria: her number on the home estimator at 10:13 (the card's default 15 adults, no
+// date), the contact form at 10:14 with 25 guests, Dec 18, 90275 and "Outdoor", and at 10:28 template
+// A: "For 15 adults it's $898.50 Fri-Sun or $823.50 Mon-Thu ... What date are you thinking?".
+test("a lead who wrote the contact form is a person's to answer, and the reason says what the form holds", () => {
+  assert.equal(contactFormMisfit(null), null)
+  assert.equal(contactFormMisfit(undefined), null)
+  assert.equal(
+    contactFormMisfit({ eventDate: "2026-12-18", guestCount: "25", cityOrZip: "90275", message: "Outdoor" }),
+    "wrote the contact form: 25 guests, 2026-12-18, 90275, a message",
+  )
+  // The message itself stays out of the reason (it can be long, and it is on the lead already).
+  assert.doesNotMatch(String(contactFormMisfit({ message: "Do you cook indoors? My cousin has a nut allergy." })), /cousin/)
+  assert.equal(contactFormMisfit({ guestCount: 1 }), "wrote the contact form: 1 guest")
+  // A form with nothing but a name and a number is still the customer writing to us.
+  assert.equal(contactFormMisfit({}), "wrote the contact form")
+  // A date the form did not validate is not repeated as a date.
+  assert.equal(contactFormMisfit({ eventDate: "next Friday", guestCount: 12 }), "wrote the contact form: 12 guests")
 })
 
 // ---- pre-party contact ------------------------------------------------------------

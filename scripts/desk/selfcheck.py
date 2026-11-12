@@ -1140,6 +1140,24 @@ def order_flow_checks() -> None:
     check("  --order narrows it to that party; nothing open is said plainly, not an error",
           r.exit is None and r.posted[0][1] == {"action": "confirm_notice", "phone": CHEF_PHONE, "order_id": CANCEL_ID} and r.has("没有待确认的改动通知"), r)
 
+    # A new lead who wrote the site's contact form (2026-11-12 Victoria): the machine sends no first text
+    # (lib/first-response.ts contactFormMisfit), so the card says so until someone has texted.
+    form_card = {
+        "key": f"lead:{LEAD_ID}", "kinds": ["lead"], "waitedMinutes": 2, "urgent": False, "phone": PROM_PHONE, "staff": None,
+        "lead": {"id": LEAD_ID, "full_name": "Victoria Hernandez", "phone": PROM_PHONE, "status": "new", "guest_count": 25},
+        "alerts": [], "thread": [], "orders": [], "stats": {},
+        "forms": [{"type": "landing_contact", "label": "落地页表单", "summary": "", "at": "2026-11-12T18:13:09.000Z"},
+                  {"type": "contact_form", "label": "联系表单", "summary": "2026-12-18 · 25 人 · 90275 · Outdoor", "at": "2026-11-12T18:14:44.000Z"}]}
+    form_inbox = {"ok": True, "serverTime": "2026-11-12T18:16:00.000Z", "cards": [form_card], "counts": {"newLeads": 1}}
+    r = DeskRun(["next"], gets={"/api/admin/desk": form_inbox})
+    check("desk next: a new lead who wrote the contact form - the card says the machine will not text first",
+          r.has("⚠️ 客人填了联系表单：机器不发首条", "[网站·联系表单] 2026-12-18 · 25 人 · 90275 · Outdoor"), r)
+    texted = {**form_card, "thread": [sms(PROM_PHONE, "outbound", "2026-11-12 10:18:00", "Hi Victoria, it's Rowling from Real Hibachi.")]}
+    r = DeskRun(["next"], gets={"/api/admin/desk": {**form_inbox, "cards": [texted]}})
+    check("  once someone has texted, the line is gone", "机器不发首条" not in r.out, r)
+    r = DeskRun(["next"], gets={"/api/admin/desk": {**form_inbox, "cards": [{**form_card, "forms": form_card["forms"][:1]}]}})
+    check("  the estimator's own contact step alone does not raise it (template A still answers that one)", "机器不发首条" not in r.out, r)
+
     # desk order set --prep-note-file (D-1112-01): the 备货备注 through the workbench's set_prep_note, 300 characters.
     note_file = pathlib.Path(tempfile.mkdtemp()) / "prep-note.txt"
     note = "带 8 位全套：桌子、8 把椅子、黑桌布、8 套餐具（送的）。5:30 到场摆台。到门口打电话请客人开大门。"

@@ -451,6 +451,12 @@ def render_card(c: dict) -> None:
                     for m in (c.get("thread") or []))
         if int(lead.get("guest_count") or 0) >= 61 and not spoke:
             print("   ⚠️ 61+ 大单：机器不发问场合那条（first-response large_party），首条要人工发（leads §3 判型 E）")
+        # A lead who wrote the site's contact form gets no machine first text either
+        # (lib/first-response.ts contactFormMisfit): the form holds their own date, count or a
+        # question. 2026-11-12 the machine texted Victoria the card's default "15 adults ... what
+        # date?" 14 minutes after she had written 25 guests for Dec 18 in 90275.
+        if not spoke and any(f.get("type") == "contact_form" for f in (c.get("forms") or [])):
+            print("   ⚠️ 客人填了联系表单：机器不发首条，按表单里的日期、人数、留言现在就回（先 desk price）")
         line = source_line(lead.get("source") or {}, lead.get("id"))
         if line:
             print(line)
