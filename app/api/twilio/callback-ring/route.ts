@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { isLivePartyAlarm, markCallbackDone, openCallback, snoozeCallback, spokenName } from "@/lib/callback-ring"
+import { isChefNoticeAlarm, isLivePartyAlarm, markCallbackDone, openCallback, snoozeCallback, spokenName } from "@/lib/callback-ring"
 import { toE164 } from "@/lib/sms-thread"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { escapeXml } from "@/lib/twilio-identity"
@@ -85,6 +85,15 @@ export async function POST(request: NextRequest) {
   if (isLivePartyAlarm(open.why)) {
     await markCallbackDone(supabase, leadId, "heard", params.CallSid)
     const alarm = `客人${spokenName(open)}的派对现场有情况，请看 Claude 的消息。`
+    return twiml(`${say(alarm)}<Pause length="1"/>${say(alarm)}`)
+  }
+
+  // A chef who has not confirmed a change three hours before his party (lib/chef-notices.ts): the
+  // why is the whole message, composed by us. Picking up is the answer here too; the item stays in
+  // the inbox until the chef replies 1 or someone marks it.
+  if (isChefNoticeAlarm(open.why)) {
+    await markCallbackDone(supabase, leadId, "heard", params.CallSid)
+    const alarm = `${open.why.trim().replace(/[。.]+$/, "")}。请看工作台收件箱。`
     return twiml(`${say(alarm)}<Pause length="1"/>${say(alarm)}`)
   }
 

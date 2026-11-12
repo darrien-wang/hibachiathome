@@ -103,6 +103,19 @@ export function shouldRing(waitedMin: number, nowMs: number): boolean {
   return (waitedMin - RING_FIRST_MIN) % RING_EVERY_MIN < RING_WINDOW_MIN
 }
 
+// The alarms added with the order-flow rebuild (2026-11-11: a chef's text, a
+// change held inside 48 hours, a chef who has not confirmed) are new noise on
+// the owner's phone, and chefs text after midnight when a late party wraps up.
+// None of them rings between 11 PM and 7 AM Pacific; they are on the list the
+// whole time and start ringing in the morning. A customer's text keeps the
+// policy above, first three hours included, as it always has.
+export const NEW_ALARM_HOURS_PT: [number, number] = [7, 23]
+
+export function awakeHours(nowMs: number): boolean {
+  const h = ptHour(nowMs)
+  return h >= NEW_ALARM_HOURS_PT[0] && h < NEW_ALARM_HOURS_PT[1]
+}
+
 // ---- loader --------------------------------------------------------------------
 const AUDIT_LOOKBACK_MS = 7 * 24 * 3600_000
 export const AUDIT_MIN_AGE_MS = 15 * 60_000

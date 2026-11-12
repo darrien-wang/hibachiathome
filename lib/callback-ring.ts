@@ -22,6 +22,10 @@ export const RING_HOURS_PT: [number, number] = [8, 22]
 // dinner runs past 10 PM (owner 2026-11-02, Jenna). The desk marks it with a why that starts 现场.
 export const LIVE_PARTY_RING_HOURS_PT: [number, number] = [7, 24]
 export const LIVE_PARTY_WHY = "现场"
+// A chef who has not confirmed a change to his party three hours before it starts (order-flow
+// rebuild 2026-11-11, D-1111-03; lib/chef-notices.ts raises it). Like a live party it is an alarm,
+// not a customer asking for a call: same hours, no key to press, the why is what the ring says.
+export const CHEF_NOTICE_WHY = "师傅未确认"
 export const RING_EVERY_MS = 10 * 60_000
 export const SNOOZE_MS = 10 * 60_000
 export const MAX_RINGS = 3
@@ -66,6 +70,15 @@ export function withinRingHours(ms: number, hours: [number, number] = RING_HOURS
 
 export function isLivePartyAlarm(why: string | null | undefined): boolean {
   return (why ?? "").trim().startsWith(LIVE_PARTY_WHY)
+}
+
+export function isChefNoticeAlarm(why: string | null | undefined): boolean {
+  return (why ?? "").trim().startsWith(CHEF_NOTICE_WHY)
+}
+
+/** An alarm rings 7 AM to midnight and is answered by picking up; a customer's request keeps 8 AM - 10 PM and the keys. */
+export function isAlarm(why: string | null | undefined): boolean {
+  return isLivePartyAlarm(why) || isChefNoticeAlarm(why)
 }
 
 export type OpenCallback = {
@@ -184,7 +197,7 @@ export async function ringIfDue(supabase: SupabaseClient, leadId: string, now = 
   const open = await openCallback(supabase, leadId)
   if (!open) return { rang: false, skipped: "none_open" }
   if (now - open.requestedAt > REQUEST_TTL_MS) return { rang: false, skipped: "stale" }
-  if (!withinRingHours(now, isLivePartyAlarm(open.why) ? LIVE_PARTY_RING_HOURS_PT : RING_HOURS_PT)) return { rang: false, skipped: "quiet_hours" }
+  if (!withinRingHours(now, isAlarm(open.why) ? LIVE_PARTY_RING_HOURS_PT : RING_HOURS_PT)) return { rang: false, skipped: "quiet_hours" }
   if (open.rings >= MAX_RINGS) return { rang: false, skipped: "max_rings" }
   if (open.lastRingAt !== null && now - open.lastRingAt < RING_EVERY_MS) return { rang: false, skipped: "rang_recently" }
   if (open.snoozeUntil !== null && now < open.snoozeUntil) return { rang: false, skipped: "snoozed" }
@@ -225,7 +238,11 @@ export async function requestCallback(
 ): Promise<RingOutcome> {
   const now = Date.now()
   const open = await openCallback(supabase, input.leadId)
-  if (!open || now - open.requestedAt > DEDUPE_MS || open.rings >= MAX_RINGS) {
+  // The chef-notice alarm lives on the order's lead (lib/chef-notices.ts). A customer who asks for a
+  // call while one is open there is a request of their own, not a repeat of the alarm: it replaces it
+  // (the alarm's line stays in the inbox). The sweep that raises the alarm waits for a customer's.
+  const sameKind = !open || isChefNoticeAlarm(open.why) === isChefNoticeAlarm(input.why)
+  if (!open || !sameKind || now - open.requestedAt > DEDUPE_MS || open.rings >= MAX_RINGS) {
     await record(supabase, input.leadId, "callback_request", { phone: input.phone, name: input.name, why: input.why.slice(0, 500), source: input.source }, now)
   }
   return ringIfDue(supabase, input.leadId, now)

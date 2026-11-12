@@ -1,14 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { loadQuiet } from "@/lib/lead-hold"
-import { instantToWallIso, shortDate, wallTime } from "@/lib/first-response"
+import { instantToWallIso, shortDate, wallTime, wallToInstant } from "@/lib/first-response"
 import { fetchLastByPeer, prettyPhone, toE164 } from "@/lib/sms-thread"
 import { CHANNEL_OUT } from "@/lib/channel-messages"
 import { CUSTOMER_FORM_TYPES, FORM_LABELS, formSummary } from "@/lib/customer-forms"
 import { payloadColumns, payloadFrom } from "@/lib/payload-select"
-import { findOpenTurns, shouldRing } from "@/lib/reply-audit"
+import { awakeHours, findOpenTurns, shouldRing } from "@/lib/reply-audit"
 import { OPT_OUT_REASON_PREFIX } from "@/lib/sms-opt-out"
 import { isLookupBlock } from "@/lib/phone-line-type"
-import { isStaffNumber, loadStaffDigits } from "@/lib/staff-phones"
+import { isStaffNumber, loadStaffContacts, staffOnNumber } from "@/lib/staff-phones"
+import { openChefText } from "@/lib/chef-inbound"
+import { OPEN_REQUEST_STATUSES, changeRequestBody, changeRequestOpen, changeRequestRings, isHeldRequest } from "@/lib/change-requests"
+import { groupNotices, loadNoticeOrders, loadOpenNotices, noticeState, noticeSummary, type NoticeOrder } from "@/lib/chef-notices"
+import { partyLabelZh } from "@/lib/chef-notify"
 
 // 收件箱. "What needs a person right now", computed fresh each call and kept
 // small. It started life inside /api/admin/mobile/inbox (the Android shell
@@ -18,7 +22,15 @@ import { isStaffNumber, loadStaffDigits } from "@/lib/staff-phones"
 //   lead          a new lead nobody (human or auto) has answered
 //   sms           a customer text on the 213 line with no reply after it
 //   deposit       a deposit that landed in the last two hours
-//   order_change  a customer change request still open
+//   order_change  a customer change request still open - listed until it is
+//                 handled, with what changed; one filed within 48 hours of the
+//                 party (held for a person) rings until someone confirms it
+//   chef          a text from a staff number nobody answered: listed above the
+//                 customers, rings from 15 minutes on (2026-11-11, D-1111-03)
+//   chef_notice   a chef who has not confirmed a change to his party two hours
+//                 after it was texted; rings inside three hours of the start
+//                 (these three new alarms never ring 11 PM - 7 AM Pacific:
+//                 lib/reply-audit.ts awakeHours)
 //   reddit        someone on a watched subreddit asked for hibachi / a private
 //                 chef in the last day and nobody has marked it handled
 // `key` is stable per event so the app can dedupe / snooze; `ring` says
@@ -36,14 +48,15 @@ const SMS_GRACE_MS = 2 * 60_000
 /** Older than this is still counted, but the phone does not ring for it (no burst of stale alerts on install). */
 const MAX_EVENT_AGE_MIN = 180
 const DEPOSIT_LOOKBACK_MS = 2 * 3600_000
-const CHANGE_LOOKBACK_MS = 24 * 3600_000
+/** A chef's text rings from here on (owner 2026-11-11); before that it is a quiet line, like a customer's first minutes. */
+export const CHEF_RING_AFTER_MIN = 15
 const PLANNER_LIVE_MS = 3 * 60_000
 const EMAIL_LOOKBACK_MS = 7 * 24 * 3600_000
 const FORM_LOOKBACK_MS = 7 * 24 * 3600_000
 
 export type InboxEvent = {
   key: string
-  kind: "lead" | "call" | "sms" | "email" | "form" | "deposit" | "order_change" | "reddit" | "party_contact" | "audit" | "undelivered" | "call_summary"
+  kind: "lead" | "call" | "sms" | "email" | "form" | "deposit" | "order_change" | "reddit" | "party_contact" | "audit" | "undelivered" | "call_summary" | "chef" | "chef_notice"
   title: string
   body: string
   url: string
@@ -62,6 +75,11 @@ export type InboxEvent = {
    * never sees them, which is the whole point of the grace.
    */
   justArrived?: boolean
+  /**
+   * The body is our account of what is open (what changed, who has not
+   * confirmed), not a message someone sent: the desk prints it on the card.
+   */
+  explain?: boolean
   /** The lead / phone / order behind the event, so a card can be built without re-parsing `url`. */
   leadId?: string | null
   phone?: string | null
@@ -101,6 +119,12 @@ export type InboxCounts = {
   redditNew: number
   /** 【来电小结】 notes from the last few hours (lib/call-summary.ts), shown as notifications. */
   callSummaries: number
+  /** Staff texts nobody answered ([chef]): a chef waiting on us. */
+  chefTexts: number
+  /** Chefs who have not confirmed a change notice (two hours on, or inside three hours of the party). */
+  chefNotices: number
+  /** Orders with a change filed within 48 hours of the party that nobody has confirmed yet. */
+  heldChanges: number
 }
 
 const URGENT_MIN = 15
@@ -134,8 +158,10 @@ export async function computeInbox(
   // 同一份规则巡检也在用（lib/lead-hold.ts）。
   const quiet = await loadQuiet(supabase, now)
   // A chef answering a prep sheet is not a customer waiting (Gary's "好的",
-  // 2026-10-13): staff numbers never show here, same as our 555 test numbers.
-  const staff = await loadStaffDigits(supabase)
+  // 2026-10-13): staff numbers never show as customers, same as our 555 test
+  // numbers. Since 2026-11-11 they have a list of their own, further down.
+  const staffContacts = await loadStaffContacts(supabase)
+  const staff = new Set(staffContacts.map((c) => c.digits).filter(Boolean))
   const notCustomer = (e164: string | null) => isTestNumber(e164) || isStaffNumber(staff, e164)
 
   // ---- new leads nobody answered ------------------------------------------
@@ -256,6 +282,96 @@ export async function computeInbox(
     }
   }
 
+  // ---- staff texts nobody answered (2026-11-11, D-1111-03) ---------------------
+  // A chef asking for a fresh prep sheet sat 18 hours with every staff number
+  // filtered out of this list. His texts are read by their own rule
+  // (lib/chef-inbound.ts): a "1" confirms a change notice and never shows, a
+  // bare 好的 / 收到 shows only while a notice of his is still unconfirmed, and
+  // anything else is a chef waiting on us - until we text him back, or someone
+  // marks the thread handled (chef:ack:<number> in lead_watch_notified).
+  const noticeGroups = groupNotices(await loadOpenNotices(supabase))
+  const chefHandled = new Map<string, number>()
+  {
+    const { data: marks } = await supabase.from("lead_watch_notified").select("key, notified_at").like("key", "chef:ack:%").limit(200)
+    for (const r of (marks ?? []) as Array<{ key: string; notified_at: string }>) {
+      const at = Date.parse(r.notified_at)
+      if (Number.isFinite(at)) chefHandled.set(r.key.slice("chef:ack:".length), at)
+    }
+  }
+  let chefTexts = 0
+  for (const [peer, v] of byPeer) {
+    if (isTestNumber(peer) || !isStaffNumber(staff, peer)) continue
+    const who = staffOnNumber(staffContacts, peer)
+    const pending = noticeGroups.filter((g) => who.some((s) => s.id === g.staffId)).map((g) => Date.parse(g.oldestSentAt))
+    const open = openChefText(v, pending.length ? Math.min(...pending) : null, chefHandled.get(peer.replace(/\D/g, "").slice(-10)) ?? null)
+    if (!open) continue
+    const atMs = Date.parse(open.at)
+    if (now - atMs > smsLookback) continue
+    if (now - atMs < SMS_GRACE_MS && !opts.includeFresh) continue
+    chefTexts += 1
+    const waited = minutesSince(open.at, now)
+    const name = who[0]?.name ?? prettyPhone(peer)
+    const said = open.body.trim()
+    events.push({
+      key: `chef:${peer}:${open.at}`,
+      kind: "chef",
+      title: `${who[0]?.role === "logistics" ? "后勤" : "师傅"} ${name} 等了 ${waited > MAX_EVENT_AGE_MIN ? `${Math.floor(waited / 60)} 小时` : `${waited} 分钟`}`,
+      body: open.ackOnly
+        ? `回了「${said.slice(0, 20)}」，没回 1：他还有改动没确认，算不算确认要人定`
+        : said.slice(0, 80) || (open.media > 0 ? `[${open.media} 张图片]` : "（空消息）"),
+      // Opens the staff dialog on its 短信 page: the thread, a reply box, and 不用回.
+      url: who[0] ? `/admin?tab=chefs&chef=${who[0].id}&ctab=sms` : "/admin?tab=chefs",
+      at: open.at,
+      waitedMinutes: waited,
+      ring: waited >= CHEF_RING_AFTER_MIN && awakeHours(now) && shouldRing(waited, now),
+      urgent: waited >= CHEF_RING_AFTER_MIN,
+      justArrived: now - atMs < SMS_GRACE_MS,
+      ...(open.ackOnly ? { explain: true } : {}),
+      phone: peer,
+    })
+  }
+
+  // ---- change notices a chef has not confirmed (lib/chef-notices.ts) -----------
+  // Listed two hours after the text went with no "1"; inside three hours of the
+  // party it rings here and lead-watch calls the owner's App. Gone the moment
+  // the chef replies 1 or a person marks it confirmed. No table yet = no rows.
+  let chefNotices = 0
+  if (noticeGroups.length) {
+    const noticeOrders = await loadNoticeOrders(supabase, noticeGroups.map((g) => g.orderId)).catch(() => new Map<string, NoticeOrder>())
+    const staffById = new Map(staffContacts.map((s) => [s.id, s]))
+    for (const g of noticeGroups) {
+      const o = noticeOrders.get(g.orderId)
+      const st = noticeState(g, o, now)
+      if (!o || !st.show) continue
+      chefNotices += 1
+      const who = staffById.get(g.staffId)
+      const waited = st.waitedMinutes
+      const left =
+        st.hoursToParty === null
+          ? null
+          : st.hoursToParty > 0
+            ? `离开场 ${st.hoursToParty < 1 ? `${Math.max(1, Math.round(st.hoursToParty * 60))} 分钟` : `${Math.round(st.hoursToParty)} 小时`}`
+            : "已经开场"
+      events.push({
+        key: `chef-notice:${g.orderId}:${g.staffId}`,
+        kind: "chef_notice",
+        title: `师傅没确认改动 · ${who?.name ?? "师傅"}`,
+        body: [partyLabelZh(o), st.urgent ? left : null, noticeSummary(g) || `${g.notices.length} 条改动`, `发出 ${waited >= 120 ? `${Math.floor(waited / 60)} 小时` : `${waited} 分钟`}没回 1`]
+          .filter(Boolean)
+          .join(" · ")
+          .slice(0, 260),
+        url: `/admin?tab=orders&order=${g.orderId}`,
+        at: new Date(Date.parse(g.oldestSentAt)).toISOString(),
+        waitedMinutes: waited,
+        ring: st.urgent && awakeHours(now),
+        urgent: st.urgent,
+        explain: true,
+        orderId: g.orderId,
+        phone: toE164(who?.phone ?? null),
+      })
+    }
+  }
+
   // ---- deposits that just landed --------------------------------------------
   const { data: paid } = await supabase
     .from("payments")
@@ -265,17 +381,30 @@ export async function computeInbox(
     .order("paid_at", { ascending: false })
     .limit(20)
   const payRows = (paid ?? []) as Array<{ id: string; order_id: string | null; amount_cents: number | null; paid_at: string }>
+  // Every open change request, however old (2026-11-11): the 24-hour window
+  // this used to have is how twelve of them fell off the list unhandled.
+  // lib/change-requests.ts decides which still belong here.
   const { data: changes } = await supabase
     .from("invoice_update_requests")
-    .select("id, order_id, customer_name, customer_message, created_at")
-    .in("status", ["received", "confirmed_in_progress"])
-    .gte("created_at", new Date(now - CHANGE_LOOKBACK_MS).toISOString())
+    .select("id, order_id, external_order_id, request_source, status, customer_name, customer_message, change_summary, created_at")
+    .in("status", [...OPEN_REQUEST_STATUSES])
     .order("created_at", { ascending: false })
-    .limit(20)
-  const changeRows = (changes ?? []) as Array<{ id: string; order_id: string | null; customer_name: string | null; customer_message: string | null; created_at: string }>
+    .limit(100)
+  type ChangeRow = { id: string; order_id: string | null; external_order_id: string | null; request_source: string | null; status: string; customer_name: string | null; customer_message: string | null; change_summary: unknown; created_at: string }
+  const changeRows = (changes ?? []) as ChangeRow[]
+  type InboxOrder = { id: string; order_no: string | null; customer_name: string | null; customer_phone: string | null; event_start: string | null; order_status: string | null; source_ref: string | null }
+  const INBOX_ORDER_COLUMNS = "id, order_no, customer_name, customer_phone, event_start, order_status, source_ref"
   const orderIds = Array.from(new Set([...payRows.map((p) => p.order_id), ...changeRows.map((c) => c.order_id)].filter((x): x is string => Boolean(x))))
-  const { data: orders } = orderIds.length ? await supabase.from("orders").select("id, order_no, customer_name, customer_phone").in("id", orderIds) : { data: [] as Array<{ id: string; order_no: string | null; customer_name: string | null; customer_phone: string | null }> }
-  const orderById = new Map(((orders ?? []) as Array<{ id: string; order_no: string | null; customer_name: string | null; customer_phone: string | null }>).map((o) => [o.id, o]))
+  const { data: orders } = orderIds.length ? await supabase.from("orders").select(INBOX_ORDER_COLUMNS).in("id", orderIds) : { data: [] as InboxOrder[] }
+  const orderById = new Map(((orders ?? []) as InboxOrder[]).map((o) => [o.id, o]))
+  // A request filed by the website's own reference hangs on its order through source_ref.
+  const changeRefs = Array.from(new Set(changeRows.filter((c) => !c.order_id && c.external_order_id).map((c) => c.external_order_id as string)))
+  const orderByRef = new Map<string, InboxOrder>()
+  if (changeRefs.length) {
+    const { data: byRef } = await supabase.from("orders").select(INBOX_ORDER_COLUMNS).in("source_ref", changeRefs)
+    for (const o of (byRef ?? []) as InboxOrder[]) if (o.source_ref) orderByRef.set(o.source_ref, o)
+  }
+  const orderOfChange = (c: ChangeRow): InboxOrder | null => (c.order_id ? orderById.get(c.order_id) : c.external_order_id ? orderByRef.get(c.external_order_id) : undefined) ?? null
   for (const p of payRows) {
     const o = p.order_id ? orderById.get(p.order_id) : undefined
     events.push({
@@ -322,18 +451,52 @@ export async function computeInbox(
       phone: toE164(o.customer_phone ?? null),
     })
   }
+  // One line per order, not per submit: a customer who saves the party page
+  // three times is one thing to handle (the order dialog merges them the same
+  // way). A change held inside 48 hours that nobody has confirmed rings - until
+  // 2026-11-11 it was a quiet line for a day and then nothing at all.
+  const changeGroups = new Map<string, { order: InboxOrder | null; rows: ChangeRow[] }>()
   for (const c of changeRows) {
-    const o = c.order_id ? orderById.get(c.order_id) : undefined
+    const o = orderOfChange(c)
+    if (!changeRequestOpen(c, o, now)) continue
+    const key = o?.id ?? `req:${c.id}`
+    const g = changeGroups.get(key) ?? { order: o, rows: [] }
+    g.rows.push(c)
+    changeGroups.set(key, g)
+  }
+  let heldChanges = 0
+  for (const g of changeGroups.values()) {
+    const rows = g.rows.slice().sort((a, b) => a.created_at.localeCompare(b.created_at))
+    const newest = rows[rows.length - 1]
+    const o = g.order
+    const heldWaiting = rows.filter((r) => isHeldRequest(r) && r.status === "received")
+    const since = (heldWaiting[0] ?? rows[0]).created_at
+    const waited = minutesSince(since, now)
+    if (heldWaiting.length) heldChanges += 1
+    const hoursLeft = o?.event_start ? Math.round((wallToInstant(o.event_start) - now) / 3600_000) : null
+    const when = o?.event_start
+      ? `${shortDate(o.event_start.slice(0, 10))} ${wallTime(o.event_start)}${hoursLeft === null || !Number.isFinite(hoursLeft) ? "" : hoursLeft > 0 ? `（还有 ${hoursLeft} 小时）` : "（已到开场时间）"}`
+      : null
+    const state = heldWaiting.length
+      ? "48 小时内提交，确认后才写进订单"
+      : rows.every((r) => r.status === "confirmed_in_progress")
+        ? "已核对，还没通知师傅"
+        : null
     events.push({
-      key: `change:${c.id}`,
+      key: `change:${newest.id}`,
       kind: "order_change",
-      title: `客户改单 · ${c.customer_name ?? o?.customer_name ?? "客户"}`,
-      body: (c.customer_message ?? "").trim().slice(0, 60) || o?.order_no || "有改动请求等确认",
-      url: c.order_id ? `/admin?tab=orders&order=${c.order_id}` : "/admin?tab=orders&filter=changed",
-      at: c.created_at,
-      waitedMinutes: minutesSince(c.created_at, now),
-      ring: false,
-      orderId: c.order_id,
+      title: `${heldWaiting.length ? "改单等确认" : "客户改单"} · ${newest.customer_name ?? o?.customer_name ?? "客户"}`,
+      body: [o?.order_no, when, state, changeRequestBody(rows) || "有改动请求等确认", rows.length > 1 ? `共 ${rows.length} 次提交` : null]
+        .filter(Boolean)
+        .join(" · ")
+        .slice(0, 300),
+      url: o ? `/admin?tab=orders&order=${o.id}` : "/admin?tab=orders&filter=changed",
+      at: since,
+      waitedMinutes: waited,
+      ring: heldWaiting.length > 0 && changeRequestRings(heldWaiting[0], waited, now),
+      urgent: heldWaiting.length > 0,
+      explain: true,
+      orderId: o?.id ?? null,
       phone: toE164(o?.customer_phone ?? null),
     })
   }
@@ -720,7 +883,10 @@ export async function computeInbox(
     }
   }
 
-  events.sort((a, b) => (a.ring === b.ring ? b.at.localeCompare(a.at) : a.ring ? -1 : 1))
+  // Chefs first (owner 2026-11-11: a chef's text must not queue behind the
+  // customers), then whatever rings, then newest.
+  const chefFirst = (e: InboxEvent) => (e.kind === "chef" || e.kind === "chef_notice" ? 0 : 1)
+  events.sort((a, b) => chefFirst(a) - chefFirst(b) || (a.ring === b.ring ? b.at.localeCompare(a.at) : a.ring ? -1 : 1))
   return {
     counts: {
       unreplied: unrepliedTotal,
@@ -730,10 +896,13 @@ export async function computeInbox(
       formNew,
       unreachedParties,
       newLeads: newLeadsTotal,
-      changedOrders: changeRows.length,
+      changedOrders: changeGroups.size,
       plannerLive,
       redditNew: redditRows.length,
       callSummaries,
+      chefTexts,
+      chefNotices,
+      heldChanges,
     },
     events,
   }

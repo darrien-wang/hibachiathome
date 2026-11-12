@@ -1,4 +1,5 @@
 import { phone } from "@/config/site"
+import { classifyChefText, isAutoStaffNotice } from "@/lib/chef-inbound"
 import { notAQuestion } from "@/lib/courtesy-text"
 
 /**
@@ -136,6 +137,20 @@ export type LastByPeer = {
   lastOutStatus: string | null
   /** Our newest text that the carrier confirmed delivered; null = none of them (2026-10-07: three texts to one lead sat at "sent" for a day). */
   deliveredOutAt: string | null
+  /**
+   * Our newest text that can be an answer: anything but an automatic change
+   * notice or a login code (lib/chef-inbound.ts isAutoStaffNotice). Read for
+   * staff numbers only - a notice the system sent a chef must not close the
+   * question he asked ten minutes before it.
+   */
+  lastAnswerOutAt: string | null
+  /**
+   * This number's inbound texts read as a chef's would be (lib/chef-inbound.ts):
+   * the newest one that needs a person, and the newest bare acknowledgement
+   * (好的 / 收到). A "1" confirming a change notice is neither. Only meaningful
+   * for staff numbers; the inbox reads it for those and nothing else does.
+   */
+  chef: { msg: { at: string; body: string; media: number } | null; ack: { at: string; body: string } | null }
 }
 
 /** Fold Twilio's two lists into one record per customer number. Pure, so the self-test can feed it. */
@@ -147,16 +162,29 @@ export function foldLastByPeer(outbound: TwilioMessage[], inbound: TwilioMessage
     const at = when.toISOString()
     const body = m.body ?? ""
     const media = Number(m.num_media ?? 0) || 0
-    const cur = map.get(peer) ?? { lastInAt: null, lastOutAt: null, last: { at, direction, body, media }, lastRealIn: null, lastOutStatus: null, deliveredOutAt: null }
+    const cur: LastByPeer = map.get(peer) ?? {
+      lastInAt: null,
+      lastOutAt: null,
+      last: { at, direction, body, media },
+      lastRealIn: null,
+      lastOutStatus: null,
+      deliveredOutAt: null,
+      lastAnswerOutAt: null,
+      chef: { msg: null, ack: null },
+    }
     if (direction === "inbound") {
       cur.lastInAt = !cur.lastInAt || at > cur.lastInAt ? at : cur.lastInAt
       if ((media > 0 || !notAQuestion(body)) && (!cur.lastRealIn || at > cur.lastRealIn.at)) cur.lastRealIn = { at, body, media }
+      const kind = classifyChefText(body, media)
+      if (kind === "message" && (!cur.chef.msg || at > cur.chef.msg.at)) cur.chef.msg = { at, body, media }
+      if (kind === "ack" && (!cur.chef.ack || at > cur.chef.ack.at)) cur.chef.ack = { at, body }
     } else {
       if (!cur.lastOutAt || at >= cur.lastOutAt) {
         cur.lastOutAt = at
         cur.lastOutStatus = m.status ?? null
       }
       if ((m.status === "delivered" || m.status === "read") && (!cur.deliveredOutAt || at > cur.deliveredOutAt)) cur.deliveredOutAt = at
+      if (!isAutoStaffNotice(body) && (!cur.lastAnswerOutAt || at > cur.lastAnswerOutAt)) cur.lastAnswerOutAt = at
     }
     if (at >= cur.last.at) cur.last = { at, direction, body, media }
     map.set(peer, cur)

@@ -33,3 +33,32 @@ export function isStaffNumber(staff: Set<string>, phone: string | null | undefin
   const d = phoneDigits10(phone)
   return Boolean(d) && staff.has(d)
 }
+
+// 2026-11-11（D-1111-03）起员工发来的短信有自己的去处：回「1」是确认改动，其他内容进
+// 收件箱的 [chef] 一类。那边要知道这个号码是谁，所以多一个带名字的读法。上面按号码
+// 排除"不是客人"的规则不变。
+
+export type StaffContact = { id: string; name: string; phone: string | null; digits: string; role: string | null }
+
+/** Every staff member with their name and number. Empty when the table can't be read. */
+export async function loadStaffContacts(supabase: SupabaseClient | null | undefined): Promise<StaffContact[]> {
+  if (!supabase) return []
+  try {
+    const { data } = await supabase.from("staff_members").select("id, display_name, full_name, phone, role")
+    return ((data ?? []) as Array<{ id: string; display_name: string | null; full_name: string | null; phone: string | null; role: string | null }>).map((r) => ({
+      id: r.id,
+      name: (r.display_name ?? r.full_name ?? "").trim() || "员工",
+      phone: r.phone,
+      digits: phoneDigits10(r.phone),
+      role: r.role ?? null,
+    }))
+  } catch {
+    return []
+  }
+}
+
+/** The staff members on this number (one phone can sit on two rows). */
+export function staffOnNumber(contacts: StaffContact[], phone: string | null | undefined): StaffContact[] {
+  const d = phoneDigits10(phone)
+  return d ? contacts.filter((c) => c.digits === d) : []
+}

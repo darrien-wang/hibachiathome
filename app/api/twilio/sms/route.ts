@@ -11,6 +11,7 @@ import { addressFromMessage, looksLikeStreetAddress } from "@/lib/address-detect
 import { requestCallback, wantsCall } from "@/lib/callback-ring"
 import { platformOfText } from "@/lib/heard-from"
 import { isStaffNumber, loadStaffDigits } from "@/lib/staff-phones"
+import { onStaffText } from "@/lib/chef-notices"
 
 export const dynamic = "force-dynamic"
 
@@ -82,6 +83,17 @@ export async function POST(request: NextRequest) {
   // 员工（厨师、老板自己）发来的是工作往来，不建线索（lib/staff-phones.ts）。10-13
   // 上午先试过"建了再标已排除"，收件箱照样把 Gary 的"好的"当成没回的客人报出来。
   const fromStaff = isStaffNumber(await loadStaffDigits(supabase), from)
+  // 师傅回的「1」= 确认改动通知（2026-11-11，D-1111-03）：把他名下还没确认的
+  // chef_change_notices 标上 acked_at（lib/chef-notices.ts）。员工发来的其他内容不落库，
+  // 收件箱照 Twilio 的记录把它列成 [chef]（lib/inbox.ts）。表还没建就什么都不做。
+  if (fromStaff && supabase) {
+    try {
+      const staffText = await onStaffText(supabase, { from, body, media: mediaCount })
+      if (staffText.acked > 0) console.log("[twilio-sms] chef confirmed change notices", { acked: staffText.acked, orders: staffText.orderIds.length })
+    } catch (error) {
+      console.error("[twilio-sms] chef confirm failed", error)
+    }
+  }
   try {
     // Zola / The Knot sometimes text the inquiry instead of emailing it
     // (Taegan, 10-02): that lead came from the platform, not "direct" (D-1010).

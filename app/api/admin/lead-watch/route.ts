@@ -26,6 +26,7 @@ import {
   wallToInstant,
 } from "@/lib/first-response"
 import { ringOpenCallbacks } from "@/lib/callback-ring"
+import { ringUnackedNotices } from "@/lib/chef-notices"
 import { isDefaultLeaveQuote } from "@/lib/lead-scan"
 import { loadQuiet } from "@/lib/lead-hold"
 import { cityForZip } from "@/lib/zip-city"
@@ -133,6 +134,7 @@ type WatchResult = {
   needsHuman: unknown[]
   escalated?: unknown[]
   callbackRings?: unknown[]
+  noticeRings?: unknown[]
   stillOpen: number
 }
 
@@ -968,7 +970,13 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
   // ---- 请回电 (2026-10-09) ------------------------------------------------
   // A customer who asked for a phone call rang the owner's App when they asked; until he presses 1
   // (put through) or 3 (no call needed), ring again every ten minutes, three rings at most.
+  // ---- 师傅没确认改动 (2026-11-11, D-1111-03) ------------------------------
+  // A change to a party inside 72 hours is texted to its chef, who replies 1 (the invoice app
+  // sends it and files chef_change_notices). One still unconfirmed three hours before the start
+  // rings the owner's App here, once per chef per party; the ring just below repeats it like any
+  // open callback. Nothing to read until that table exists (lib/chef-notices.ts).
+  const noticeRings = await ringUnackedNotices(supabase, now, { dryRun }).catch(() => [])
   const callbackRings = dryRun ? [] : await ringOpenCallbacks(supabase, now)
 
-  return { ok: true, dryRun, stage, checkedAt: new Date(now).toISOString(), autoSent, missedCallTexts, partyContact, partyBill, needsHuman, escalated, callbackRings, stillOpen: candidates.length }
+  return { ok: true, dryRun, stage, checkedAt: new Date(now).toISOString(), autoSent, missedCallTexts, partyContact, partyBill, needsHuman, escalated, callbackRings, noticeRings, stillOpen: candidates.length }
 }
