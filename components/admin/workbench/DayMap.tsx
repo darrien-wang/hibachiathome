@@ -565,6 +565,11 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
               const people = rowPeople(ci)
               const mixed = chainMixed(chain)
               const busyHere = assigning === ci
+              // 这一行的每一场都已经够人（人派在别的行上）——比如 36 人要 2 位，两位都跑着上一场接过来的那条线
+              const filledElsewhere = chain.every((id) => {
+                const s = byId.get(id)
+                return !!s && teamOf(id).length >= Math.max(1, s.plan?.chefs ?? 1)
+              })
               return (
               <div key={chain.join(",")} style={{ padding: "9px 0", borderBottom: "1px solid var(--color-divider)" }}>
                 <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
@@ -600,6 +605,11 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                           {s.plan && (s.plan.chefs > 1 || s.plan.grills > 1) ? <Tag cls="tag-accent">{s.plan.chefs} 厨 · {s.plan.grills} 灶{s.plan.source === "promise" ? "（答应过）" : ""}</Tag> : null}
                           <span style={{ color: "var(--color-neutral-600)" }}> · {s.guests} 人</span>
                           {s.plan && teamOf(s.id).length < s.plan.chefs ? <span style={{ color: "var(--color-accent-700)", fontWeight: 700 }}> · 要 {s.plan.chefs} 位师傅，已派 {teamOf(s.id).length}</span> : null}
+                          {/* 两位以上师傅的单会出现在好几行：一位从上一场接过来，另一位直接到。写明是同一场，不是重复 */}
+                          {(() => {
+                            const others = rows.filter((r, rj) => rj !== ci && r.chain.includes(id)).map(rowLabel)
+                            return others.length ? <span style={{ color: "var(--color-neutral-600)" }}> · 同一场，另外的师傅在「{others.join("」「")}」那行</span> : null
+                          })()}
                           {/* 这条线各单派的人不一样时，逐单写出来，别让下拉框的空白骗人 */}
                           {(s.pending?.add.length ?? 0) + (s.pending?.remove.length ?? 0) > 0 ? (
                             <span style={{ color: "var(--color-accent-700)", fontWeight: 700 }}>
@@ -666,7 +676,17 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                         )
                       })}
                   </div>
-                  <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{busyHere ? "派单中…" : row.count > 1 ? `这一行要 ${row.count} 人，已派 ${people.size}` : people.size ? `已派 ${people.size} 人` : "还没派人"}</div>
+                  <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
+                    {busyHere
+                      ? "派单中…"
+                      : !people.size && filledElsewhere
+                        ? "这几场的人别的行已经派够了，这一行不用再派"
+                        : row.count > 1
+                          ? `这一行要 ${row.count} 人，已派 ${people.size}`
+                          : people.size
+                            ? `已派 ${people.size} 人`
+                            : "还没派人"}
+                  </div>
                   </div>
                 </div>
               </div>
