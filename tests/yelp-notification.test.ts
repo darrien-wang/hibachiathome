@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { parseYelpNotification, yelpFirstName, yelpLeadName } from "../lib/yelp-notification"
+import { parseYelpNotification, yelpFirstName, yelpLeadName, yelpSamePerson } from "../lib/yelp-notification"
 
 const REPLY = "reply+914e99efd0ce428581bf819760d09d43@messaging.yelp.com"
 
@@ -46,4 +46,20 @@ test("lead names and first-name matching", () => {
   assert.equal(yelpLeadName({ name: "Jordan Q." }), "Jordan Q. (Yelp)")
   assert.equal(yelpLeadName({ name: "" }), "Yelp customer")
   assert.equal(yelpFirstName("Jordan Q."), "Jordan")
+})
+
+test("same first name files on the lead only when the rest of the name agrees", () => {
+  // The request carries the first name, her messages the initial too: one customer.
+  assert.equal(yelpSamePerson("Brenda (Yelp)", "Brenda Q."), true)
+  assert.equal(yelpSamePerson("Brenda Q. (Yelp)", "Brenda"), true)
+  assert.equal(yelpSamePerson("Jordan Q. (Yelp)", "Jordan Q."), true)
+  assert.equal(yelpSamePerson("Ryan Lindsey S. (Yelp)", "Ryan Lindsey S."), true)
+  assert.equal(yelpSamePerson("jordan q. (Yelp)", "Jordan Q."), true)
+  // 2026-11-13: Ryan Lindsey's Temecula request is not the 11-05 Ryan D. taco inquiry.
+  assert.equal(yelpSamePerson("Ryan D. (Yelp)", "Ryan Lindsey"), false)
+  assert.equal(yelpSamePerson("Ryan D. (Yelp)", "Ryan Lindsey S."), false)
+  // A longer first name sharing the prefix is someone else ("Ryan%" matches "Ryana" in the query).
+  assert.equal(yelpSamePerson("Ryana K. (Yelp)", "Ryan K."), false)
+  assert.equal(yelpSamePerson("", "Ryan"), false)
+  assert.equal(yelpSamePerson("Yelp customer", ""), false)
 })

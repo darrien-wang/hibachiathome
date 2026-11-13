@@ -4,7 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
 import { platformOf } from "@/lib/heard-from"
 import { facebookLeadName, parseFacebookNotification } from "@/lib/fb-notification"
-import { type YelpNotification, parseYelpNotification, yelpFirstName, yelpLeadName } from "@/lib/yelp-notification"
+import { type YelpNotification, parseYelpNotification, yelpFirstName, yelpLeadName, yelpSamePerson } from "@/lib/yelp-notification"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -303,15 +303,16 @@ async function fileYelpMessage(
   const first = yelpFirstName(yelp.name)
   let leadId: string | null = null
   if (first) {
-    const { data: same } = await supabase
+    // Same first name is only a candidate: "Ryan Lindsey" is not "Ryan D." (lib/yelp-notification.ts yelpSamePerson).
+    const { data: candidates } = await supabase
       .from("leads")
-      .select("id, touchpoint_count, guest_count, city_or_zip")
+      .select("id, full_name, touchpoint_count, guest_count, city_or_zip")
       .eq("lead_source", "yelp")
       .ilike("full_name", `${first.replace(/[\\%_]/g, (c) => `\\${c}`)}%`)
       .gte("created_at", new Date(Date.now() - 120 * 86400_000).toISOString())
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
+      .limit(5)
+    const same = (candidates ?? []).find((c) => yelpSamePerson(String(c.full_name ?? ""), yelp.name))
     if (same) {
       leadId = String(same.id)
       await supabase

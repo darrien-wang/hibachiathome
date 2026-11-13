@@ -86,3 +86,25 @@ export function yelpLeadName(n: Pick<YelpNotification, "name">): string {
 export function yelpFirstName(name: string): string {
   return (name ?? "").trim().split(/\s+/)[0] ?? ""
 }
+
+/**
+ * Whether a Yelp e-mail can be from the customer already filed under a lead whose name starts with
+ * the same first name. Yelp shows a first name and a last initial ("Brenda Q."), and a request
+ * e-mail may carry the first name alone ("Brenda"), so a side without a second part still matches.
+ * When both carry one, its first letter has to agree. 2026-11-13: the request from "Ryan Lindsey"
+ * (Ryan Lindsey S. on Yelp, 13 adults in Temecula on Dec 4) was filed onto "Ryan D.", a lost taco
+ * inquiry from 11-05, because only "Ryan" was compared.
+ */
+export function yelpSamePerson(leadName: string, notified: string): boolean {
+  const words = (s: string) =>
+    (s ?? "")
+      .replace(/\s*\(Yelp\)\s*$/i, "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+  const a = words(leadName)
+  const b = words(notified)
+  if (!a.length || !b.length || a[0].toLowerCase() !== b[0].toLowerCase()) return false
+  if (a.length < 2 || b.length < 2) return true
+  return a[1][0].toLowerCase() === b[1][0].toLowerCase()
+}
