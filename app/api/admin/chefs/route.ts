@@ -96,6 +96,8 @@ type Assignment = {
   prep_fee_cents: number | null
   comp_breakdown: Record<string, unknown> | null
   has_tables_override: boolean | null
+  /** 结算页定的这场一口价（2026-11-13）：不算人头/桌椅/路费/加工费，也不参与平分人头。 */
+  pay_fixed_cents?: number | null
   review_plain_count: number
   review_photo_count: number
   review_cents: number | null
@@ -191,7 +193,7 @@ async function loadWorld(supabase: NonNullable<ReturnType<typeof createServerSup
     supabase.from("staff_members").select(STAFF_COLUMNS).neq("status", "deleted").order("display_name", { ascending: true }),
     supabase
       .from("order_staff_assignments")
-      .select("id, order_id, staff_member_id, assignment_status, guest_share, pay_cents, cash_collected_cents, settled_at, notes, created_at, settlement_method, card_gross_cents, card_fee_cents, card_tip_cents, cash_tip_cents, settlement_ref, settlement_note, pay_settled_at, pay_settled_cents, tables_cents, travel_cents, prep_fee_cents, comp_breakdown, has_tables_override, review_plain_count, review_photo_count, review_cents")
+      .select("id, order_id, staff_member_id, assignment_status, guest_share, pay_cents, cash_collected_cents, settled_at, notes, created_at, settlement_method, card_gross_cents, card_fee_cents, card_tip_cents, cash_tip_cents, settlement_ref, settlement_note, pay_settled_at, pay_settled_cents, tables_cents, travel_cents, prep_fee_cents, comp_breakdown, has_tables_override, pay_fixed_cents, review_plain_count, review_photo_count, review_cents")
       .in("assignment_status", ACTIVE_ASSIGNMENT)
       .neq("assignment_role", HELPER_ROLE)
       .limit(2000),
@@ -353,8 +355,11 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
   const s = staffById.get(a.staff_member_id)
   const endedAt = partyEndedAt(o)
   const guests = guestsOf(o)
-  const n = Math.max(1, team.length)
-  const share = a.guest_share ?? Math.round(guests / n)
+  // 一口价（结算页定的，老板 2026-11-13「给易非 200 作为 helper 的工资」）：这场就给这个数，
+  // 人头、桌椅、路费、加工费都不算；这个人也不参与平分，别的师傅照没有他时那样分。
+  const fixed = a.pay_fixed_cents ?? null
+  const n = Math.max(1, team.filter((t) => t.pay_fixed_cents == null).length)
+  const share = fixed != null ? 0 : (a.guest_share ?? Math.round(guests / n))
   // 明细三件套。多位师傅同场：人头和桌椅按份平分，路费每人全额（各开各的车）。
   const comp = partyComp(o)
   // 特殊规则（发票按大人备料、工钱按小孩算）只改计钱的人头，不改发票。
@@ -365,10 +370,10 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
   const tableHeads = hasTables ? (onOrder ? comp.tableHeads : guests) : 0
   const setupPieces = hasTables ? comp.pieces : { chairs: 0, tables: 0 }
   const heads = payableHeads(counts) / n
-  const pay = a.pay_cents ?? (s ? chefPayCentsFrac(rateOf(s), heads) : 0)
-  const tables = a.tables_cents ?? Math.round(tableChairCents(tableHeads, setupPieces) / n)
+  const pay = a.pay_cents ?? (fixed != null ? fixed : s ? chefPayCentsFrac(rateOf(s), heads) : 0)
+  const tables = a.tables_cents ?? (fixed != null ? 0 : Math.round(tableChairCents(tableHeads, setupPieces) / n))
   // 食材加工费：后勤备的料，每个成人 $1（按发票上的大人数，不受特殊人头规则影响），同场平分。
-  const prepFee = a.prep_fee_cents ?? (o.logi_prepped ? Math.round((comp.counts.adults * PREP_FEE_PER_ADULT_CENTS) / n) : 0)
+  const prepFee = a.prep_fee_cents ?? (fixed != null ? 0 : o.logi_prepped ? Math.round((comp.counts.adults * PREP_FEE_PER_ADULT_CENTS) / n) : 0)
   // 发票里程和按地址实量，取大的（老板 2026-10-23）：发票量少了师傅就吃亏——
   // John 10/23 Desert Hot Springs 发票 94 mi、实际约 101 mi。以前只在发票没量或
   // 不到 50 mi 时才实量（2026-10-04，Niko/Nasim West Hills 53.7 mi）。客户那头免不免
@@ -377,7 +382,7 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
   const useMeasured = measured != null && (comp.miles == null || measured.miles > comp.miles)
   const miles = useMeasured ? measured.miles : comp.miles
   const milesSource = useMeasured ? measured.source : comp.miles != null ? "invoice" : null
-  const travel = a.travel_cents ?? travelCompCents(miles)
+  const travel = a.travel_cents ?? (fixed != null ? 0 : travelCompCents(miles))
   const cash = a.cash_collected_cents ?? cashReported.get(`${o.id}|${a.staff_member_id}`) ?? 0
   return {
     assignmentId: a.id,
@@ -389,8 +394,9 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
     address: o.event_address,
     guests,
     share,
-    team: team.map((t) => ({ id: t.staff_member_id, name: staffById.get(t.staff_member_id) ? nameOf(staffById.get(t.staff_member_id)!) : "?" })),
+    team: team.map((t) => ({ id: t.staff_member_id, name: staffById.get(t.staff_member_id) ? nameOf(staffById.get(t.staff_member_id)!) : "?", ...(t.pay_fixed_cents != null ? { fixed: true } : {}) })),
     payCents: pay,
+    payFixedCents: fixed,
     tablesCents: tables,
     travelCents: travel,
     prepFeeCents: prepFee,
@@ -1110,6 +1116,22 @@ export async function POST(request: NextRequest) {
         if (error) throw error
         return NextResponse.json({ ok: true })
       }
+      case "set_fixed_pay": {
+        // 这场一口价（老板 2026-11-13）：amount 美元；null / "" = 取消，回到按人头算。结过的场不能改。
+        if (!isUuid(body.assignment_id)) return NextResponse.json({ error: "assignment_id required" }, { status: 400 })
+        const raw = body.amount
+        const cents = raw === null || raw === undefined || raw === "" ? null : Math.round(Number(raw) * 100)
+        if (cents !== null && (!Number.isFinite(cents) || cents < 0)) return NextResponse.json({ error: "金额不对" }, { status: 400 })
+        const { data: row } = await supabase.from("order_staff_assignments").select("order_id, settled_at, pay_settled_at").eq("id", body.assignment_id).maybeSingle()
+        if (!row) return NextResponse.json({ error: "not found" }, { status: 404 })
+        if (row.settled_at || row.pay_settled_at) return NextResponse.json({ error: "这场已经结过了，先撤销再改" }, { status: 400 })
+        const { error } = await supabase.from("order_staff_assignments").update({ pay_fixed_cents: cents, updated_at: now }).eq("id", body.assignment_id)
+        if (error) throw error
+        // 平分的人数变了：同场别的师傅还没结的，份额回到读的时候现算。
+        await supabase.from("order_staff_assignments").update({ guest_share: null, updated_at: now }).eq("order_id", row.order_id).in("assignment_status", ACTIVE_ASSIGNMENT).is("settled_at", null).is("pay_settled_at", null)
+        await supabase.from("order_events").insert({ order_id: row.order_id, actor: `workbench:${actor.alias}`, action: "chef_fixed_pay", metadata: { assignment_id: body.assignment_id, cents } })
+        return NextResponse.json({ ok: true })
+      }
       case "set_tables": {
         // 发票没写但实际带了桌椅（或反过来）：手动扳一下，null = 回到按发票判。
         if (!isUuid(body.assignment_id)) return NextResponse.json({ error: "assignment_id required" }, { status: 400 })
@@ -1286,7 +1308,8 @@ export async function POST(request: NextRequest) {
               city: (x.address ?? "").split(",").slice(-3, -2).join("").trim() || null,
               counts: x.counts,
               ...(x.chefRule ? { chefRule: x.chefRule.label } : {}),
-              teamSize: x.team.length,
+              teamSize: x.payFixedCents != null ? 1 : x.team.length - x.team.filter((t) => t.fixed).length,
+              ...(x.payFixedCents != null ? { fixedPay: true } : {}),
               method: x.method,
               prepaidOnly: !x.method,
               payPrepaid: !!x.paySettledAt,

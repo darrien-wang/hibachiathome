@@ -11,8 +11,10 @@ export type ShiftRow = {
   address: string | null
   guests: number
   share: number
-  team: Array<{ id: string; name: string }>
+  team: Array<{ id: string; name: string; fixed?: boolean }>
   payCents: number
+  /** 结算页定的这场一口价（2026-11-13）；null = 按人头算。 */
+  payFixedCents?: number | null
   /** 桌椅 $4/人、路费(超50mi×$1)——结算明细的另外两条腿（好评是 chef 级逐条记录）。 */
   tablesCents: number
   travelCents: number

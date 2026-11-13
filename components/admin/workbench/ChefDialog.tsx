@@ -398,6 +398,21 @@ export function ChefDialog({
     if (r?.orderSync) setMsg(String(r.orderSync))
   }
 
+  // 这场一口价（老板 2026-11-13：派单不分帮手了，跟着去帮忙的在这里定工钱，比如 $200）。
+  // 定了就只给这个数，人头/桌椅/路费都不算，也不参与平分。留空 = 取消，回到按人头算。
+  const promptFixed = async (s: ShiftRow) => {
+    const raw = await askPrompt({
+      title: "这场一口价",
+      message: `${s.customer ?? ""} ${md(s.date)}：这场给多少（美元，全包）？人头、桌椅、路费都不再另算，也不跟同场的师傅平分人头。留空 = 取消一口价。`,
+      defaultValue: s.payFixedCents != null ? (s.payFixedCents / 100).toFixed(0) : "",
+      placeholder: "200",
+      inputMode: "decimal",
+      okLabel: "保存",
+    })
+    if (raw === null) return
+    await post(`fixed:${s.assignmentId}`, { action: "set_fixed_pay", assignment_id: s.assignmentId, amount: raw.trim() === "" ? null : Number(raw) }, raw.trim() === "" ? "已取消一口价" : "已保存")
+  }
+
   // 发票没写但实际带了桌椅（或反过来）：手动扳一下。
   const toggleTables = async (s: ShiftRow) => {
     const to = !s.hasTables
@@ -1004,7 +1019,7 @@ export function ChefDialog({
                         {s.customer ?? "客户"}
                       </button>
                       <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
-                        {md(s.date)} {dowZh(s.date)} · {s.team.length > 1 ? `${s.share} / ${s.guests} 人 · 与 ${s.team.filter((t) => t.id !== chefId).map((t) => t.name).join("、")} 平分` : `${s.share} 人`}
+                        {md(s.date)} {dowZh(s.date)} · {s.payFixedCents != null ? `${s.guests} 人 · 一口价` : s.team.filter((t) => !t.fixed).length > 1 ? `${s.share} / ${s.guests} 人 · 与 ${s.team.filter((t) => t.id !== chefId && !t.fixed).map((t) => t.name).join("、")} 平分` : `${s.share} 人`}
                         {s.method ? (
                           <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void clearMethod(s)} title="点一下改回待确认">
                             · {METHOD_SHORT[s.method]}
@@ -1022,9 +1037,14 @@ export function ChefDialog({
                             · 特殊规则
                           </span>
                         ) : null}
+                        <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11, fontWeight: s.payFixedCents != null ? 700 : undefined }} disabled={!owner || !!busy || !!s.settledAt || !!s.paySettledAt} onClick={() => void promptFixed(s)} title={s.payFixedCents != null ? "点击改金额或取消一口价" : "这场不按人头算，直接给一个数（比如帮手 $200）"}>
+                          {s.payFixedCents != null ? `一口价 ${money(s.payFixedCents)}` : "自定义"}
+                        </button>
+                        {s.payFixedCents != null ? null : (
                         <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void toggleTables(s)} title={s.hasTables ? `${tablePayLabel(s)}，点击改成不带` : "点击改成带桌椅"}>
                           · 桌椅 {s.hasTables ? money(s.tablesCents) : "无"}
                         </button>
+                        )}
                         <span
                           title={
                             s.miles == null
