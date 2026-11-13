@@ -290,9 +290,19 @@ export async function GET(request: NextRequest) {
     return { add: teamNeedingSheet(team, links), remove: staleHolders(team, links) }
   }
 
+  // 三个方案各存各的人（老板 2026-11-13「这三个tab 数据之间不能串 而且要保存我最终选择的路线」）。
+  const { data: dayPlanRow } = await supabase.from("dispatch_day_plans").select("chosen_key, drafts, saved_at, saved_by").eq("day", date).maybeSingle()
+  const dayPlan = {
+    chosenKey: (dayPlanRow?.chosen_key as string | null) ?? null,
+    drafts: ((dayPlanRow?.drafts as Record<string, Record<string, string[]>> | null) ?? {}) as Record<string, Record<string, string[]>>,
+    savedAt: (dayPlanRow?.saved_at as string | null) ?? null,
+    savedBy: (dayPlanRow?.saved_by as string | null) ?? null,
+  }
+
   return NextResponse.json({
     ok: true,
     date,
+    dayPlan,
     stops: stops.map(({ startMin: _startMin, ...s }) => ({ ...s, chefIds: chefIdsOf.get(s.id) ?? [], helperIds: helperIdsOf.get(s.id) ?? [], pending: pendingOf(s.id) })),
     chefs,
     // 定位不到的单要点名，不能默默从地图上消失——那样看起来就像那天没这一场。
@@ -342,11 +352,41 @@ export async function POST(request: NextRequest) {
   const supabase = createServerSupabaseClient()
   if (!supabase) return NextResponse.json({ error: "not configured" }, { status: 500 })
 
-  let body: { address?: string; value?: string }
+  let body: { address?: string; value?: string; action?: string; date?: string; key?: string; draft?: unknown }
   try {
-    body = (await request.json()) as { address?: string; value?: string }
+    body = (await request.json()) as typeof body
   } catch {
     return NextResponse.json({ error: "invalid json" }, { status: 400 })
+  }
+
+  // 方案草稿 / 定下最终路线（老板 2026-11-13）。草稿只存在这张表里，不动订单；
+  // 定路线时浏览器先把草稿逐单写进订单（assign quiet），再来这里记 chosen_key。
+  if (body.action === "save_draft" || body.action === "choose") {
+    const day = (body.date ?? "").trim()
+    const key = (body.key ?? "").trim().slice(0, 40)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !key) return NextResponse.json({ error: "date and key required" }, { status: 400 })
+    const { data: row } = await supabase.from("dispatch_day_plans").select("chosen_key, drafts").eq("day", day).maybeSingle()
+    const drafts = { ...(((row?.drafts as Record<string, unknown> | null) ?? {}) as Record<string, unknown>) }
+    const now = new Date().toISOString()
+    if (body.action === "save_draft") {
+      if (body.draft === null) delete drafts[key]
+      else {
+        const clean: Record<string, string[]> = {}
+        for (const [oid, ids] of Object.entries((body.draft ?? {}) as Record<string, unknown>)) {
+          if (!/^[0-9a-f-]{36}$/i.test(oid) || !Array.isArray(ids)) continue
+          clean[oid] = Array.from(new Set(ids.filter((x): x is string => typeof x === "string" && /^[0-9a-f-]{36}$/i.test(x))))
+        }
+        drafts[key] = clean
+      }
+      const { error } = await supabase.from("dispatch_day_plans").upsert({ day, chosen_key: (row?.chosen_key as string | null) ?? null, drafts, updated_at: now })
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ ok: true })
+    }
+    // choose：这一版的人已经写进订单了，草稿就是订单本身，删掉。
+    delete drafts[key]
+    const { error } = await supabase.from("dispatch_day_plans").upsert({ day, chosen_key: key, drafts, saved_at: now, saved_by: actor.alias, updated_at: now })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true })
   }
   const address = (body.address ?? "").trim()
   const value = (body.value ?? "").trim()

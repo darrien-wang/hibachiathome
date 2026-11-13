@@ -70,6 +70,8 @@ type Resp = {
   params: { busyMin: number; busyMax: number; arriveEarly: number; lateOk: number; lateLimit: number }
   source: "google_traffic" | "google" | "osrm" | "none"
   note: string | null
+  /** 三个方案各存各的人 + 定下来的那版（dispatch_day_plans） */
+  dayPlan?: { chosenKey: string | null; drafts: Record<string, Record<string, string[]>>; savedAt: string | null; savedBy: string | null }
 }
 
 const SOURCE_LABEL: Record<Resp["source"], string> = {
@@ -134,10 +136,21 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
   // 单场改人（老板 2026-11-13「我想要调整连台下面的师傅，现在调整不了」）：连台线右边的按钮管整条线，
   // 某一场要多加一个人、换一个人，点那一场后面的"改人"，按钮只管这一场。key = 行号:订单 id
   const [editStop, setEditStop] = useState<string | null>(null)
+  // 三个方案各存各的人（老板 2026-11-13「这三个tab 数据之间不能串 而且要保存我最终选择的路线」）：
+  // 在一个方案里点名字只改这个方案的草稿（存在 dispatch_day_plans，关掉再开还在），不动订单，也不影响
+  // 别的方案。点"保存为最终路线"才把这个方案的人写进订单；再打开默认就是这一版。
+  // 定下来的那版没有草稿时，显示的就是订单上现在派的人。
+  const [drafts, setDrafts] = useState<Record<string, Record<string, string[]>>>({})
+  const [chosenKey, setChosenKey] = useState<string | null>(null)
+  const [tierPicked, setTierPicked] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const load = useCallback(async () => {
     try {
-      setD(await adminJson<Resp>(adminKey, `/api/admin/day-map?date=${date}`))
+      const r = await adminJson<Resp>(adminKey, `/api/admin/day-map?date=${date}`)
+      setD(r)
+      setDrafts(r.dayPlan?.drafts ?? {})
+      setChosenKey(r.dayPlan?.chosenKey ?? null)
     } catch (e) {
       setErr(e instanceof Error ? e.message : "读不到")
     }
@@ -176,6 +189,13 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
   const plan = useMemo(() => d?.plans.find((p) => p.key === tier) ?? d?.plans[0] ?? null, [d, tier])
 
   const cur = placed.find((s) => s.id === open) ?? null
+  // 打开时停在定下来的那版
+  useEffect(() => {
+    if (tierPicked || !d) return
+    const k = d.dayPlan?.chosenKey
+    if (k && d.plans.some((p) => p.key === k)) setTier(k)
+    setTierPicked(true)
+  }, [d, tierPicked])
 
   const tierLabel = (p: Plan) =>
     p.spread
@@ -202,22 +222,30 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
   // ---- 派人（老板 2026-11-13）：直接多选，点一下加上、再点一下拿掉，不再分师傅和帮手。
   // 以前是"一个下拉框只能换成一个人 + 一排帮手"，三厨的大单在下拉框里只显示"各单派的人不一样"，
   // 想换其中一个人改不了。现在每个名字一个按钮，作用于这条线上的每一单。
-  /** 这条线上每个人出现在几单里（师傅和以前记成帮手的都算） */
+  /** 订单上现在真派的人（师傅和以前记成帮手的都算） */
+  const actualOf = (s: Stop) => Array.from(new Set([...s.chefIds, ...(s.helperIds ?? [])]))
+  /** 定下来的那版；一版都没定过时，"稳妥"那版就是订单上现在的样子 */
+  const baseKey = chosenKey ?? "safe"
+  /** 这个方案里这一单派的人：有草稿看草稿；定下来的那版没草稿看订单；别的方案没草稿就是空的 */
+  const teamIn = (key: string, orderId: string): string[] => {
+    const dr = drafts[key]
+    if (dr) return dr[orderId] ?? []
+    if (key === baseKey) {
+      const s = byId.get(orderId)
+      return s ? actualOf(s) : []
+    }
+    return []
+  }
+  const teamOf = (orderId: string) => teamIn(tier, orderId)
+  /** 这条线上每个人出现在几单里 */
   const chainPeople = (chain: string[]): Map<string, number> => {
     const n = new Map<string, number>()
-    for (const id of chain) {
-      const s = byId.get(id)
-      if (!s) continue
-      for (const p of new Set([...s.chefIds, ...(s.helperIds ?? [])])) n.set(p, (n.get(p) ?? 0) + 1)
-    }
+    for (const id of chain) for (const p of new Set(teamOf(id))) n.set(p, (n.get(p) ?? 0) + 1)
     return n
   }
   /** 这条线上几单派的人不一样（一单的线永远不算） */
   const chainMixed = (chain: string[]): boolean => {
-    const keys = chain.map((id) => {
-      const s = byId.get(id)
-      return s ? Array.from(new Set([...s.chefIds, ...(s.helperIds ?? [])])).sort().join(",") : ""
-    })
+    const keys = chain.map((id) => [...new Set(teamOf(id))].sort().join(","))
     return keys.some((k) => k !== keys[0])
   }
   // 要两位以上师傅的单占好几条线（lib/dispatch.ts planTiers 的 need，老板 2026-11-13）。
@@ -241,7 +269,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
     })
   })()
   const rowLabel = (r: Row) => (r.count > 1 ? `师傅 ${r.from}–${r.from + r.count - 1}` : `师傅 ${r.from}`)
-  const onStop = (s: Stop | undefined, p: string) => !!s && (s.chefIds.includes(p) || (s.helperIds ?? []).includes(p))
+  const onStop = (s: Stop | undefined, p: string) => !!s && teamOf(s.id).includes(p)
   const covers = (p: string, chain: string[]) => chain.every((id) => onStop(byId.get(id), p))
   /** 这一行显示谁、各在几单上 */
   const rowPeople = (ri: number): Map<string, number> => {
@@ -259,32 +287,62 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
     const c = rows[ri].chain
     return rows.some((r, rj) => rj !== ri && r.chain.some((id) => c.includes(id)) && covers(p, r.chain) && !rowPeople(ri).has(p))
   }
-  const togglePerson = async (ci: number, chain: string[], personId: string, shownFull: boolean) => {
-    const stops = chain.map((id) => byId.get(id)).filter((s): s is Stop => !!s)
-    const has = (s: Stop) => s.chefIds.includes(personId) || (s.helperIds ?? []).includes(personId)
-    // 这一行显示他每单都在 = 拿掉；有的单没有 = 补到没有的那几单
-    const removing = shownFull
-    // 排班图上只改名单，谁都不通知（老板 2026-11-13：「有时候我只是在 plan，不需要立刻通知」）。
-    // 要通知的人列在下面"通知改动"里，最后点一下一起发。
-    setAssigning(ci)
+  const writeDraft = async (key: string, draft: Record<string, string[]> | null) => {
+    setDrafts((prev) => {
+      const next = { ...prev }
+      if (draft) next[key] = draft
+      else delete next[key]
+      return next
+    })
     try {
-      for (const s of stops) {
-        if (removing) {
-          if (s.chefIds.includes(personId)) {
-            await adminJson(adminKey, "/api/admin/chefs", { body: { action: "assign", quiet: true, order_id: s.id, staff_member_ids: s.chefIds.filter((x) => x !== personId) } })
-          }
-          if ((s.helperIds ?? []).includes(personId)) {
-            await adminJson(adminKey, "/api/admin/chefs", { body: { action: "assign_helpers", quiet: true, order_id: s.id, staff_member_ids: (s.helperIds ?? []).filter((x) => x !== personId) } })
-          }
-        } else if (!has(s)) {
-          await adminJson(adminKey, "/api/admin/chefs", { body: { action: "assign", quiet: true, order_id: s.id, staff_member_ids: [...s.chefIds, personId] } })
+      await adminJson(adminKey, "/api/admin/day-map", { body: { action: "save_draft", date, key, draft } })
+    } catch (e) {
+      void tell({ title: "方案没存上", message: e instanceof Error ? e.message : "出错了" })
+    }
+  }
+  // 点名字只改当前方案的草稿，不动订单、不发短信。
+  const togglePerson = async (_ci: number, chain: string[], personId: string, shownFull: boolean) => {
+    const draft: Record<string, string[]> = {}
+    for (const s of d?.stops ?? []) draft[s.id] = teamOf(s.id)
+    for (const id of chain) {
+      const cur = draft[id] ?? []
+      draft[id] = shownFull ? cur.filter((x) => x !== personId) : cur.includes(personId) ? cur : [...cur, personId]
+    }
+    await writeDraft(tier, draft)
+  }
+  const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x))
+  /** 当前方案和订单上真派的不一样的单 */
+  const diffStops = (d?.stops ?? []).filter((s) => !sameSet(teamOf(s.id), actualOf(s)))
+  const isFinal = tier === chosenKey && !drafts[tier]
+  // 保存为最终路线：把这个方案的人逐单写进订单（不发短信，发通知走"通知改动"），再记下选的是哪版。
+  const saveRoute = async () => {
+    if (saving || !plan) return
+    const lines = diffStops.map((s) => {
+      const was = actualOf(s)
+      const now = teamOf(s.id)
+      return `${s.time} ${s.name}：${was.length ? namesOf(was) : "没人"} → ${now.length ? namesOf(now) : "没人"}`
+    })
+    const ok = await askConfirm({
+      title: `保存为最终路线：${tierLabel(plan)}`,
+      message: [lines.length ? lines.join("\n") : "订单上派的人和这版一样，只记下这版是最终路线。", "", "只改订单上的名单，不发短信。备料单已经发过的场，下面会出现\"通知改动\"，你再点一下通知。"].join("\n"),
+      okLabel: "保存",
+    })
+    if (!ok) return
+    setSaving(true)
+    try {
+      for (const s of diffStops) {
+        const want = teamOf(s.id)
+        await adminJson(adminKey, "/api/admin/chefs", { body: { action: "assign", quiet: true, order_id: s.id, staff_member_ids: want } })
+        if ((s.helperIds ?? []).some((h) => !want.includes(h))) {
+          await adminJson(adminKey, "/api/admin/chefs", { body: { action: "assign_helpers", quiet: true, order_id: s.id, staff_member_ids: [] } })
         }
       }
+      await adminJson(adminKey, "/api/admin/day-map", { body: { action: "choose", date, key: tier } })
     } catch (e) {
-      void tell({ title: "没改成", message: e instanceof Error ? e.message : "出错了" })
+      void tell({ title: "没保存完", message: e instanceof Error ? e.message : "出错了" })
     } finally {
       await load()
-      setAssigning(null)
+      setSaving(false)
     }
   }
   // 同一个师傅被派到了两条线上：线是按"一个人跑得过来"拆的，两条都给他多半接不上
@@ -413,9 +471,38 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             {chips.map((p) => (
               <button key={p.key} type="button" className="wb-chip wb-chip-sm" aria-pressed={plan?.key === p.key} onClick={() => setTier(p.key)}>
+                {chosenKey === p.key ? "✓ " : ""}
                 {tierLabel(p)}
+                {drafts[p.key] ? " · 改过" : ""}
               </button>
             ))}
+          </div>
+        ) : null}
+
+        {d && plan ? (
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 13 }}>
+            {isFinal && !diffStops.length ? (
+              <span style={{ fontWeight: 700 }}>✓ 这是最终路线，订单上就是这样派的</span>
+            ) : (
+              <>
+                <span style={{ color: "var(--color-accent-700)", fontWeight: 700 }}>
+                  {tier === chosenKey ? "这版改过，还没保存" : chosenKey ? "这版不是最终路线" : "还没定最终路线"}
+                  {diffStops.length ? `（和订单上不一样的有 ${diffStops.length} 场）` : ""}
+                </span>
+                {drafts[tier] || tier === baseKey ? (
+                  <button type="button" className="btn btn-primary btn-sm" disabled={saving || assigning !== null} onClick={() => void saveRoute()}>
+                    {saving ? "保存中…" : "保存为最终路线"}
+                  </button>
+                ) : (
+                  <span style={{ color: "var(--color-neutral-600)" }}>这版还没派人：点下面的名字派好，再保存</span>
+                )}
+                {drafts[tier] ? (
+                  <button type="button" className="btn btn-secondary btn-sm" disabled={saving} onClick={() => void writeDraft(tier, null)}>
+                    {tier === baseKey ? "撤销改动" : "清空这版"}
+                  </button>
+                ) : null}
+              </>
+            )}
           </div>
         ) : null}
 
@@ -512,7 +599,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                           {/* 两位以上师傅的单（规则 / 老板 / 答应过客人）：图上点名，派少了标红——Eileen 10-17 两台灶答应了没派 */}
                           {s.plan && (s.plan.chefs > 1 || s.plan.grills > 1) ? <Tag cls="tag-accent">{s.plan.chefs} 厨 · {s.plan.grills} 灶{s.plan.source === "promise" ? "（答应过）" : ""}</Tag> : null}
                           <span style={{ color: "var(--color-neutral-600)" }}> · {s.guests} 人</span>
-                          {s.plan && s.chefIds.length < s.plan.chefs ? <span style={{ color: "var(--color-accent-700)", fontWeight: 700 }}> · 要 {s.plan.chefs} 位师傅，已派 {s.chefIds.length}</span> : null}
+                          {s.plan && teamOf(s.id).length < s.plan.chefs ? <span style={{ color: "var(--color-accent-700)", fontWeight: 700 }}> · 要 {s.plan.chefs} 位师傅，已派 {teamOf(s.id).length}</span> : null}
                           {/* 这条线各单派的人不一样时，逐单写出来，别让下拉框的空白骗人 */}
                           {(s.pending?.add.length ?? 0) + (s.pending?.remove.length ?? 0) > 0 ? (
                             <span style={{ color: "var(--color-accent-700)", fontWeight: 700 }}>
@@ -521,7 +608,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                               {s.pending!.remove.length ? ` −${namesOf(s.pending!.remove)}` : ""}
                             </span>
                           ) : null}
-                          {mixed ? <span style={{ color: "var(--color-neutral-600)" }}> · {s.chefIds.length + (s.helperIds ?? []).length ? `已派 ${namesOf([...s.chefIds, ...(s.helperIds ?? [])])}` : "还没派"}</span> : null}
+                          {mixed ? <span style={{ color: "var(--color-neutral-600)" }}> · {teamOf(s.id).length ? `已派 ${namesOf(teamOf(s.id))}` : "还没派"}</span> : null}
                           {s.lat === null ? <span style={{ color: "var(--color-accent-700)" }}> · 地址定位不到</span> : null}
                           {s.lat !== null && s.approx ? <span style={{ color: "var(--color-neutral-600)" }}> · 只到城市</span> : null}
                           {s.lat === null || s.approx ? (
