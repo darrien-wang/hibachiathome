@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { loadQuiet } from "@/lib/lead-hold"
+import { holdState, loadQuiet } from "@/lib/lead-hold"
 import { instantToWallIso, shortDate, wallTime, wallToInstant } from "@/lib/first-response"
 import { fetchLastByPeer, prettyPhone, toE164 } from "@/lib/sms-thread"
 import { CHANNEL_OUT } from "@/lib/channel-messages"
@@ -646,18 +646,22 @@ export async function computeInbox(
   if (mailWaiting.length) {
     const { data: mailLeads } = await supabase
       .from("leads")
-      .select("id, full_name, phone, email, acked_until, hold_until")
+      .select("id, full_name, phone, email, acked_until, hold_until, hold_set_at")
       .in("id", mailWaiting.map(([id]) => id))
-    type MailLead = { id: string; full_name: string | null; phone: string | null; email: string | null; acked_until: string | null; hold_until: string | null }
+    type MailLead = { id: string; full_name: string | null; phone: string | null; email: string | null; acked_until: string | null; hold_until: string | null; hold_set_at: string | null }
     const leadById = new Map(((mailLeads ?? []) as MailLead[]).map((l) => [l.id, l]))
     for (const [leadId, m] of mailWaiting) {
       const l = leadById.get(leadId)
       const atMs = Date.parse(m.lastIn!.at)
       if (quiet.quiet(l?.phone ?? null, atMs)) continue
       // Email-only leads have no phone for the quiet lookup, so apply the same
-      // watermark and hold by lead: "不用回" up to acked_until, held = silent.
+      // watermarks by lead: "不用回" up to acked_until, and a hold only for mail
+      // that came before it was set - a customer who writes after we held the lead
+      // has come back (lib/lead-hold.ts holdState). 2026-11-13: Penny's question
+      // about tables, 11 minutes after her lead was held, sat silent until the
+      // 15-minute audit, because only hold_until was read here.
       if (l?.acked_until && Date.parse(l.acked_until) >= atMs) continue
-      if (l?.hold_until && Date.parse(l.hold_until) > now) continue
+      if (l && holdState(l, m.lastIn!.at, now) === "active") continue
       emailNew += 1
       const waited = minutesSince(m.lastIn!.at, now)
       const who = (l?.full_name ?? "").trim() || l?.email || "邮件"
@@ -721,9 +725,9 @@ export async function computeInbox(
   if (formCandidates.length) {
     const { data: formLeads } = await supabase
       .from("leads")
-      .select("id, full_name, phone, email, status, acked_until, hold_until")
+      .select("id, full_name, phone, email, status, acked_until, hold_until, hold_set_at")
       .in("id", formCandidates.map(([id]) => id))
-    type FormLead = { id: string; full_name: string | null; phone: string | null; email: string | null; status: string | null; acked_until: string | null; hold_until: string | null }
+    type FormLead = { id: string; full_name: string | null; phone: string | null; email: string | null; status: string | null; acked_until: string | null; hold_until: string | null; hold_set_at: string | null }
     const formLeadById = new Map(((formLeads ?? []) as FormLead[]).map((l) => [l.id, l]))
     // When we first answered each candidate. leads has no first_response_at
     // column (the desk computes it from touchpoints); selecting one that does
@@ -761,7 +765,8 @@ export async function computeInbox(
       const atMs = Date.parse(form.occurred_at)
       if (quiet.quiet(l.phone ?? null, atMs)) continue
       if (l.acked_until && Date.parse(l.acked_until) >= atMs) continue
-      if (l.hold_until && Date.parse(l.hold_until) > now) continue
+      // Same watermark as mail: a form sent after the hold was set is the customer coming back.
+      if (holdState(l, form.occurred_at, now) === "active") continue
       formNew += 1
       const waited = minutesSince(form.occurred_at, now)
       const who = (l.full_name ?? "").trim() || (peer ? prettyPhone(peer) : l.email || "网站")
