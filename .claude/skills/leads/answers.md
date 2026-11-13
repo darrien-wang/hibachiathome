@@ -111,7 +111,7 @@
 
 ## 桌椅、餐具
 
-- **价格**：桌椅 + 黑桌布 $10/人；盘子餐具 $5/人；全套 $15/人。租桌椅换白桌布每张 +$5（一桌一张，4 人一桌）。只要桌布、不租桌椅（客人自己的桌子，适合 6 英尺桌）：一张用一场 $5，白的 $8（老板 11-03）；进订单 `--add-extra white_linen=N`（黑，$5）或 `white_tablecloth=N`（白，$8）。筷子跟餐具包走，要就带、不加钱。餐巾纸也跟餐具包走（老板 11-04「带的」），含在 $5/人里，客人问就说 `Napkins come with the plates and utensils.`；**没有碗**：餐具包里每位客人配一个小沙拉盘，是浅盘、不是深碗（老板 11-12「我们有一个小的沙拉盘」「不是深的碗」）；客人问碗就说 `We don't bring bowls, but the plates and silverware come with a small salad plate for each guest, so you won't need any.`；没订餐具的客人只要餐巾纸，先问老板。带租赁的总价用 `desk price --tables N --utensils N`：租赁算在 $599 最低消费之内（10 位大人全套 = $749），不在引擎价上手加。
+- **价格**：桌椅 + 黑桌布 $10/人；盘子餐具 $5/人；全套 $15/人。租桌椅换白桌布每张 +$5（一桌一张，4 人一桌）。只要桌布、不租桌椅（客人自己的桌子，适合 6 英尺桌）：一张用一场 $5，白的 $8（老板 11-03）；进订单 `--add-extra white_linen=N`（黑，$5）或 `white_tablecloth=N`（白，$8）。筷子跟餐具包走，要就带、不加钱。餐巾纸也跟餐具包走（老板 11-04「带的」），含在 $5/人里，客人问就说 `Napkins come with the plates and utensils.`；**没有碗**：餐具包是每位客人一个大盘、一个小盘（小盘装沙拉，是浅盘、不是深碗）加刀叉（老板 11-12「我们有一个小的沙拉盘」「不是深的碗」「一个大盘 和 一个小盘」）；客人问碗就说 `We don't bring bowls, but the plates and silverware come with a small salad plate for each guest, so you won't need any.`；没订餐具的客人只要餐巾纸，先问老板。带租赁的总价用 `desk price --tables N --utensils N`：租赁算在 $599 最低消费之内（10 位大人全套 = $749），不在引擎价上手加。
 - **长什么样**：发 `/rentals` 实拍（已订的客人带 `?lead_id=`，在页面上选了直接进订单）。椅子是铝框 + 黑色塑料靠背；桌子是 6 英尺折叠桌；4 人一桌；没有白椅子（户外难保持干净）；白桌布是弹力布贴合桌套、带褶裙，不是塑料。
 - **材质**（客人问"塑料还是布""是不是一次性"）：黑白桌布都是布的，用完我们带走；盘子餐具是好一点的硬塑料一次性款（银边白盘、金色刀叉），用完不用洗、不用还。`The tablecloths are fabric, and the plates and utensils are the nicer hard-plastic kind. They're disposable, so there's nothing to wash.`（10-23 按库存——盘具全是消耗品、桌布是周转品——和实拍照片 hard-plastic-plates 写的，等老板确认。）
 - **主题盘具**（黑金边、蓝白瓷、红黑）：派对在 7 天以外直接答可以（D-1007-07）；7 天以内先问老板。不对客说"要去网上订"。
