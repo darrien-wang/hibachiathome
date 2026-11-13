@@ -2486,6 +2486,33 @@ def cmd_order(a):
         return
     order = _order_row(a.ident)
     order_no = order.get("order_no")
+    if a.op == "difficulty":
+        # 难度小结 (owner 2026-11-13: "哪种客人可能很麻烦很挑剔，做个1-5难度级别的预估"). Internal only:
+        # the order dialog's right column and a 难 N tag on the day map; 3+ on a newer chef is flagged
+        # there. Score it from the thread and the order notes when a party locks, and again when the
+        # chat shows a new signal (comparing quotes / haggling, an allergy or illness, show
+        # expectations, a missing address, a heavy setup). Written as source "ai": once the owner
+        # has set or changed it, the API refuses ours ("以你改的为准") and this prints that.
+        cur = (site_get("/api/admin/chefs", {"logi_order": order["id"]}) or {}).get("difficulty") or {}
+        if a.score is None:
+            print(f"{order_no}  难度 {cur.get('score') or '-'}/5  {cur.get('source') or ''} {cur.get('by') or ''} {(cur.get('at') or '')[:16]}")
+            if cur.get("note"):
+                print(f"   {cur['note']}")
+            return
+        if not 1 <= a.score <= 5:
+            raise SystemExit("--score is 1 (easiest) to 5 (most work)")
+        note = pathlib.Path(a.note_file).read_text(encoding="utf-8").strip() if a.note_file else None
+        if note is None and not cur.get("note"):
+            raise SystemExit("order difficulty needs --note-file: one short paragraph on why (Chinese is fine, from a file)")
+        body = {"action": "set_difficulty", "order_id": order["id"], "score": a.score, "source": "ai", "by": f"desk:{desk_session()}"}
+        if note is not None:
+            body["note"] = note
+        res = site_post("/api/admin/chefs", body)
+        if res.get("skipped") == "owner":
+            print(f"SKIP  {order_no}  the owner set this one ({cur.get('score')}/5) - not overwritten")
+            return
+        print(f"OK    {order_no}  难度 {a.score}/5")
+        return
     if a.op == "plan":
         # A customer can fill the party page and never press confirm: the order still reads
         # 菜单空 and we chase them (Jere 2026-11-01: "I filled it out online"). Look here first.
@@ -3461,12 +3488,13 @@ def main(argv=None):
     p = sp.add_parser("report"); p.add_argument("kind", choices=["day", "week"])
     p.add_argument("--date", help="YYYY-MM-DD (Pacific). day: default today; week: any day in the week, default the last full Sun-Sat week")
     p.set_defaults(fn=_report)
-    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "plan", "set", "preview", "email", "send", "remind", "hold", "redate", "cancel", "check", "review", "send-sheet"]); p.add_argument("ident")
+    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "plan", "set", "preview", "email", "send", "remind", "hold", "redate", "cancel", "check", "review", "send-sheet", "difficulty"]); p.add_argument("ident")
+    p.add_argument("--score", type=int, metavar="N", help="difficulty: 1 (easiest) to 5 (most work); leave out to print the current one")
     p.add_argument("--pass", dest="pass_", action="store_true", help="review: record that the review passed (needs --summary; refused while the machine check has blocking gaps)")
     p.add_argument("--fail", action="store_true", help="review: record that the review failed (needs --summary: what is missing and the fix)")
     p.add_argument("--summary", help="review: the verdict in a sentence or two - what was checked and where it is, or what is missing")
     p.add_argument("--chef", nargs="+", metavar="NAME", help="send-sheet: only these chefs on the order (default: everyone assigned)")
-    p.add_argument("--note-file", help="send-sheet: a note sent with the sheet (texted and kept on the link)")
+    p.add_argument("--note-file", help="send-sheet: a note sent with the sheet (texted and kept on the link). difficulty: why, one short paragraph")
     p.add_argument("--skip-review", action="store_true", help="send-sheet / remind: send although the review is missing or stale (needs --why; recorded)")
     p.add_argument("--rows-out", help="plan: write the party page's guests as a --guests-file list")
     p.add_argument("--why", help="hold: why the date is off, kept on the order (e.g. birthday boy out of town, picking a new date). "

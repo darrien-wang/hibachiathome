@@ -242,9 +242,6 @@ export function OrderDialog({
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [insert, setInsert] = useState<{ text: string; nonce: number } | null>(null)
-  const [payAmount, setPayAmount] = useState("")
-  const [payPhone, setPayPhone] = useState("")
-  const [payUrl, setPayUrl] = useState<string | null>(null)
   const [emailTpl, setEmailTpl] = useState<EmailTemplate | null>(null)
   const [emailDraft, setEmailDraft] = useState({ subject: "", body: "" })
   const [team, setTeam] = useState<string[] | null>(null)
@@ -285,12 +282,15 @@ export function OrderDialog({
   useEffect(() => {
     let dead = false
     setLogiOwner(undefined)
-    void adminJson<{ owners: Array<{ staffId: string; settled: boolean }>; prepNote?: string }>(adminKey, `/api/admin/chefs?logi_order=${orderId}`)
+    void adminJson<{ owners: Array<{ staffId: string; settled: boolean }>; prepNote?: string; difficulty?: { score: number | null; note: string | null; by: string | null; at: string | null } }>(adminKey, `/api/admin/chefs?logi_order=${orderId}`)
       .then((r) => {
         if (!dead) {
           setLogiOwner(r.owners[0] ?? null)
           setPrepNote(r.prepNote ?? "")
           setPrepNoteSaved(r.prepNote ?? "")
+          const df = r.difficulty
+          setDiff({ score: df?.score ?? null, note: df?.note ?? "", by: df?.by ?? null, at: df?.at ?? null })
+          setDiffNoteSaved(df?.note ?? "")
         }
       })
       .catch(() => {
@@ -341,14 +341,6 @@ export function OrderDialog({
       alive = false
     }
   }, [adminKey, orderId, o?.balance_due_cents, o?.invoice_revision])
-  useEffect(() => {
-    if (!o) return
-    // A card link collects the card bill: under v2 that is the engine's card balance, not the cash one.
-    const cents = bills && bills.terms === "v2_by_method" && bills.cardCents > 0 ? bills.cardCents : o.balance_due_cents
-    setPayAmount(cents && cents > 0 ? (cents / 100).toFixed(2) : "")
-    setPayPhone(o.customer_phone ?? "")
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [o?.id, o?.balance_due_cents, bills?.cardCents])
   // Land on 派单/Planner when the customer changed something (comp: orderTab = changed ? 'planner' : 'money').
   useEffect(() => {
     if (detail && tab === null) setTab(openReqs.length > 0 ? "planner" : "money")
@@ -371,10 +363,11 @@ export function OrderDialog({
   }, [orderId])
 
   const lead = useMemo(() => (o ? leadForOrder(o, leads) : null), [o, leads])
-  // 客户自付链接：一人一条，带订单 id。页面自己现查尾款，我们不往链接里写金额。
-  // 这个 useState 必须待在下面那个 `if (!o) return` 之前：订单列表还没加载完就
-  // 用链接直接打开抽屉时，两次渲染的 hook 数量会对不上，整页白屏。
-  const [selfPayCopied, setSelfPayCopied] = useState(false)
+  // 难度小结（老板 2026-11-13）：1–5 分 + 一句话，哪种客人挑剔、哪场要派熟手。
+  // 订单弹窗右栏原来的"客户自付 / 固定金额链接"很少用，换成这个。
+  // hook 要待在下面那个 `if (!o) return` 之前（同上：hook 数量要对得上）。
+  const [diff, setDiff] = useState<{ score: number | null; note: string; by: string | null; at: string | null }>({ score: null, note: "", by: null, at: null })
+  const [diffNoteSaved, setDiffNoteSaved] = useState("")
   // 日期待定的单定日期用（同样要在 `if (!o) return` 之前）。
   const [holdDate, setHoldDate] = useState("")
   const [holdTime, setHoldTime] = useState("")
@@ -511,26 +504,23 @@ export function OrderDialog({
     return d.url
   }
 
-  // 客服动作 = 复制话术+链接，粘出去就能发（2026-09-28 用户定：不放解释文字，
-  // 放一条现成的对客短信）。
-  const selfPayUrl = `https://www.realhibachi.com/pay?o=${o.id}`
-  const v2Terms = termsOfOrder(o) === "v2_by_method"
-  // /pay is a Stripe card checkout, so the v2 text says "by card" only; the
-  // page itself lists the cash figure.
-  const selfPaySms = v2Terms
-    ? `${settings.business.brand}: here's the secure link to pay your party balance by card - it shows your balance with sales tax and card processing. You can add your chef's gratuity there (100% goes to them) or tip them in person on the day: ${selfPayUrl}`
-    : `${settings.business.brand}: here's the secure link to settle the balance for your party - enter the total you agreed with your chef, plus a 4% card processing fee. Anything above the balance goes to your chef as their tip, 100%: ${selfPayUrl}`
-  const copySelfPay = (withScript: boolean) => {
-    copyText(withScript ? selfPaySms : selfPayUrl)
-    setSelfPayCopied(true)
-    window.setTimeout(() => setSelfPayCopied(false), 2000)
-  }
 
   // 只看不改：拿订单上存的发票数据现铸一个 30 分钟的 token 打开。发票会改，
   // 所以每次现铸，看到的永远是当前这版；要看发给客户的那版用"已发送的发票"。
   // 备料单：给后勤（张阿姨）打印的那张——只有这一单要放进保温箱的东西，大字中文，
   // 没有客户信息和价格（老板 2026-10-11：不要单独一个页签，一个按钮点开就能打印）。
   // 窗口要在点击当下就开，等接口回来再开会被浏览器当弹窗拦掉。
+  const v2Terms = termsOfOrder(o) === "v2_by_method"
+  const saveDifficulty = async (score: number | null, note: string) => {
+    try {
+      const r = await adminJson<{ ok: boolean; error?: string; by?: string | null; at?: string | null }>(adminKey, "/api/admin/chefs", { body: { action: "set_difficulty", order_id: orderId, score, note: note.trim(), by: operatorName() } })
+      if (!r.ok) throw new Error(r.error ?? "没存上")
+      setDiff({ score, note: note.trim(), by: r.by ?? null, at: r.at ?? null })
+      setDiffNoteSaved(note.trim())
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "难度没存上")
+    }
+  }
   const savePrepNote = async () => {
     if (prepNote.trim() === prepNoteSaved.trim()) return
     try {
@@ -595,24 +585,6 @@ export function OrderDialog({
       }
     })
 
-  const genPayLink = () =>
-    call("pay", async () => {
-      const amount = Number(payAmount)
-      if (!Number.isFinite(amount) || amount <= 0) throw new Error("金额不对")
-      const d = await adminJson<{ ok: boolean; url?: string; total?: number; error?: string }>(adminKey, "/api/admin/pay-link", {
-        body: { orderId: o.id, amount, customerName: o.customer_name ?? undefined, phone: payPhone || undefined, note: `workbench ${o.order_no ?? ""}` },
-      })
-      if (!d.ok || !d.url) throw new Error(d.error ?? "链接生成失败")
-      setPayUrl(d.url)
-      const to = payPhone.trim()
-      const total = Number(d.total ?? amount)
-      const body = `${settings.business.brand}: here's the card link for your ${ev ? `${md(ev.ymd)} ` : ""}party balance, $${total.toFixed(2)}: ${d.url}`
-      if (to && (await askConfirm({ title: "发付款链接", message: `发到 ${prettyPhone(to)}？\n\n${body}`, okLabel: "发送" }))) {
-        await sendSms(to, body)
-        await adminJson(adminKey, "/api/admin/orders/email-sent", { body: { orderId: o.id, to, subject: `pay link $${total.toFixed(2)} via SMS`, operator: operatorName() } }).catch(() => null)
-      } else copyText(d.url)
-      await load()
-    })
 
   // Acts on every open request at once, so the chef is notified once and the
   // customer is texted once however many times they edited (owner 2026-09-28).
@@ -677,7 +649,6 @@ export function OrderDialog({
     window.open(`${settings.business.invoice_tool_url.replace(/\/$/, "")}/?${p.toString()}`, "_blank", "noopener")
   }
 
-  const payOther = digits10(payPhone) !== digits10(o.customer_phone)
   const smsChips = [
     { id: "confirm", label: "开席前确认", body: ORDER_SOP_STEPS.find((s) => s.id === "w_confirm48")!.build({ chefName: assignments[0]?.name ?? settings.business.chef_default_name }) },
     {
@@ -895,51 +866,39 @@ export function OrderDialog({
           </div>
           <div className="dialog-col dialog-side" style={{ gap: 14 }}>
             <div>
-              <Kicker>客户自付（小费他自己填）</Kicker>
-              <div style={{ fontSize: 12.5, color: "var(--color-neutral-700)", background: "var(--color-neutral-100)", padding: "8px 10px", marginTop: 6, lineHeight: 1.5, userSelect: "text" }}>
-                {selfPaySms}
+              <Kicker>难度小结</Kicker>
+              <div role="group" aria-label="难度 1 到 5" style={{ display: "flex", gap: 4, marginTop: 6 }}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    className="wb-chip"
+                    aria-pressed={diff.score === n ? "true" : "false"}
+                    style={diff.score === n && n >= 4 ? { background: "var(--color-accent)", borderColor: "var(--color-accent)", color: "#fff" } : undefined}
+                    title={n === 1 ? "最省心" : n === 5 ? "最费心" : undefined}
+                    onClick={() => void saveDifficulty(diff.score === n ? null : n, diff.note)}
+                  >
+                    {n}
+                  </button>
+                ))}
               </div>
-              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => copySelfPay(true)}>
-                  {selfPayCopied ? "已复制" : "复制话术+链接"}
-                </button>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => copySelfPay(false)}>
-                  只复制链接
-                </button>
+              <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 4 }}>1 最省心 · 5 最费心；3 分以上派熟手</div>
+              <textarea
+                className="input"
+                rows={7}
+                maxLength={800}
+                style={{ marginTop: 8, fontSize: 13, lineHeight: 1.55, resize: "vertical" }}
+                placeholder="这位客人哪里要小心：挑剔/比价/砍价、过敏或病、表演期望、地址没给、桌椅场地……"
+                value={diff.note}
+                onChange={(e) => setDiff((d) => ({ ...d, note: e.target.value }))}
+                onBlur={() => {
+                  if (diff.note.trim() !== diffNoteSaved.trim()) void saveDifficulty(diff.score, diff.note)
+                }}
+              />
+              <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 2 }}>
+                {diff.note.trim() !== diffNoteSaved.trim() ? "没保存（点别处就存）" : diff.at ? `${diff.by ?? "—"} · ${stamp(diff.at)}` : "只给自己看，客人和师傅都看不到"}
               </div>
-              {typeof o.chosen_gratuity_cents === "number" ? (
-                <div style={{ fontSize: 12.5, color: "var(--color-accent-700)", marginTop: 6 }}>
-                  客户填了小费 ${(o.chosen_gratuity_cents / 100).toFixed(2)}
-                  {o.chosen_gratuity_at ? ` · ${stamp(o.chosen_gratuity_at)}` : ""}（填了不等于付了，对一下收款）
-                </div>
-              ) : null}
             </div>
-            <div className="hr" style={{ margin: "4px 0" }} />
-            <div>
-              <Kicker>固定金额链接</Kicker>
-              <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>金额默认尾款；付款人默认客人，别人付就换手机号。链接发出后记在这一单上。</div>
-            </div>
-            <Field label="金额 $">
-              <input className="input num" style={{ fontSize: 18 }} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
-            </Field>
-            <Field label="付款人手机号">
-              <input className="input" value={payPhone} onChange={(e) => setPayPhone(e.target.value)} />
-            </Field>
-            {payOther ? <div style={{ fontSize: 12, color: "var(--color-accent-700)" }}>与客人电话不同 · 将发给新号码</div> : null}
-            
-            <button type="button" className="btn btn-primary btn-block" style={{ margin: 0 }} disabled={!!busy || !payAmount} onClick={() => void genPayLink()}>
-              {busy === "pay" ? "生成中…" : "生成并发送链接"}
-            </button>
-            {payUrl ? (
-              <div style={{ fontSize: 12, wordBreak: "break-all" }}>
-                <a href={payUrl} target="_blank" rel="noreferrer">
-                  {payUrl}
-                </a>{" "}
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => copyText(payUrl)}>
-                  复制
-                </button>
-              </div>
-            ) : null}
             <div className="hr" style={{ margin: "4px 0" }} />
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
               尾款怎么收的（师傅代收现金 / 刷卡 / 已付清）去 <strong>厨师 → 结算</strong> 或本单 <strong>Planner · 派单</strong> 里确认——确认那一下会自动把订单登记成已收，师傅那份也同时进结算，不用在这里再录一遍。

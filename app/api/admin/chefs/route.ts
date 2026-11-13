@@ -445,8 +445,14 @@ export async function GET(request: NextRequest) {
   if (logiOrder) {
     if (!/^[0-9a-f-]{36}$/i.test(logiOrder)) return NextResponse.json({ error: "bad order id" }, { status: 400 })
     const { data: marks } = await supabase.from("staff_order_pay").select("staff_member_id, settlement_id").eq("order_id", logiOrder)
-    const { data: noteRow } = await supabase.from("orders").select("prep_note").eq("id", logiOrder).maybeSingle()
-    return NextResponse.json({ ok: true, owners: (marks ?? []).map((m) => ({ staffId: String(m.staff_member_id), settled: !!m.settlement_id })), prepNote: (noteRow?.prep_note as string | null) ?? "" })
+    const { data: noteRow } = await supabase.from("orders").select("prep_note, difficulty_score, difficulty_note, difficulty_source, difficulty_by, difficulty_at").eq("id", logiOrder).maybeSingle()
+    const nr = (noteRow ?? {}) as Record<string, unknown>
+    return NextResponse.json({
+      ok: true,
+      owners: (marks ?? []).map((m) => ({ staffId: String(m.staff_member_id), settled: !!m.settlement_id })),
+      prepNote: (nr.prep_note as string | null) ?? "",
+      difficulty: { score: (nr.difficulty_score as number | null) ?? null, note: (nr.difficulty_note as string | null) ?? null, source: (nr.difficulty_source as string | null) ?? null, by: (nr.difficulty_by as string | null) ?? null, at: (nr.difficulty_at as string | null) ?? null },
+    })
   }
 
   const fileId = request.nextUrl.searchParams.get("file")
@@ -687,7 +693,7 @@ const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f-]
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "")
 const int = (v: unknown, fallback = 0) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : fallback)
 const dateOrNull = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)
-const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup", "set_tables", "add_review", "delete_review", "settle_reviews", "settle_logistics", "mark_logistics", "set_logistics_owner", "set_prep_note", "set_dispatch_plan"])
+const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup", "set_tables", "add_review", "delete_review", "settle_reviews", "settle_logistics", "mark_logistics", "set_logistics_owner", "set_prep_note", "set_dispatch_plan", "set_difficulty"])
 
 export async function POST(request: NextRequest) {
   const actor = await resolveAdminActor(request)
@@ -1462,6 +1468,29 @@ export async function POST(request: NextRequest) {
         const { error } = await supabase.from("orders").update({ prep_note: str(body.note, 300) || null }).eq("id", body.order_id)
         if (error) throw error
         return NextResponse.json({ ok: true })
+      }
+      case "set_difficulty": {
+        // 难度小结（老板 2026-11-13）：1–5 分 + 一句话，只给内部看（订单弹窗、派单地图）。
+        // source "ai" = 客服会话读聊天打的分；老板在弹窗或地图上改过的（owner）ai 不再覆盖。
+        if (!isUuid(body.order_id)) return NextResponse.json({ error: "order_id required" }, { status: 400 })
+        const score = body.score === null || body.score === undefined ? null : Math.round(Number(body.score))
+        if (score !== null && !(score >= 1 && score <= 5)) return NextResponse.json({ error: "score must be 1-5" }, { status: 400 })
+        const source = body.source === "ai" ? "ai" : "owner"
+        const { data: cur } = await supabase.from("orders").select("difficulty_source").eq("id", body.order_id).maybeSingle()
+        if (!cur) return NextResponse.json({ error: "order not found" }, { status: 404 })
+        if (source === "ai" && (cur as { difficulty_source?: string | null }).difficulty_source === "owner") {
+          return NextResponse.json({ ok: false, skipped: "owner", error: "老板改过这一单的难度，ai 不覆盖" })
+        }
+        const patch: Record<string, unknown> = {
+          difficulty_score: score,
+          difficulty_source: source,
+          difficulty_by: str(body.by, 60) || (source === "ai" ? "desk" : "owner"),
+          difficulty_at: new Date().toISOString(),
+        }
+        if (typeof body.note === "string") patch.difficulty_note = str(body.note, 800) || null
+        const { error } = await supabase.from("orders").update(patch).eq("id", body.order_id)
+        if (error) throw error
+        return NextResponse.json({ ok: true, by: patch.difficulty_by, at: patch.difficulty_at, source })
       }
       case "set_dispatch_plan": {
         // 派工计划（老板 2026-10-17，Eileen 那单两台灶答应了没派）：这一单几位师傅、

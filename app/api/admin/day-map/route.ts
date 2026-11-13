@@ -41,6 +41,9 @@ type OrderRow = {
   invoice_data?: InvoiceLite | null
   setup_selection?: SetupSelection | null
   dispatch_plan?: unknown
+  difficulty_score?: number | null
+  difficulty_note?: string | null
+  difficulty_source?: string | null
 }
 
 type DriveSource = "google_traffic" | "google" | "osrm" | "none"
@@ -125,7 +128,7 @@ export async function GET(request: NextRequest) {
   // 不做时区换算——换算会把 12:00 变成前一天。
   const { data } = await supabase
     .from("orders")
-    .select("id, order_no, customer_name, customer_phone, event_start, event_address, guest_adult_count, guest_child_count, order_status, created_at, invoice_data, setup_selection, dispatch_plan")
+    .select("id, order_no, customer_name, customer_phone, event_start, event_address, guest_adult_count, guest_child_count, order_status, created_at, invoice_data, setup_selection, dispatch_plan, difficulty_score, difficulty_note, difficulty_source")
     .gte("event_start", `${date}T00:00:00`)
     .lt("event_start", `${date}T23:59:59`)
     .order("event_start")
@@ -148,6 +151,8 @@ export async function GET(request: NextRequest) {
     tables: boolean
     /** 派工计划：几位师傅几台灶、哪来的（lib/dispatch-plan.ts）。两位以上的单图上要点名。 */
     plan: { chefs: number; grills: number; source: "rule" | "owner" | "promise" }
+    /** 难度小结（2026-11-13）：1–5 分 + 理由，内部看。没打分是 null。 */
+    difficulty: { score: number; note: string | null; source: string | null } | null
   }
   const resolver = makeResolver({ googleKey: process.env.GOOGLE_MAPS_API_KEY || null })
   const stops: StopRow[] = []
@@ -176,6 +181,7 @@ export async function GET(request: NextRequest) {
         const p = planForOrder({ invoice_data: r.invoice_data ?? null, guest_adult_count: r.guest_adult_count, guest_child_count: r.guest_child_count, event_start: r.event_start, dispatch_plan: r.dispatch_plan ?? null })
         return { chefs: p.chefs, grills: p.grills, source: p.source }
       })(),
+      difficulty: r.difficulty_score ? { score: r.difficulty_score, note: r.difficulty_note ?? null, source: r.difficulty_source ?? null } : null,
     })
   }
 

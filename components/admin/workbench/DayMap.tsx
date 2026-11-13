@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { adminJson } from "./api"
 import { Dialog, DialogHead, Tag } from "./ui"
 import { askConfirm, askPrompt, tell } from "./ask"
+import { operatorName } from "./helpers"
 import { TileMap } from "@/components/schedule/TileMap"
 import { coolerSheetHtml, type CoolerParty } from "@/lib/cooler-sheet"
 
@@ -41,7 +42,12 @@ type Stop = {
   plan?: { chefs: number; grills: number; source: "rule" | "owner" | "promise" }
   /** 名单改了还没通知的人（老板 2026-11-13）：add = 要发备料单，remove = 要告诉他不用去 */
   pending?: { add: string[]; remove: string[] }
+  /** 难度小结（老板 2026-11-13）：1–5 分 + 理由；source owner = 老板定的 */
+  difficulty?: { score: number; note: string | null; source: string | null } | null
 }
+// 偏新手的人（师傅派单规则 D-1030-04：John 偏新手、Eason 15 人以下、易非只当帮手）。
+// 难度 3 分以上的场派到他们，图上标红提醒（老板 2026-11-13）。
+const NOVICE_NAMES = new Set(["John", "Eason", "易非"])
 type Chef = { id: string; name: string; active: boolean; canHelp?: boolean }
 type Grade = "solid" | "ontime" | "late_ok" | "late_limit"
 type Link = {
@@ -136,6 +142,18 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
   // 单场改人（老板 2026-11-13「我想要调整连台下面的师傅，现在调整不了」）：连台线右边的按钮管整条线，
   // 某一场要多加一个人、换一个人，点那一场后面的"改人"，按钮只管这一场。key = 行号:订单 id
   const [editStop, setEditStop] = useState<string | null>(null)
+  // 地图上点"难 N"改分：key = 行号:订单 id
+  const [editDiff, setEditDiff] = useState<string | null>(null)
+  const setDifficulty = async (orderId: string, score: number | null) => {
+    try {
+      const r = await adminJson<{ ok: boolean; error?: string }>(adminKey, "/api/admin/chefs", { body: { action: "set_difficulty", order_id: orderId, score, by: operatorName() } })
+      if (!r.ok) throw new Error(r.error ?? "没存上")
+      setD((prev) => (prev ? { ...prev, stops: prev.stops.map((x) => (x.id === orderId ? { ...x, difficulty: score ? { score, note: x.difficulty?.note ?? null, source: "owner" } : null } : x)) } : prev))
+      setEditDiff(null)
+    } catch (e) {
+      void tell({ title: "难度没存上", message: e instanceof Error ? e.message : "出错了" })
+    }
+  }
   // 三个方案各存各的人（老板 2026-11-13「这三个tab 数据之间不能串 而且要保存我最终选择的路线」）：
   // 在一个方案里点名字只改这个方案的草稿（存在 dispatch_day_plans，关掉再开还在），不动订单，也不影响
   // 别的方案。点"保存为最终路线"才把这个方案的人写进订单；再打开默认就是这一版。
@@ -604,6 +622,40 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                           {/* 两位以上师傅的单（规则 / 老板 / 答应过客人）：图上点名，派少了标红——Eileen 10-17 两台灶答应了没派 */}
                           {s.plan && (s.plan.chefs > 1 || s.plan.grills > 1) ? <Tag cls="tag-accent">{s.plan.chefs} 厨 · {s.plan.grills} 灶{s.plan.source === "promise" ? "（答应过）" : ""}</Tag> : null}
                           <span style={{ color: "var(--color-neutral-600)" }}> · {s.guests} 人</span>
+                          {/* 难度：鼠标移上去看理由，点一下改分（以老板改的为准） */}
+                          <button
+                            type="button"
+                            className="wb-chip wb-chip-sm"
+                            style={{ marginLeft: 6, ...(s.difficulty && s.difficulty.score >= 4 ? { background: "var(--color-accent)", borderColor: "var(--color-accent)", color: "#fff" } : s.difficulty ? {} : { borderStyle: "dashed", color: "var(--color-neutral-600)" }) }}
+                            title={s.difficulty ? `难度 ${s.difficulty.score}/5${s.difficulty.source === "owner" ? "（老板定的）" : ""}${s.difficulty.note ? `
+${s.difficulty.note}` : ""}` : "还没打难度分，点一下打"}
+                            aria-pressed={editDiff === `${ci}:${id}` ? "true" : "false"}
+                            onClick={() => setEditDiff(editDiff === `${ci}:${id}` ? null : `${ci}:${id}`)}
+                          >
+                            {s.difficulty ? `难 ${s.difficulty.score}` : "难 ?"}
+                          </button>
+                          {(() => {
+                            const n = s.difficulty?.score ?? 0
+                            const newbies = n >= 3 ? teamOf(s.id).filter((p) => NOVICE_NAMES.has(chefName.get(p) ?? "")) : []
+                            return newbies.length ? <span style={{ color: "var(--color-accent-700)", fontWeight: 700 }}> · 难 {n} 的场派了新手 {namesOf(newbies)}</span> : null
+                          })()}
+                          {editDiff === `${ci}:${id}` ? (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center", margin: "6px 0 2px", padding: 8, border: "1px dashed var(--color-divider)" }}>
+                              <span style={{ fontSize: 12, color: "var(--color-neutral-600)", width: "100%" }}>
+                                {s.time} {s.name} 的难度（1 最省心 · 5 最费心）{s.difficulty?.note ? `：${s.difficulty.note}` : ""}
+                              </span>
+                              {[1, 2, 3, 4, 5].map((n) => (
+                                <button key={n} type="button" className="wb-chip wb-chip-sm" aria-pressed={s.difficulty?.score === n ? "true" : "false"} onClick={() => void setDifficulty(id, n)}>
+                                  {n}
+                                </button>
+                              ))}
+                              {s.difficulty ? (
+                                <button type="button" className="btn btn-ghost btn-sm" onClick={() => void setDifficulty(id, null)}>
+                                  清掉
+                                </button>
+                              ) : null}
+                            </div>
+                          ) : null}
                           {s.plan && teamOf(s.id).length < s.plan.chefs ? <span style={{ color: "var(--color-accent-700)", fontWeight: 700 }}> · 要 {s.plan.chefs} 位师傅，已派 {teamOf(s.id).length}</span> : null}
                           {/* 两位以上师傅的单会出现在好几行：一位从上一场接过来，另一位直接到。写明是同一场，不是重复 */}
                           {(() => {
