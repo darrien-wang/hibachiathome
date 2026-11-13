@@ -314,7 +314,7 @@ def last_invoice_line(order_id: str | None, balance_cents) -> str:
     try:
         rows = _supabase("GET", f"/rest/v1/order_events?select=created_at,metadata&order_id=eq.{order_id}"
                          "&action=in.(invoice_emailed,invoice_sent)&order=created_at.desc&limit=1", None, "application/json")
-    except (ApiError, SystemExit) as e:
+    except (Exception, SystemExit) as e:  # noqa: BLE001 - a read that cannot be made must not stop `order show` (as _party_blocking)
         return f"   发票: 查不到发送记录 ({getattr(e, 'status', e)})"
     if not rows:
         return "   发票: 还没用邮件发过（派对页链接上一直是最新的）"
