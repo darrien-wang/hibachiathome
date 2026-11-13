@@ -30,10 +30,15 @@ import { partyLabelZh } from "@/lib/chef-notify"
 //   chef_notice   a chef who has not confirmed a change to his party two hours
 //                 after it was texted; rings inside three hours of the start
 //   chef_unsent   a change text that never went out: listed at once, with the
-//                 chefs' items, because the link it carried replaced his old
-//                 one - he is holding no sheet he can open. The same for a
-//                 chef any other sheet send did not reach: the one reassigning
-//                 makes (D-1112-01), a sheet text that bounced
+//                 chefs' items - he has not been told. Since 2026-11-13 his
+//                 link is updated in place and still opens the order as it
+//                 stands, with the change on top: that rings only inside
+//                 three hours of the party, like an unconfirmed notice. When
+//                 no link of his that opens has reached him (a failed text
+//                 from before 11-13 had replaced his link) he is holding no
+//                 sheet: that rings at once. The same for a chef any other
+//                 sheet send did not reach: the one reassigning makes
+//                 (D-1112-01), a sheet text that bounced
 //                 (these new alarms never ring 11 PM - 7 AM Pacific, and
 //                 what came in overnight starts ringing at 7:
 //                 lib/reply-audit.ts shouldRingAwake)
@@ -355,12 +360,16 @@ export async function computeInbox(
         : hoursToParty > 0
           ? `离开场 ${hoursToParty < 1 ? `${Math.max(1, Math.round(hoursToParty * 60))} 分钟` : `${Math.round(hoursToParty)} 小时`}`
           : "已经开场"
-    // A change text that never went out (card A: no sms_sid, summary 【短信没发出去：…】). Every
-    // send issues a new link and revokes the one before, so this chef has no sheet he can open:
-    // it is listed the moment it fails, not two hours later, and rings like a person waiting on
-    // us - and, like an unconfirmed notice, the whole time once the party is three hours away.
-    // It goes when a sheet reaches him again (lib/chef-notices.ts sheetReachedSince), when a
-    // later text does go out, or when a person marks it (confirm_notice).
+    // A change text that never went out (card A: no sms_sid, summary 【短信没发出去：…】): listed
+    // the moment it fails, not two hours later - he has not been told. Since 2026-11-13 his link is
+    // brought up to date in place and still opens the order as it stands, with the change on top
+    // (g.holdsSheet): that is quiet until three hours before the party and rings from then, as an
+    // unconfirmed notice does. When no link of his that opens has reached him (a failed text from
+    // before 11-13 had replaced his link, or the links could not be read) he may have no sheet at
+    // all: that rings like a person waiting on us, and the whole time once the party is three hours
+    // away. It goes when what it had to say reaches him (lib/chef-notices.ts sheetReachedSince: the
+    // sheet sent again, or he opened his link since), when a later text does go out, or when a
+    // person marks it (confirm_notice).
     const unsentPairs = new Set<string>()
     for (const g of noticeBoard.failed) {
       const o = noticeOrders.get(g.orderId)
@@ -369,19 +378,25 @@ export async function computeInbox(
       chefUnsent += 1
       unsentPairs.add(`${g.orderId}:${g.staffId}`)
       const who = staffById.get(g.staffId)
+      const stillOpens = g.holdsSheet === true
       events.push({
         key: `chef-unsent:${g.orderId}:${g.staffId}`,
         kind: "chef_unsent",
         title: `师傅没收到改单短信 · ${who?.name ?? "师傅"}`,
-        body: ["他手里现在没有能打开的备料单", partyLabelZh(o), st.urgent ? leftOf(st.hoursToParty) : null, noticeSummary(g) || `${g.notices.length} 条改动`]
+        body: [
+          stillOpens ? "他还不知道改了（链接还能打开，改动在最上面）" : g.holdsSheet === false ? "他手里现在没有能打开的备料单" : null,
+          partyLabelZh(o),
+          st.urgent ? leftOf(st.hoursToParty) : null,
+          noticeSummary(g) || `${g.notices.length} 条改动`,
+        ]
           .filter(Boolean)
           .join(" · ")
           .slice(0, 300),
         url: `/admin?tab=orders&order=${g.orderId}`,
         at: new Date(g.at ? Date.parse(g.at) : now).toISOString(),
         waitedMinutes: st.waitedMinutes,
-        ring: shouldRingAwake(st.waitedMinutes, now) || (st.urgent && awakeHours(now)),
-        urgent: true,
+        ring: stillOpens ? st.urgent && awakeHours(now) : shouldRingAwake(st.waitedMinutes, now) || (st.urgent && awakeHours(now)),
+        urgent: stillOpens ? st.urgent : true,
         explain: true,
         orderId: g.orderId,
         phone: toE164(who?.phone ?? null),

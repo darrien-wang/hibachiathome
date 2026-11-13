@@ -613,10 +613,24 @@ def gaps_of(party: dict, *, blocking_only: bool = False) -> list[dict]:
 
 # ---------------------------------------------------------------- the sheet --
 
+def opened_since_sent(link: dict) -> bool:
+    """He opened this link since it last went to him: his newest open (last_opened_at, else first_opened_at) at
+    or after sent_at. Since 2026-11-13 a chef keeps one link per party, updated in place and texted again with
+    sent_at moved on, so first_opened_at is his first open ever; a row with no sent_at counts any open."""
+    opened = _pt(link.get("last_opened_at") or link.get("first_opened_at"))
+    if not opened:
+        return False
+    sent = _pt(link.get("sent_at"))
+    return sent is None or opened >= sent
+
+
 def sheet_lines(party: dict, today: str | None = None) -> list[tuple[str, str]]:
     """Per chef on the party: what he holds and whether he confirmed the last change. (mark, line).
     `today` = the Pacific date the check runs on: before the party day a sheet not sent yet is the day-before
-    send's to do (·); on the day it is !!. A helper's line is never !!: he works from the lead's sheet."""
+    send's to do (·); on the day it is !!. A helper's line is never !!: he works from the lead's sheet.
+    A chef has one link per party since 2026-11-13 and it always opens the order as it stands: stale = the
+    order changed and he has not been told yet (the change is on top of his page, the text follows) - a !
+    to watch, not a sheet he is missing. Until then a stale link was void."""
     out = []
     links = party.get("links") or []
     notices = party.get("notices") or []
@@ -629,6 +643,7 @@ def sheet_lines(party: dict, today: str | None = None) -> list[tuple[str, str]]:
         is_helper = chef.get("role") == "assistant_chef"
         helper = " (帮手)" if is_helper else ""
         bad = "· " if is_helper else "!!"
+        warn = "· " if is_helper else "! "
         reached = [l for l in live if l.get("sent_via") in ("twilio", "manual") or l.get("first_opened_at")]
         last = next((n for n in notices if n.get("staff_member_id") == sid), None)
         if not live:
@@ -640,14 +655,14 @@ def sheet_lines(party: dict, today: str | None = None) -> list[tuple[str, str]]:
         link = reached[0]
         bits, mark = [], "✓"
         if link.get("stale"):
-            mark = bad
-            bits.append("订单改过，这版已作废，新的还没发到" + (f"（{_mdhm(link['change_pending_since'])} 起在等）" if link.get("change_pending_since") else ""))
+            mark = warn
+            bits.append("订单改过，还没通知到他（链接不变，改动在最上面）" + (f"（{_mdhm(link['change_pending_since'])} 起在等）" if link.get("change_pending_since") else ""))
         else:
             bits.append("最新版")
             if link.get("change_pending_since"):
-                mark = "! "
-                bits.append("刚有改动，新单 10 分钟内发")
-        bits.append("已打开" if link.get("first_opened_at") else "还没打开")
+                mark = warn
+                bits.append("刚有改动，10 分钟后系统核对，要通知的会发短信（链接不变）")
+        bits.append("已打开" if opened_since_sent(link) else "还没打开")
         if last:
             when = _mdhm(last.get("sent_at"))
             if not str(last.get("sms_sid") or "").strip():
@@ -755,7 +770,7 @@ def load_parties(order_ids: list[str], db_get, site_get, date: str | None, prep_
                                "&assignment_status=in.(tentative,confirmed,completed)"), [])
     staff_ids = _q(a.get("staff_member_id") for a in asg)
     staff = _safe(lambda: db_get(f"/rest/v1/staff_members?select=id,display_name,full_name,phone&id=in.({staff_ids})"), []) if staff_ids else []
-    links = _safe(lambda: db_get("/rest/v1/chef_sheet_links?select=id,order_id,staff_member_id,sent_via,sent_at,first_opened_at,revoked_at,stale,change_pending_since"
+    links = _safe(lambda: db_get("/rest/v1/chef_sheet_links?select=id,order_id,staff_member_id,sent_via,sent_at,first_opened_at,last_opened_at,revoked_at,stale,change_pending_since"
                                  f"&order_id=in.({ids})&order=created_at.desc"), [])
     notices = _safe(lambda: db_get(f"/rest/v1/chef_change_notices?select=id,order_id,staff_member_id,summary,sent_at,acked_at,sms_sid&order_id=in.({ids})&order=sent_at.desc"), [])
     events = _safe(lambda: db_get(f"/rest/v1/order_events?select=order_id,action,created_at,metadata&order_id=in.({ids})"
@@ -839,5 +854,5 @@ def render_day(date: str, parties: list[dict], today: str | None = None) -> list
     head = f"派对当天核对 {date} · {len(parties)} 场 · 缺项 {total}" + (f"（{blocking} 项要先补）" if blocking else "")
     if not parties:
         return [f"派对当天核对 {date} · 这天没有派对"]
-    return [head, *out, "━" * 78, "补完订单，系统会自动给师傅发新单；备货备注用 desk order set <单号> --prep-note-file F。"]
+    return [head, *out, "━" * 78, "补完订单，系统约 10 分钟后自动短信告诉师傅改了什么（还是原来那条链接）；备货备注用 desk order set <单号> --prep-note-file F。"]
 

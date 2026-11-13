@@ -16,7 +16,7 @@ import { PARTY_SIZE_CUSTOM_FROM, calcSimpleEstimate, calcTravelFee, checkWeekday
 import { cityOf } from "@/lib/customers"
 import { instantToWallIso } from "@/lib/first-response"
 import { loadStaffContacts, staffOnNumber, type StaffContact } from "@/lib/staff-phones"
-import { sheetHeld, type SheetLink } from "@/lib/chef-notify"
+import { sheetHeld, sheetNotTold, type SheetLink } from "@/lib/chef-notify"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -111,10 +111,22 @@ async function ordersFor(supabase: SupabaseClient, phone: string | null, email: 
   return (data ?? []) as OrderRow[]
 }
 
-// sheet = what he holds for the party right now (lib/chef-notify.ts sheetHeld): opened / sent, stale
-// (the order changed materially after his version, that link is void and a new one is pending),
-// undelivered (a link was made but its text never reached him), none.
-type StaffParty = { orderId: string; orderNo: string | null; eventStart: string | null; city: string | null; customer: string | null; guests: number; role: string; sheet: ReturnType<typeof sheetHeld> }
+// sheet = what he holds for the party right now (lib/chef-notify.ts sheetHeld): opened (since it last
+// went to him) / sent, undelivered (a link was made but its text never reached him), none. notTold = the
+// order changed since he was last told and he has not been told yet (sheetNotTold): his link still opens,
+// with the change on top, and the change text or the next send is due. Until 2026-11-13 such a link was
+// void and `sheet` said "stale"; desk.py still reads that from an older deploy.
+type StaffParty = {
+  orderId: string
+  orderNo: string | null
+  eventStart: string | null
+  city: string | null
+  customer: string | null
+  guests: number
+  role: string
+  sheet: ReturnType<typeof sheetHeld>
+  notTold: boolean
+}
 
 /**
  * A staff member's parties from yesterday on, soonest first: what a text from
@@ -137,11 +149,11 @@ async function staffParties(supabase: SupabaseClient, staffIds: string[], now: n
     .sort((a, b) => String(a.o.event_start ?? "").localeCompare(String(b.o.event_start ?? "")))
     .slice(0, 8)
   if (!list.length) return []
-  // Live links only: every send replaces the one before it (the invoice app revokes it), so the
-  // row that is not revoked is the one in his hands - if its text got through and it is not stale.
+  // Live links only: the row that is not revoked is the one in his hands - his one link, updated in
+  // place since 2026-11-13 (from 11-11 to 11-13 every send replaced it and revoked the one before).
   const { data: links } = await supabase
     .from("chef_sheet_links")
-    .select("order_id, staff_member_id, sent_via, first_opened_at, revoked_at, stale")
+    .select("order_id, staff_member_id, sent_via, sent_at, first_opened_at, last_opened_at, revoked_at, stale")
     .in("order_id", list.map((x) => x.r.order_id))
     .in("staff_member_id", staffIds)
     .is("revoked_at", null)
@@ -156,6 +168,7 @@ async function staffParties(supabase: SupabaseClient, staffIds: string[], now: n
     guests: Number(o.guest_adult_count ?? 0) + Number(o.guest_child_count ?? 0),
     role: r.assignment_role === "assistant_chef" ? "helper" : "chef",
     sheet: sheetHeld(linksOf.get(r.order_id) ?? [], r.staff_member_id),
+    notTold: sheetNotTold(linksOf.get(r.order_id) ?? [], r.staff_member_id),
   }))
 }
 

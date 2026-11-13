@@ -5,8 +5,10 @@
 // owner. The table arrives with the invoice app's deploy: until then every
 // read is empty and every write a no-op, which is tested too.
 // A notice whose text never went out (no sms_sid, summary 【短信没发出去：…】) is
-// its own case: the link it carried replaced his old one, so he holds no sheet
-// until one reaches him again - the second half of this file.
+// its own case: he has not been told until it reaches him some other way - the
+// second half of this file. Since 2026-11-13 his one link was brought up to date
+// in place and still opens; from 11-11 to 11-13 the link it carried replaced his
+// old one, so he held no sheet. Rows of both kinds are tested.
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
@@ -287,13 +289,17 @@ test("ring · an order with no lead cannot use the callback ring: reported, the 
 
 // ---- a change text that never went out ---------------------------------------------
 // Card A's contract (2026-11-11): the row has no sms_sid and its summary opens with
-// 【短信没发出去：. The new link was issued and the old one revoked before the text
-// bounced, so that chef has no sheet he can open.
+// 【短信没发出去：. From 11-11 to 11-13 the new link was issued and the old one revoked
+// before the text bounced, so that chef had no sheet he could open. Since 2026-11-13 the
+// text is about his one link, brought up to date in place: when it bounces the link stays
+// live, opens the order as it stands with the change on top, and keeps the sent_via /
+// sent_at of the last text that did reach him - he just was not told.
 
 const WHY_FAILED = "【短信没发出去：Twilio 21211 号码无效】8 位加餐具"
 const failed = (id: string, at: number | null, over: Partial<ChefNotice> = {}): ChefNotice => ({ id, order_id: ORDER_ID, staff_member_id: GARY, summary: WHY_FAILED, sent_at: at === null ? null : new Date(at).toISOString(), acked_at: null, sms_sid: "", ...over })
 const at = (ms: number) => new Date(ms).toISOString()
-// A prep-sheet link row. Every send is a new row with a new token; the one before it gets revoked_at.
+// A prep-sheet link row. From 11-11 to 11-13 every send was a new row with a new token and the one before got
+// revoked_at; since 2026-11-13 a send updates the same row (sent_at moves on, last_opened_at is his newest open).
 const link = (id: string, over: Partial<SentLink> & Row = {}): SentLink & Row => ({ id, token: `tok-${id}`, order_id: ORDER_ID, staff_member_id: GARY, sent_via: "twilio", sent_at: null, first_opened_at: null, revoked_at: null, stale: false, ...over })
 
 test("failed send · what counts as one: no sms_sid and the summary card A writes", () => {
@@ -353,7 +359,7 @@ test("failed send · state: on the list from the moment it failed, urgent three 
   assert.deepEqual(failedSendState({ at: null }, ORDER, START - 10 * H), { show: true, urgent: false, waitedMinutes: 0, hoursToParty: 10 })
 })
 
-test("he holds a sheet again · a re-send is a new link: what counts is the live one, sent after the failure", () => {
+test("he holds a sheet again · (11-11 to 11-13) a re-send is a new link: what counts is the live one, sent after the failure", () => {
   const t = START - 30 * H
   const g = { orderId: ORDER_ID, staffId: GARY, at: at(t) }
   // Straight after the failure: his old link is revoked, the one the failed text carried is live and never arrived.
@@ -387,6 +393,33 @@ test("he holds a sheet again · the link the failed text carried is not its own 
   assert.equal(sheetReachedSince(g, [link("L9", { staff_member_id: BLU, sent_at: at(t + H) })]), false)
   assert.equal(sheetReachedSince(g, [link("L9", { order_id: "00000000-0000-4000-8000-0000000000a9", sent_at: at(t + H) })]), false)
   assert.equal(sheetReachedSince(g, []), false)
+})
+
+test("told since · (2026-11-13) one link re-sent in place: the same row, sent_at moved on - and an open counts by last_opened_at", () => {
+  const t = START - 30 * H
+  const g = { orderId: ORDER_ID, staffId: GARY, at: at(t) }
+  // Sent and opened two days ago; this change text bounced and left the link as it was last sent to him.
+  const L1 = link("L1", { sent_at: at(t - 40 * H), first_opened_at: at(t - 39 * H), last_opened_at: at(t - 39 * H) })
+  assert.equal(sheetReachedSince(g, [L1]), false, "nothing has reached him since the failure")
+  // The owner sends the sheet again: the same row and token, sent_at moved on.
+  const resent: SentLink & Row = { ...L1, sent_at: at(t + 10 * 60_000) }
+  assert.equal(resent.token, L1.token)
+  assert.equal(sheetReachedSince(g, [resent]), true)
+  assert.equal(sheetReachedSince(g, [{ ...resent, sent_via: "manual" }]), true, "handed over by hand counts")
+  // That re-send bounced as well: the row says failed, nothing reached him.
+  assert.equal(sheetReachedSince(g, [{ ...resent, sent_via: "failed" }]), false)
+  // A re-send in the same minute as the failure is not told apart from the failed text: not counted.
+  assert.equal(sheetReachedSince(g, [{ ...L1, sent_at: at(t + RESEND_MARGIN_MS) }]), false)
+  // A later change text that went out moves sent_at the same way.
+  assert.equal(sheetReachedSince(g, [{ ...L1, sent_at: at(t + 2 * H) }]), true)
+  // He opened his link after the failure: the change is on top of his page.
+  assert.equal(sheetReachedSince(g, [{ ...L1, last_opened_at: at(t + 3 * 60_000) }]), true)
+  // first_opened_at stays his first open ever; an open before the failure is not this change.
+  assert.equal(sheetReachedSince(g, [{ ...L1, last_opened_at: at(t - 2 * H) }]), false)
+  assert.equal(sheetReachedSince(g, [{ ...L1, first_opened_at: at(t + 3 * 60_000), last_opened_at: null }]), true, "a row without last_opened_at goes by first_opened_at")
+  // Taken off the party since (revoked), or somebody else's: not his.
+  assert.equal(sheetReachedSince(g, [{ ...resent, revoked_at: at(t + H) }]), false)
+  assert.equal(sheetReachedSince(g, [{ ...resent, staff_member_id: BLU }]), false)
 })
 
 test("he holds a sheet again · a failed row with no time on it goes by the live link alone", () => {
@@ -431,6 +464,21 @@ test("board · the failed send and the texts waiting for a 1 are read apart; a c
   const off = [{ id: "as1", order_id: ORDER_ID, staff_member_id: GARY, assignment_status: "cancelled" }, { id: "as2", order_id: ORDER_ID, staff_member_id: BLU, assignment_status: "confirmed" }]
   const after = await loadNoticeBoard(world(rows, { assignments: off }) as never)
   assert.deepEqual([after.waiting.map((g) => g.staffId), after.failed], [[BLU], []])
+})
+
+test("board · a failed change text says whether his link still opens: in place since 11-13 yes, replaced before that no, unknown when unreadable", async () => {
+  const t = START - 20 * H
+  // 2026-11-13 on: his one link, sent and opened before the change, stays live and up to date.
+  const inPlace = [link("L1", { sent_at: at(t - 20 * H), first_opened_at: at(t - 19 * H), last_opened_at: at(t - 19 * H) })]
+  assert.deepEqual((await loadNoticeBoard(world([failed("f1", t)], { links: inPlace }) as never, t + 60_000)).failed.map((g) => [g.staffId, g.holdsSheet]), [[GARY, true]])
+  // 11-11 to 11-13: the failed text's new link replaced his, and that one never arrived.
+  const replaced = [link("L1", { sent_at: at(t - 20 * H), first_opened_at: at(t - 19 * H), revoked_at: at(t) }), link("L2", { sent_via: "failed", sent_at: at(t) })]
+  assert.deepEqual((await loadNoticeBoard(world([failed("f1", t)], { links: replaced }) as never, t + 60_000)).failed.map((g) => g.holdsSheet), [false])
+  // Links unreadable: the line stays, and nothing is claimed about them.
+  assert.deepEqual((await loadNoticeBoard(world([failed("f1", t)], { noLinksTable: true }) as never, t + 60_000)).failed.map((g) => g.holdsSheet), [undefined])
+  // He opened his link after the failure, or the owner sent it again on the same link: the line is gone.
+  assert.deepEqual((await loadNoticeBoard(world([failed("f1", t)], { links: [{ ...inPlace[0], last_opened_at: at(t + 5 * 60_000) }] }) as never, t + 10 * 60_000)).failed, [])
+  assert.deepEqual((await loadNoticeBoard(world([failed("f1", t)], { links: [{ ...inPlace[0], sent_at: at(t + 8 * 60_000) }] }) as never, t + 10 * 60_000)).failed, [])
 })
 
 test("board · sending the sheet again clears the failed send, though the link is a different row with a different token", async () => {
@@ -484,6 +532,21 @@ test("ring · a text that never went out, three hours before the party: its own 
   assert.deepEqual(db.tables.lead_watch_notified.map((m) => m.key).sort(), ["cn:ring:f1", "cn:ring:n1"])
   const again = ringer()
   assert.deepEqual(await ringUnackedNotices(db as never, START - 2.3 * H, { request: again.request, openOf: noCallback }), [])
+})
+
+test("ring · a failed change text on a link that still opens (2026-11-13): he was not told - its own words, three hours before the party", async () => {
+  assert.equal(
+    failedSendAlarmText("Gary", ORDER, true),
+    "师傅未确认：Gary 没收到 11月14日下午5:30 Irvine（Joyce）那场的改单短信，还不知道改了什么（备料单链接能打开，改动在最上面），派对不到 3 小时就开始。",
+  )
+  assert.equal(isChefNoticeAlarm(failedSendAlarmText("Gary", ORDER, true)), true)
+  assert.equal(failedSendAlarmText("Gary", ORDER, false), failedSendAlarmText("Gary", ORDER))
+  const db = world([failed("f1", START - 10 * H)], { links: [link("L1", { sent_at: at(START - 40 * H), first_opened_at: at(START - 39 * H), last_opened_at: at(START - 39 * H) })] })
+  const { calls, request } = ringer()
+  assert.deepEqual(await ringUnackedNotices(db as never, START - 3 * H - 60_000, { request, openOf: noCallback }), [], "not before three hours")
+  const out = await ringUnackedNotices(db as never, START - 2.5 * H, { request, openOf: noCallback })
+  assert.deepEqual(calls.map((c) => [c.why, c.source]), [[failedSendAlarmText("Gary", ORDER, true), "chef_notice:f1"]])
+  assert.deepEqual(out.map((r) => [r.chef, r.failedSend, r.rang]), [["Gary", true, true]])
 })
 
 test("ring · a failure inside three hours rings on the next sweep, no fifteen-minute grace; a sheet sent again means no call", async () => {

@@ -270,6 +270,11 @@ export const ORDER_EVENT_LABELS: Record<string, string> = {
   chef_assigned: "派单",
   helpers_assigned: "派帮手",
   chef_removed_notified: "通知师傅不用去了",
+  // 订单改了、师傅还没被告知（2026-11-13 起链接照样能打开，改动印在最上面）；之前叫 chef_sheet_voided（那版作废）。
+  chef_sheet_changed: "订单改了，师傅还没收到改动通知",
+  chef_sheet_voided: "订单改了，师傅那版备料单作废（11-13 前）",
+  chef_change_notice_sent: "改动通知已短信发给师傅",
+  chef_change_notice_failed: "改动通知短信没发出去",
   chef_change_acked: "师傅确认了改动",
   order_cancelled: "订单取消",
   order_cancelled_by_customer: "订单取消",

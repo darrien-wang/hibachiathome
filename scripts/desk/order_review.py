@@ -7,9 +7,10 @@ on them is forgotten.
 
 This module is the reviewer's eyes and its stamp; it sends nothing.
 - load() gathers in one read what the reviewer needs: the order (rows, extras, deal, notes, prep note,
-  internal notes), the prep-list line, the sheet each chef holds right now (its snapshot, the exact page
-  he opens), the machine checks of party_check, and every word on the customer's side: texts, emails,
-  website forms, party-page messages and the lead's notes.
+  internal notes), the prep-list line, the link each chef holds right now (since 2026-11-13 one per chef
+  per party: his page is always the order as it stands, and the link's snapshot is the version he was
+  last told about), the machine checks of party_check, and every word on the customer's side: texts,
+  emails, website forms, party-page messages and the lead's notes.
 - fingerprint() digests what a review vouches for: the order as the chef will get it, the crew, and the
   newest thing the customer said. A review is good only while the fingerprint is unchanged.
 - A verdict is an order_events row, action order_reviewed: {verdict, summary, fingerprint}.
@@ -86,7 +87,7 @@ def load(order_no: str, site_get, db_get, now: _dt.datetime | None = None) -> di
     gaps = party_check.gaps_of(party)
     # A plain UTC "Z" stamp: a "+00:00" offset would reach PostgREST as a space and match nothing.
     stamp_now = (now or _dt.datetime.now(_dt.timezone.utc)).astimezone(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    links = _get(db_get, "/rest/v1/chef_sheet_links?select=id,staff_member_id,created_at,first_opened_at,stale,change_pending_since,office_note,sheet_snapshot"
+    links = _get(db_get, "/rest/v1/chef_sheet_links?select=id,staff_member_id,created_at,sent_at,first_opened_at,last_opened_at,stale,change_pending_since,office_note,sheet_snapshot"
                          f"&order_id=eq.{order['id']}&revoked_at=is.null&expires_at=gt.{stamp_now}&order=created_at.desc", [])
     leads = lead_ids(order, db_get)
     touch = []
@@ -176,6 +177,24 @@ def _snapshot_lines(snap: dict) -> list[str]:
     return out
 
 
+def link_line(link: dict, names: dict) -> str:
+    """One chef's link in 【三】. Since 2026-11-13 a chef keeps one link per party, updated in place: 发于 is when
+    it last went to him (sent_at - created_at is only when it was first made), opened = since then (his newest
+    open, last_opened_at), and stale = the order changed since he was last told and he has not been told yet -
+    his page shows the order as it stands with the change on top. The snapshot under it is the version he was
+    last told about, not the page."""
+    sent = link.get("sent_at") or link.get("created_at")
+    opened = link.get("last_opened_at") or link.get("first_opened_at")
+    if link.get("stale"):
+        state = "订单改过，还没通知到他（链接不变：他打开看到的是现在的订单，改动在最上面；下面是他上次被告知的那版）"
+    elif link.get("change_pending_since"):
+        state = "刚有改动，10 分钟后系统核对，要通知的会发短信（链接不变）"
+    else:
+        state = "最新版（下面这版就是他打开看到的）"
+    seen = (f"打开过 {party_check._mdhm(opened)}" + ("" if party_check.opened_since_sent(link) else "（这次发了还没打开）")) if opened else "还没打开"
+    return f"   {names.get(link.get('staff_member_id'), link.get('staff_member_id'))} · 发于 {party_check._mdhm(sent)} · {seen} · {state}"
+
+
 def render(packet: dict) -> list[str]:
     o, party = packet["order"], packet["party"]
     inv = o.get("invoice_data") if isinstance(o.get("invoice_data"), dict) else {}
@@ -185,7 +204,7 @@ def render(packet: dict) -> list[str]:
         f"审查材料 {o.get('order_no')} · {str(o.get('event_start') or '')[:16].replace('T', ' ')} · {o.get('event_address') or '-'} · {o.get('customer_name') or '-'} · {o.get('order_status')}",
         f"指纹 {packet['fingerprint']} · 审查状态：{'✓ ' if fresh else '✗ '}{why}",
         "━" * 78,
-        "【一】机器核对（party_check：答应过的桌椅、只在备注里的过敏、派对页对不上、师傅手里的单旧没旧）",
+        "【一】机器核对（party_check：答应过的桌椅、只在备注里的过敏、派对页对不上、改动有没有通知到师傅）",
     ]
     out += party_check.render(party, packet["gaps"])
     out += ["", "【二】订单（师傅和客人看到的都从这里来）",
@@ -206,14 +225,12 @@ def render(packet: dict) -> list[str]:
     out.append(f"   订单备注（客人看得到，印在备料单上）：{contact.get('specialNotes') or '（空）'}")
     out.append(f"   备货备注（印在装车单和备料单上）：{o.get('prep_note') or '（空）'}")
     out.append(f"   内部备注（客人和师傅都看不到）：{o.get('internal_notes') or '（空）'}")
-    out += ["", "【三】师傅手里的备料单（现在能打开的那一版）"]
+    out += ["", "【三】师傅的备料单链接（打开就是订单现在的样子；下面每条是他上次被告知的那一版）"]
     names = {t.get("id"): t.get("name") for t in party.get("team") or []}
     if not packet["links"]:
         out.append("   （还没有在用的备料单链接）")
     for l in packet["links"]:
-        state = "旧了（订单改过，链接已作废待重发）" if l.get("stale") else ("改动等发出" if l.get("change_pending_since") else "最新")
-        out.append(f"   {names.get(l.get('staff_member_id'), l.get('staff_member_id'))} · 发于 {party_check._mdhm(l.get('created_at'))} · "
-                   f"{'打开过 ' + party_check._mdhm(l.get('first_opened_at')) if l.get('first_opened_at') else '还没打开'} · {state}")
+        out.append(link_line(l, names))
         out += _snapshot_lines(l.get("sheet_snapshot") or {})
     out += ["", "【四】对话（按时间；客=客人，我=我们，网=网站表单，页=派对页留言，记=线索备注，师=发给师傅的短信）"]
     items = []

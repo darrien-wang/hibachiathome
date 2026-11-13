@@ -464,7 +464,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
           const r = await adminJson<{ ok: boolean; resent?: boolean; sms?: { delivered?: boolean; error?: string } }>(adminKey, "/api/admin/chefs", {
             body: { action: "send_sheet", order_id: s.id, staff_member_id: g.chefId, note: sendNote.trim() || undefined },
           })
-          setSendState((p) => ({ ...p, [key]: r.sms && r.sms.delivered === false ? `链接生成了，短信没发出去：${r.sms.error ?? "原因不明"}` : "ok" }))
+          setSendState((p) => ({ ...p, [key]: r.sms && r.sms.delivered === false ? `链接好了，短信没发出去：${r.sms.error ?? "原因不明"}` : "ok" }))
         } catch (e) {
           setSendState((p) => ({ ...p, [key]: e instanceof Error ? e.message : "没发出去" }))
         }
@@ -849,7 +849,7 @@ ${s.difficulty.note}` : ""}` : "还没打难度分，点一下打"}
                     <button type="button" className="btn btn-ghost btn-sm" disabled={sending} onClick={() => setSendOpen(false)}>
                       收起
                     </button>
-                    <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>每单一条，带这单的备料单链接；同一单重发会换一条新链接，他之前那条作废</span>
+                    <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>每单一条，带这单的备料单链接；同一单重发还是他原来那条链接，更新成订单现在的样子</span>
                   </div>
                 </div>
               ) : null}

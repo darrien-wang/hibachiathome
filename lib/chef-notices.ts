@@ -8,16 +8,22 @@ import { loadStaffContacts, staffOnNumber, type StaffContact } from "@/lib/staff
 // chef_change_notices, this side of it (order-flow rebuild 2026-11-11, D-1111-03).
 //
 // The invoice app (card A) texts the chef on a party whenever the order
-// changes inside 72 hours - what changed, a fresh link, "回 1 确认" - and writes
+// changes inside 72 hours - what changed, his link, "回 1 确认" - and writes
 // a row here: id, order_id, staff_member_id, summary, sent_at, acked_at, sms_sid.
+// Since 2026-11-13 (owner: 「能不能以后就在原链接上更新，然后给提示呢」) that link is
+// the one he already holds, brought up to date in place: the same URL, with the
+// change on top of his page. From 2026-11-11 to 11-13 every text carried a new
+// link and revoked the one before; rows of both kinds are read here.
 // This side closes the loop:
 //   - the chef's "1" stamps acked_at (the SMS webhook calls ackNoticesFromPhone)
 //   - a notice still open two hours after it went shows in the inbox
 //   - one still open three hours before the party rings the owner's App
 //     through the callback ring (lead-watch calls ringUnackedNotices)
 //   - a notice whose text never went out (no sms_sid, summary starting
-//     【短信没发出去：) shows at once: every send issues a new link and revokes the
-//     one before it, so that chef is holding no sheet he can open
+//     【短信没发出去：) shows at once: he has not been told. His link still opens
+//     the order as it stands, with the change on top (FailedGroup.holdsSheet);
+//     a failed text from before 11-13 had replaced his link, and then he holds
+//     no sheet he can open
 //   - so does a chef left with no sheet by any other send that failed - the one
 //     reassigning makes (D-1112-01), or a sheet text that bounced (loadSheetless)
 //
@@ -61,7 +67,10 @@ export const RESEND_MARGIN_MS = 60_000
 const validTime = (iso: string | null | undefined): iso is string => Boolean(iso) && Number.isFinite(Date.parse(String(iso)))
 const pairKey = (x: { orderId: string; staffId: string }) => `${x.orderId}:${x.staffId}`
 
-/** The change text never reached the chef. His old link was revoked when this one was issued, so he has no working sheet. */
+/**
+ * The change text never reached the chef: he has not been told. Since 2026-11-13 his link was brought up
+ * to date in place and still opens; before, the text's new link had replaced his (FailedGroup.holdsSheet).
+ */
 export function isFailedSend(n: Pick<ChefNotice, "summary" | "sms_sid">): boolean {
   return !String(n.sms_sid ?? "").trim() && String(n.summary ?? "").trimStart().startsWith(FAILED_SEND_MARK)
 }
@@ -121,14 +130,23 @@ export function groupNotices(notices: ChefNotice[]): NoticeGroup[] {
   return [...byKey.values()]
 }
 
-/** A chef on a party whose latest change text did not go out. `at` = when (newest failure), null when the rows carry no time. */
-export type FailedGroup = { orderId: string; staffId: string; notices: ChefNotice[]; at: string | null }
+/**
+ * A chef on a party whose latest change text did not go out. `at` = when (newest failure), null when the
+ * rows carry no time. `holdsSheet` (loadNoticeBoard): he still holds a live link that reached him - since
+ * 2026-11-13 the usual case: his link was brought up to date in place and opens the order as it stands,
+ * the change on top, and only the text telling him is missing. False: no link of his that opens has
+ * reached him (a failed text from before 11-13 had replaced his link with the one that bounced).
+ * Absent when the links could not be read.
+ */
+export type FailedGroup = { orderId: string; staffId: string; notices: ChefNotice[]; at: string | null; holdsSheet?: boolean }
 
 /**
  * The failed sends that still matter, per chef per party. A failed text that
- * was followed by one that did go out is history: the later text carried a
- * newer link. One with no time on it cannot be placed against the other
- * texts and is kept here; the links decide (sheetReachedSince).
+ * was followed by one that did go out is history: the later text brought him
+ * to his sheet, where the earlier change is listed on top until he replies 1
+ * (before 2026-11-13 it carried a newer link that listed it the same way).
+ * One with no time on it cannot be placed against the other texts and is
+ * kept here; the links decide (sheetReachedSince).
  */
 export function groupFailedSends(notices: ChefNotice[]): FailedGroup[] {
   const lastDelivered = new Map<string, number>()
@@ -159,31 +177,39 @@ export type SentLink = {
   sent_via: string | null
   sent_at: string | null
   first_opened_at: string | null
+  /** His newest open. On a link updated in place (2026-11-13) first_opened_at stays his first open ever. */
+  last_opened_at?: string | null
   revoked_at?: string | null
 }
 
 /**
- * This chef is holding a sheet again, so the failed text is over. Every send
- * mints a new link and revokes the one before it (the invoice app, 2026-11-11),
- * so what he holds is his one live link, and the question is whether that link
- * got to him after the failure:
- *   - it was texted or handed over more than a minute after the failed text
- *     (the link that text was carrying is stamped at about the same moment and
- *     must not count as its own cure), or
- *   - he has opened it since.
- * The token is not compared with anything: a re-send is a new row, and a
- * revoked row - an older sheet, or one he opened before it was replaced - is
- * not in his hands. A failed row with no time on it is judged by the live
- * link alone: it reached him, or it did not.
+ * The failed text is over: what it had to tell him has reached him since. Asked of his live link - a
+ * revoked row (an older sheet, or one he opened before it was replaced) is not in his hands:
+ *   - it was texted or handed over more than a minute after the failed text: a person sent the sheet
+ *     again, or a later change text went out (before 2026-11-13 the link a failed text was carrying was
+ *     stamped at about the same moment, and must not count as its own cure), or
+ *   - he has opened it since: his page shows the change on top. That is last_opened_at: since 2026-11-13
+ *     a link is brought up to date in place and texted again, so first_opened_at is his first open ever,
+ *     most likely from before the change. A row without last_opened_at falls back to first_opened_at.
+ * Rows of both kinds answer the same way. From 2026-11-11 to 11-13 a re-send was a new row (another
+ * token) with its own sent_at, the failed one revoked; since then it is the same row with sent_at moved
+ * on, and a text that fails leaves sent_at where it was. A failed row with no time on it is judged by
+ * the live link alone: it reached him, or it did not (card A always stamps sent_at).
  */
 export function sheetReachedSince(group: Pick<FailedGroup, "orderId" | "staffId" | "at">, links: SentLink[]): boolean {
   const failedAt = group.at ? Date.parse(group.at) : null
   return links.some((l) => {
     if (l.order_id !== group.orderId || l.staff_member_id !== group.staffId || l.revoked_at) return false
     if (failedAt === null) return sheetReachedChef(l)
-    if (validTime(l.first_opened_at) && Date.parse(l.first_opened_at) > failedAt) return true
+    const opened = l.last_opened_at || l.first_opened_at
+    if (validTime(opened) && Date.parse(opened) > failedAt) return true
     return (l.sent_via === "twilio" || l.sent_via === "manual") && validTime(l.sent_at) && Date.parse(l.sent_at) > failedAt + RESEND_MARGIN_MS
   })
+}
+
+/** He holds a live link of this party that reached him (lib/chef-notify.ts sheetReachedChef): it opens, whatever changed since. */
+function holdsLiveSheet(g: Pick<FailedGroup, "orderId" | "staffId">, links: SentLink[]): boolean {
+  return links.some((l) => l.order_id === g.orderId && l.staff_member_id === g.staffId && !l.revoked_at && sheetReachedChef(l))
 }
 
 /** A chef on a coming party with no sheet he can open, because a sheet sent to him did not get to him. */
@@ -212,8 +238,13 @@ export const SHEETLESS_LOOKBACK_MS = 7 * 24 * 3600_000
  *     app, or it could not be reached.
  * Each is kept only while he is still on the party as one of its chefs and
  * holds no live link that reached him (lib/chef-notify.ts sheetHeld: none or
- * undelivered); a stale link is the change flow's to replace and is not listed
- * here. Helpers are not listed: the invoice app sends them the lead's sheet as
+ * undelivered); a stale link that reached him is not listed here - since
+ * 2026-11-13 it still opens, with the change on top, and the change flow tells
+ * him (before, the change flow replaced it). Since then a re-send updates the
+ * same link: one that bounces leaves it "failed", and a link he never opened
+ * is listed even when an earlier text of it got through (the invoice app keeps
+ * one sent_via per link) - an extra line, not a missing one.
+ * Helpers are not listed: the invoice app sends them the lead's sheet as
  * it goes, and a helper with no phone on file (易非: both failed links on record,
  * 10-22 and 10-24, are his) would otherwise ring on every send. Unreadable
  * tables give [] - the board's other lists still answer.
@@ -308,10 +339,12 @@ export type NoticeBoard = { waiting: NoticeGroup[]; failed: FailedGroup[]; sheet
  * it after the notice went (reassigned, or the party cancelled) has nothing
  * left to confirm and no sheet to be missing: his notice must not sit on the
  * list or ring the owner about a party he is not cooking. A failed send is
- * dropped once that chef holds a sheet again (sheetReachedSince) - and comes
- * back if the re-send's own text fails, because then he does not. When the
- * assignments or the links cannot be read, nothing is filtered - an extra
- * line beats a missing one.
+ * dropped once what it had to say has reached him (sheetReachedSince: the
+ * sheet sent again, or he opened his link since) - and comes back if the
+ * re-send's own text fails, because then it has not. Each failed send that
+ * stays says whether his link still opens (holdsSheet). When the assignments
+ * or the links cannot be read, nothing is filtered - an extra line beats a
+ * missing one.
  */
 export async function loadNoticeBoard(supabase: SupabaseClient, now = Date.now()): Promise<NoticeBoard> {
   const [open, sheetlessAll] = await Promise.all([loadOpenNotices(supabase, now), loadSheetless(supabase, now)])
@@ -341,10 +374,13 @@ export async function loadNoticeBoard(supabase: SupabaseClient, now = Date.now()
     try {
       const { data, error } = await supabase
         .from("chef_sheet_links")
-        .select("order_id, staff_member_id, sent_via, sent_at, first_opened_at, revoked_at")
+        .select("order_id, staff_member_id, sent_via, sent_at, first_opened_at, last_opened_at, revoked_at")
         .in("order_id", [...new Set(failed.map((g) => g.orderId))])
         .in("staff_member_id", [...new Set(failed.map((g) => g.staffId))])
-      if (!error) failed = failed.filter((g) => !sheetReachedSince(g, (data ?? []) as SentLink[]))
+      if (!error) {
+        const links = (data ?? []) as SentLink[]
+        failed = failed.filter((g) => !sheetReachedSince(g, links)).map((g) => ({ ...g, holdsSheet: holdsLiveSheet(g, links) }))
+      }
     } catch {
       // keep them all
     }
@@ -432,9 +468,11 @@ export type AckOutcome = { acked: number; orderIds: string[]; staffIds: string[]
  *
  * The chef's own "1" confirms what reached him: every text that went out, and
  * a failed one only when a later text on the same party did go out (that one
- * carried the newer link). A failed send he never saw is not his to confirm -
- * his "1" to an earlier text must not take it off the list while he has no
- * sheet. A person can (`includeFailed`): they know he has it some other way.
+ * brought him to his sheet, where the failed one's change is listed on top as
+ * well; before 2026-11-13 it carried a newer link that listed it). A failed
+ * send he never saw is not his to confirm - his "1" to an earlier text must
+ * not take it off the list while he has not been told. A person can
+ * (`includeFailed`): they know he has it some other way.
  *
  * No table, no rows, a failed write: { acked: 0 }, never a throw - this runs
  * inside the SMS webhook.
@@ -507,7 +545,7 @@ export type NoticeRing = {
   chef: string
   why: string
   notices: string[]
-  /** The text never reached him (he has no working sheet), as opposed to "has not confirmed". */
+  /** The text never reached him (he was not told; his link may still open - see FailedGroup.holdsSheet), as opposed to "has not confirmed". */
   failedSend?: boolean
   rang: boolean
   skipped?: string
@@ -522,9 +560,15 @@ export function noticeAlarmText(chef: string, order: PartyRef): string {
   return `${CHEF_NOTICE_WHY}：${chef} 还没确认 ${thatPartyZh(order)}的改动，派对不到 3 小时就开始。`
 }
 
-/** The same ring for a text that never went out: he cannot confirm what he has not seen, and he has no sheet. */
-export function failedSendAlarmText(chef: string, order: PartyRef): string {
-  return `${CHEF_NOTICE_WHY}：${chef} 没收到 ${thatPartyZh(order)}的改单短信，手里没有能打开的备料单，派对不到 3 小时就开始。`
+/**
+ * The same ring for a text that never went out: he cannot confirm what he has not seen. `holdsSheet` (the
+ * usual case since 2026-11-13): his link opens the order as it stands with the change on top, and nobody
+ * told him to look. Otherwise he has no sheet he can open.
+ */
+export function failedSendAlarmText(chef: string, order: PartyRef, holdsSheet = false): string {
+  return holdsSheet
+    ? `${CHEF_NOTICE_WHY}：${chef} 没收到 ${thatPartyZh(order)}的改单短信，还不知道改了什么（备料单链接能打开，改动在最上面），派对不到 3 小时就开始。`
+    : `${CHEF_NOTICE_WHY}：${chef} 没收到 ${thatPartyZh(order)}的改单短信，手里没有能打开的备料单，派对不到 3 小时就开始。`
 }
 
 /** ...and for a sheet that never reached him (D-1112-01). */
@@ -563,9 +607,9 @@ export async function ringUnackedNotices(
   const waitingByPair = new Map(board.waiting.map((g) => [pairKey(g), g]))
   const idsOf = (notices: ChefNotice[]) => notices.map((n) => n.id)
   // `ids` name what the owner is being told about, for the once-only marks: notice ids, or the failed send.
-  const due: Array<{ orderId: string; staffId: string; ids: string[]; failedSend: boolean; sheetless?: boolean }> = [
+  const due: Array<{ orderId: string; staffId: string; ids: string[]; failedSend: boolean; sheetless?: boolean; holdsSheet?: boolean }> = [
     // The owner hears about this chef and this party once: his unconfirmed texts ride along with the failed one.
-    ...failedDue.map((g) => ({ orderId: g.orderId, staffId: g.staffId, ids: idsOf([...g.notices, ...(waitingByPair.get(pairKey(g))?.notices ?? [])]), failedSend: true })),
+    ...failedDue.map((g) => ({ orderId: g.orderId, staffId: g.staffId, ids: idsOf([...g.notices, ...(waitingByPair.get(pairKey(g))?.notices ?? [])]), failedSend: true, holdsSheet: g.holdsSheet })),
     ...sheetlessDue.map((g) => ({ orderId: g.orderId, staffId: g.staffId, ids: [`sheet:${g.mark}`, ...idsOf(waitingByPair.get(pairKey(g))?.notices ?? [])], failedSend: true, sheetless: true })),
     ...board.waiting
       .filter((g) => !failedPairs.has(pairKey(g)) && ahead(noticeState(g, orders.get(g.orderId), now)))
@@ -586,7 +630,7 @@ export async function ringUnackedNotices(
     const order = orders.get(g.orderId)!
     const who = staff.get(g.staffId)
     const chef = who?.name ?? "师傅"
-    const why = g.sheetless ? sheetlessAlarmText(chef, order) : g.failedSend ? failedSendAlarmText(chef, order) : noticeAlarmText(chef, order)
+    const why = g.sheetless ? sheetlessAlarmText(chef, order) : g.failedSend ? failedSendAlarmText(chef, order, g.holdsSheet === true) : noticeAlarmText(chef, order)
     const base = { orderId: g.orderId, orderNo: order.order_no ?? null, staffId: g.staffId, chef, why, notices: fresh, ...(g.failedSend ? { failedSend: true } : {}) }
     const leadId = String((order.source_metadata ?? {}).lead_id ?? "")
     if (!/^[0-9a-f-]{36}$/i.test(leadId)) {

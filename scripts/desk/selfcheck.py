@@ -970,7 +970,8 @@ def party_check_checks() -> None:
           and party_check.lead_segments("【来电小结】客人问桌椅") == ["客人问桌椅"])
     check("party check · city from the address, the comma before CA or not",
           [party_check.city_of(a) for a in ("1 Test Way, Palm Springs, CA 92262", "11968 Gorham Ave, Los Angeles CA 90049", "")] == ["Palm Springs", "Los Angeles", ""])
-    link = lambda **o: {"staff_member_id": "s1", "sent_via": "twilio", "first_opened_at": None, "revoked_at": None, "stale": False, "change_pending_since": None, **o}
+    link = lambda **o: {"staff_member_id": "s1", "sent_via": "twilio", "sent_at": None, "first_opened_at": None, "last_opened_at": None, "revoked_at": None,
+                        "stale": False, "change_pending_since": None, **o}
     team = [{"id": "s1", "name": "Blu", "role": "lead_chef"}, {"id": "s2", "name": "易非", "role": "assistant_chef"}]
     base = pc_party("RH-20301112-0001", "2030-11-12T18:00:00+00:00", name="Sheet Test", team=team)
     lines = lambda p, today: party_check.sheet_lines(p, today)
@@ -981,12 +982,27 @@ def party_check_checks() -> None:
     check("  the latest version, opened, the last change confirmed: ✓",
           lines({**opened, "notices": [{"staff_member_id": "s1", "sent_at": "2030-11-12T16:00:00Z", "acked_at": "2030-11-12T16:05:00Z", "sms_sid": "SM1"}]}, "2030-11-12")[0]
           == ("✓", "Blu：最新版，已打开，改单通知 11-12 08:00 已回 1"))
-    check("  a void (stale) sheet, a change text that never went out, or one with no 1: flagged",
-          lines({**base, "links": [link(stale=True, change_pending_since="2030-11-12T16:00:00Z")]}, "2030-11-12")[0][0] == "!!"
-          and lines({**opened, "notices": [{"staff_member_id": "s1", "sent_at": "2030-11-12T16:00:00Z", "acked_at": None, "sms_sid": ""}]}, "2030-11-12")[0]
+    check("  a change text that never went out, one with no 1, a text that never reached him: flagged",
+          lines({**opened, "notices": [{"staff_member_id": "s1", "sent_at": "2030-11-12T16:00:00Z", "acked_at": None, "sms_sid": ""}]}, "2030-11-12")[0]
           == ("!!", "Blu：最新版，已打开，改单短信 11-12 08:00 没发出去")
           and lines({**opened, "notices": [{"staff_member_id": "s1", "sent_at": "2030-11-12T16:00:00Z", "acked_at": None, "sms_sid": "SM1"}]}, "2030-11-12")[0][0] == "! "
           and lines({**base, "links": [link(sent_via="failed")]}, "2030-11-12")[0] == ("!!", "Blu：备料单短信没发到，他手里没有能打开的"))
+    # One link per chef per party since 2026-11-13: a change no longer voids it. stale = he has not been told yet.
+    check("  a change he has not been told about (stale): the link still opens with it on top - a ! to watch, not a missing sheet; a helper's is ·",
+          lines({**base, "links": [link(stale=True, change_pending_since="2030-11-12T16:00:00Z")]}, "2030-11-12")[0]
+          == ("! ", "Blu：订单改过，还没通知到他（链接不变，改动在最上面）（11-12 08:00 起在等），还没打开")
+          and lines({**base, "team": team[1:], "links": [link(staff_member_id="s2", stale=True)]}, "2030-11-12")
+          == [("· ", "易非 (帮手)：订单改过，还没通知到他（链接不变，改动在最上面），还没打开")])
+    check("  a save the system has not looked at yet: !, and the text it may send keeps the same link",
+          lines({**opened, "links": [link(first_opened_at="2030-11-11T20:00:00Z", change_pending_since="2030-11-12T16:00:00Z")]}, "2030-11-12")[0]
+          == ("! ", "Blu：最新版，刚有改动，10 分钟后系统核对，要通知的会发短信（链接不变），已打开"))
+    resent = link(sent_at="2030-11-12T15:00:00Z", first_opened_at="2030-11-11T20:00:00Z", last_opened_at="2030-11-11T21:00:00Z")
+    check("  已打开 = opened since it last went to him: an open from before a re-send in place does not count, a newer open does",
+          lines({**base, "links": [resent]}, "2030-11-12")[0] == ("✓", "Blu：最新版，还没打开")
+          and lines({**base, "links": [{**resent, "last_opened_at": "2030-11-12T15:30:00Z"}]}, "2030-11-12")[0] == ("✓", "Blu：最新版，已打开")
+          and lines({**base, "links": [link(sent_at="2030-11-12T15:00:00Z", first_opened_at="2030-11-12T15:10:00Z")]}, "2030-11-12")[0] == ("✓", "Blu：最新版，已打开")
+          and party_check.opened_since_sent(link(first_opened_at="2030-11-11T20:00:00Z")) is True
+          and party_check.opened_since_sent(link(sent_at="2030-11-12T15:00:00Z")) is False)
 
     # desk order check: the day's parties, read-only; desk order show: the blocking ones in its 缺项 block.
     p = andrea(False)
@@ -1104,8 +1120,9 @@ def order_flow_checks() -> None:
     check("  a plain chef text (no change waiting) does not offer chef-confirm", "desk chef-confirm" not in r.out and f"desk ack {CHEF_PHONE}" in r.out, r)
     check("  no sheet has failed to reach a chef: the header does not bring it up", "师傅没收到备料单" not in r.out.split("\n", 1)[0], r)
 
-    # A change text that never reached the chef ([chef_unsent]): the new link was issued and his old one
-    # revoked before the text bounced, so he holds no sheet he can open. Counted up front, its own words.
+    # A change text that never reached the chef ([chef_unsent]). From 2026-11-11 to 11-13 the new link was issued
+    # and his old one revoked before the text bounced, so he held no sheet he could open - the card says so when
+    # the inbox finds no link of his that opens. Counted up front, its own words.
     party = chef_card["staff"]["parties"][0]
     unsent_why = f"他手里现在没有能打开的备料单 · {CANCEL_PARTY} · 【短信没发出去：Twilio 21211 号码无效】8 位加餐具"
     unsent_card = {**chef_card, "kinds": ["chef_unsent"], "waitedMinutes": 3, "thread": [],
@@ -1113,15 +1130,25 @@ def order_flow_checks() -> None:
                    "alerts": [{"kind": "chef_unsent", "title": "师傅没收到改单短信 · Gary", "body": unsent_why}]}
     r = DeskRun(["next"], gets={"/api/admin/desk": {**inbox, "cards": [unsent_card, customer_card], "counts": {**inbox["counts"], "chefUnsent": 1}}})
     check("desk next: a change text that never reached the chef is counted with the chefs' items, flagged",
-          "师傅 1 · 师傅没确认改动 1 · 师傅没收到备料单 1 ⚠️ · 未回 1" in r.out.split("\n", 1)[0], r)
+          "师傅 1 · 师傅没确认改动 1 · 师傅没收到备料单/改单 1 ⚠️ · 未回 1" in r.out.split("\n", 1)[0], r)
     chef_part = r.out.partition("Joyce Lin ·")[0]
     check("  its card comes before the customer's and says it in full: no sheet he can open, which party, why the text failed",
           f"师傅 Gary · {CHEF_PHONE}   [chef_unsent] 等了 3 分钟 ⚠️" in chef_part
           and f"派对 {ORDER_NO}  2030-11-14 17:30  Irvine · Joyce · 18 人 · 备料单短信没发到，他手里没有能打开的" in chef_part
           and f"⚑ 师傅没收到改单短信 · Gary — {unsent_why}" in chef_part, r)
     check("  and what to do about it: the owner sends the sheet again from the order; chef-confirm only if it reached him another way",
-          "「发备料单给他」重发" in chef_part and f"已经从别的路给到他了（微信发了链接、当面说了）: desk chef-confirm {CHEF_PHONE}" in chef_part
-          and "只是没回 1" not in chef_part, r)
+          "「发备料单给他」重发" in chef_part and f"已经从别的路给到他了（微信发了链接、当面或电话说了）: desk chef-confirm {CHEF_PHONE}" in chef_part
+          and "只是没回 1" not in chef_part and "他的链接还能打开" not in chef_part, r)
+    # Since 2026-11-13 the change text that bounced left his one link in place, up to date: it opens, he was
+    # just not told. The card says that, and that sending it again is the same link.
+    told_why = f"他还不知道改了（链接还能打开，改动在最上面） · {CANCEL_PARTY} · 【短信没发出去：Twilio 21211 号码无效】8 位加餐具"
+    open_card = {**unsent_card, "staff": {**chef_card["staff"], "parties": [{**party, "sheet": "opened"}]},
+                 "alerts": [{"kind": "chef_unsent", "title": "师傅没收到改单短信 · Gary", "body": told_why}]}
+    r = DeskRun(["next"], gets={"/api/admin/desk": {**inbox, "cards": [open_card], "counts": {**inbox["counts"], "chefUnsent": 1}}})
+    check("  a change text that bounced on his one link (2026-11-13): he was not told, the link still opens - said so, same link to re-send",
+          r.has(f"⚑ 师傅没收到改单短信 · Gary — {told_why}", "18 人 · 备料单已打开", "他的链接还能打开、改动在最上面，只是他不知道改了",
+                "「发备料单给他」重发（还是原来那条链接", f"desk chef-confirm {CHEF_PHONE}")
+          and "他手里没有能打开的" not in r.out, r)
     # The sheet reassigning sent him did not get to him (D-1112-01): same card, and no chef-confirm - there is
     # no notice to mark; it goes when a sheet reaches him or he opens one.
     sheetless_card = {**unsent_card, "alerts": [{"kind": "chef_unsent", "title": "师傅没收到备料单 · Gary",
@@ -1130,10 +1157,14 @@ def order_flow_checks() -> None:
     check("  a sheet that never reached him after a reassign: the same card and fix, and no chef-confirm to clear it",
           r.has("⚑ 师傅没收到备料单 · Gary — 他手里现在没有能打开的备料单", "「发备料单给他」重发", "或者他打开了链接，这条自己消")
           and "desk chef-confirm" not in r.out, r)
+    changed_card = {**chef_card, "kinds": ["chef"], "alerts": [], "staff": {**chef_card["staff"], "parties": [{**party, "sheet": "opened", "notTold": True}]}}
+    r = DeskRun(["next"], gets={"/api/admin/desk": {**inbox, "cards": [changed_card]}})
+    check("  a party whose order changed since he was last told: his link still opens (one link per party, 2026-11-13), the change not told yet",
+          "18 人 · 备料单已打开 · 订单改过、还没通知到他（链接不变，改动在最上面）" in r.out and "作废" not in r.out, r)
     stale_card = {**chef_card, "kinds": ["chef"], "alerts": [], "staff": {**chef_card["staff"], "parties": [{**party, "sheet": "stale"}]}}
     r = DeskRun(["next"], gets={"/api/admin/desk": {**inbox, "cards": [stale_card]}})
-    check("  a party whose order changed after his sheet went out: that version is void and the new one has not landed - said as such",
-          f"18 人 · 订单改过，他手里那版备料单已作废，新的还没发到" in r.out and "备料单已打开" not in r.out, r)
+    check("  a deploy from before 11-13 still says \"stale\": read as not told yet, never as void",
+          "18 人 · 订单改过，还没通知到他" in r.out and "作废" not in r.out and "备料单已打开" not in r.out, r)
 
     # desk ack / chef-confirm on a chef's number.
     r = DeskRun(["ack", CHEF_PHONE], posts=lambda p, b: {"ok": True, "ackedUntil": "2026-11-12T20:30:00.000Z"}, staff=(CHEF_PHONE,))
@@ -1654,6 +1685,17 @@ def main() -> int:
     check("review gate: a reassigned chef -> stale", order_review.review_state(pk(party=crew, reviews=[stamp("pass")]))[0] is False)
     check("review email: the quoted thread below a reply is dropped",
           order_review._email_text({"text": "Carla is pescatarian.\r\n\r\nOn Thu, Nov 12, 2026 at 9:10 AM Real Hibachi <support@realhibachi.com>\r\nwrote:\r\n> Hi Jane"}) == "Carla is pescatarian.")
+    # 【三】 since 2026-11-13: one link per chef per party, updated in place - 发于 is when it last went to him,
+    # an open counts from then, and stale is a change he has not been told about (the link still opens).
+    held = {"staff_member_id": "s1", "created_at": "2030-11-10T18:00:00Z", "sent_at": "2030-11-12T16:00:00Z", "first_opened_at": "2030-11-10T19:00:00Z",
+            "last_opened_at": "2030-11-11T19:00:00Z", "stale": True, "change_pending_since": "2030-11-12T17:00:00Z"}
+    check("review packet 【三】: 发于 = sent_at, an open from before the last send says so, stale = not told yet, never void",
+          order_review.link_line(held, {"s1": "Blu"})
+          == "   Blu · 发于 11-12 08:00 · 打开过 11-11 11:00（这次发了还没打开） · 订单改过，还没通知到他（链接不变：他打开看到的是现在的订单，改动在最上面；下面是他上次被告知的那版）")
+    check("  an open since the last send, no change waiting: the snapshot is what he sees; a row with no sent_at goes by created_at",
+          order_review.link_line({**held, "last_opened_at": "2030-11-12T16:30:00Z", "stale": False, "change_pending_since": None}, {"s1": "Blu"})
+          == "   Blu · 发于 11-12 08:00 · 打开过 11-12 08:30 · 最新版（下面这版就是他打开看到的）"
+          and order_review.link_line({"staff_member_id": "s1", "created_at": "2030-11-10T18:00:00Z"}, {"s1": "Blu"}) == "   Blu · 发于 11-10 10:00 · 还没打开 · 最新版（下面这版就是他打开看到的）")
 
     print()
     if FAILS:

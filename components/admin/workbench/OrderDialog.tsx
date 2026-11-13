@@ -603,11 +603,12 @@ export function OrderDialog({
   const travel = invoiceTravelFee(o.invoice_data)
   const customerNotes = customerNotesOf(o.invoice_data)
 
-  // 发备料单。发票应用每发一次都换一条新链接、把他原来那条作废（2026-11-11）；返回里的 resent
-  // 现在的意思是「他原来有一条，被这条换掉了」，不是「沿用原链接」。
+  // 发备料单。2026-11-13 起每位师傅一场一条链接（老板：「能不能以后就在原链接上更新，然后给提示呢」）：
+  // 他手里有能打开的，发票应用在那条上更新、短信发同一个网址，改了什么印在他页面最上面；一条都没有才新开。
+  // 返回里的 resent = 他原来就有一条（11-11 到 11-13 那段是「被这条换掉了」，现在是「原链接更新了」）。
   const sendSheet = (staffId: string, name: string) =>
     call(`sheet:${staffId}`, async () => {
-      if (!(await askConfirm({ title: "发备料单", message: `把 ${ev ? `${md(ev.ymd)} ${ev.hm}` : "这场"} 的备料单短信发给 ${name}？每发一次都是一条新链接，他之前收到过的会作废，以这条为准。链接在派对结束 6 小时后失效。`, okLabel: "发送" }))) return
+      if (!(await askConfirm({ title: "发备料单", message: `把 ${ev ? `${md(ev.ymd)} ${ev.hm}` : "这场"} 的备料单短信发给 ${name}？他之前收到过的话，还是原来那条链接，更新成订单现在的样子，改了什么在他页面最上面。链接在派对结束 6 小时后失效。`, okLabel: "发送" }))) return
       const d = await adminJson<{ ok: boolean; url?: string; resent?: boolean; error?: string; sms?: { delivered?: boolean; error?: string } }>(adminKey, "/api/admin/chefs", {
         body: { action: "send_sheet", order_id: o.id, staff_member_id: staffId },
       })
@@ -615,7 +616,7 @@ export function OrderDialog({
       const why = d.sms?.error === "staff_has_no_phone" ? "这位师傅没存手机号" : d.sms?.error === "sms_skipped" ? "没走短信" : d.sms?.error || "未知原因"
       setSheet({
         url: d.url,
-        text: d.sms?.delivered ? `已短信发给 ${name}${d.resent ? "（他原来那条链接已作废，这条是新的）" : ""}` : `链接生成了，但短信没发出去（${why}）——自己把链接发给 ${name}。`,
+        text: d.sms?.delivered ? `已短信发给 ${name}${d.resent ? "（还是他原来那条链接，已更新）" : ""}` : `链接好了，但短信没发出去（${why}）——自己把链接发给 ${name}。`,
       })
       await load()
     })
@@ -854,7 +855,7 @@ export function OrderDialog({
                 maxLength={300}
                 disabled={viewerRole !== "owner" || logiOwner === undefined}
                 placeholder="写给师傅和后勤的话：印在后勤备货单和师傅的备料单链接上（客人看不到）；不写就不印"
-                title="2026-11-12 起，这里写的会印在师傅备料单链接的「派对前必看 → 办公室备注」里，也印在后勤备货单上。客人看不到。改了它，72 小时内的派对会自动给师傅发新链接。"
+                title="2026-11-12 起，这里写的会印在师傅备料单链接的「派对前必看 → 办公室备注」里，也印在后勤备货单上。客人看不到。改了它，72 小时内的派对系统约 10 分钟后会短信告诉师傅改了什么（还是原来那条链接）。"
                 onChange={(e) => setPrepNote(e.target.value)}
                 onBlur={() => void savePrepNote()}
                 onKeyDown={(e) => {

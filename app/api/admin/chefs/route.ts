@@ -46,7 +46,8 @@ export const runtime = "nodejs"
 // ack_text = 这位师傅发来的不用回了；confirm_notice = 师傅用别的方式确认了改动。
 // assign：这单的备料单已经发出去过，新名单里还没有的人当场自动发（老板 2026-11-12 D-1112-01
 // 「给师傅更新发也是直接发」），返回 sheets / sheetNotice 说发给了谁、谁没发到（没发到的进收件箱）。
-// send_sheet：发票应用每发一次都换一条新链接、旧的作废；resent:true = 他原来有一条，被这条换掉了。
+// send_sheet：2026-11-13 起每位师傅一场一条链接：他手里有能打开的，发票应用就在那条上更新、短信发同一个网址，
+// 一条都没有才新开（11-11 到 11-13 是每发一次换一条新的、旧的作废）。resent:true = 他原来就有一条（现在是原链接更新）。
 // Money is cents everywhere. Pay per shift = base + (share - head_from) × per_head,
 // share = the chef's head count when several chefs work one party.
 

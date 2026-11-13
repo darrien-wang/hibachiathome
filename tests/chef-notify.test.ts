@@ -13,11 +13,13 @@ import {
   helpersRemovedByAssign,
   logChefNotices,
   notifyRemovedChefs,
+  openedSinceSent,
   partyCancelledText,
   partyLabelZh,
   removedFromPartyText,
   sendSheetsToNewTeam,
   sheetHeld,
+  sheetNotTold,
   sheetReachedChef,
   sheetSendSummaryZh,
   teamNeedingSheet,
@@ -256,10 +258,12 @@ test("the trail · one order event per chef told, with the text and how the send
 })
 
 // ---- which sheet a chef holds, and who still needs one -------------------------------
-// The invoice app mints a new link on every send and revokes the one before it
-// (2026-11-11), so a chef and a party have a history of rows, at most one of them live.
+// Since 2026-11-13 a chef keeps ONE link per party: a re-send or a change text brings it up
+// to date in place and texts the same URL (sent_at moves on, first_opened_at stays his first
+// open ever). From 2026-11-11 to 11-13 every send minted a new link and revoked the one
+// before, so parties from then carry a history of rows. Both kinds are read the same way.
 
-test("the sheet in his hands · the live link decides, and stale means void with a new one pending", () => {
+test("the sheet in his hands · the live link decides (rows from 11-11 to 11-13: a new link per send)", () => {
   assert.equal(sheetReachedChef({ sent_via: "twilio", first_opened_at: null }), true)
   assert.equal(sheetReachedChef({ sent_via: "manual", first_opened_at: null }), true)
   assert.equal(sheetReachedChef({ sent_via: "failed", first_opened_at: null }), false)
@@ -273,12 +277,47 @@ test("the sheet in his hands · the live link decides, and stale means void with
   assert.equal(sheetHeld([link("l1", BLU, { sent_via: "failed" })], BLU), "undelivered")
   // Re-sent: the first row is revoked, the second - a new token - is the one he holds.
   assert.equal(sheetHeld([link("l1", BLU, { first_opened_at: "2030-11-11T01:00:00Z", revoked_at: "2030-11-12T01:00:00Z" }), link("l2", BLU)], BLU), "sent")
-  // A change text that bounced: the sheet he had opened is revoked, the new one never arrived.
+  // A change text that bounced then: the sheet he had opened is revoked, the new one never arrived.
   assert.equal(sheetHeld([link("l1", BLU, { first_opened_at: "2030-11-11T01:00:00Z", revoked_at: "2030-11-12T01:00:00Z" }), link("l2", BLU, { sent_via: "failed" })], BLU), "undelivered")
   assert.equal(sheetHeld([link("l1", BLU, { revoked_at: "2030-11-12T01:00:00Z" })], BLU), "none", "taken off: nothing live")
-  // The order changed materially after his version: that link shows nothing any more.
-  assert.equal(sheetHeld([link("l1", BLU, { first_opened_at: "2030-11-11T01:00:00Z", stale: true })], BLU), "stale")
   assert.equal(sheetHeld([link("l1", BLU, { stale: false })], BLU), "sent")
+})
+
+test("the sheet in his hands · one link updated in place (2026-11-13): opened means since it last went to him", () => {
+  const sentMon = "2030-11-11T18:00:00Z"
+  const openedMon = "2030-11-11T19:00:00Z"
+  const resentWed = "2030-11-13T18:00:00Z"
+  const held = link("l1", BLU, { sent_at: sentMon, first_opened_at: openedMon, last_opened_at: openedMon })
+  assert.equal(sheetHeld([held], BLU), "opened")
+  // Texted again on the same link (a re-send, or a change text that went out): his Monday open does not count for it.
+  const again = { ...held, sent_at: resentWed }
+  assert.equal(sheetHeld([again], BLU), "sent", "first_opened_at alone would have said opened")
+  assert.equal(openedSinceSent(again), false)
+  // He opens it after that text: last_opened_at moves, first_opened_at does not.
+  assert.equal(sheetHeld([{ ...again, last_opened_at: "2030-11-13T18:20:00Z" }], BLU), "opened")
+  assert.equal(openedSinceSent({ ...again, last_opened_at: "2030-11-13T18:20:00Z" }), true)
+  // No sent_at on the row: any open counts. No open at all: not opened.
+  assert.equal(openedSinceSent({ sent_at: null, first_opened_at: openedMon, last_opened_at: null }), true)
+  assert.equal(openedSinceSent({ sent_at: resentWed, first_opened_at: null, last_opened_at: null }), false)
+  // A row minted per send (11-11 to 11-13) reads the same: opened after its one send.
+  assert.equal(openedSinceSent({ sent_at: sentMon, first_opened_at: openedMon }), true)
+})
+
+test("the sheet in his hands · stale = the order changed and he has not been told; the link still opens", () => {
+  const opened = link("l1", BLU, { sent_at: "2030-11-11T18:00:00Z", first_opened_at: "2030-11-11T19:00:00Z", last_opened_at: "2030-11-11T19:00:00Z", stale: true })
+  // Not void any more: what he holds is opened / sent as before, flagged as not told yet.
+  assert.equal(sheetHeld([opened], BLU), "opened")
+  assert.equal(sheetNotTold([opened], BLU), true)
+  assert.equal(sheetHeld([link("l1", BLU, { stale: true })], BLU), "sent")
+  assert.equal(sheetNotTold([link("l1", BLU, { stale: true })], BLU), true)
+  // Told (the change text went out and brought the link up to date): not stale.
+  assert.equal(sheetNotTold([{ ...opened, stale: false }], BLU), false)
+  // A stale link that never reached him, a revoked one, somebody else's: nothing he was not told about.
+  assert.equal(sheetNotTold([link("l1", BLU, { sent_via: "failed", stale: true })], BLU), false)
+  assert.equal(sheetNotTold([link("l1", BLU, { stale: true, revoked_at: "2030-11-12T01:00:00Z" })], BLU), false)
+  assert.equal(sheetNotTold([link("l1", GARY, { stale: true })], BLU), false)
+  // Two live links left from before 11-13, the newer one up to date: he holds a told version.
+  assert.equal(sheetNotTold([link("l1", BLU, { stale: true }), link("l2", BLU)], BLU), false)
 })
 
 test("who still needs a sheet · once a party's sheets are out, a chef put on it has none and no change text will bring him one", () => {
@@ -296,7 +335,7 @@ test("who still needs a sheet · once a party's sheets are out, a chef put on it
   // Sent, re-sent (a new token each time), opened or not: he has one.
   assert.deepEqual(teamNeedingSheet([GARY], [bluOff, link("l2", GARY)]), [])
   assert.deepEqual(teamNeedingSheet([GARY], [bluOff, link("l2", GARY, { revoked_at: "2030-11-12T02:00:00Z" }), link("l3", GARY)]), [])
-  // His link is stale: the order changed and the change text is about to bring him the new one - not a person's job.
+  // His link is stale: it still opens, with the change on top, and the change text tells him - not a person's job.
   assert.deepEqual(teamNeedingSheet([GARY], [link("l2", GARY, { stale: true })]), [])
   // His only link was revoked (taken off earlier, now back on): he needs one again.
   assert.deepEqual(teamNeedingSheet([GARY], [link("l1", BLU), link("l2", GARY, { revoked_at: "2030-11-12T02:00:00Z" })]), [GARY])

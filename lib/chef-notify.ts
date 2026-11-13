@@ -116,37 +116,81 @@ export type ChefNoticeResult = {
 
 type LinkRow = { id: string; staff_member_id: string | null; sent_via: string | null; first_opened_at: string | null; revoked_at: string | null }
 
-// A chef's prep-sheet links for one party. Since 2026-11-11 the invoice app mints a new link on
-// every send and revokes the one before it, so a chef and a party have a history of rows, at most
-// one of them live. Three questions are asked of it, and they are not the same question:
-export type SheetLink = { staff_member_id: string | null; sent_via: string | null; first_opened_at: string | null; revoked_at: string | null; stale?: boolean | null }
+// A chef's prep-sheet links for one party. Since 2026-11-13 the invoice app keeps ONE link per chef
+// per party (owner: 「能不能以后就在原链接上更新，然后给提示呢」): a re-send or a change text brings that
+// same link up to date and texts the same URL, sent_at moving with each text that goes out, and a
+// link is minted only for a chef who holds none that opens. From 2026-11-11 to 11-13 every send
+// minted a new link and revoked the one before, so parties from then carry a history of rows. Either
+// way at most one is live. The questions asked of them below are not the same question:
+export type SheetLink = {
+  staff_member_id: string | null
+  sent_via: string | null
+  first_opened_at: string | null
+  revoked_at: string | null
+  /** The order changed since he was last told and he has not been told yet; the link still opens (sheetNotTold). */
+  stale?: boolean | null
+  /** When the link last went to him: sent, re-sent in place, or texted with a change. */
+  sent_at?: string | null
+  /** His newest open. On a link updated in place first_opened_at stays his first open ever. */
+  last_opened_at?: string | null
+}
 
-/** This link got to him: it was texted, handed over, or he opened it. (sent_via "failed" and never opened = it did not.) */
+/**
+ * This link got to him at some point: it was texted, handed over, or he opened it. (sent_via "failed"
+ * and never opened = it did not. The invoice app keeps one sent_via per link, so a re-send in place
+ * whose text bounces marks it "failed" even when an earlier text of the same URL got through.)
+ */
 export function sheetReachedChef(l: Pick<SheetLink, "sent_via" | "first_opened_at">): boolean {
   return l.sent_via === "twilio" || l.sent_via === "manual" || Boolean(l.first_opened_at)
 }
 
 /**
- * What he is holding for this party right now:
- *   opened / sent   a live link that reached him
- *   stale           a live link that reached him, void since the order changed materially - a new one is pending
- *   undelivered     a live link exists but its text never reached him
- *   none            no live link at all
+ * He opened this link since it last went to him: his newest open (last_opened_at, else first_opened_at)
+ * at or after sent_at. A link updated in place keeps first_opened_at from his first open ever, so that
+ * alone would call a sheet "opened" that was texted to him again since; a row minted per send (11-11 to
+ * 11-13) answers the same either way. A row with no sent_at: any open counts.
  */
-export function sheetHeld(links: SheetLink[], staffId: string): "opened" | "sent" | "stale" | "undelivered" | "none" {
+export function openedSinceSent(l: Pick<SheetLink, "sent_at" | "first_opened_at" | "last_opened_at">): boolean {
+  const opened = Date.parse(l.last_opened_at || l.first_opened_at || "")
+  if (!Number.isFinite(opened)) return false
+  const sent = Date.parse(l.sent_at || "")
+  return !Number.isFinite(sent) || opened >= sent
+}
+
+/**
+ * What he is holding for this party right now:
+ *   opened        a live link that reached him, opened since it last went to him (openedSinceSent)
+ *   sent          a live link that reached him, not opened since
+ *   undelivered   a live link exists but no text of it reached him and he never opened it
+ *   none          no live link at all
+ * A stale link is one of the first two: since 2026-11-13 it opens the order as it stands with the change
+ * on top, and the change text or the next send is due - sheetNotTold says so. (Until then a stale link
+ * was void and this answered "stale".)
+ */
+export function sheetHeld(links: SheetLink[], staffId: string): "opened" | "sent" | "undelivered" | "none" {
   const live = links.filter((l) => l.staff_member_id === staffId && !l.revoked_at)
   if (!live.length) return "none"
   const reached = live.filter(sheetReachedChef)
   if (!reached.length) return "undelivered"
-  if (reached.every((l) => l.stale === true)) return "stale"
-  return reached.some((l) => !l.stale && l.first_opened_at) ? "opened" : "sent"
+  return reached.some(openedSinceSent) ? "opened" : "sent"
+}
+
+/**
+ * The order has changed since he was last told and he has not been told yet: every live link of his that
+ * reached him is stale. His page shows the change on top; inside 72 hours the change text follows about
+ * ten minutes after the save, further out the next send tells him.
+ */
+export function sheetNotTold(links: SheetLink[], staffId: string): boolean {
+  const reached = links.filter((l) => l.staff_member_id === staffId && !l.revoked_at && sheetReachedChef(l))
+  return reached.length > 0 && reached.every((l) => l.stale === true)
 }
 
 /**
  * The chefs on the team who still have to be sent the sheet by a person, once this party's sheets
  * have started going out. A change notice only goes to a chef who already holds a link, so a chef
  * who has just been put on the party - or whose only link never reached him - gets nothing from
- * that flow. One whose link is stale is not listed: the change flow is about to send him the new one.
+ * that flow. One whose link is stale is not listed: it still opens, with the change on top, and the
+ * change text (or the next send) tells him.
  * Before any sheet has gone out for the party nobody is listed (assigning early texts no one).
  */
 export function teamNeedingSheet(team: string[], links: SheetLink[]): string[] {
@@ -213,8 +257,8 @@ export async function notifyRemovedChefs(
   try {
     const [s, l] = await Promise.all([
       supabase.from("staff_members").select("id, display_name, full_name, phone").in("id", ids),
-      // Every link he has had for this party, not only the live one: a re-send replaces the link, and
-      // the one that reached him may be a revoked row by now.
+      // Every link he has had for this party, not only the live one: from 2026-11-11 to 11-13 a re-send
+      // replaced the link, and the one that reached him may be a revoked row by now. (Since then he keeps one.)
       supabase.from("chef_sheet_links").select("id, staff_member_id, sent_via, first_opened_at, revoked_at").eq("order_id", order.id).in("staff_member_id", ids),
     ])
     staff = (s.data ?? []) as StaffRow[]
@@ -232,9 +276,10 @@ export async function notifyRemovedChefs(
     const phone = toE164(s?.phone ?? null)
     const all = links.filter((l) => l.staff_member_id === staffId)
     const mine = all.filter((l) => !l.revoked_at)
-    // He knows this party when he holds a link now and a sheet has reached him: the live one, or -
-    // every send replaces the link - an older one, when the live one's own text bounced (which is
-    // what a failed change text leaves behind). "failed" and never opened = he never saw that page.
+    // He knows this party when he holds a link now and a sheet has reached him: his one link (since
+    // 2026-11-13 a re-send or a change text updates it in place), or - from 11-11 to 11-13, when every
+    // send replaced the link - an older one, when the live one's own text bounced (what a failed change
+    // text left behind then). "failed" and never opened = he never saw that page.
     // No live link at all = nothing has been sent since he was last taken off, and he was told then.
     const hadSheet = mine.length > 0 && all.some(sheetReachedChef)
     const res: ChefNoticeResult = { staffId, name, phone, hadSheet, linksRevoked: 0, text: null, texted: false }

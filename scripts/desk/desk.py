@@ -354,22 +354,32 @@ def brake_line(stats: dict) -> str:
     return f"我方已连发 {run} 条无回复 → 下一条是主动跟进（daily 2 / spacing 3h / 总量封顶 3；24h 内人工已发 {stats.get('ourLast24h', 0)}）"
 
 
-# What he holds for the party (lib/chef-notify.ts sheetHeld). Every send is a new link and the one before
-# it dies; stale = the order changed materially after his version, that link is void, a new one is pending.
+# What he holds for the party (lib/chef-notify.ts sheetHeld). Since 2026-11-13 a chef keeps one link per party:
+# a re-send or a change text updates it in place and texts the same URL. opened = opened since it last went to
+# him. notTold (sheetNotTold) = the order changed since he was last told and he has not been told yet - the link
+# still opens, with the change on top. "stale" is what a deploy from before 11-13 sends for that.
 SHEET_STATE = {
     "opened": "备料单已打开",
     "sent": "备料单已发、还没打开",
-    "stale": "订单改过，他手里那版备料单已作废，新的还没发到",
+    "stale": "订单改过，还没通知到他",
     "undelivered": "备料单短信没发到，他手里没有能打开的",
     "none": "还没发备料单",
 }
+NOT_TOLD = "订单改过、还没通知到他（链接不变，改动在最上面）"
+
+
+def sheet_state(p: dict) -> str:
+    """A party's sheet on a staff card: what he holds, and whether a change has not reached him yet."""
+    state = SHEET_STATE.get(p.get("sheet") or "none", "")
+    return f"{state} · {NOT_TOLD}" if p.get("notTold") and p.get("sheet") != "stale" else state
 
 
 def render_staff_card(c: dict) -> None:
     """A staff number's card (2026-11-11, D-1111-03): a chef's text nobody answered ([chef]), a change to
-    his party he has not confirmed ([chef_notice]), or a change text that never reached him, which leaves
-    him with no prep sheet he can open ([chef_unsent]). No lead, no price, no brakes: who he is, the
-    parties he is on, what is open, the thread. These come before the customers' cards."""
+    his party he has not confirmed ([chef_notice]), or a sheet or change text that never reached him
+    ([chef_unsent]: since 2026-11-13 a failed change text leaves his link open - he just was not told).
+    No lead, no price, no brakes: who he is, the parties he is on, what is open, the thread. These come
+    before the customers' cards."""
     staff = c.get("staff") or {}
     phone = c.get("phone") or "-"
     kinds = c.get("kinds") or []
@@ -385,7 +395,7 @@ def render_staff_card(c: dict) -> None:
     for p in staff.get("parties") or []:
         when = (p.get("eventStart") or "")[:16].replace("T", " ")  # wall time stored as UTC - never convert
         print(f"   派对 {p.get('orderNo') or p.get('orderId')}  {when or '日期待定'}  {p.get('city') or '-'} · {p.get('customer') or '-'}"
-              f" · {p.get('guests') or '?'} 人{' · 帮手' if p.get('role') == 'helper' else ''} · {SHEET_STATE.get(p.get('sheet') or 'none', '')}")
+              f" · {p.get('guests') or '?'} 人{' · 帮手' if p.get('role') == 'helper' else ''} · {sheet_state(p)}")
     alerts = c.get("alerts") or []
     for al in alerts:
         print(f"   ⚑ {al.get('title') or ''} — {al.get('body') or ''}")
@@ -398,14 +408,26 @@ def render_staff_card(c: dict) -> None:
     print(f"   不用回（电话、微信说过了）: desk ack {phone}"
           + (f"\n   他确认了改动、只是没回 1: desk chef-confirm {phone}" if unconfirmed else ""))
     if "chef_unsent" in kinds:
-        # A change text that bounced (the new link issued, his old one revoked), or any other sheet send that
-        # did not get to him - the one reassigning makes (2026-11-12, D-1112-01): he holds no sheet he can open.
-        # Sending it again is the owner's click in the order drawer; the line goes when a sheet reaches him or
-        # he opens one. chef-confirm clears only the change-text kind (it marks the notice).
-        print("   备料单没发到他手上，他手里没有能打开的。先看他的手机号对不对，"
-              "再请老板在工作台打开这单点「发备料单给他」重发（发到了、或者他打开了链接，这条自己消）。")
+        # A change text that bounced, or any other sheet send that did not get to him - the one reassigning
+        # makes (2026-11-12, D-1112-01). Since 2026-11-13 a bounced change text leaves his link as it was, only
+        # brought up to date: it opens, the change on top, and he does not know to look (lib/inbox.ts says
+        # "还不知道改了"). A sheet that never reached him - or a change text from before 11-13, which replaced his
+        # link - leaves him none he can open. Sending it again is the owner's click in the order drawer (the
+        # same link if he has one); the line goes when that reaches him or he opens his link. chef-confirm
+        # clears only the change-text kind (it marks the notice).
+        bodies = [al.get("body") or "" for al in alerts if al.get("kind") == "chef_unsent"]
+        no_sheet = any("没有能打开的" in b for b in bodies)
+        fix = "先看他的手机号对不对，再请老板在工作台打开这单点「发备料单给他」重发"
+        if no_sheet:
+            print(f"   备料单没发到他手上，他手里没有能打开的。{fix}（发到了、或者他打开了链接，这条自己消）。")
+        if any("还不知道改了" in b for b in bodies):
+            print(f"   改单短信没发到他手上：他的链接还能打开、改动在最上面，只是他不知道改了。{fix}"
+                  "（还是原来那条链接；发到了、或者他打开了链接，这条自己消），或者打电话告诉他。")
+        elif not no_sheet:
+            # The inbox could not read his links: nothing is claimed about them.
+            print(f"   改单短信没发到他手上，他还不知道改了。{fix}（发到了、或者他打开了链接，这条自己消），或者打电话告诉他。")
         if any("改单短信" in (al.get("title") or "") for al in alerts):
-            print(f"   改单短信那条已经从别的路给到他了（微信发了链接、当面说了）: desk chef-confirm {phone}")
+            print(f"   改单短信那条已经从别的路给到他了（微信发了链接、当面或电话说了）: desk chef-confirm {phone}")
 
 
 def render_card(c: dict) -> None:
@@ -522,11 +544,11 @@ def render_card(c: dict) -> None:
 def cmd_next(a):
     data = site_get("/api/admin/desk")
     counts = data.get("counts") or {}
-    # 师傅的几项排最前（2026-11-11）：师傅来短信没回、师傅没确认改动、备料单没发到（改单短信或派单时
-    # 发的，他手里没有能打开的备料单，有才显示）；卡片也是它们先出。
+    # 师傅的几项排最前（2026-11-11）：师傅来短信没回、师傅没确认改动、备料单或改单短信没发到（有才显示；
+    # 11-13 起改单短信没发到时他的链接还能打开，只是不知道改了，卡片上会写）；卡片也是它们先出。
     unsent = int(counts.get("chefUnsent") or 0)
     print(f"收件箱 {pt(data.get('serverTime'))} PT · 师傅 {counts.get('chefTexts', 0)} · 师傅没确认改动 {counts.get('chefNotices', 0)}"
-          + (f" · 师傅没收到备料单 {unsent} ⚠️" if unsent else "")
+          + (f" · 师傅没收到备料单/改单 {unsent} ⚠️" if unsent else "")
           + f" · 未回 {counts.get('unreplied', 0)} · 邮件 {counts.get('emailNew', 0)} · 网站回复 {counts.get('formNew', 0)} · 漏网 {counts.get('silenced', 0)} · 没送达 {counts.get('undelivered', 0)} · 联系不上 {counts.get('unreachedParties', 0)} · 新线索 {counts.get('newLeads', 0)}"
           f" · 订单变动 {counts.get('changedOrders', 0)}（48h 内等确认 {counts.get('heldChanges', 0)}） · planner {counts.get('plannerLive', 0)} · reddit {counts.get('redditNew', 0)}")
     cards = data.get("cards") or []
@@ -1465,7 +1487,8 @@ def cmd_chef_confirm(a):
     change notices confirmed, so the inbox line goes and the owner is not rung three hours before the party.
     --order narrows it to one party. His own "1" does this by itself (app/api/twilio/sms) - except for a
     change text that never went out ([chef_unsent]): he cannot confirm what he did not get, so that one
-    goes only when a sheet reaches him again or when a person vouches for it here."""
+    goes only when it reaches him another way (the sheet sent again, or he opens his link) or when a
+    person vouches for it here."""
     phone = e164(a.phone)
     payload = {"action": "confirm_notice", "phone": phone}
     if a.order:
@@ -2455,7 +2478,8 @@ def _order_review_ops(a) -> None:
             print(f"FAIL  {t.get('name')}: HTTP {e.status} {e.payload}")
             continue
         sms = out.get("sms") or {}
-        print(f"OK    {t.get('name')}: {out.get('url')}" + ("（换掉了他手上原来那条）" if out.get("resent") else "")
+        # resent: he already had a link - since 2026-11-13 that same link, brought up to date (the same URL).
+        print(f"OK    {t.get('name')}: {out.get('url')}" + ("（还是他原来那条链接，已更新）" if out.get("resent") else "")
               + ("" if sms.get("delivered", True) else f" · 短信没发出：{sms.get('error')}"))
 
 
@@ -3222,8 +3246,9 @@ def cmd_order(a):
             # (--add-adult, --free-item, --add-extra) may already be on the order.
             raise SystemExit(f"nothing was saved. Read it again (order show {order_no}), then re-run this command if it still applies.")
         print(f"OK    saved {res.get('orderNo')}  planner_synced={res.get('plannerSynced')}")
-        # 审查者 (owner 2026-11-12): inside 72 hours the system texts the chef a new link about ten
-        # minutes after a change (card A). The review runs in that window, so that link is right too.
+        # 审查者 (owner 2026-11-12): inside 72 hours the system texts the chef what changed about ten
+        # minutes after a change (card A; since 2026-11-13 on the link he already has, updated in place).
+        # The review runs in that window, so that text is right too.
         # (own import names: cmd_order binds _dt and ZoneInfo locally further down, in the remind branch)
         import datetime as _dt72
         from zoneinfo import ZoneInfo as _Zone72
@@ -3231,7 +3256,7 @@ def cmd_order(a):
         try:
             _start = _dt72.datetime.fromisoformat(f"{str(_ci.get('eventDate') or '')[:10]}T{str(_ci.get('eventTime') or '00:00')[:5]}").replace(tzinfo=_Zone72("America/Los_Angeles"))
             if 0 <= (_start - _dt72.datetime.now(_Zone72("America/Los_Angeles"))).total_seconds() <= 72 * 3600:
-                print(f"NEXT  派对 72 小时内：系统约 10 分钟后会给师傅发新链接 - 现在审查（/order-review {res.get('orderNo')}），没过就马上补")
+                print(f"NEXT  派对 72 小时内：系统约 10 分钟后会短信告诉师傅改了什么（还是原来那条链接） - 现在审查（/order-review {res.get('orderNo')}），没过就马上补")
         except ValueError:
             pass
         # A save lines the host's planner up with this invoice's counts, and
