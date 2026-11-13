@@ -11,6 +11,8 @@ import { emptyMatrix, googleMatrix, osrmMatrix, ptInstantMs, type Matrix } from 
 import { geocode } from "@/lib/travel-distance"
 import { getWorkbenchSettings } from "@/lib/workbench-settings"
 import { planForOrder } from "@/lib/dispatch-plan-order"
+import { staleHolders, teamNeedingSheet, type SheetLink } from "@/lib/chef-notify"
+import { wallToInstant } from "@/lib/first-response"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -250,10 +252,13 @@ export async function GET(request: NextRequest) {
   // 指派（老板 2026-09-30）：图上直接给每条线派师傅。这里带上每单现在派给了谁、能派的师傅名单；
   // 写入走 /api/admin/chefs 的 assign，和订单弹窗、厨师页是同一套。
   const ACTIVE = ["tentative", "confirmed", "completed"]
-  const [{ data: asg }, { data: staff }] = await Promise.all([
+  const [{ data: asg }, { data: sheetLinks }, { data: staff }] = await Promise.all([
     rows.length
       ? supabase.from("order_staff_assignments").select("order_id, staff_member_id, assignment_role").in("order_id", rows.map((r) => r.id)).in("assignment_status", ACTIVE)
       : Promise.resolve({ data: [] as Array<{ order_id: string; staff_member_id: string; assignment_role: string | null }> }),
+    rows.length
+      ? supabase.from("chef_sheet_links").select("order_id, staff_member_id, sent_via, first_opened_at, revoked_at, stale").in("order_id", rows.map((r) => r.id))
+      : Promise.resolve({ data: [] as Array<SheetLink & { order_id: string }> }),
     supabase.from("staff_members").select("id, display_name, full_name, status, is_bookable, role").neq("status", "deleted").order("display_name", { ascending: true }),
   ])
   const chefIdsOf = new Map<string, string[]>()
@@ -271,10 +276,24 @@ export async function GET(request: NextRequest) {
     canHelp: s.status === "active" && s.role !== "logistics",
   }))
 
+  // 排班图上悄悄改的名单还欠谁一个通知（老板 2026-11-13：plan 的时候不发，最后点"通知改动"一起发）。
+  // 从备料单链接和现在的名单现算：拿着链接却不在名单上的要说"不用去"；这单发过备料单、新上来还没拿到的要发。
+  // 派对开始了就不算了，和 assign 当场通知的规矩一样。
+  const linksOf = new Map<string, SheetLink[]>()
+  for (const l of (sheetLinks ?? []) as Array<SheetLink & { order_id: string }>) linksOf.set(l.order_id, [...(linksOf.get(l.order_id) ?? []), l])
+  const startOf = new Map(rows.map((r) => [r.id, r.event_start ? wallToInstant(r.event_start) : NaN]))
+  const pendingOf = (id: string) => {
+    const st = startOf.get(id) ?? NaN
+    if (Number.isFinite(st) && st <= Date.now()) return { add: [] as string[], remove: [] as string[] }
+    const team = [...(chefIdsOf.get(id) ?? []), ...(helperIdsOf.get(id) ?? [])]
+    const links = linksOf.get(id) ?? []
+    return { add: teamNeedingSheet(team, links), remove: staleHolders(team, links) }
+  }
+
   return NextResponse.json({
     ok: true,
     date,
-    stops: stops.map(({ startMin: _startMin, ...s }) => ({ ...s, chefIds: chefIdsOf.get(s.id) ?? [], helperIds: helperIdsOf.get(s.id) ?? [] })),
+    stops: stops.map(({ startMin: _startMin, ...s }) => ({ ...s, chefIds: chefIdsOf.get(s.id) ?? [], helperIds: helperIdsOf.get(s.id) ?? [], pending: pendingOf(s.id) })),
     chefs,
     // 定位不到的单要点名，不能默默从地图上消失——那样看起来就像那天没这一场。
     missing: stops.filter((s) => s.lat === null).map((s) => ({ name: s.name, address: s.address })),

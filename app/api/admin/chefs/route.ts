@@ -21,8 +21,10 @@ import {
   notifyRemovedChefs,
   sendSheetsToNewTeam,
   sheetSendSummaryZh,
+  staleHolders,
   type ChefNoticeResult,
   type PartyRef,
+  type SheetLink,
   type SheetSendInput,
   type SheetSendResult,
 } from "@/lib/chef-notify"
@@ -851,6 +853,9 @@ export async function POST(request: NextRequest) {
         await supabase.from("order_events").insert({ order_id: body.order_id, actor: `workbench:${actor.alias}`, action: "chef_assigned", metadata: { staff_member_ids: want, names: (names ?? []).map((n) => n.display_name ?? n.full_name), cancelled: toCancel.length } })
         // 被换下的师傅以前没人通知（45 天 6 场，11-09 Blu 收单 13 分钟后被换掉）：收到过备料单的
         // 现在自动收到「那场改给别人了，你不用去」，他的备料单链接作废。新师傅照旧另外发备料单。
+        // quiet（排班图，老板 2026-11-13「有时候我只是在 plan，不需要立刻通知，我需要有个入口最终通知」）：
+        // 只改名单，谁都不发。要通知的从备料单链接和名单的差里现算，排班图上点"通知改动"再走 notify_changes。
+        if (body.quiet === true) return NextResponse.json({ ok: true, added: toAdd.length, cancelled: toCancel.length, quiet: true })
         const notified = await tellRemovedChefs(supabase, body.order_id, removedIds, `workbench:${actor.alias}`, false)
         // 换上来的人：这单的备料单已经发出去过，他手里还没有，当场发（D-1112-01：不问、不等到早上）。
         // 改单短信只发给手里已经有链接的师傅，不发他就什么都收不到。没发到的进收件箱（[chef_unsent]）。
@@ -886,8 +891,29 @@ export async function POST(request: NextRequest) {
           const { data: namesH } = keep.length ? await supabase.from("staff_members").select("display_name, full_name").in("id", keep) : { data: [] }
           await supabase.from("order_events").insert({ order_id: body.order_id, actor: `workbench:${actor.alias}`, action: "helpers_assigned", metadata: { staff_member_ids: keep, names: (namesH ?? []).map((n) => n.display_name ?? n.full_name) } })
         }
+        if (body.quiet === true) return NextResponse.json({ ok: true, added: add.length, removed: drop.length, quiet: true })
         const notifiedH = await tellRemovedChefs(supabase, body.order_id, droppedIds, `workbench:${actor.alias}`, false)
         return NextResponse.json({ ok: true, added: add.length, removed: drop.length, notified: notifiedH, notice: chefNoticeSummaryZh(notifiedH) })
+      }
+      case "notify_changes": {
+        // 排班图上悄悄改的名单，最后一次性通知（老板 2026-11-13）。和 assign 平时当场做的是同两件事：
+        //   拿着这单备料单、已经不在名单上的人 -> 「那场改给别人了，你不用去」，链接作废
+        //   这单备料单已经发出去过、新上来还没拿到的人 -> 当场发备料单
+        // 这单一份备料单都没发过就什么都不发（前一天照常一起发）。dry_run:true 只看不发。
+        if (!isUuid(body.order_id)) return NextResponse.json({ error: "order_id required" }, { status: 400 })
+        const [{ data: teamRows }, { data: linkRows }] = await Promise.all([
+          supabase.from("order_staff_assignments").select("staff_member_id").eq("order_id", body.order_id).in("assignment_status", ACTIVE_ASSIGNMENT),
+          supabase.from("chef_sheet_links").select("staff_member_id, sent_via, first_opened_at, revoked_at, stale").eq("order_id", body.order_id),
+        ])
+        const teamNow = Array.from(new Set((teamRows ?? []).map((a) => String(a.staff_member_id))))
+        const offIds = staleHolders(teamNow, (linkRows ?? []) as SheetLink[])
+        const dry = body.dry_run === true
+        const told = await tellRemovedChefs(supabase, body.order_id, offIds, `workbench:${actor.alias}`, dry)
+        const sent = await sendSheetsToNewTeam(supabase, { orderId: body.order_id, team: teamNow, sentBy: "workbench:notify", send: dry ? sendNothing : sendForTeam, dryRun: dry })
+        if (!dry && (told.length || sent.length)) {
+          await supabase.from("order_events").insert({ order_id: body.order_id, actor: `workbench:${actor.alias}`, action: "chef_changes_notified", metadata: { removed: told.map((t) => t.staffId), sheets: sent.map((x) => x.staffId) } })
+        }
+        return NextResponse.json({ ok: true, dryRun: dry, notified: told, notice: chefNoticeSummaryZh(told), sheets: sent, sheetNotice: sheetSendSummaryZh(sent) })
       }
       case "ack_text": {
         // 「这位师傅发来的不用回了」：电话里说过了、微信上回了。收件箱 [chef] 那条到此为止，

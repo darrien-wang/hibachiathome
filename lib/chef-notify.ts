@@ -153,6 +153,16 @@ export function teamNeedingSheet(team: string[], links: SheetLink[]): string[] {
   if (!links.some(sheetReachedChef)) return []
   return [...new Set(team)].filter((id) => !links.some((l) => l.staff_member_id === id && !l.revoked_at && sheetReachedChef(l)))
 }
+/**
+ * Who is still holding a live sheet for a party they are no longer on: the day map changes the
+ * team quietly while the owner plans (2026-11-13), and these are the people the final "通知改动"
+ * tells "you don't have to go". Only a link that reached them counts - one who never got the
+ * sheet has nothing to be told.
+ */
+export function staleHolders(team: string[], links: SheetLink[]): string[] {
+  const on = new Set(team)
+  return [...new Set(links.filter((l) => l.staff_member_id && !l.revoked_at && sheetReachedChef(l) && !on.has(l.staff_member_id)).map((l) => l.staff_member_id as string))]
+}
 type StaffRow = { id: string; display_name: string | null; full_name: string | null; phone: string | null }
 
 /** Three hours after the start a cancellation is bookkeeping, not news for the chef. */

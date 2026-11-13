@@ -39,6 +39,8 @@ type Stop = {
   tables?: boolean
   /** 派工计划：几位师傅几台灶（lib/dispatch-plan.ts）。派的人比计划少，这一单要标红。 */
   plan?: { chefs: number; grills: number; source: "rule" | "owner" | "promise" }
+  /** 名单改了还没通知的人（老板 2026-11-13）：add = 要发备料单，remove = 要告诉他不用去 */
+  pending?: { add: string[]; remove: string[] }
 }
 type Chef = { id: string; name: string; active: boolean; canHelp?: boolean }
 type Grade = "solid" | "ontime" | "late_ok" | "late_limit"
@@ -259,37 +261,22 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
     const has = (s: Stop) => s.chefIds.includes(personId) || (s.helperIds ?? []).includes(personId)
     // 这一行显示他每单都在 = 拿掉；有的单没有 = 补到没有的那几单
     const removing = shownFull
-    const who = chefName.get(personId) ?? "这位师傅"
-    if (removing) {
-      const ok = await askConfirm({
-        title: `把 ${who} 拿掉`,
-        message: `${stops.map((s) => `${s.time} ${s.name}`).join("\n")}\n\n${who} 如果收到过这几单的备料单，会自动收到短信「…那场改给别人了，你不用去」，备料单作废。`,
-        okLabel: "拿掉",
-      })
-      if (!ok) return
-    }
+    // 排班图上只改名单，谁都不通知（老板 2026-11-13：「有时候我只是在 plan，不需要立刻通知」）。
+    // 要通知的人列在下面"通知改动"里，最后点一下一起发。
     setAssigning(ci)
     try {
-      // 服务器会通知被拿掉、拿过备料单的人（2026-11-11）；备料单已经发出去过的单子，加上来的人
-      // 当场收到备料单（2026-11-12 D-1112-01）。发给了谁、谁没发到，改完说一声。
-      const notices: string[] = []
       for (const s of stops) {
         if (removing) {
           if (s.chefIds.includes(personId)) {
-            const r = await adminJson<{ notice?: string; sheetNotice?: string }>(adminKey, "/api/admin/chefs", { body: { action: "assign", order_id: s.id, staff_member_ids: s.chefIds.filter((x) => x !== personId) } })
-            const said = [r.notice, r.sheetNotice].filter(Boolean).join("；")
-            if (said) notices.push(`${s.time} ${s.name}：${said}`)
+            await adminJson(adminKey, "/api/admin/chefs", { body: { action: "assign", quiet: true, order_id: s.id, staff_member_ids: s.chefIds.filter((x) => x !== personId) } })
           }
           if ((s.helperIds ?? []).includes(personId)) {
-            await adminJson(adminKey, "/api/admin/chefs", { body: { action: "assign_helpers", order_id: s.id, staff_member_ids: (s.helperIds ?? []).filter((x) => x !== personId) } })
+            await adminJson(adminKey, "/api/admin/chefs", { body: { action: "assign_helpers", quiet: true, order_id: s.id, staff_member_ids: (s.helperIds ?? []).filter((x) => x !== personId) } })
           }
         } else if (!has(s)) {
-          const r = await adminJson<{ notice?: string; sheetNotice?: string }>(adminKey, "/api/admin/chefs", { body: { action: "assign", order_id: s.id, staff_member_ids: [...s.chefIds, personId] } })
-          const said = [r.notice, r.sheetNotice].filter(Boolean).join("；")
-          if (said) notices.push(`${s.time} ${s.name}：${said}`)
+          await adminJson(adminKey, "/api/admin/chefs", { body: { action: "assign", quiet: true, order_id: s.id, staff_member_ids: [...s.chefIds, personId] } })
         }
       }
-      if (notices.length) void tell({ title: removing ? "已拿掉" : "已加上", message: notices.join("\n") })
     } catch (e) {
       void tell({ title: "没改成", message: e instanceof Error ? e.message : "出错了" })
     } finally {
@@ -308,6 +295,48 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
       .filter(([, v]) => v.length > 1)
       .map(([id, v]) => `${chefName.get(id) ?? "?"} 排在了${v.join("、")}两条线上`)
   })()
+
+  // ---- 通知改动（老板 2026-11-13「我需要有个入口最终通知」）：排班图上悄悄改的名单，一次性通知。
+  // 拿着备料单、已经不在名单上的 -> 「那场改给别人了，你不用去」；这单发过备料单、新上来还没拿到的 -> 发备料单。
+  const pendingStops = (d?.stops ?? []).filter((s) => (s.pending?.add.length ?? 0) + (s.pending?.remove.length ?? 0) > 0)
+  const [notifying, setNotifying] = useState(false)
+  const notifyChanges = async () => {
+    if (notifying || !pendingStops.length) return
+    const ok = await askConfirm({
+      title: "通知改动",
+      message: [
+        ...pendingStops.map((s) =>
+          [
+            `${s.time} ${s.name}：`,
+            s.pending!.add.length ? `发备料单给 ${namesOf(s.pending!.add)}` : "",
+            s.pending!.add.length && s.pending!.remove.length ? "；" : "",
+            s.pending!.remove.length ? `告诉 ${namesOf(s.pending!.remove)} 不用去了（他的备料单作废）` : "",
+          ].join(""),
+        ),
+        "",
+        "都从 213 线发短信。",
+      ].join("\n"),
+      okLabel: "发送",
+    })
+    if (!ok) return
+    setNotifying(true)
+    const out: string[] = []
+    try {
+      for (const s of pendingStops) {
+        try {
+          const r = await adminJson<{ notice?: string; sheetNotice?: string }>(adminKey, "/api/admin/chefs", { body: { action: "notify_changes", order_id: s.id } })
+          const said = [r.notice, r.sheetNotice].filter(Boolean).join("；")
+          out.push(`${s.time} ${s.name}：${said || "已通知"}`)
+        } catch (e) {
+          out.push(`${s.time} ${s.name}：没发出去（${e instanceof Error ? e.message : "出错了"}）`)
+        }
+      }
+      void tell({ title: "改动已通知", message: out.join("\n") })
+    } finally {
+      await load()
+      setNotifying(false)
+    }
+  }
 
   // ---- 批量发 prep sheet（老板 2026-10-02："发送短信给师傅，能够勾选，批量发送"——"就是发 prep sheet"）
   // 按每单现在派给了谁分组（排班的线只是建议，发给谁以指派为准）。每单一条短信：走
@@ -482,6 +511,13 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                           <span style={{ color: "var(--color-neutral-600)" }}> · {s.guests} 人</span>
                           {s.plan && s.chefIds.length < s.plan.chefs ? <span style={{ color: "var(--color-accent-700)", fontWeight: 700 }}> · 要 {s.plan.chefs} 位师傅，已派 {s.chefIds.length}</span> : null}
                           {/* 这条线各单派的人不一样时，逐单写出来，别让下拉框的空白骗人 */}
+                          {(s.pending?.add.length ?? 0) + (s.pending?.remove.length ?? 0) > 0 ? (
+                            <span style={{ color: "var(--color-accent-700)", fontWeight: 700 }}>
+                              {" · 待通知"}
+                              {s.pending!.add.length ? ` +${namesOf(s.pending!.add)}` : ""}
+                              {s.pending!.remove.length ? ` −${namesOf(s.pending!.remove)}` : ""}
+                            </span>
+                          ) : null}
                           {mixed ? <span style={{ color: "var(--color-neutral-600)" }}> · {s.chefIds.length + (s.helperIds ?? []).length ? `已派 ${namesOf([...s.chefIds, ...(s.helperIds ?? [])])}` : "还没派"}</span> : null}
                           {s.lat === null ? <span style={{ color: "var(--color-accent-700)" }}> · 地址定位不到</span> : null}
                           {s.lat !== null && s.approx ? <span style={{ color: "var(--color-neutral-600)" }}> · 只到城市</span> : null}
@@ -526,6 +562,27 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
               </div>
               )
             })}
+
+            {pendingStops.length ? (
+              <div style={{ marginTop: 14, border: "2px solid var(--color-accent)", padding: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ fontWeight: 800, fontSize: 15 }}>通知改动（{pendingStops.length} 场）</div>
+                  <button type="button" className="btn btn-primary btn-sm" disabled={notifying || assigning !== null} onClick={() => void notifyChanges()}>
+                    {notifying ? "发送中…" : "通知师傅"}
+                  </button>
+                </div>
+                <div style={{ fontSize: 13, marginTop: 6, display: "flex", flexDirection: "column", gap: 2 }}>
+                  {pendingStops.map((s) => (
+                    <div key={s.id}>
+                      {s.time} {s.name}
+                      {s.pending!.add.length ? <span> · 发备料单给 <strong>{namesOf(s.pending!.add)}</strong></span> : null}
+                      {s.pending!.remove.length ? <span> · 告诉 <strong>{namesOf(s.pending!.remove)}</strong> 不用去</span> : null}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 6 }}>上面点名字只改名单、不发短信。这几场的备料单已经发出去过，名单改了要在这里通知。还没发过备料单的场不用管，前一天照常一起发。</div>
+              </div>
+            ) : null}
 
             <div style={{ marginTop: 14, border: "2px solid var(--color-text)", padding: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
