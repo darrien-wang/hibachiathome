@@ -131,6 +131,9 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
   // 默认看最稳的那版：冒不冒险得是老板自己点过去看的，不是打开就替他选好。
   const [tier, setTier] = useState<string>("safe")
   const [assigning, setAssigning] = useState<number | null>(null)
+  // 单场改人（老板 2026-11-13「我想要调整连台下面的师傅，现在调整不了」）：连台线右边的按钮管整条线，
+  // 某一场要多加一个人、换一个人，点那一场后面的"改人"，按钮只管这一场。key = 行号:订单 id
+  const [editStop, setEditStop] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -525,6 +528,26 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                             <button type="button" className="wb-chip wb-chip-sm" style={{ marginLeft: 6 }} disabled={busy} onClick={() => void pin(s.address)}>
                               定位
                             </button>
+                          ) : null}
+                          {chain.length > 1 || rows.some((r, rj) => rj !== ci && r.chain.includes(id)) ? (
+                            <button type="button" className="wb-chip wb-chip-sm" style={{ marginLeft: 6 }} aria-pressed={editStop === `${ci}:${id}` ? "true" : "false"} onClick={() => setEditStop(editStop === `${ci}:${id}` ? null : `${ci}:${id}`)}>
+                              改这一场的人
+                            </button>
+                          ) : null}
+                          {editStop === `${ci}:${id}` ? (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, margin: "6px 0 2px", padding: 8, border: "1px dashed var(--color-divider)" }}>
+                              <span style={{ fontSize: 12, color: "var(--color-neutral-600)", width: "100%" }}>只改 {s.time} {s.name} 这一场：</span>
+                              {(d.chefs ?? [])
+                                .filter((c) => c.active || c.canHelp || onStop(s, c.id))
+                                .map((c) => {
+                                  const on = onStop(s, c.id)
+                                  return (
+                                    <button key={c.id} type="button" className="wb-chip wb-chip-sm" aria-pressed={on ? "true" : "false"} disabled={assigning !== null} onClick={() => void togglePerson(ci, [id], c.id, on)}>
+                                      {c.name}
+                                    </button>
+                                  )
+                                })}
+                            </div>
                           ) : null}
                         </div>
                       )
