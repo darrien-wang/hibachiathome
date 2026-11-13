@@ -243,7 +243,8 @@ export async function GET(request: NextRequest) {
 
   // 三档容忍度各排一版，再加多派的几版（见 lib/dispatch.ts planTiers）。
   // 两台里有一台要布置桌椅，中间多留 30 分（见 lib/dispatch.ts TABLES_EXTRA_MINUTES）。
-  const plans = planTiers(stops.map((s) => s.startMin), minutes, params, dp.late_ok_minutes, dp.late_limit_minutes, (a, b) => (stops[a].tables || stops[b].tables ? TABLES_EXTRA_MINUTES : 0))
+  // 要两位以上师傅的单（超过 28 人等，lib/dispatch-plan.ts）占几个人就排几条线（老板 2026-11-13）。
+  const plans = planTiers(stops.map((s) => s.startMin), minutes, params, dp.late_ok_minutes, dp.late_limit_minutes, (a, b) => (stops[a].tables || stops[b].tables ? TABLES_EXTRA_MINUTES : 0), stops.map((s) => s.plan.chefs))
   const home = await locate(supabase, resolver, HOME_BASE_QUERY)
 
   // 指派（老板 2026-09-30）：图上直接给每条线派师傅。这里带上每单现在派给了谁、能派的师傅名单；

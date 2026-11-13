@@ -194,65 +194,104 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
   // ---- 指派（老板 2026-09-30）：给每条线派一个师傅，写进这条线上每一单
   const chefName = useMemo(() => new Map((d?.chefs ?? []).map((c) => [c.id, c.name])), [d])
   const namesOf = (ids: string[]) => ids.map((id) => chefName.get(id) ?? "已停用的师傅").join("、")
-  /** 这条线现在派给了谁：每一单都正好是同一个人才算数；各单不一样 = mixed */
-  const chainChef = (chain: string[]): { id: string; mixed: boolean } => {
-    const sets = chain.map((id) => byId.get(id)?.chefIds ?? [])
-    const one = sets[0]?.length === 1 ? sets[0][0] : null
-    if (one && sets.every((s) => s.length === 1 && s[0] === one)) return { id: one, mixed: false }
-    return { id: "", mixed: sets.some((s) => s.length > 0) }
+  // ---- 派人（老板 2026-11-13）：直接多选，点一下加上、再点一下拿掉，不再分师傅和帮手。
+  // 以前是"一个下拉框只能换成一个人 + 一排帮手"，三厨的大单在下拉框里只显示"各单派的人不一样"，
+  // 想换其中一个人改不了。现在每个名字一个按钮，作用于这条线上的每一单。
+  /** 这条线上每个人出现在几单里（师傅和以前记成帮手的都算） */
+  const chainPeople = (chain: string[]): Map<string, number> => {
+    const n = new Map<string, number>()
+    for (const id of chain) {
+      const s = byId.get(id)
+      if (!s) continue
+      for (const p of new Set([...s.chefIds, ...(s.helperIds ?? [])])) n.set(p, (n.get(p) ?? 0) + 1)
+    }
+    return n
   }
-  const assignChain = async (ci: number, chain: string[], chefId: string) => {
-    if (!chefId) return
-    const who = chefName.get(chefId) ?? "这位师傅"
-    const change = chain.map((id) => byId.get(id)).filter((s): s is Stop => !!s && !(s.chefIds.length === 1 && s.chefIds[0] === chefId))
-    if (!change.length) return
-    // 换掉已经派了的人要先问：两个师傅的大单这样派会只剩一个
-    const replacing = change.filter((s) => s.chefIds.length > 0)
-    if (replacing.length) {
+  /** 这条线上几单派的人不一样（一单的线永远不算） */
+  const chainMixed = (chain: string[]): boolean => {
+    const keys = chain.map((id) => {
+      const s = byId.get(id)
+      return s ? Array.from(new Set([...s.chefIds, ...(s.helperIds ?? [])])).sort().join(",") : ""
+    })
+    return keys.some((k) => k !== keys[0])
+  }
+  // 要两位以上师傅的单占好几条线（lib/dispatch.ts planTiers 的 need，老板 2026-11-13）。
+  // 一模一样的线（比如 Kande 64 人一场占 3 条）合成一行"师傅 3–5"；
+  // 一个人如果已经跑着另一条更长的、经过这一场的线，就不在这条短的线上再列一遍。
+  type Row = { chain: string[]; count: number; from: number }
+  const rows: Row[] = (() => {
+    if (!plan) return []
+    const m = new Map<string, Row>()
+    let no = 1
+    for (const c of plan.chains) {
+      const k = c.join(",")
+      const r = m.get(k)
+      if (r) r.count++
+      else m.set(k, { chain: c, count: 1, from: 0 })
+    }
+    return Array.from(m.values()).map((r) => {
+      const out = { ...r, from: no }
+      no += r.count
+      return out
+    })
+  })()
+  const rowLabel = (r: Row) => (r.count > 1 ? `师傅 ${r.from}–${r.from + r.count - 1}` : `师傅 ${r.from}`)
+  const onStop = (s: Stop | undefined, p: string) => !!s && (s.chefIds.includes(p) || (s.helperIds ?? []).includes(p))
+  const covers = (p: string, chain: string[]) => chain.every((id) => onStop(byId.get(id), p))
+  /** 这一行显示谁、各在几单上 */
+  const rowPeople = (ri: number): Map<string, number> => {
+    const c = rows[ri].chain
+    const out = new Map<string, number>()
+    for (const [p, n] of chainPeople(c)) {
+      const full = n >= c.length
+      const elsewhere = rows.some((r, rj) => rj !== ri && r.chain.some((id) => c.includes(id)) && covers(p, r.chain) && (full ? r.chain.length > c.length : true))
+      if (!elsewhere) out.set(p, n)
+    }
+    return out
+  }
+  /** 在别的行上已经跑着这一场的人：这一行的按钮里不列 */
+  const takenElsewhere = (ri: number, p: string) => {
+    const c = rows[ri].chain
+    return rows.some((r, rj) => rj !== ri && r.chain.some((id) => c.includes(id)) && covers(p, r.chain) && !rowPeople(ri).has(p))
+  }
+  const togglePerson = async (ci: number, chain: string[], personId: string, shownFull: boolean) => {
+    const stops = chain.map((id) => byId.get(id)).filter((s): s is Stop => !!s)
+    const has = (s: Stop) => s.chefIds.includes(personId) || (s.helperIds ?? []).includes(personId)
+    // 这一行显示他每单都在 = 拿掉；有的单没有 = 补到没有的那几单
+    const removing = shownFull
+    const who = chefName.get(personId) ?? "这位师傅"
+    if (removing) {
       const ok = await askConfirm({
-        title: `改派给 ${who}`,
-        message: `${replacing.map((s) => `${s.time} ${s.name}：现在是 ${namesOf(s.chefIds)}`).join("\n")}\n\n改完这几单都只有 ${who} 一个人。被换下的师傅如果收到过备料单，会自动收到短信「…那场改给别人了，你不用去」，他的备料单作废。哪单的备料单已经发出去过，${who} 会当场收到那单的备料单。`,
-        okLabel: "改派",
+        title: `把 ${who} 拿掉`,
+        message: `${stops.map((s) => `${s.time} ${s.name}`).join("\n")}\n\n${who} 如果收到过这几单的备料单，会自动收到短信「…那场改给别人了，你不用去」，备料单作废。`,
+        okLabel: "拿掉",
       })
       if (!ok) return
     }
     setAssigning(ci)
     try {
-      // 服务器会通知被换下、拿过备料单的师傅（2026-11-11），备料单已经发出去过的单子当场把备料单发给
-      // 换上来的人（2026-11-12 D-1112-01）；发给了谁、谁没发到（没发到的进收件箱），改完说一声。
+      // 服务器会通知被拿掉、拿过备料单的人（2026-11-11）；备料单已经发出去过的单子，加上来的人
+      // 当场收到备料单（2026-11-12 D-1112-01）。发给了谁、谁没发到，改完说一声。
       const notices: string[] = []
-      for (const s of change) {
-        const r = await adminJson<{ notice?: string; sheetNotice?: string }>(adminKey, "/api/admin/chefs", { body: { action: "assign", order_id: s.id, staff_member_ids: [chefId] } })
-        const said = [r.notice, r.sheetNotice].filter(Boolean).join("；")
-        if (said) notices.push(`${s.time} ${s.name}：${said}`)
+      for (const s of stops) {
+        if (removing) {
+          if (s.chefIds.includes(personId)) {
+            const r = await adminJson<{ notice?: string; sheetNotice?: string }>(adminKey, "/api/admin/chefs", { body: { action: "assign", order_id: s.id, staff_member_ids: s.chefIds.filter((x) => x !== personId) } })
+            const said = [r.notice, r.sheetNotice].filter(Boolean).join("；")
+            if (said) notices.push(`${s.time} ${s.name}：${said}`)
+          }
+          if ((s.helperIds ?? []).includes(personId)) {
+            await adminJson(adminKey, "/api/admin/chefs", { body: { action: "assign_helpers", order_id: s.id, staff_member_ids: (s.helperIds ?? []).filter((x) => x !== personId) } })
+          }
+        } else if (!has(s)) {
+          const r = await adminJson<{ notice?: string; sheetNotice?: string }>(adminKey, "/api/admin/chefs", { body: { action: "assign", order_id: s.id, staff_member_ids: [...s.chefIds, personId] } })
+          const said = [r.notice, r.sheetNotice].filter(Boolean).join("；")
+          if (said) notices.push(`${s.time} ${s.name}：${said}`)
+        }
       }
-      if (notices.length) void tell({ title: "改派已保存", message: notices.join("\n") })
+      if (notices.length) void tell({ title: removing ? "已拿掉" : "已加上", message: notices.join("\n") })
     } catch (e) {
-      void tell({ title: "没派上", message: e instanceof Error ? e.message : "出错了" })
-    } finally {
-      await load()
-      setAssigning(null)
-    }
-  }
-  // ---- 帮手（老板 2026-10-13）：学徒跟着这条线的师傅跑，可以多选。点一下加上、再点一下拿掉，
-  // 写进这条线上的每一单。帮手不拿这场工钱、不分人头。
-  const chainHelpers = (chain: string[]): Set<string> => {
-    const sets = chain.map((id) => new Set(byId.get(id)?.helperIds ?? []))
-    return new Set([...(sets[0] ?? [])].filter((h) => sets.every((s) => s.has(h))))
-  }
-  const toggleHelper = async (ci: number, chain: string[], helperId: string) => {
-    const on = !chainHelpers(chain).has(helperId)
-    setAssigning(ci)
-    try {
-      for (const id of chain) {
-        const s = byId.get(id)
-        if (!s) continue
-        const cur = s.helperIds ?? []
-        const next = on ? Array.from(new Set([...cur, helperId])) : cur.filter((x) => x !== helperId)
-        await adminJson(adminKey, "/api/admin/chefs", { body: { action: "assign_helpers", order_id: s.id, staff_member_ids: next } })
-      }
-    } catch (e) {
-      void tell({ title: "帮手没加上", message: e instanceof Error ? e.message : "出错了" })
+      void tell({ title: "没改成", message: e instanceof Error ? e.message : "出错了" })
     } finally {
       await load()
       setAssigning(null)
@@ -261,14 +300,13 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
   // 同一个师傅被派到了两条线上：线是按"一个人跑得过来"拆的，两条都给他多半接不上
   const doubleBooked = (() => {
     if (!plan) return [] as string[]
-    const seen = new Map<string, number[]>()
-    plan.chains.forEach((c, ci) => {
-      const x = chainChef(c)
-      if (x.id) seen.set(x.id, [...(seen.get(x.id) ?? []), ci + 1])
+    const seen = new Map<string, string[]>()
+    rows.forEach((r, ri) => {
+      for (const id of rowPeople(ri).keys()) seen.set(id, [...(seen.get(id) ?? []), rowLabel(r)])
     })
     return Array.from(seen.entries())
       .filter(([, v]) => v.length > 1)
-      .map(([id, v]) => `${chefName.get(id) ?? "?"} 排在了师傅 ${v.join("、")} 两条线上`)
+      .map(([id, v]) => `${chefName.get(id) ?? "?"} 排在了${v.join("、")}两条线上`)
   })()
 
   // ---- 批量发 prep sheet（老板 2026-10-02："发送短信给师傅，能够勾选，批量发送"——"就是发 prep sheet"）
@@ -403,12 +441,15 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                     : "（拖满也不迟到）"}
             </div>
             {doubleBooked.length ? <div className="notice" style={{ marginTop: 8 }}>{doubleBooked.join("；")}——确认时间接得上。</div> : null}
-            {plan.chains.map((chain, ci) => {
-              const cc = chainChef(chain)
+            {rows.map((row, ci) => {
+              const chain = row.chain
+              const people = rowPeople(ci)
+              const mixed = chainMixed(chain)
+              const busyHere = assigning === ci
               return (
-              <div key={ci} style={{ padding: "9px 0", borderBottom: "1px solid var(--color-divider)" }}>
+              <div key={chain.join(",")} style={{ padding: "9px 0", borderBottom: "1px solid var(--color-divider)" }}>
                 <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
-                  <span className="kicker" style={{ width: 52, flex: "none" }}>师傅 {ci + 1}</span>
+                  <span className="kicker" style={{ width: 52, flex: "none" }}>{rowLabel(row)}</span>
                   <div style={{ flex: 1, minWidth: 220, fontSize: 14, display: "flex", flexDirection: "column", gap: 4 }}>
                     {chain.map((id, k) => {
                       const s = byId.get(id)
@@ -441,7 +482,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                           <span style={{ color: "var(--color-neutral-600)" }}> · {s.guests} 人</span>
                           {s.plan && s.chefIds.length < s.plan.chefs ? <span style={{ color: "var(--color-accent-700)", fontWeight: 700 }}> · 要 {s.plan.chefs} 位师傅，已派 {s.chefIds.length}</span> : null}
                           {/* 这条线各单派的人不一样时，逐单写出来，别让下拉框的空白骗人 */}
-                          {cc.mixed ? <span style={{ color: "var(--color-neutral-600)" }}> · {s.chefIds.length ? `已派 ${namesOf(s.chefIds)}` : "还没派"}</span> : null}
+                          {mixed ? <span style={{ color: "var(--color-neutral-600)" }}> · {s.chefIds.length + (s.helperIds ?? []).length ? `已派 ${namesOf([...s.chefIds, ...(s.helperIds ?? [])])}` : "还没派"}</span> : null}
                           {s.lat === null ? <span style={{ color: "var(--color-accent-700)" }}> · 地址定位不到</span> : null}
                           {s.lat !== null && s.approx ? <span style={{ color: "var(--color-neutral-600)" }}> · 只到城市</span> : null}
                           {s.lat === null || s.approx ? (
@@ -454,40 +495,32 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                     })}
                   </div>
                   <div style={{ flex: "none", width: 190, marginLeft: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
-                  <select
-                    className="input"
-                    aria-label={`师傅 ${ci + 1} 指派给谁`}
-                    style={{ width: "100%", minHeight: 34, padding: "4px 8px", fontSize: 13 }}
-                    value={cc.id}
-                    disabled={assigning !== null}
-                    onChange={(e) => void assignChain(ci, chain, e.target.value)}
-                  >
-                    <option value="">{assigning === ci ? "派单中…" : cc.mixed ? "各单派的人不一样" : "指派师傅…"}</option>
+                  {/* 直接多选：点一下加上、再点一下拿掉。只派了其中几单的人显示成虚线框，点一下补齐。 */}
+                  <div role="group" aria-label={`${rowLabel(row)} 派谁`} style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
                     {(d.chefs ?? [])
-                      .filter((c) => c.active || c.id === cc.id)
-                      .map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                  </select>
-                  {/* 帮手：多选，点一下加上、再点一下拿掉 */}
-                  {(() => {
-                    const on = chainHelpers(chain)
-                    const leadIds = new Set(chain.flatMap((id) => byId.get(id)?.chefIds ?? []))
-                    const options = (d.chefs ?? []).filter((c) => (c.canHelp && !leadIds.has(c.id)) || on.has(c.id))
-                    if (!options.length) return null
-                    return (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center", fontSize: 12 }}>
-                        <span style={{ color: "var(--color-neutral-600)" }}>帮手</span>
-                        {options.map((c) => (
-                          <button key={c.id} type="button" className="wb-chip wb-chip-sm" aria-pressed={on.has(c.id) ? "true" : "false"} disabled={assigning !== null} onClick={() => void toggleHelper(ci, chain, c.id)}>
+                      .filter((c) => (c.active || c.canHelp || people.has(c.id)) && !takenElsewhere(ci, c.id))
+                      .map((c) => {
+                        const n = people.get(c.id) ?? 0
+                        const all = n > 0 && n >= chain.length
+                        const some = n > 0 && !all
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            className="wb-chip wb-chip-sm"
+                            aria-pressed={all ? "true" : some ? "mixed" : "false"}
+                            title={some ? `只派了这条线 ${chain.length} 单里的 ${n} 单，点一下补到每一单` : all ? "点一下拿掉" : "点一下加上"}
+                            style={some ? { borderStyle: "dashed", fontWeight: 700 } : undefined}
+                            disabled={assigning !== null}
+                            onClick={() => void togglePerson(ci, chain, c.id, all)}
+                          >
                             {c.name}
+                            {some ? ` ${n}/${chain.length}` : ""}
                           </button>
-                        ))}
-                      </div>
-                    )
-                  })()}
+                        )
+                      })}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{busyHere ? "派单中…" : row.count > 1 ? `这一行要 ${row.count} 人，已派 ${people.size}` : people.size ? `已派 ${people.size} 人` : "还没派人"}</div>
                   </div>
                 </div>
               </div>

@@ -198,6 +198,11 @@ export const isSpreadKey = (k: string) => k.startsWith("spread_")
  * 师傅的第一台，准时开——所以多派的每一版都是稳的。
  *
  * 日历弹窗（服务端）和分享出去的排班页（浏览器里）用的是这同一个函数。
+ *
+ * @param need 每场要几个师傅（lib/dispatch-plan.ts 的 chefs；不传 = 每场 1 个）。老板 2026-11-13：
+ *   超过 28 人的单至少要 2 个人，以前排班把它当 1 个人，"5 个师傅"其实不够。做法是把要 k 个人的
+ *   那场拆成 k 个同时开场、同一地点的"位子"，各排各的：同一时刻开场的谁也接不了谁，所以同一场的
+ *   几个位子一定落在不同的线上。排完再把位子映回原来那场——同一场会出现在 k 条线上。
  */
 export function planTiers(
   starts: number[],
@@ -206,7 +211,23 @@ export function planTiers(
   lateOk: number,
   lateLimit: number,
   extra?: LinkExtra,
+  need?: number[],
 ): TierPlan[] {
+  const k = starts.map((_, i) => Math.max(1, Math.floor(need?.[i] ?? 1)))
+  if (k.some((x) => x > 1)) {
+    const slotOf: number[] = []
+    k.forEach((cnt, i) => {
+      for (let c = 0; c < cnt; c++) slotOf.push(i)
+    })
+    const sStarts = slotOf.map((i) => starts[i])
+    const sDrive = slotOf.map((i) => slotOf.map((j) => drive[i]?.[j] ?? null))
+    const sExtra: LinkExtra | undefined = extra ? (a, b) => extra(slotOf[a], slotOf[b]) : undefined
+    return planTiers(sStarts, sDrive, p, lateOk, lateLimit, sExtra).map((t) => ({
+      ...t,
+      chains: t.chains.map((c) => c.map((x) => slotOf[x])),
+      links: t.links.map((l) => ({ ...l, from: slotOf[l.from], to: slotOf[l.to] })),
+    }))
+  }
   const byStart = (a: number[], b: number[]) => starts[a[0]] - starts[b[0]] || a[0] - b[0]
   const build = (key: TierKey, tolerance: number, chains: number[][], links: ChainLink[], spread: boolean): TierPlan => {
     const heads = new Set(chains.map((c) => c[0]))
