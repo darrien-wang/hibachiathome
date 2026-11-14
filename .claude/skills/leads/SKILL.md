@@ -203,6 +203,7 @@ A、B 由机器发（§3 表）。人要手发的首条：机器让出来的（�
 
 - **电话**：老板接。App 会出来电卡片和挂断后的【来电小结】两行中文。**挂了几分钟内发书面确认**：价格 + 带好日期时间的锁单链接 + 一个问题，以 Rowling 名义写 `Here's the link Bling mentioned on the phone.`；刚被系统发过问候被 `just_answered` 拦，属于答应过的回复，可以 force。陌生号秒挂没留言：只发一条短信，送不到就标无效，不给老板响铃。客人短信说要电话，系统自动给老板 App 响铃（D-1009-10），短信回一句 `Got it. We'll call you from 213-770-7788 shortly.`；老板不爱打电话，我们不主动建议打（10-17）。
 - **邮件**：support@ 的信自动进工作台，`desk email` 回；地址只从卡片复制。The Knot、Zola 等平台询价也走这里。
+- **度假屋物业的信**（11-13 起；计划 `D:/desktop/RealHibachi/partnerships/12-palm-springs-indio-rental-managers.md`，名单 `D:/desktop/RealHibachi/partnerships/data/coachella-valley-pm-targets.csv`）：发件人域名在名单 website、contact 两列里的，是物业回我们的合作信，不是客人。线索改 disqualified，备注 `[partner] 公司名`。回信内容从计划第 5 节和材料 ⑥⑦ 里取，**先给老板稿子，他回"发"再用 `desk email` 发，署 Darrien**；对方要 10%、问保险或营业执照、要电话或见面的，总结给老板，不自己答应。对方同意合作：码登记进 `D:/desktop/RealHibachi/partnerships/data/referral-partners.csv`（type=str_host），回一句确认。
 - **Facebook / Instagram**：主页私信和评论由我们看（老板 10-21 授权管理）。公开回复、隐藏、私信都是代发，**每次先给老板稿子，他回"发"再做**；只隐藏不删除。私信里一定要拿到手机号，把人拉进短信。Marketplace 挂在老板个人号，Meta 没有接口，我拟稿、老板粘贴，**禁止自动化个人号**。操作见 `tools.md` §Facebook。
 - **西语**：客人写西语才切，数字口径一样，句式见 `templates.md`。
 

@@ -94,7 +94,7 @@
 
 - **厨师人数**：每位厨师 28 人以内，刚过一点也一位（老板 10-13），客人自己要求加人再问老板。**60 人左右两位师傅 + 一位助手、两台灶就够**，不一定要三台（老板 10-26，Temecula 婚礼场地放不下三台时这么答的）。**短信里写了 "two chefs / each chef / two stations" 就是承诺**，系统会记到派工计划里，没打算派两位就别写复数。
 - **到达**：开席前 10–30 分钟（人多早到）；订了桌椅的提前 1 小时摆台。
-- **多久**：表演加吃饭约 90 分钟，师傅边做边上（网站城市页同口径），客人之后可以接着聚。**最早开场**：做过中午 12 点的；网站写 10 月到 5 月适合办午饭场。比中午更早的，老板还没定口径。 **最晚开场**（老板 11-09，D-1109-01：「可以没问题 最晚12点 12点以后我们需要和师傅确认一下」）：午夜 12 点前开始都可以，直接答；锁单页的时间下拉只到 8 PM，晚场用 `desk link deposit ... --time 21:30` 发预填时间的链接（带了时间页面就不再问）。12 点以后开始，先问老板、跟师傅确认，不先答应。
+- **多久**：表演加吃饭约 90 分钟，师傅边做边上（网站城市页同口径），客人之后可以接着聚。**最早开场**：做过中午 12 点的；网站写 10 月到 5 月适合办午饭场。比中午更早的，老板还没定口径。 **最晚开场**（老板 11-09，D-1109-01：「可以没问题 最晚12点 12点以后我们需要和师傅确认一下」）：午夜 12 点前开始都可以，直接答；锁单页的时间下拉只到 8 PM，晚场用 `desk link deposit ... --time 21:30` 发预填时间的链接（带了时间页面就不再问）。12 点以后开始，先问老板、跟师傅确认，不先答应。沙漠度假出租房另有规矩，见下面「沙漠度假出租房」。
 - **"当天要准备什么 / 要不要插座"**：这是在担心，答一个轻松具体的场景（09-19），分两条发：`Here's the day: your chef arrives 10-30 min before start, lays a waterproof mat, sets the grill and hooks up the propane. No outlet or power needed.` / `If you booked tables and dishes, we set them and you just host. If you're using your own, please have them set before we arrive.`
 - **场地**：只在户外做（patio、deck、balcony、车道、帐篷下），座位可以在室内。用比喻不报尺寸：`A flat spot about the size of a king-size bed, outdoors, with nothing low right over the grill. If you're not sure, you're welcome to send me a photo.` 铺防水防油垫，走前清理。不用插座、不用电，用丙烷。**草地只要平也可以放灶**；客人坐自己的圆桌、不围着灶坐也可以（婚礼这种摆法）——老板 10-26 确认（Temecula 婚礼 60 人发平面图问三台灶放哪）。
 - **桌子能离灶多近**（老板 11-13：「因为有火和烟 太近也不是很好，所以保持1米5左右的距离」）：可以围着灶摆，像餐厅那样大家都面对师傅，但离灶约 5 英尺（1.5 米）。客人问了才答：`Yes! You can set the tables up in a U shape around the grill so everyone faces the chef, just like at a restaurant. Could you keep them about 5 feet from the grill? There's real fire and smoke, and it gives your chef room to work.`
@@ -102,7 +102,13 @@
 - **师傅说不说西语**（老板 11-02）：**我们没有会说西语的师傅**，也没有双语主持。被问才答，直说，不保证，也不说"尽量派说得多的"：`Our chefs speak English, so I can't promise Spanish at the grill. The cooking is easy to follow, and I can send the menu in Spanish so everyone can choose ahead of time.`
 - **灯**：我们不带灯，师傅戴头灯；客人那边太暗要自己备串灯。被问才答。
 - **下雨、大风**（D-1019-03，老板待最终确认，现在照此答）：下雨在带顶的露台或客人备的 10×10 帐篷下做（我们不带帐篷）；大风或红旗预警不安全时，免费改期或取消，48 小时内也不收 $99（以官方 NWS 预警为准）。
-- **最晚几点开场**：不报"最晚"，问他打算几点 `What time do you have in mind? Later starts usually work.` 半夜 12 点以后要先问师傅（这一层不对客说）。
+- **最晚几点开场**：不报"最晚"，问他打算几点 `What time do you have in mind? Later starts usually work.` 半夜 12 点以后要先问师傅（这一层不对客说）。沙漠度假出租房除外，见下一条。
+- **沙漠度假出租房**（老板 11-13 批，跟物业合作计划一起定，见 `D:/desktop/RealHibachi/partnerships/12-palm-springs-indio-rental-managers.md`）：Coachella Valley 各城（Palm Springs、Cathedral City、Desert Hot Springs、Palm Desert、Indian Wells、La Quinta、Indio、Coachella、Bermuda Dunes、Thermal）的出租房，城市的噪音和人数规定罚的是物业，每次 $500–5,000。
+  - **开场不晚于 8 PM；Desert Hot Springs 不晚于 6 PM**（多数城市晚 10 点、DHS 晚 8 点进安静时段，按约 2 小时收完）。这条盖过"午夜前都行"。客人要更晚：`Most desert rentals go quiet at 10 PM, so an 8 PM start or earlier keeps dinner inside the house rules.`（DHS 换成 `go quiet at 8 PM, so a 6 PM start or earlier`）
+  - **不带音箱、不放音乐**：Palm Springs 出租房户外任何时候都不许有音乐或声响。客人问音乐才答：`Desert rentals have strict noise rules, so our chefs don't bring a speaker there.`
+  - 客人说是自己家，照普通规矩；说不清的按出租房办。
+  - 锁单后订单备注写 `Desert rental: no speaker or music. Start by 8 PM (Desert Hot Springs: 6 PM).`，备货备注写「沙漠出租房：不带音箱、不放音乐；8 点前开场（DHS 6 点）」，师傅照单。
+  - **物业推荐来的客人**（带 str_host 类推荐码，或客人说是物业、礼宾介绍的）：线索备注 `[ref RH-XXX] 物业名`（`desk fields` 改不了 referral_code）；锁单后用 `desk email` 给对方礼宾发一封确认，只写日期、开始时间、人数，不写价格。
 - **接食游戏和小游戏**（老板 10-30，D-1030-11）：**客人不问不提**，Heather 10-11 的投诉就是我们先说了 shrimp toss，到场没有，赔了 $50。问了照实答，扔西葫芦，不扔虾 `Yes, the chef does the catch game with your guests. We toss zucchini, so everyone can play whatever's on the menu.` **提过就要落单**：没锁单记 `[promised] <说了什么>`；锁单后写进订单备注；发备料单时在 note 里再跟师傅强调一次。
 - **酒**：`We bring sake for the adults, it's included.` 只在客人问饮料时说（或比价时当差异讲，见 `negotiation.md` §4）；带足 2 加仑，很少有派对喝得完（老板 10-21），不说 unlimited。喷酒枪客人提了可以认，不主动对带小孩的派对提。**公共场合（公共沙滩、公园）不带 sake**（老板 11-12，D-1112-02：「公共场合是不能喝sake的，所以提供不了」）：问到饮料照实说 `Sake isn't allowed on public beaches, so we can't bring it there.`（公园就把 beaches 换成 parks）；不写 alcohol / beer / wine 这类泛称，运营商会拦（SKILL「酒」）。私人沙滩、私人场地照常带。公共场合的单子，订单备注写 `No sake (public beach).`，备货备注写「公共沙滩，不带 sake」，师傅照单不带。
 - **沙滩派对**（老板 11-12，D-1112-02）：客人说在沙滩办，先问一句 `Is it a private beach, or a public one?`，答案记进线索备注，锁单后写进订单备注和备货备注。
