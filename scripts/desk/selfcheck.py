@@ -33,6 +33,7 @@ import datetime
 import io
 import json
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -263,7 +264,12 @@ def check(name: str, ok: bool, run: Run | None = None, detail: str = "") -> None
                 print(f"      | exit: {run.exit}")
 
 
-def tiers_match_the_ts_export() -> None:
+# Paid heads the dispatch rule is checked at against lib/dispatch-plan.ts ruleChefs: none, the edges of one, two and
+# three chefs, past the cap.
+RULE_HEADS = [0, 1, 27.5, 28, 28.5, 56, 56.5, 84.5, 500]
+
+
+def rules_match_the_ts_export() -> None:
     npx = shutil.which("npx")
     if not npx:
         print("SKIP  tiers vs the TS export: no npx on PATH")
@@ -271,9 +277,11 @@ def tiers_match_the_ts_export() -> None:
     root = desk.ROOT
     with tempfile.TemporaryDirectory() as tmp:
         script = pathlib.Path(tmp) / "tiers.ts"
-        script.write_text(f"import {{ CLOSED_PARTY_LADDER as t, PARTY_SIZE_CUSTOM_FROM as c, KID_TIER_WEIGHT as w, PARTY_LADDER_CLOSED_AT as at }} "
+        script.write_text(f"import {{ CLOSED_PARTY_LADDER as t, PARTY_SIZE_CUSTOM_FROM as c, KID_TIER_WEIGHT as w, PARTY_LADDER_CLOSED_AT as at, GUESTS_PER_CHEF as g }} "
                           f"from '{(root / 'config' / 'pricing-rules').as_posix()}'\n"
-                          "console.log(JSON.stringify({ t, c, w, at: Date.parse(at) }))\n", encoding="utf-8")
+                          f"import {{ ruleChefs, MAX_CHEFS as mx }} from '{(root / 'lib' / 'dispatch-plan').as_posix()}'\n"
+                          f"console.log(JSON.stringify({{ t, c, w, at: Date.parse(at), g, mx, rule: {json.dumps(RULE_HEADS)}.map((h) => ruleChefs(h)) }}))\n",
+                          encoding="utf-8")
         try:
             res = subprocess.run([npx, "-y", "tsx", "--tsconfig", str(root / "tsconfig.json"), str(script)],
                                  cwd=root, capture_output=True, text=True, timeout=180)
@@ -290,6 +298,9 @@ def tiers_match_the_ts_export() -> None:
           detail=f"desk {(mine, custom, weight)} / TS {(ts['t'], ts['c'], ts['w'])}")
     check("tiers: desk reads the moment the ladder closed as the TS does", desk.ladder_closed_at().timestamp() * 1000 == ts["at"],
           detail=f"desk {desk.ladder_closed_at().isoformat()} / TS {ts['at']}")
+    mine = (party_check.guests_per_chef(), party_check.MAX_CHEFS, [party_check.rule_chefs(h) for h in RULE_HEADS])
+    check("dispatch rule: desk's GUESTS_PER_CHEF, MAX_CHEFS and chefs by paid heads equal lib/dispatch-plan.ts (what the sheet prints for a rule plan)",
+          mine == (ts["g"], ts["mx"], ts["rule"]), detail=f"desk {mine} / TS {(ts['g'], ts['mx'], ts['rule'])}")
 
 
 # ----------------------------------------------- desk send: unread texts --
@@ -1043,6 +1054,119 @@ def party_check_checks() -> None:
     check("  no database to read: the block is the invoice lint's alone, and show still prints", r.has("✓ 缺项：无") and r.exit is None, r)
 
 
+# ---------------------------------------------------------------- 派工计划 in the review --
+# Whitney RH-20261007-9434 (11/15 Los Angeles) on 11-14, before the owner rewrote the stations note: the plan still
+# seated the guests at "10 six-foot tables ... two U shapes", captured from an 11-04 email, while the order had gone
+# to 30 chairs and no tables. The reviewer's packet showed no plan (no sheet sent yet); only `desk order show` did,
+# and the pass's fingerprint did not move when the note was rewritten. Texts and notes trimmed.
+WHITNEY_STATIONS = "That's 2 chefs, and for seating, 10 six-foot tables with 4 guests each, set up as two U shapes, one around each chef's grill."
+WHITNEY_FIXED = ("2 chefs, 2 grills. No tables: we bring only 30 black chairs. Guests need not sit around the grills; "
+                 "ask the host where to set up (a flat outdoor spot for each grill).")
+
+
+def whitney(fixed: bool) -> dict:  # RH-20261007-9434, 11/15 Los Angeles
+    p = pc_party("RH-20261007-9434", "2026-11-15T17:30:00+00:00", name="Whitney Test", guests=[pc_guest(f"Guest {i}", "chicken", "steak") for i in range(1, 41)],
+                 extras=[{"id": "gyoza", "qty": 4}, {"id": "folding_chairs", "qty": 30}],
+                 notes="Your chefs arrive around 4:30 PM to set up, so cooking starts at 5:30. We'll bring 30 black chairs, no tables.",
+                 prep_note="4 点半到场布置，5:30 开始。带 30 把黑色椅子（客人只要椅子，不带桌子）。",
+                 team=[{"id": "s-blu", "name": "Blu", "role": "lead_chef"}, {"id": "s-gary", "name": "Gary", "role": "lead_chef"}],
+                 address="1 Test Way, Los Angeles, CA 90049")
+    promise = {"chefs": 2, "grills": 2, "via": "email", "at": "2026-11-05T03:18:55.087Z", "sid": "selfcheck-email",
+               "text": f"Hi Whit, here's the plan for your 40. {WHITNEY_STATIONS} Let me know if that works."}
+    p["order"]["dispatch_plan"] = {"chefs": 2, "grills": 2, "heads": 40, "promise": promise,
+                                   **({"source": "owner", "stations_note": WHITNEY_FIXED, "set_by": "workbench:owner", "set_at": "2026-11-14T22:00:37.025Z"} if fixed else
+                                      {"source": "promise", "stations_note": WHITNEY_STATIONS, "set_by": "promise_capture", "set_at": "2026-11-05T03:18:55.087Z"})}
+    return p
+
+
+def review_db(party: dict, reviews=()) -> dict:
+    """The tables `desk order review` reads, for one pc_party: the order, its crew (no phones), no sheet sent yet."""
+    o = party["order"]
+    return {"orders": [o],
+            "order_staff_assignments": [{"order_id": o["id"], "staff_member_id": t["id"], "assignment_role": t["role"], "assignment_status": "confirmed"}
+                                        for t in party["team"]],
+            "staff_members": [{"id": t["id"], "display_name": t["name"], "full_name": None, "phone": None} for t in party["team"]],
+            "chef_sheet_links": [], "chef_change_notices": [], "invoice_update_requests": [], "lead_touchpoints": [],
+            "order_events": [{"order_id": o["id"], **r} for r in reviews]}
+
+
+def dispatch_plan_checks() -> None:
+    per = party_check.guests_per_chef()
+    g = party_check.gaps_of(whitney(False))
+    check("dispatch plan · Whitney (RH-20261007-9434) 11-14 before: the stations note seats 40 at '10 six-foot tables ... two U shapes', "
+          "the order has 30 chairs and no table: a warning, not blocking, with the fix for this order",
+          [(x["severity"], x["kind"]) for x in g] == [("warn", "stations")] and g[0]["evidence"][0]["text"] == WHITNEY_STATIONS
+          and "desk order set RH-20261007-9434 --stations" in g[0]["fix"], None, json.dumps(g, ensure_ascii=False)[:600])
+    check("  Whitney now (the owner's note: 'No tables: we bring only 30 black chairs'): nothing", pc_kinds(whitney(True)) == [])
+    tabled, ticked, hosts = whitney(False), whitney(False), whitney(False)
+    tabled["order"]["invoice_data"]["partyExtras"].append({"id": "folding_tables", "qty": 10})
+    for row in ticked["order"]["invoice_data"]["guests"]:
+        row["tablesChairs"] = True
+    hosts["order"]["dispatch_plan"]["stations_note"] = "Two U shapes of the host's own tables, one around each chef's grill."
+    check("  bare tables on the order, the package ticked on the guest rows, or the host's own tables in the note: no stations warning",
+          all(not any(k == "stations" for _, k in pc_kinds(p)) for p in (tabled, ticked, hosts)))
+
+    crew = pc_party("RH-20301114-0001", "2030-11-14T18:00:00+00:00", name="Crew Test", guests=[pc_guest(f"Guest {i}", "steak", "chicken") for i in range(1, 12)],
+                    team=[{"id": "s1", "name": "Blu", "role": "lead_chef"}, {"id": "s2", "name": "易非", "role": "lead_chef"}])
+    g = party_check.gaps_of(crew)
+    check("dispatch plan · two cooks on an 11-guest party, one chef by the rule: a warning - the sheet loads one grill, and the lint only flags too few",
+          [(x["severity"], x["kind"]) for x in g] == [("warn", "crew")] and g[0]["title"] == "派了 2 位主厨，派工计划只有 1 位师傅 / 1 台灶：备料单只装 1 台灶"
+          and "desk order set RH-20301114-0001 --chefs 2 --grills 2" in g[0]["fix"], None, json.dumps(g, ensure_ascii=False)[:600])
+    helper, owner = copy.deepcopy(crew), copy.deepcopy(crew)
+    helper["team"][1]["role"] = "assistant_chef"
+    owner["order"]["dispatch_plan"] = {"chefs": 2, "grills": 2, "source": "owner"}
+    check("  one of them a helper, or the owner's plan for two: nothing", pc_kinds(helper) == [] and pc_kinds(owner) == [])
+
+    # The rule counts paid heads the way the chef sheet does: an adult 1, a kid 5-12 half, a free 3-4 nothing.
+    rows = lambda adults, kids=0, little=0: {"mode": "detailed", "guests": [pc_guest(f"A{i}", "steak", "chicken") for i in range(adults)]
+                                             + [pc_guest(f"K{i}", "chicken", "shrimp", child=True) for i in range(kids)]
+                                             + [{**pc_guest(f"L{i}", "chicken", child=True), "isLittle": True} for i in range(little)]}
+    chefs = lambda inv, plan=None: party_check.effective_plan({"invoice_data": inv, "dispatch_plan": plan})["chefs"]
+    check(f"dispatch plan · the rule by paid heads ({per} a chef): {per - 1} adults + 2 kids + a free little one is one chef, + 3 kids two; "
+          "a stored rule plan's old count does not count, an owner's plan stands",
+          [chefs(rows(per - 1, 2, 1)), chefs(rows(per - 1, 3)), chefs(rows(per - 1, 3), {"chefs": 1, "grills": 1, "source": "rule", "heads": 20}),
+           chefs(rows(3 * per), {"chefs": 2, "grills": 3, "source": "owner"})] == [1, 2, 2, 2])
+    check("  quick mode: the counts, less the 'Little kids … ×N' line", chefs({"mode": "quick", "adultCount": per - 1, "childCount": 3, "promotions": [LITTLE_LINE]}) == 1
+          and chefs({"mode": "quick", "adultCount": per - 1, "childCount": 3}) == 2)
+
+    # desk order show prints the same line (desk._print_plan -> party_check.plan_lines).
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        desk._print_plan({"invoice_data": rows(per + 1), "dispatch_plan": {"chefs": 2, "grills": 2, "source": "promise", "stations_note": "Two U shapes by the pool.",
+                          "promise": {"chefs": 2, "grills": 2, "at": "2030-11-10T20:00:00Z", "via": "sms", "text": "For 29 we send two chefs,\n each with their own grill."}}},
+                         {"cooks": [{"name": "Gary"}], "helpers": [{"name": "易非"}]})
+        desk._print_plan({"invoice_data": {"mode": "quick", "adultCount": 12}, "dispatch_plan": None}, {"cooks": [], "helpers": []})
+    check("desk order show: the crew line - plan and why, who cooks and helps, the stations note, the whole promise, a cook short; no plan: the rule's count",
+          buf.getvalue().splitlines() == ["   派工: 2 位师傅 / 2 台灶 · 答应过客人 · 已派 Gary · 帮手 易非",
+                                          "         站位（备料单原样印出）: Two U shapes by the pool.",
+                                          "         答应过: 2 厨 / 2 灶 · 11-10 12:00 短信 \"For 29 we send two chefs, each with their own grill.\"",
+                                          "         ! 计划 2 位师傅，只派了 1 位",
+                                          f"   派工: 1 位师傅 / 1 台灶 · 按人头规则（付费 12 人，{per} 人一位；没有单独的计划） · 已派 还没派"],
+          None, buf.getvalue())
+
+    # desk order review: the plan is in 【二】 before any sheet was sent, and a pass does not survive a rewritten note.
+    prep = {"ok": True, "orders": [{"id": "id-RH-20261007-9434", "orderNo": "RH-20261007-9434", "timeLabel": "5:30 PM", "adults": 40, "kids": 0, "menuKnown": True,
+                                    "proteinLine": "Chicken ×40 · Steak ×40", "extrasLine": "Gyoza 40pcs · 椅子 30把", "cooler": {"note": None}}]}
+    gets = {"/api/admin/prep": prep, "/api/admin/sms-thread": {"messages": []}}
+    r = DeskRun(["order", "review", "RH-20261007-9434"], gets=gets, db=fake_db(review_db(whitney(False))))
+    two, three = r.out.find("【二】"), r.out.find("【三】")
+    check("desk order review · Whitney before: 【二】 shows the plan the sheet prints - 2 chefs / 2 grills promised, Blu + Gary, the stations note whole, "
+          "the 11-04 email - with no sheet sent yet; 【一】 warns that the note seats them at tables",
+          r.exit is None and r.has("派工: 2 位师傅 / 2 台灶 · 答应过客人 · 已派 Blu + Gary", f"站位（备料单原样印出）: {WHITNEY_STATIONS}",
+                                   "答应过: 2 厨 / 2 灶 · 11-04 19:18 邮件 \"Hi Whit,", "（还没有在用的备料单链接）",
+                                   "!  派工站位写着桌子 / U 形，订单上没有桌子：备料单最上面会照印这句")
+          and 0 < two < r.out.find("派工: 2 位师傅") < three and r.out.find("!  派工站位") < two, r)
+    check("  it reads and never writes", r.posted == [] and r.db_reads and all(x.startswith("/rest/v1/") for x in r.db_reads), r)
+    fp = (re.search(r"指纹 ([0-9a-f]{16})", r.out) or [None, None])[1]
+    passed = {"action": "order_reviewed", "created_at": "2026-11-14T21:00:00Z", "actor": "reviewer:selfcheck",
+              "metadata": {"verdict": "pass", "summary": "核了 14 条，都在", "fingerprint": fp}}
+    r = DeskRun(["order", "review", "RH-20261007-9434"], gets=gets, db=fake_db(review_db(whitney(False), [passed])))
+    check("  a pass for the order as it stands holds", bool(fp) and r.has("审查状态：✓"), r)
+    r = DeskRun(["order", "review", "RH-20261007-9434"], gets=gets, db=fake_db(review_db(whitney(True), [passed])))
+    check("  the owner rewrites the stations note after the pass: the pass no longer holds (11-14 the fingerprint stayed b9439e56b74ae31d across it)",
+          r.has("审查状态：✗", f"（指纹 {fp} → ", "要重新审查", f"站位（备料单原样印出）: {WHITNEY_FIXED}") and "派工站位写着桌子" not in r.out, r)
+
+
 def order_flow_checks() -> None:
     cancel = ["order", "cancel", ORDER_NO]
     r = DeskRun([*cancel, "--why", CANCEL_WHY, "--dry"], posts=cancel_reply)
@@ -1247,7 +1371,7 @@ def order_flow_checks() -> None:
 
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    tiers_match_the_ts_export()
+    rules_match_the_ts_export()
     check("tiers: the old ladder reads 8+2 as 9 paying heads (no tier), 11+1 as 11 (none, 10-14 closed first), 14+2 as 15 (official_party15 $60)",
           desk.party_line(desk.tier_heads(8, 2)) is None
           and PARTY[10] == {"id": "official_party10", "label": "Party Size Discount (10–14 adults): $30 off", "amount": 30}
@@ -1624,6 +1748,7 @@ def main() -> int:
     send_checks()
     order_flow_checks()
     party_check_checks()
+    dispatch_plan_checks()
 
     # A request with no "please" stops a send (owner 2026-11-01). Same samples as tests/voice-check.test.ts.
     now = datetime.datetime(2026, 11, 1, 12, 0, tzinfo=datetime.timezone.utc)
@@ -1683,6 +1808,29 @@ def main() -> int:
     check("review gate: the gratuity the customer picked on the bill does not void a review", order_review.review_state(pk(order=tip, reviews=[stamp("pass")]))[0] is True)
     crew = copy.deepcopy(base_party); crew["team"] = [{"id": "s2", "role": "lead_chef"}]
     check("review gate: a reassigned chef -> stale", order_review.review_state(pk(party=crew, reviews=[stamp("pass")]))[0] is False)
+    # The dispatch plan (Whitney RH-20261007-9434, 11-14): its chefs, grills and stations note are in the digest. An order
+    # with no plan of its own keeps the digest it had before, so its review was not undone by adding the plan.
+    check("review gate: an order with no dispatch plan keeps the fingerprint it had before the plan was digested", fp == "a7dc8d8852025f69", None, fp)
+    planned = copy.deepcopy(base_order)
+    planned["dispatch_plan"] = {"chefs": 2, "grills": 2, "source": "promise", "stations_note": "Two U shapes, each chef at an open end.", "heads": 30,
+                                "set_at": "2030-11-10T18:00:00Z", "promise": {"chefs": 2, "grills": 2, "at": "2030-11-10T18:00:00Z", "text": "For 30 we send two chefs."}}
+
+    def replanned(**changes):
+        o = copy.deepcopy(planned)
+        o["dispatch_plan"].update(changes)
+        return o
+    plan_pass = stamp("pass", pk(order=planned)["fingerprint"])
+    check("review gate: the plan's stations note, chefs or grills changed after the pass -> stale",
+          [order_review.review_state(pk(order=replanned(**c), reviews=[plan_pass]))[0] for c in ({"stations_note": "No tables: 30 chairs only."}, {"chefs": 3}, {"grills": 1})]
+          == [False, False, False])
+    check("  the plan saved again as it was (the owner's now, a new set_at, the promise gone) -> still fresh",
+          order_review.review_state(pk(order=replanned(source="owner", set_at="2030-11-12T21:00:00Z", promise=None), reviews=[plan_pass]))[0] is True)
+    legacy = stamp("pass", order_review.fingerprint(pk(order=planned), with_plan=False))
+    said = order_review.review_state(pk(order=planned, reviews=[legacy]))
+    check("  a pass stamped before the plan was in the digest -> stale, and it says that is all, not that the order changed",
+          said[0] is False and "之后订单和对话都没变，但那次的指纹不含派工计划" in said[1] and "【二】派工" in said[1], None, said[1])
+    texted_too = order_review.review_state(pk(order=planned, party=texted, reviews=[legacy]))
+    check("  ... and once the customer has texted since, the usual 'changed since'", texted_too[0] is False and "之后订单、派工或客人的话变了" in texted_too[1], None, texted_too[1])
     check("review email: the quoted thread below a reply is dropped",
           order_review._email_text({"text": "Carla is pescatarian.\r\n\r\nOn Thu, Nov 12, 2026 at 9:10 AM Real Hibachi <support@realhibachi.com>\r\nwrote:\r\n> Hi Jane"}) == "Carla is pescatarian.")
     # 【三】 since 2026-11-13: one link per chef per party, updated in place - 发于 is when it last went to him,

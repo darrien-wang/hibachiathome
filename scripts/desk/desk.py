@@ -2187,23 +2187,15 @@ def _print_totals(inv: dict) -> None:
 
 
 def _print_plan(row: dict, staffing: dict | None) -> None:
-    """One line: chefs / grills / source, the stations note, the promise, who is assigned."""
-    plan = row.get("dispatch_plan") if isinstance(row.get("dispatch_plan"), dict) else None
-    if not plan:
-        print(f"   派工: 按人头规则（required_staff_count={row.get('required_staff_count')}）- 没有单独的计划")
-        return
-    src = {"rule": "按人头规则", "owner": "老板定的", "promise": "答应过客人"}.get(str(plan.get("source")), str(plan.get("source")))
-    print(f"   派工: {plan.get('chefs')} 位师傅 / {plan.get('grills')} 台灶 ({src})"
-          + (f"  站位: {plan['stations_note']}" if plan.get("stations_note") else ""))
-    pr = plan.get("promise") if isinstance(plan.get("promise"), dict) else None
-    if pr:
-        print(f"         答应过: {pr.get('chefs')} 厨 / {pr.get('grills')} 灶 {str(pr.get('at') or '')[:10]} \"{str(pr.get('text') or '')[:120]}\"")
+    """The chef sheet's crew line (party_check.plan_lines; the reviewer's packet prints the same): chefs / grills and
+    why - a rule plan, or none, counted from today's headcount as the sheet does - who cooks and who helps, the
+    stations note, the promise."""
+    cooks = helpers = None
     if isinstance(staffing, dict):
-        cooks = [c.get("name") for c in (staffing.get("cooks") or [])]
-        helpers = [c.get("name") for c in (staffing.get("helpers") or [])]
-        print(f"         已派: {', '.join(cooks) or '-'}" + (f"  帮手: {', '.join(helpers)}" if helpers else ""))
-        if len(cooks) < int(plan.get("chefs") or 1):
-            print(f"         ! 计划 {plan.get('chefs')} 位师傅，只派了 {len(cooks)} 位")
+        cooks = [str(c.get("name") or "?") for c in staffing.get("cooks") or []]
+        helpers = [str(c.get("name") or "?") for c in staffing.get("helpers") or []]
+    for line in party_check.plan_lines(row, cooks, helpers):
+        print(line)
 
 
 def _email_invoice(order_no: str, data: dict, notes_reviewed: bool) -> dict:

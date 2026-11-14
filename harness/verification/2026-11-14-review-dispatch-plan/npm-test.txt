@@ -1,0 +1,6 @@
+npm test on this branch (claude/bold-kowalevski-357d2d, base origin/main 68f54e27), 2026-11-14 - no TS file changed; desk is Python and npm test never runs it:
+ℹ tests 604
+ℹ pass 604
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0

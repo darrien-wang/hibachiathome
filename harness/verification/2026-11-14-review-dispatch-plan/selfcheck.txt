@@ -1,0 +1,20 @@
+python scripts/desk/selfcheck.py on claude/bold-kowalevski-357d2d (base origin/main 68f54e27), 2026-11-14: 281 PASS, 0 FAIL (263 on origin/main, plus 18 new). The new ones:
+PASS  dispatch rule: desk's GUESTS_PER_CHEF, MAX_CHEFS and chefs by paid heads equal lib/dispatch-plan.ts (what the sheet prints for a rule plan)
+PASS  dispatch plan · Whitney (RH-20261007-9434) 11-14 before: the stations note seats 40 at '10 six-foot tables ... two U shapes', the order has 30 chairs and no table: a warning, not blocking, with the fix for this order
+PASS    Whitney now (the owner's note: 'No tables: we bring only 30 black chairs'): nothing
+PASS    bare tables on the order, the package ticked on the guest rows, or the host's own tables in the note: no stations warning
+PASS  dispatch plan · two cooks on an 11-guest party, one chef by the rule: a warning - the sheet loads one grill, and the lint only flags too few
+PASS    one of them a helper, or the owner's plan for two: nothing
+PASS  dispatch plan · the rule by paid heads (28 a chef): 27 adults + 2 kids + a free little one is one chef, + 3 kids two; a stored rule plan's old count does not count, an owner's plan stands
+PASS    quick mode: the counts, less the 'Little kids … ×N' line
+PASS  desk order show: the crew line - plan and why, who cooks and helps, the stations note, the whole promise, a cook short; no plan: the rule's count
+PASS  desk order review · Whitney before: 【二】 shows the plan the sheet prints - 2 chefs / 2 grills promised, Blu + Gary, the stations note whole, the 11-04 email - with no sheet sent yet; 【一】 warns that the note seats them at tables
+PASS    it reads and never writes
+PASS    a pass for the order as it stands holds
+PASS    the owner rewrites the stations note after the pass: the pass no longer holds (11-14 the fingerprint stayed b9439e56b74ae31d across it)
+PASS  review gate: an order with no dispatch plan keeps the fingerprint it had before the plan was digested
+PASS  review gate: the plan's stations note, chefs or grills changed after the pass -> stale
+PASS    the plan saved again as it was (the owner's now, a new set_at, the promise gone) -> still fresh
+PASS    a pass stamped before the plan was in the digest -> stale, and it says that is all, not that the order changed
+PASS    ... and once the customer has texted since, the usual 'changed since'
+all passed

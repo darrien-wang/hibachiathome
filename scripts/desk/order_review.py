@@ -7,12 +7,14 @@ on them is forgotten.
 
 This module is the reviewer's eyes and its stamp; it sends nothing.
 - load() gathers in one read what the reviewer needs: the order (rows, extras, deal, notes, prep note,
-  internal notes), the prep-list line, the link each chef holds right now (since 2026-11-13 one per chef
+  internal notes, the dispatch plan the sheet prints at the top: chefs, grills, stations note, promise),
+  the prep-list line, the link each chef holds right now (since 2026-11-13 one per chef
   per party: his page is always the order as it stands, and the link's snapshot is the version he was
   last told about), the machine checks of party_check, and every word on the customer's side: texts,
   emails, website forms, party-page messages and the lead's notes.
-- fingerprint() digests what a review vouches for: the order as the chef will get it, the crew, and the
-  newest thing the customer said. A review is good only while the fingerprint is unchanged.
+- fingerprint() digests what a review vouches for: the order as the chef will get it (the dispatch plan
+  with it), the crew, and the newest thing the customer said. A review is good only while the fingerprint
+  is unchanged.
 - A verdict is an order_events row, action order_reviewed: {verdict, summary, fingerprint}.
 """
 from __future__ import annotations
@@ -110,9 +112,10 @@ def _latest(times) -> str:
     return max((str(t) for t in times if t), default="")
 
 
-def fingerprint(packet: dict) -> str:
+def fingerprint(packet: dict, *, with_plan: bool = True) -> str:
     """What a review vouches for, digested. It changes when the order changes in a way the chef or the
-    customer would see, when the crew changes, or when the customer says something new."""
+    customer would see, when the crew changes, or when the customer says something new. with_plan=False:
+    the digest as it was before the dispatch plan went in (2026-11-14), to name a pass recorded before."""
     o, party = packet["order"], packet["party"]
     inv = o.get("invoice_data") if isinstance(o.get("invoice_data"), dict) else {}
     parts = {
@@ -130,6 +133,12 @@ def fingerprint(packet: dict) -> str:
                                  + [r.get("at") for r in party.get("requests") or []]),
         "promises_noted": _latest([n.get("at") for n in party.get("lead_notes") or [] if PROMISE_NOTE.search(str(n.get("note") or ""))]),
     }
+    # The dispatch plan the sheet prints at the top: chefs, grills, stations note (Whitney RH-20261007-9434, 11-14:
+    # the stations note was rewritten between two reviews and the fingerprint stayed the same). Only on an order that
+    # has a plan of its own, so an order without one keeps the fingerprint its review was stamped with.
+    plan = party_check.stored_plan(o) if with_plan else None
+    if plan:
+        parts["dispatch_plan"] = {k: plan[k] for k in ("chefs", "grills", "stations_note")}
     return hashlib.sha256(json.dumps(parts, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8")).hexdigest()[:16]
 
 
@@ -144,6 +153,10 @@ def review_state(packet: dict) -> tuple[bool, str]:
     if meta.get("verdict") != "pass":
         return False, f"{when} 那次审查没过：{str(meta.get('summary') or '')[:160]}"
     if meta.get("fingerprint") != packet["fingerprint"]:
+        if meta.get("fingerprint") == fingerprint(packet, with_plan=False):
+            # Nothing else moved: the pass was stamped without the plan in the digest (before 2026-11-14, when the packet
+            # had no plan lines either, or before the order had a plan) - say so instead of "something changed".
+            return False, f"{when} 审查过，之后订单和对话都没变，但那次的指纹不含派工计划（指纹 {meta.get('fingerprint')} → {packet['fingerprint']}）：对着【二】派工那几行再审一次"
         return False, f"{when} 审查过，之后订单、派工或客人的话变了（指纹 {meta.get('fingerprint')} → {packet['fingerprint']}），要重新审查"
     return True, f"{when} 审查通过，之后没有变化：{str(meta.get('summary') or '')[:160]}"
 
@@ -204,11 +217,15 @@ def render(packet: dict) -> list[str]:
         f"审查材料 {o.get('order_no')} · {str(o.get('event_start') or '')[:16].replace('T', ' ')} · {o.get('event_address') or '-'} · {o.get('customer_name') or '-'} · {o.get('order_status')}",
         f"指纹 {packet['fingerprint']} · 审查状态：{'✓ ' if fresh else '✗ '}{why}",
         "━" * 78,
-        "【一】机器核对（party_check：答应过的桌椅、只在备注里的过敏、派对页对不上、改动有没有通知到师傅）",
+        "【一】机器核对（party_check：答应过的桌椅、只在备注里的过敏、派对页对不上、派工和订单对不上、改动有没有通知到师傅）",
     ]
     out += party_check.render(party, packet["gaps"])
     out += ["", "【二】订单（师傅和客人看到的都从这里来）",
             f"   人数 大 {inv.get('adultCount')} · 小 {inv.get('childCount')} · 模式 {inv.get('mode')} · 付款 {inv.get('paymentMethod')} · 路费 {inv.get('travelFee')} · 押金 {inv.get('depositAmount')}"]
+    # The crew line the chef sheet prints at the top, stations note word for word - also before any sheet was sent.
+    team = party.get("team") or []
+    out += party_check.plan_lines(o, [str(t.get("name") or "?") for t in team if t.get("role") != "assistant_chef"],
+                                  [str(t.get("name") or "?") for t in team if t.get("role") == "assistant_chef"])
     for g in inv.get("guests") or []:
         if not isinstance(g, dict):
             continue

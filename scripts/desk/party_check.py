@@ -25,7 +25,9 @@ Blocking (!!), as the owner set them:
 Warnings (!): arrival time, gate / call on arrival, the occasion, spectators who do not eat, "double X"
 for a guest whose row has X once (the prep list counts the row), bring-items (extra rice, sriracha, a
 speaker...) that are not on the prep list or the 备货备注, site notes (flat ground, stairs), dietary
-instructions (no butter, kosher), an allergy that only a text or the party page mentions.
+instructions (no butter, kosher), an allergy that only a text or the party page mentions; and the dispatch
+plan against the order: a stations note that seats the guests at tables or in U shapes while the order
+loads no table (the sheet prints the note word for word), more cooks on the order than the plan has chefs.
 
 Matching is by keywords, English and Chinese, kept narrow: tuned on the 11-11/11-12 cases (selfcheck has
 them). A requirement taken back later ("不需要 kosher 肉了") is dropped. Nothing here writes anything.
@@ -33,6 +35,9 @@ them). A requirement taken back later ("不需要 kosher 肉了") is dropped. No
 from __future__ import annotations
 
 import datetime as _dt
+import functools
+import math
+import pathlib
 import re
 from zoneinfo import ZoneInfo
 
@@ -300,6 +305,111 @@ def setup_units(inv: dict) -> dict[str, int]:
     return {"tables": int(tc + line("folding_chairs") + line("folding_tables")),
             "linens": int(tc + line("white_linen") + line("white_tablecloth")),
             "utensils": int(ut)}
+
+
+def loads_tables(inv: dict) -> bool:
+    """The prep list loads a table (lib/prep-bom.ts orderPrep): the package's (tables_chairs, a guest row ticked for
+    tables and chairs) or a bare one rented on its own (folding_tables). Chairs on their own bring no table."""
+    extras = inv.get("partyExtras") if isinstance(inv.get("partyExtras"), list) else []
+    line = lambda i: sum(max(0, float(e.get("qty") or 0)) for e in extras if isinstance(e, dict) and e.get("id") == i)
+    rows = sum(1 for g in inv.get("guests") or [] if isinstance(g, dict) and g.get("tablesChairs")) if inv.get("mode") == "detailed" else 0
+    return line("tables_chairs") + rows + line("folding_tables") > 0
+
+
+# ---------------------------------------------------------------- the dispatch plan --
+# orders.dispatch_plan (lib/dispatch-plan.ts, mirrored in the invoice repo): how many chefs and grills, where
+# they stand, what the customer was promised. The chef sheet prints it at the top - the crew line, with the
+# stations note word for word (invoice components/chef/prep-sheet.tsx, from lib/chef-sheet.ts effectivePlan) -
+# and loads one grill, mat and sake per planned grill.
+
+PLAN_SOURCES = {"rule": "按人头规则", "owner": "老板定的", "promise": "答应过客人"}
+MAX_CHEFS = 6  # lib/dispatch-plan.ts
+PRICING_RULES = pathlib.Path(__file__).resolve().parents[2] / "config" / "pricing-rules.ts"
+
+
+@functools.lru_cache(maxsize=None)
+def guests_per_chef() -> int | None:
+    """GUESTS_PER_CHEF from config/pricing-rules.ts: one chef and grill per this many paid heads. None when the file
+    does not say - the rule's count then prints as unknown, never guessed."""
+    try:
+        m = re.search(r"export const GUESTS_PER_CHEF = (\d+)", PRICING_RULES.read_text(encoding="utf-8"))
+    except OSError:
+        return None
+    return int(m.group(1)) if m and int(m.group(1)) > 0 else None
+
+
+def _count(v) -> int | None:
+    """lib/dispatch-plan.ts clampCount: a whole number of chefs or grills, 1 to MAX_CHEFS; else None."""
+    try:
+        n = math.floor(float(v) + 0.5)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return n if 1 <= n <= MAX_CHEFS else None
+
+
+def _text(v, limit: int) -> str | None:
+    return v.strip()[:limit] if isinstance(v, str) and v.strip() else None
+
+
+def stored_plan(order: dict) -> dict | None:
+    """orders.dispatch_plan as lib/dispatch-plan.ts normalizeDispatchPlan reads it: chefs, grills, stations_note,
+    source, promise. None when the column is empty or garbage: the sheet then goes by the headcount rule."""
+    raw = order.get("dispatch_plan")
+    chefs = _count(raw.get("chefs")) if isinstance(raw, dict) else None
+    if not chefs:
+        return None
+    p = raw.get("promise") if isinstance(raw.get("promise"), dict) else {}
+    p_chefs = _count(p.get("chefs"))
+    promise = {"chefs": p_chefs, "grills": _count(p.get("grills")) or p_chefs, "text": _text(p.get("text"), 400) or "",
+               "at": _text(p.get("at"), 40), "via": p.get("via") if p.get("via") in ("sms", "email") else None} if p_chefs else None
+    return {"chefs": chefs, "grills": _count(raw.get("grills")) or chefs, "stations_note": _text(raw.get("stations_note"), 200),
+            "source": raw.get("source") if raw.get("source") in ("owner", "promise") else "rule", "promise": promise}
+
+
+def _num(v) -> float:
+    try:
+        return float(v or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def sheet_heads(inv: dict) -> float:
+    """Paid heads as the chef sheet counts them for the plan (invoice lib/chef-sheet.ts buildChefSheet, paidHeads):
+    an adult 1, a kid 5-12 half, a free 3-4 nothing. The guest rows when there are any, else the counts less the
+    little kids on the 'Little kids … ×N' line."""
+    guests = [g for g in inv.get("guests") or [] if isinstance(g, dict)]
+    if inv.get("mode") == "detailed" and guests:
+        adults = sum(1 for g in guests if not g.get("isChild"))
+        kids = sum(1 for g in guests if g.get("isChild") and not g.get("isLittle"))
+    else:
+        little = next((p for p in inv.get("promotions") or [] if isinstance(p, dict) and re.match(r"little kids", str(p.get("label") or ""), re.I)), None)
+        m = re.search(r"×(\d+)", str((little or {}).get("label") or ""))
+        adults = _num(inv.get("adultCount"))
+        kids = max(0.0, _num(inv.get("childCount")) - (int(m.group(1)) if m else 0))
+    return max(0.0, adults) + 0.5 * max(0.0, kids)
+
+
+def rule_chefs(heads: float) -> int | None:
+    """lib/dispatch-plan.ts ruleChefs: one chef and grill per GUESTS_PER_CHEF paid heads, at least one, at most
+    MAX_CHEFS. None when GUESTS_PER_CHEF could not be read."""
+    per = guests_per_chef()
+    if not per:
+        return None
+    return 1 if heads <= 0 else max(1, min(MAX_CHEFS, math.ceil(heads / per)))
+
+
+def effective_plan(order: dict) -> dict:
+    """The plan the chef sheet prints (lib/dispatch-plan.ts effectivePlan): an owner's or a promise plan as written; a
+    rule plan, or none, follows the headcount as it stands (rule_chefs) and keeps the stored stations note and
+    promise. chefs / grills None: the rule could not be read. stored: the order has a plan of its own; heads / per:
+    what the rule counted."""
+    stored = stored_plan(order)
+    if stored and stored["source"] != "rule":
+        return {**stored, "stored": True, "heads": None, "per": None}
+    heads = sheet_heads(invoice_of(order))
+    chefs = rule_chefs(heads)
+    return {"chefs": chefs, "grills": chefs, "source": "rule", "stations_note": (stored or {}).get("stations_note"),
+            "promise": (stored or {}).get("promise"), "stored": bool(stored), "heads": heads, "per": guests_per_chef()}
 
 
 def first_name(name: str | None) -> str:
@@ -598,6 +708,34 @@ def warn_gaps(party: dict, srcs: list[dict], carr: list[dict], everything: list[
     return gaps
 
 
+# A stations note that puts the guests at tables or in U shapes ("10 six-foot tables ... set up as two U shapes").
+STATION_TABLES = r"\btables?\b|\bu[\s-]?shaped?s?\b|桌|U\s*(?:形|型|字)"
+
+
+def crew_gaps(party: dict) -> list[dict]:
+    """The dispatch plan against the order (warnings). A stations note that seats the guests at tables or in U shapes
+    while the order loads no table: the sheet prints the note word for word (Whitney RH-20261007-9434, 11-14: "10
+    six-foot tables ... two U shapes" captured from an 11-04 email, then the order went to 30 chairs and no tables).
+    More cooks on the order than the plan has chefs: the sheet loads the plan's grills, and lib/dispatch-plan.ts
+    lintStaffing only flags too few."""
+    order = party["order"]
+    plan = effective_plan(order)
+    no = order.get("order_no") or "<单号>"
+    out = []
+    note = plan["stations_note"] or ""
+    if note and has(STATION_TABLES, note) and not has(HOST, note) and not loads_tables(invoice_of(order)):
+        out.append(_gap("warn", "stations", "派工站位写着桌子 / U 形，订单上没有桌子：备料单最上面会照印这句",
+                        f"站位改成现在的摆法（desk order set {no} --stations \"…\"，--stations \"\" 清掉）；真要带桌子，加订单行（--add-extra folding_tables=N 或桌椅套餐）",
+                        [{"src": "plan", "label": "派工站位", "at": None, "text": note}]))
+    cooks = [str(t.get("name") or "?") for t in party.get("team") or [] if t.get("role") != "assistant_chef"]
+    if plan["chefs"] and len(cooks) > plan["chefs"]:
+        out.append(_gap("warn", "crew", f"派了 {len(cooks)} 位主厨，派工计划只有 {plan['chefs']} 位师傅 / {plan['grills']} 台灶：备料单只装 {plan['grills']} 台灶",
+                        f"都要上灶就改计划（desk order set {no} --chefs {len(cooks)} --grills {len(cooks)}）；只是来帮忙的，在工作台派工里改成帮手",
+                        [{"src": "plan", "label": "派工", "at": None,
+                          "text": f"主厨 {'、'.join(cooks)}；计划 {plan['chefs']} 位师傅 / {plan['grills']} 台灶（{PLAN_SOURCES.get(plan['source'], plan['source'])}）"}]))
+    return out
+
+
 def gaps_of(party: dict, *, blocking_only: bool = False) -> list[dict]:
     """Every gap for one party, blocking first. blocking_only: the two the owner made blocking, from the order's
     own notes, the lead's and the deal (what `desk order show` reads)."""
@@ -607,7 +745,7 @@ def gaps_of(party: dict, *, blocking_only: bool = False) -> list[dict]:
     out = setup_gaps(party, srcs, carr) + allergy_gaps(srcs, carr, everything)
     if blocking_only:
         return [g for g in out if g["severity"] == "block"]
-    out += warn_gaps(party, srcs, carr, everything)
+    out += warn_gaps(party, srcs, carr, everything) + crew_gaps(party)
     return sorted(out, key=lambda g: 0 if g["severity"] == "block" else 1)
 
 
@@ -681,6 +819,35 @@ def sheet_lines(party: dict, today: str | None = None) -> list[tuple[str, str]]:
 
 # ---------------------------------------------------------------- printing --
 
+def plan_lines(order: dict, cooks: list[str] | None, helpers: list[str] | None = None) -> list[str]:
+    """The crew line at the top of the chef sheet as desk prints it (`desk order show`, the reviewer's 【二】): chefs /
+    grills and why, who cooks and who helps, the stations note the sheet prints word for word, the promise the plan
+    carries. cooks / helpers: the names on the order; None = the assignments were not read."""
+    plan = effective_plan(order)
+    shown = lambda v: "?" if v is None else v
+    why = PLAN_SOURCES.get(plan["source"], plan["source"])
+    if plan["source"] == "rule":
+        rule = f"付费 {plan['heads']:g} 人，{plan['per']} 人一位" if plan["per"] else "读不到 config/pricing-rules.ts 的 GUESTS_PER_CHEF"
+        why += f"（{rule}{'' if plan['stored'] else '；没有单独的计划'}）"
+    head = f"   派工: {shown(plan['chefs'])} 位师傅 / {shown(plan['grills'])} 台灶 · {why}"
+    if cooks is not None:
+        head += f" · 已派 {' + '.join(cooks) if cooks else '还没派'}" + (f" · 帮手 {', '.join(helpers)}" if helpers else "")
+    out = [head]
+    if plan["stations_note"]:
+        out.append(f"         站位（备料单原样印出）: {plan['stations_note']}")
+    pr = plan["promise"]
+    if pr:
+        via = {"sms": " 短信", "email": " 邮件"}.get(pr["via"] or "", "")
+        said = re.sub(r"\s+", " ", pr["text"]).strip()
+        out.append(f"         答应过: {pr['chefs']} 厨 / {pr['grills']} 灶 · {_mdhm(pr['at']) or '?'}{via} \"{said}\"")
+    if cooks is not None and plan["chefs"]:
+        if 0 < len(cooks) < plan["chefs"]:
+            out.append(f"         ! 计划 {plan['chefs']} 位师傅，只派了 {len(cooks)} 位")
+        elif len(cooks) > plan["chefs"]:
+            out.append(f"         ! 派了 {len(cooks)} 位主厨，计划只有 {plan['chefs']} 位师傅 / {plan['grills']} 台灶：备料单只装 {plan['grills']} 台灶")
+    return out
+
+
 def render(party: dict, gaps: list[dict], today: str | None = None) -> list[str]:
     order = party["order"]
     inv = invoice_of(order)
@@ -725,7 +892,7 @@ def render(party: dict, gaps: list[dict], today: str | None = None) -> list[str]
 # Read-only: GET /api/admin/prep and /api/admin/sms-thread?phone= (no lead id, so nothing is synced), and
 # direct database reads. `site_get(path, params)` and `db_get(path)` are desk's.
 
-ORDER_COLUMNS = "id,order_no,customer_name,customer_phone,event_start,event_address,order_status,internal_notes,prep_note,setup_selection,source_metadata,invoice_data"
+ORDER_COLUMNS = "id,order_no,customer_name,customer_phone,event_start,event_address,order_status,internal_notes,prep_note,setup_selection,source_metadata,invoice_data,dispatch_plan"
 
 
 def _q(ids) -> str:

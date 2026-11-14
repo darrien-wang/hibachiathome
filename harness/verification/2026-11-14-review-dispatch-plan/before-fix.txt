@@ -1,0 +1,12 @@
+Before the fix, 2026-11-14.
+
+1. The real order RH-20261007-9434 (order_events, read-only): the desk fingerprint did not move when the owner rewrote the plan's stations note.
+   2026-11-14T21:57:55Z order_reviewed fail   fingerprint b9439e56b74ae31d  order_key 86b3136cd3937315
+   2026-11-14T22:00:37Z dispatch_plan_set (workbench:owner): promise -> owner, stations note '10 six-foot tables ... two U shapes' -> 'No tables: we bring only 30 black chairs ...'
+   2026-11-14T22:09:06Z order_reviewed fail   fingerprint b9439e56b74ae31d  order_key 42cd1019dada9564   <- the invoice app's key moved, the desk's did not
+
+2. selfcheck with HEAD's order_review.fingerprint() swapped in (no dispatch plan in the digest), everything else as on this branch:
+FAIL    the owner rewrites the stations note after the pass: the pass no longer holds (11-14 the fingerprint stayed b9439e56b74ae31d across it)
+FAIL  review gate: the plan's stations note, chefs or grills changed after the pass -> stale
+2 FAILED
+   Only the two fingerprint checks fail, so they cover the bug.

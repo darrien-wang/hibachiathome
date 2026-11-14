@@ -1,0 +1,28 @@
+Production, read-only, 2026-11-14 ~14:20-14:50 PT: desk.main / party_check / order_review with every non-GET HTTP call and every database write
+refused by the runner (keys from the main checkout's .env.local, never printed). Nothing was written; no order data changed.
+
+1. desk order review RH-20261007-9434 with the final code, 14:47 PT. 【二】 now carries the plan, before and after a sheet was sent (the
+   promise's email text left out here):
+   派工: 2 位师傅 / 2 台灶 · 老板定的 · 已派 Blu + Gary
+         站位（备料单原样印出）: 2 chefs, 2 grills. No tables: we bring only 30 black chairs. Guests need not sit around the grills; ask the host where to set up (a flat outdoor spot for each grill).
+   Timeline today: pass 14:25 -> customer texts 14:30 -> pass 14:38 (stamped 9fec17228295e07d, HEAD's digest) -> both prep sheets and the
+   reminder sent 14:40 -> customer texts 14:45. So the packet reads ✗ for a real change (the 14:45 text), with the usual message.
+
+2. Every party 11-14 .. 12-31 (party_check.load_parties, texts=False):
+60 orders, 57 not cancelled, 57 with a stored plan
+plans by (source, stored): {('rule', True): 48, ('owner', True): 2, ('promise', True): 7}
+new warnings: 0
+   (48 rule plans written when the order was made or by the 10-18 backfill; 2 owner; 7 promise. Only RH-20261007-9434 has a stations
+   note, the owner's corrected one. No party has more cooks than its plan. Two promise plans are a cook short with a helper,
+   RH-20261110-1309 and RH-20261023-1733 - the lint's existing second_cook_missing, printed as '! 计划 2 位师傅，只派了 1 位'.)
+
+3. Every order whose newest review is a pass, as of ~14:35 PT (before the 14:38 pass above): the stamped fingerprint vs HEAD's and this branch's, on one packet.
+   Every order carries a stored plan, so every pass recorded before this change reads as stale once; where nothing else
+   moved, review_state now says so: '之后订单和对话都没变，但那次的指纹不含派工计划 … 对着【二】派工那几行再审一次':
+6 reviewed orders, newest verdict a pass on 6
+RH-20261027-1835 2026-11-13T19:00 plan=yes stamp=8d3293dc1664ddc5 old=8d3293dc1664ddc5 new=59b0ae372ae0d708 -> fresh before, VOIDED by this change
+RH-20261004-3574 2026-11-13T20:00 plan=yes stamp=2cdf306c577b5b7f old=2cdf306c577b5b7f new=bc65743aa9cdaa97 -> fresh before, VOIDED by this change
+RH-20261107-5825 2026-11-14T17:00 plan=yes stamp=659179af9d31c888 old=659179af9d31c888 new=a106336e91f35350 -> fresh before, VOIDED by this change
+RH-20261020-3395 2026-11-14T18:00 plan=yes stamp=78cd6b296a4c075d old=78cd6b296a4c075d new=779fc6444c258d22 -> fresh before, VOIDED by this change
+RH-20261113-9596 2026-11-14T20:00 plan=yes stamp=6a1ef5269520d619 old=6a1ef5269520d619 new=bd7aca84c7c2f7e3 -> fresh before, VOIDED by this change
+RH-20261007-9434 2026-11-15T17:30 plan=yes stamp=70427934247f2227 old=9fec17228295e07d new=f412098734b7336c -> already stale before (order / crew / customer changed since)
