@@ -33,6 +33,8 @@ export type ShareSlice = {
   ratio: number
   parties: ShareParty[]
   target: "low" | "ok" | "high" | null
+  /** 不在派单顺序里的师傅（兼职）：一人一块，按名字列（老板 2026-11-14「所有的直接列出来」）。 */
+  partTime?: boolean
 }
 
 export type WeekShare = { slices: ShareSlice[]; totalHeads: number; partyCount: number }
@@ -73,10 +75,10 @@ const targetOf = (name: string, heads: number, weeks: number): ShareSlice["targe
  */
 export function weekShare(chefs: ShareChef[], orders: ShareOrder[], week: string, weekEnd: string, weeks = 1): WeekShare {
   const byKey = new Map<string, ShareSlice>()
-  const sliceOf = (key: string, label: string) => {
+  const sliceOf = (key: string, label: string, partTime = false) => {
     const cur = byKey.get(key)
     if (cur) return cur
-    const made: ShareSlice = { key, label, heads: 0, ratio: 0, parties: [], target: null }
+    const made: ShareSlice = { key, label, heads: 0, ratio: 0, parties: [], target: null, ...(partTime ? { partTime: true } : {}) }
     byKey.set(key, made)
     return made
   }
@@ -89,7 +91,7 @@ export function weekShare(chefs: ShareChef[], orders: ShareOrder[], week: string
       const chefCount = Math.max(1, s.team.length)
       const wholeHeads = s.counts.adults + KID_HEAD * s.counts.kids
       const heads = wholeHeads / chefCount
-      const slice = inRotation ? sliceOf(c.id, c.name) : sliceOf(OTHER_KEY, "兼职师傅")
+      const slice = sliceOf(c.id, c.name, !inRotation)
       slice.heads += heads
       slice.parties.push({ orderId: s.orderId, date: s.date, eventStart: s.eventStart, customer: s.customer, address: s.address, heads, wholeHeads, chefCount, chefName: c.name })
       seen.add(s.orderId)
@@ -107,10 +109,11 @@ export function weekShare(chefs: ShareChef[], orders: ShareOrder[], week: string
   }
   const rank = (s: ShareSlice) => {
     if (s.key === UNASSIGNED_KEY) return ROTATION.length + 1
-    if (s.key === OTHER_KEY) return ROTATION.length
+    if (s.key === OTHER_KEY || s.partTime) return ROTATION.length
     return ROTATION.indexOf(s.label)
   }
-  const slices = [...byKey.values()].sort((a, b) => rank(a) - rank(b))
+  // 兼职的排在派单顺序后面，人多的在前。
+  const slices = [...byKey.values()].sort((a, b) => rank(a) - rank(b) || (a.partTime && b.partTime ? b.heads - a.heads : 0))
   const totalHeads = slices.reduce((n, s) => n + s.heads, 0)
   for (const s of slices) {
     s.ratio = totalHeads > 0 ? s.heads / totalHeads : 0

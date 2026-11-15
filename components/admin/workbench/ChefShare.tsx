@@ -16,7 +16,8 @@ const OTHER_COLOR = "#6250d6"
 const UNASSIGNED_COLOR = "#b9b5b3"
 const colorOf = (s: ShareSlice) => {
   if (s.key === UNASSIGNED_KEY) return UNASSIGNED_COLOR
-  if (s.key === OTHER_KEY) return OTHER_COLOR
+  // 兼职师傅一人一块，同一个颜色（不另造颜色），靠右边的名字认人。
+  if (s.key === OTHER_KEY || s.partTime) return OTHER_COLOR
   return SLICE_COLORS[ROTATION.indexOf(s.label)] ?? OTHER_COLOR
 }
 
