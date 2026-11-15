@@ -97,7 +97,7 @@ export function getAiFacts(now = new Date()): { summary: string; sections: FactS
       addOn("edamame") && `edamame ${usd(addOn("edamame")!.price)}`,
       addOn("noodles") && `hibachi noodles +${usd(addOn("noodles")!.price)} per guest`,
       `tables (one 6-ft table per 4 guests), chairs & tablecloths +${usd(TABLES_CHAIRS_PER_GUEST)} per guest`,
-      `place settings (two plates, a knife, fork and spoon, and a napkin; no cups) +${usd(UTENSILS_PER_GUEST)} per guest`,
+      `place settings (two plates, a knife, fork and spoon, and a napkin; guests bring their own cups) +${usd(UTENSILS_PER_GUEST)} per guest`,
     ]
       .filter(Boolean)
       .join(", ")}.`,

@@ -194,7 +194,7 @@ export default function RentalsBuilder({ quoteBase = "/quote" }: Props) {
       id: "full" as const,
       name: "Full setup",
       price: FULL_SETUP_PER_GUEST,
-      items: ["Everything in Tables & chairs", "Two plates, knife, fork, spoon & napkin (no cups)", "Choose a table theme"],
+      items: ["Everything in Tables & chairs", "Two plates, knife, fork, spoon & napkin (bring your own cups)", "Choose a table theme"],
     },
   ]
 
