@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { can, resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { isStockItem, stockLabel, stockUnit } from "@/lib/pantry"
+import { weightedHeads } from "@/lib/party-heads"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
   // event_start 是墙上时间存 UTC：日期直接取 ISO 前 10 位。
   const served = ((orderRows ?? []) as OrderLite[])
     .filter((o) => o.event_start && !/cancel|void|refund/i.test(o.order_status ?? ""))
-    .map((o) => ({ day: (o.event_start as string).slice(0, 10), guests: (o.guest_adult_count ?? 0) + (o.guest_child_count ?? 0) }))
+    .map((o) => ({ day: (o.event_start as string).slice(0, 10), guests: weightedHeads(o.guest_adult_count, o.guest_child_count) })) // 小孩 0.5 人（老板 2026-11-14）
 
   const monthStart = `${today.slice(0, 8)}01`
   const prevMonthEnd = ptDay(new Date(Date.parse(`${monthStart}T12:00:00Z`) - 86400_000 * 1.5))

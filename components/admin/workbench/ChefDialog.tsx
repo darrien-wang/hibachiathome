@@ -5,6 +5,7 @@ import { adminJson, AdminApiError } from "./api"
 import { Chip, Dialog, DialogHead, Field, Kicker, PhoneIcon, Tag } from "./ui"
 import { askConfirm, askPrompt } from "./ask"
 import { addDays, copyText, dowZh, md, money, prettyPhone, ptToday, stamp } from "./helpers"
+import { headsText } from "@/lib/party-heads"
 import { APPRENTICE_ASSIST, APPRENTICE_WATCH, FILE_KIND_LABELS, FILE_STATUS_LABELS, METHOD_LABELS, METHOD_SHORT, shiftNet, weekStartOf, type AssetRow, type ChefDetail, type ChefFile, type SettleMethod, type ShiftRow } from "./chef-types"
 import type { ChefTabKey } from "./ChefsTab"
 import { LogisticsSettle } from "./LogisticsSettle"
@@ -190,7 +191,7 @@ export function ChefDialog({
       const k = settleView === "week" ? weekStartOf(s.date) : s.date.slice(0, 7)
       const row = g.get(k) ?? { k, shifts: 0, guests: 0, pay: 0, cash: 0 }
       row.shifts += 1
-      row.guests += s.share
+      row.guests += s.shareHeads ?? s.share
       row.pay += s.payCents
       row.cash += s.cashCents
       g.set(k, row)
@@ -603,7 +604,7 @@ export function ChefDialog({
                     </div>
                     {s.team.length > 1 ? <div style={{ fontSize: 11, color: "var(--color-accent-700)" }}>与 {s.team.filter((t) => t.id !== chefId).map((t) => t.name).join("、")} 同场 · 人头平分</div> : null}
                   </div>
-                  <span style={{ whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>{s.team.length > 1 ? `${s.share} / ${s.guests} 人` : `${s.guests} 人`}</span>
+                  <span style={{ whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>{s.team.length > 1 ? `${headsText(s.shareHeads ?? s.share)} / ${headsText(s.heads ?? s.guests)} 人` : `${headsText(s.heads ?? s.guests)} 人`}</span>
                   <Tag cls={s.date < today ? "tag-neutral" : "tag-ink"}>{s.date < today ? "已办" : "已派"}</Tag>
                 </div>
               ))}
@@ -642,7 +643,7 @@ export function ChefDialog({
                               </div>
                               <div style={{ fontSize: 12, color: "var(--color-neutral-700)" }}>跟 {h.leads.join("、") || "（主厨还没派）"}</div>
                             </div>
-                            <span style={{ whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>{h.guests} 人</span>
+                            <span style={{ whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>{headsText(h.guests)} 人</span>
                             <Tag cls={h.done ? "tag-neutral" : "tag-ink"}>{k ? `第 ${k} 台 · ${k <= APPRENTICE_WATCH ? "看" : k <= need ? "半独立" : "已满"}` : "要跟"}</Tag>
                           </div>
                         )
@@ -1019,7 +1020,7 @@ export function ChefDialog({
                         {s.customer ?? "客户"}
                       </button>
                       <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
-                        {md(s.date)} {dowZh(s.date)} · {s.payFixedCents != null ? `${s.guests} 人 · 一口价` : s.team.filter((t) => !t.fixed).length > 1 ? `${s.share} / ${s.guests} 人 · 与 ${s.team.filter((t) => t.id !== chefId && !t.fixed).map((t) => t.name).join("、")} 平分` : `${s.share} 人`}
+                        {md(s.date)} {dowZh(s.date)} · {s.payFixedCents != null ? `${headsText(s.heads ?? s.guests)} 人 · 一口价` : s.team.filter((t) => !t.fixed).length > 1 ? `${headsText(s.shareHeads ?? s.share)} / ${headsText(s.heads ?? s.guests)} 人 · 与 ${s.team.filter((t) => t.id !== chefId && !t.fixed).map((t) => t.name).join("、")} 平分` : `${headsText(s.shareHeads ?? s.share)} 人`}
                         {s.method ? (
                           <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "0 4px", fontSize: 11 }} disabled={!owner || !!busy || !!s.settledAt} onClick={() => void clearMethod(s)} title="点一下改回待确认">
                             · {METHOD_SHORT[s.method]}
@@ -1266,7 +1267,7 @@ export function ChefDialog({
                   <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                     <div style={{ height: 10, background: "var(--color-neutral-300)", width: p.w, flex: "none", maxWidth: "60%" }} />
                     <span style={{ fontSize: 12, color: "var(--color-neutral-700)", whiteSpace: "nowrap" }}>
-                      {p.shifts} 场 · {p.guests} 人
+                      {p.shifts} 场 · {headsText(Math.round(p.guests * 10) / 10)} 人
                     </span>
                   </div>
                   <span style={{ textAlign: "right", whiteSpace: "nowrap", fontWeight: 600 }}>{money(p.pay)}</span>

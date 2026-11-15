@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react"
 import { Chip, Tag } from "./ui"
 import { confirmState, CONFIRM_LABEL, CONFIRM_TAG_CLS, displayName, dowZh, eventParts, inDaysLabel, md, money, prettyPhone, ptToday, stageOf, STAGE_TAG_CLASS, type OrderRow, type Stage, type UpdateRequest } from "./helpers"
+import { orderPaidHeads } from "@/lib/dispatch-plan-order"
+import { headsText } from "@/lib/party-heads"
 import type { AssignmentMap } from "./chef-types"
 import { PlannerPill, type PlannerLive } from "./planner-live"
 import { PrepDialog } from "./PrepDialog"
@@ -163,7 +165,7 @@ export function OrdersTab({
           <tbody>
             {rows.map((r) => {
               const pl = plannerLine(r)
-              const guests = (r.o.guest_adult_count ?? 0) + (r.o.guest_child_count ?? 0)
+              const guests = orderPaidHeads(r.o)
               return (
                 <tr key={r.o.id} className="wb-row" onClick={() => onOpenOrder(r.o.id)}>
                   <td style={{ whiteSpace: "nowrap" }}>
@@ -185,7 +187,7 @@ export function OrdersTab({
                     ) : null}
                   </td>
                   <td className="r" style={{ whiteSpace: "nowrap" }}>
-                    {guests || "—"}
+                    {guests ? headsText(guests) : "—"}
                   </td>
                   <td className="r" style={{ fontWeight: 600, whiteSpace: "nowrap" }}>
                     {money(r.o.quoted_total_cents)}
@@ -216,7 +218,7 @@ export function OrdersTab({
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
           {rows.map((r) => {
             const pl = plannerLine(r)
-            const guests = (r.o.guest_adult_count ?? 0) + (r.o.guest_child_count ?? 0)
+            const guests = orderPaidHeads(r.o)
             return (
               <article key={r.o.id} className="card wb-row" onClick={() => onOpenOrder(r.o.id)} style={{ gap: 8, padding: 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
@@ -236,7 +238,7 @@ export function OrdersTab({
                 <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>{r.o.event_address ?? "—"}</div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, borderTop: "1px solid var(--color-line)", paddingTop: 8 }}>
                   <span>
-                    {guests || "—"} 人 · <strong>{money(r.o.quoted_total_cents)}</strong>
+                    {guests ? headsText(guests) : "—"} 人 · <strong>{money(r.o.quoted_total_cents)}</strong>
                   </span>
                   <span style={{ color: r.stage === "待尾款" ? "var(--color-accent-700)" : undefined }}>尾款 {r.o.balance_due_cents && r.o.balance_due_cents > 0 ? money(r.o.balance_due_cents) : "—"}</span>
                 </div>

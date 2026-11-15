@@ -35,6 +35,20 @@ export function partyHeadCounts(o: OrderForHeads): HeadCounts {
  * 人数定了没有：菜单进来了（逐人行，或快速模式的蛋白份数）才算定。只有锁单时
  * 填的大人/小孩数的单，那个数是估的——客人常常在派对前一两周才报准。
  */
+/**
+ * 工作台上"N 人"的写法（老板 2026-11-14「把小孩算成 0.5 人，全部都这样」）：
+ * 折算人数（大人 1、收费小孩 0.5、免费小孩 0，和派单、师傅人头费同一个数），
+ * 整数照写，半个写成 .5。椅子、给客人的邮件仍按真实人数，不用这个。
+ */
+export function headsText(n: number): string {
+  return Number.isInteger(n) ? String(n) : (Math.round(n * 10) / 10).toFixed(1)
+}
+
+/** 没有发票明细时的折算人数：大人 + 小孩 × 0.5（分不出免费小孩，按收费的算）。 */
+export function weightedHeads(adults: number | null | undefined, kids: number | null | undefined): number {
+  return Math.max(0, Number(adults) || 0) + 0.5 * Math.max(0, Number(kids) || 0)
+}
+
 export function headcountFirm(o: OrderForHeads): boolean {
   const inv = (o.invoice_data ?? {}) as Record<string, unknown>
   const rows = Array.isArray(inv.guests) ? inv.guests.length : 0

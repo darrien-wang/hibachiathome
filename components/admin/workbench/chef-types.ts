@@ -11,6 +11,9 @@ export type ShiftRow = {
   address: string | null
   guests: number
   share: number
+  /** 折算人数（小孩 0.5）和这位师傅分到的折算人数——页面显示用。 */
+  heads?: number
+  shareHeads?: number
   team: Array<{ id: string; name: string; fixed?: boolean }>
   payCents: number
   /** 结算页定的这场一口价（2026-11-13）；null = 按人头算。 */

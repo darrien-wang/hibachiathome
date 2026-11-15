@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 import { can, resolveAdminActor, type AdminActor } from "@/lib/admin-auth"
 import { chefPayCents, chefPayCentsFrac, docState, payableHeads, tableChairCents, taxMissing, travelCompCents, CARD_FEE_RATE, CHAIR_ONLY_CENTS, KID_HEAD_FACTOR, TABLE_CHAIR_PER_HEAD_CENTS, TABLE_ONLY_CENTS, TRAVEL_FREE_MILES, TRAVEL_BASE_CENTS, TRAVEL_PER_MILE_CENTS, REVIEW_PLAIN_CENTS, REVIEW_PHOTO_CENTS, PREP_FEE_PER_ADULT_CENTS, applyChefPayRule, describeChefPayRule, normalizeChefPayRule, type ChefPayRule, type ChefRate, type HeadCounts } from "@/lib/chef-pay"
 import { randomBytes } from "node:crypto"
-import { partyHeadCounts } from "@/lib/party-heads"
+import { partyHeadCounts, weightedHeads } from "@/lib/party-heads"
 import { setupCountsOf, type InvoiceLite } from "@/lib/prep-bom"
 import { logisticsLedgerRows, sumCents, sumHeads, type LogisticsOrder } from "@/lib/logistics-pay"
 import { registerFinalPayment } from "@/lib/final-payment"
@@ -273,7 +273,7 @@ async function loadHelping(supabase: NonNullable<ReturnType<typeof createServerS
       date: o.event_start.slice(0, 10),
       time: o.event_start.slice(11, 16),
       customer: o.customer_name,
-      guests: (o.guest_adult_count ?? 0) + (o.guest_child_count ?? 0),
+      guests: weightedHeads(o.guest_adult_count, o.guest_child_count),
       leads: leadsOf.get(o.id) ?? [],
       done: ended <= nowWall,
     }
@@ -397,6 +397,10 @@ function shiftOf(a: Assignment, o: OrderLite, team: Assignment[], staffById: Map
     address: o.event_address,
     guests,
     share,
+    // 折算人数（大人 1、收费小孩 0.5、免费 0，老板 2026-11-14）：页面上显示"N 人"用这个；
+    // guests 仍是真实人数（桌椅按它算），share 是存档用的整数。
+    heads: payableHeads(comp.counts),
+    shareHeads: Math.round((payableHeads(comp.counts) / n) * 10) / 10,
     team: team.map((t) => ({ id: t.staff_member_id, name: staffById.get(t.staff_member_id) ? nameOf(staffById.get(t.staff_member_id)!) : "?", ...(t.pay_fixed_cents != null ? { fixed: true } : {}) })),
     payCents: pay,
     payFixedCents: fixed,

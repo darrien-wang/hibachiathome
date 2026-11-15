@@ -14,6 +14,7 @@ import { HEARD_LABELS, SOURCE_QUESTION, isHeardChannel, partyStage, sourceAsk } 
 import { homeBaseOrigin } from "@/config/home-base"
 import { PARTY_SIZE_CUSTOM_FROM, calcSimpleEstimate, calcTravelFee, checkWeekdayEligibility } from "@/config/pricing-rules"
 import { cityOf } from "@/lib/customers"
+import { weightedHeads } from "@/lib/party-heads"
 import { instantToWallIso } from "@/lib/first-response"
 import { loadStaffContacts, staffOnNumber, type StaffContact } from "@/lib/staff-phones"
 import { sheetHeld, sheetNotTold, type SheetLink } from "@/lib/chef-notify"
@@ -165,7 +166,8 @@ async function staffParties(supabase: SupabaseClient, staffIds: string[], now: n
     eventStart: (o.event_start as string | null) ?? null,
     city: cityOf(o.event_address as string | null),
     customer: ((o.customer_name as string | null) ?? "").trim().split(/\s+/)[0] || null,
-    guests: Number(o.guest_adult_count ?? 0) + Number(o.guest_child_count ?? 0),
+    // 折算人数：小孩 0.5（老板 2026-11-14）
+    guests: weightedHeads(o.guest_adult_count as number | null, o.guest_child_count as number | null),
     role: r.assignment_role === "assistant_chef" ? "helper" : "chef",
     sheet: sheetHeld(linksOf.get(r.order_id) ?? [], r.staff_member_id),
     notTold: sheetNotTold(linksOf.get(r.order_id) ?? [], r.staff_member_id),

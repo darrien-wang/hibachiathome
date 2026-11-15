@@ -10,7 +10,7 @@ import { makeResolver, streetless, type Located } from "@/lib/address-resolve"
 import { emptyMatrix, googleMatrix, osrmMatrix, ptInstantMs, type Matrix } from "@/lib/drive-matrix"
 import { geocode } from "@/lib/travel-distance"
 import { getWorkbenchSettings } from "@/lib/workbench-settings"
-import { planForOrder } from "@/lib/dispatch-plan-order"
+import { orderPaidHeads, planForOrder } from "@/lib/dispatch-plan-order"
 import { staleHolders, teamNeedingSheet, type SheetLink } from "@/lib/chef-notify"
 import { wallToInstant } from "@/lib/first-response"
 
@@ -144,6 +144,8 @@ export async function GET(request: NextRequest) {
     time: string
     startMin: number
     guests: number
+    /** 真实的大人 / 小孩数，悬停看。 */
+    headsNote: string
     lat: number | null
     lng: number | null
     approx: boolean
@@ -169,7 +171,9 @@ export async function GET(request: NextRequest) {
       address: addr,
       time: clock(startMin),
       startMin,
-      guests: (r.guest_adult_count ?? 0) + (r.guest_child_count ?? 0),
+      // 折算人数：大人 1、小孩 0.5（老板 2026-11-14），和派几位师傅同一个数。
+      guests: orderPaidHeads(r),
+      headsNote: `${r.guest_adult_count ?? 0} 大${r.guest_child_count ? ` ${r.guest_child_count} 小` : ""}`,
       lat: geo?.lat ?? null,
       lng: geo?.lng ?? null,
       // 图钉不是门口的两种情况：查不到街道退到了城市，或者地址本来就只写了城市。

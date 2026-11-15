@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { Chip } from "./ui"
 import { DayMap } from "./DayMap"
 import { addDays, dowZh, eventParts, firstName, md, money0, parseYmd, ptToday, stageOf, type OrderRow, lockLabel } from "./helpers"
+import { orderPaidHeads } from "@/lib/dispatch-plan-order"
 import { holidayOn, upcomingHolidays } from "./holidays"
 import { headsText, useMonthStats } from "./MonthStats"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
@@ -39,7 +40,7 @@ export function CalendarTab({ adminKey, orders, settings, isMobile, onOpenOrder 
         minute: p.minute,
         name: firstName(o.customer_name) || o.customer_name || o.customer_phone || "客户",
         city,
-        guests: (o.guest_adult_count ?? 0) + (o.guest_child_count ?? 0),
+        guests: orderPaidHeads(o),
         evening: p.hour >= settings.evening_from_hour,
         flag: stage === "待细节" || stage === "待尾款",
       }
@@ -59,7 +60,7 @@ export function CalendarTab({ adminKey, orders, settings, isMobile, onOpenOrder 
           return {
             id: o.id,
             name: firstName(o.customer_name) || o.customer_name || o.customer_phone || "客户",
-            guests: (o.guest_adult_count ?? 0) + (o.guest_child_count ?? 0),
+            guests: orderPaidHeads(o),
             was: was ? `${md(was.ymd)} ${was.hm}` : "",
             lock: lockLabel(o),
           }
@@ -155,7 +156,7 @@ export function CalendarTab({ adminKey, orders, settings, isMobile, onOpenOrder 
           <span className="kicker" style={{ color: "var(--color-accent-700)" }}>日期待定 · {held.length} 单</span>
           {held.map((h) => (
             <button key={h.id} type="button" className="btn btn-secondary btn-sm" onClick={() => onOpenOrder(h.id)} title="锁了日期（押金或留卡）、日期还没定。点开订单填日期">
-              {h.name} · {h.guests}人{h.was ? ` · 原定 ${h.was}` : ""}{h.lock ? ` · ${h.lock}` : ""}
+              {h.name} · {headsText(h.guests)}人{h.was ? ` · 原定 ${h.was}` : ""}{h.lock ? ` · ${h.lock}` : ""}
             </button>
           ))}
         </div>
@@ -205,7 +206,7 @@ export function CalendarTab({ adminKey, orders, settings, isMobile, onOpenOrder 
                 {c.holiday ? <div className="clamp1" style={{ fontSize: 10, fontWeight: 600, color: "var(--color-accent-700)" }}>{c.holiday}</div> : null}
                 {c.events.map((e) => (
                   <button key={e.id} type="button" className="wb-ev clamp1" onClick={() => onOpenOrder(e.id)} style={{ padding: "3px 6px", fontSize: isMobile ? 10 : 11, lineHeight: 1.3, ...evStyle(e) }}>
-                    <strong>{e.time}</strong> {isMobile ? e.name : `${e.name} · ${e.guests}人`}
+                    <strong>{e.time}</strong> {isMobile ? e.name : `${e.name} · ${headsText(e.guests)}人`}
                   </button>
                 ))}
               </div>
@@ -260,7 +261,7 @@ export function CalendarTab({ adminKey, orders, settings, isMobile, onOpenOrder 
             <div key={d.d} style={{ padding: 8, borderLeft: "1px solid var(--color-line)", borderBottom: "2px solid var(--color-divider)", background: d.isToday ? "var(--color-surface)" : d.holiday ? "var(--color-accent-100)" : "transparent" }}>
               <div className="kicker">{d.dow}</div>
               <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 20, color: d.isToday ? "var(--color-accent)" : d.holiday ? "var(--color-accent-700)" : "var(--color-text)" }}>{d.label}</div>
-              <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{d.events.length ? `${d.events.length} 场 · ${d.guests} 人` : ""}</div>
+              <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{d.events.length ? `${d.events.length} 场 · ${headsText(d.guests)} 人` : ""}</div>
               {d.holiday ? <div className="clamp1" style={{ fontSize: 10, fontWeight: 600, color: "var(--color-accent-700)" }}>{d.holiday}</div> : null}
             </div>
           ))}
@@ -287,7 +288,7 @@ export function CalendarTab({ adminKey, orders, settings, isMobile, onOpenOrder 
                 return (
                   <button key={e.id} type="button" className="wb-ev" onClick={() => onOpenOrder(e.id)} style={{ position: "absolute", left: 3, right: 3, top: Math.max(0, top), height: rowH * 2 - 2, padding: "4px 6px", fontSize: 12, lineHeight: 1.3, overflow: "hidden", ...evStyle(e) }}>
                     <div style={{ fontWeight: 800 }}>
-                      {e.time} · {e.guests} 人
+                      {e.time} · {headsText(e.guests)} 人
                     </div>
                     <div className="clamp1">{e.name}</div>
                     <div className="clamp1" style={{ opacity: 0.7 }}>
@@ -306,7 +307,7 @@ export function CalendarTab({ adminKey, orders, settings, isMobile, onOpenOrder 
               <div>
                 <div className="kicker">{d.dow}</div>
                 <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 22, color: d.isToday ? "var(--color-accent)" : d.holiday ? "var(--color-accent-700)" : "var(--color-text)" }}>{d.label}</div>
-                <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{d.events.length ? `${d.events.length} 场 · ${d.guests} 人` : "空"}</div>
+                <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{d.events.length ? `${d.events.length} 场 · ${headsText(d.guests)} 人` : "空"}</div>
                 {d.holiday ? <div style={{ fontSize: 10, fontWeight: 600, color: "var(--color-accent-700)" }}>{d.holiday}</div> : null}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -316,7 +317,7 @@ export function CalendarTab({ adminKey, orders, settings, isMobile, onOpenOrder 
                     <span>
                       <strong>{e.time}</strong> {e.name}
                     </span>
-                    <span>{e.guests} 人</span>
+                    <span>{headsText(e.guests)} 人</span>
                   </button>
                 ))}
               </div>

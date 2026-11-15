@@ -5,6 +5,7 @@ import { adminJson } from "./api"
 import { Dialog, DialogHead, Tag } from "./ui"
 import { askConfirm, askPrompt, tell } from "./ask"
 import { operatorName } from "./helpers"
+import { headsText } from "@/lib/party-heads"
 import { TileMap } from "@/components/schedule/TileMap"
 import { coolerSheetHtml, type CoolerParty } from "@/lib/cooler-sheet"
 
@@ -28,6 +29,7 @@ type Stop = {
   address: string
   time: string
   guests: number
+  headsNote?: string
   lat: number | null
   lng: number | null
   /** 只精确到城市/邮编——图钉不是门口。 */
@@ -537,7 +539,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
           <div style={{ border: "2px solid var(--color-text)", padding: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
               <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 18 }}>
-                {numOf(cur.id)}. {cur.time} {cur.name} <Tag cls="tag-neutral">{cur.guests} 人</Tag>
+                {numOf(cur.id)}. {cur.time} {cur.name} <span title={`${cur.headsNote ?? ""}（小孩按 0.5 人）`}><Tag cls="tag-neutral">{headsText(cur.guests)} 人</Tag></span>
                 {cur.plan && (cur.plan.chefs > 1 || cur.plan.grills > 1) ? <Tag cls="tag-accent">{cur.plan.chefs} 厨 · {cur.plan.grills} 灶</Tag> : null}
               </div>
               <span className="mono" style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{cur.orderNo}</span>
@@ -621,7 +623,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
                           {s.tables ? <Tag cls="tag-accent">桌椅</Tag> : null}
                           {/* 两位以上师傅的单（规则 / 老板 / 答应过客人）：图上点名，派少了标红——Eileen 10-17 两台灶答应了没派 */}
                           {s.plan && (s.plan.chefs > 1 || s.plan.grills > 1) ? <Tag cls="tag-accent">{s.plan.chefs} 厨 · {s.plan.grills} 灶{s.plan.source === "promise" ? "（答应过）" : ""}</Tag> : null}
-                          <span style={{ color: "var(--color-neutral-600)" }}> · {s.guests} 人</span>
+                          <span style={{ color: "var(--color-neutral-600)" }} title={`${s.headsNote ?? ""}（小孩按 0.5 人）`}> · {headsText(s.guests)} 人</span>
                           {/* 难度：鼠标移上去看理由，点一下改分（以老板改的为准） */}
                           <button
                             type="button"
@@ -826,7 +828,7 @@ ${s.difficulty.note}` : ""}` : "还没打难度分，点一下打"}
                           const st = sendState[`${s.id}|${g.chefId}`]
                           return (
                             <span key={s.id} style={{ display: "block", fontSize: 13, color: "var(--color-neutral-700)" }}>
-                              {s.time} {s.name} · {cityOf(s.address)} · {s.guests} 人
+                              {s.time} {s.name} · {cityOf(s.address)} · {headsText(s.guests)} 人
                               {st === "sending" ? <span style={{ color: "var(--color-neutral-600)" }}> · 发送中…</span> : null}
                               {st === "ok" ? <span style={{ color: "#16a34a", fontWeight: 700 }}> · 已发</span> : null}
                               {st && st !== "sending" && st !== "ok" ? <span style={{ color: "var(--color-accent-700)" }}> · {st}</span> : null}

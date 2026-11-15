@@ -46,6 +46,8 @@ import { formatTaxRate } from "@/lib/sales-tax-rate"
 import { customerNotesOf, noteSourceLabel } from "@/lib/customer-notes"
 import { cancelDoneLines, cancelPlanLines } from "@/lib/order-cancel-lines"
 import type { CancelOutcome } from "@/lib/order-cancel"
+import { orderPaidHeads } from "@/lib/dispatch-plan-order"
+import { headsText } from "@/lib/party-heads"
 
 // 尾款口径（决策日志 D-1006-05/06，2026-10-06）：10-06 起建的单一个标价两张账——现金 =
 // 标价含税；刷卡 = 标价 + 派对地址的销售税 + 刷卡手续费 3%。两张账全由
@@ -391,9 +393,9 @@ export function OrderDialog({
   const first = firstName(o.customer_name)
   const deposit = (detail?.payments ?? []).find((p) => p.type === "deposit")
   const otherPaid = Math.max(0, (o.amount_paid_total_cents ?? 0) - (o.deposit_paid_total_cents ?? 0))
-  const guests = (o.guest_adult_count ?? 0) + (o.guest_child_count ?? 0)
+  const guests = orderPaidHeads(o)
   const chefLabel = assignments.length ? assignments.map((a) => a.name).join(" + ") : "未派"
-  const chefNote = assignments.length > 1 ? `${assignments.length} 位师傅 · 人头平分 ${Math.round(guests / assignments.length)} 人/位` : ""
+  const chefNote = assignments.length > 1 ? `${assignments.length} 位师傅 · 人头平分 ${headsText(Math.round((guests / assignments.length) * 10) / 10)} 人/位` : ""
   const teamDirty = team !== null && (team.length !== assignments.length || team.some((id) => !assignments.find((a) => a.staffId === id)))
   const removedFromTeam = team === null ? [] : assignments.filter((a) => !team.includes(a.staffId)).map((a) => a.name)
   const addedToTeam = team === null ? [] : team.filter((id) => !assignments.some((a) => a.staffId === id)).map((id) => chefs.find((c) => c.id === id)?.name ?? "新派的师傅")
