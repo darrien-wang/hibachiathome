@@ -96,6 +96,8 @@ export function ChefDialog({
   const [statement, setStatement] = useState<{ url: string; net: number; kind?: "reviews" } | null>(null)
   // 结算时好评要不要一起结（2026-11-09 老板）。发过的对账单带了好评，就默认勾上。
   const [withReviews, setWithReviews] = useState(false)
+  // 找零（老板 2026-11-15「他给我 550 的话我要找多少」）：只算给人看，不存。
+  const [tendered, setTendered] = useState("")
   const [profile, setProfile] = useState<Record<string, string>>({})
   const [docs, setDocs] = useState<Record<string, string>>({})
   const [skills, setSkills] = useState<string[]>([])
@@ -1133,6 +1135,7 @@ export function ChefDialog({
                 </button>
               ) : null}
             </div>
+            {owner && net !== 0 ? <ChangeCalc owe={Math.abs(net)} chefPays={net < 0} value={tendered} onChange={setTendered} /> : null}
             {draft ? (
               <div className="notice" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 12.5 }}>
                 <span style={{ flex: 1, minWidth: 0 }}>
@@ -1433,6 +1436,37 @@ function AssetsSection({ assets, sensitive }: { assets: AssetRow[]; sensitive: b
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+/**
+ * 找零：交钱的一方递过来多少，另一方找回多少。chefPays = 师傅交钱给我们（他欠），
+ * 否则是我们付给师傅。金额都是分。只在页面上算，不存、不进结算。
+ */
+function ChangeCalc({ owe, chefPays, value, onChange }: { owe: number; chefPays: boolean; value: string; onChange: (v: string) => void }) {
+  const given = Math.round(Number(value.replace(/[$,\s]/g, "")) * 100)
+  const ok = value.trim() !== "" && Number.isFinite(given) && given > 0
+  const diff = ok ? given - owe : 0
+  // 凑整的几个数，点一下填进去。
+  const quick = Array.from(new Set([Math.ceil(owe / 2000) * 2000, Math.ceil(owe / 5000) * 5000, Math.ceil(owe / 10000) * 10000])).slice(0, 3)
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 13 }}>
+      <span>{chefPays ? "他给了" : "我给他"}</span>
+      <span style={{ display: "inline-flex", alignItems: "center", border: "1px solid var(--color-line)", padding: "2px 6px" }}>
+        $
+        <input inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} placeholder={(owe / 100).toFixed(2)} aria-label="递过来的钱" style={{ width: 84, border: 0, outline: "none", font: "inherit", background: "transparent" }} />
+      </span>
+      {quick.map((c) => (
+        <button key={c} type="button" className="btn btn-ghost btn-sm" onClick={() => onChange(String(c / 100))}>
+          ${(c / 100).toFixed(0)}
+        </button>
+      ))}
+      {ok ? (
+        <strong className="num" style={{ fontSize: 15, color: diff < 0 ? "var(--color-accent-700)" : undefined }}>
+          {diff > 0 ? `${chefPays ? "找他" : "他找你"} $${(diff / 100).toFixed(2)}` : diff < 0 ? `还差 $${(-diff / 100).toFixed(2)}` : "正好，不用找"}
+        </strong>
+      ) : null}
     </div>
   )
 }
