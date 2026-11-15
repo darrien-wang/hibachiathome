@@ -25,7 +25,7 @@ Payment: cash or card — the balance is paid on the day of your party.`,
   {
     question: "Can you provide tables and chairs?",
     answer:
-      "Yes! We offer table, chair, and tablecloth rental at $10 per person. Place settings are separate: plates, napkins and silverware are $5 per person, and chopsticks come at no extra charge if you ask for them. If you'd rather supply your own tables, chairs, and tableware, that's fine too—just let us know in advance.",
+      "Yes! We offer table, chair, and tablecloth rental at $10 per person: 6-foot folding tables, one for every 4 guests, and a chair for each guest. Your chef arranges the tables on site to fit your space. Place settings are separate at $5 per person: two plates, a knife, fork and spoon, and a napkin for each guest (cups aren't included), and chopsticks come at no extra charge if you ask for them. If you'd rather supply your own tables, chairs, and tableware, that's fine too—just let us know in advance.",
   },
   {
     question: "When will the chef arrive?",

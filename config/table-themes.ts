@@ -52,7 +52,7 @@ export const TABLE_THEMES: TableTheme[] = [
     id: "goldrim",
     name: "Classic Gold Rim",
     cloth: "black",
-    desc: "Gold-rim plates, gold cutlery, clear cups — in white or black",
+    desc: "Gold-rim plates and gold cutlery, in white or black",
     fit: "birthdays, anniversaries, bridal showers",
     variants: [
       {
