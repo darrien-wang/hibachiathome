@@ -119,7 +119,7 @@ export function ChefsTab({
       </div>
 
       {view === "media" ? <MediaLibrary adminKey={adminKey} isMobile={isMobile} /> : null}
-      {view === "share" ? <ChefShare chefs={chefs} orders={orders} week={week} weekEnd={weekEnd} isMobile={isMobile} onOpenOrder={onOpenOrder} /> : null}
+      {view === "share" ? <ChefShare adminKey={adminKey} chefs={chefs} orders={orders} week={week} weekEnd={weekEnd} isMobile={isMobile} canAssign={viewerRole === "owner" || viewerRole === "agent"} onOpenOrder={onOpenOrder} onChanged={onChanged} /> : null}
 
       {view === "list" ? (
         <>

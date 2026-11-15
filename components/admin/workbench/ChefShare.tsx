@@ -6,6 +6,7 @@ import { zhTime } from "@/lib/cooler-sheet"
 import { addDays, dowZh, md, type OrderRow } from "./helpers"
 import type { ChefSummary } from "./chef-types"
 import { Chip } from "./ui"
+import { ShareBoard } from "./ShareBoard"
 
 // 员工 · 份额：每位师傅占这周总人数的比例。点一块看是哪些单、大概多少人（老板 2026-10-30）。
 
@@ -100,7 +101,7 @@ function PartyRow({ p, showChef, onOpen }: { p: ShareParty; showChef: boolean; o
   )
 }
 
-export function ChefShare({ chefs, orders, week, weekEnd, isMobile, onOpenOrder }: { chefs: ChefSummary[]; orders: OrderRow[]; week: string; weekEnd: string; isMobile: boolean; onOpenOrder: (id: string) => void }) {
+export function ChefShare({ adminKey, chefs, orders, week, weekEnd, isMobile, canAssign, onOpenOrder, onChanged }: { adminKey: string; chefs: ChefSummary[]; orders: OrderRow[]; week: string; weekEnd: string; isMobile: boolean; canAssign: boolean; onOpenOrder: (id: string) => void; onChanged: () => Promise<void> | void }) {
   const [pickedKey, setPickedKey] = useState<string | null>(null)
   const [hoverKey, setHoverKey] = useState<string | null>(null)
   const [weeks, setWeeks] = useState<1 | 2>(1)
@@ -113,7 +114,7 @@ export function ChefShare({ chefs, orders, week, weekEnd, isMobile, onOpenOrder 
   const pick = (key: string) => setPickedKey((cur) => (cur === key ? null : key))
   const caption = hovered ?? picked
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 860 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 1100 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <div style={{ display: "flex" }}>
           <Chip small active={weeks === 1} onClick={() => setWeeks(1)}>
@@ -159,6 +160,8 @@ export function ChefShare({ chefs, orders, week, weekEnd, isMobile, onOpenOrder 
           ))}
         </div>
       ) : null}
+      {/* 拖单调人数（老板 2026-11-14）：只看这一周，日期不能换，只能换人。 */}
+      {canAssign ? <ShareBoard adminKey={adminKey} week={week} isMobile={isMobile} onOpenOrder={onOpenOrder} onChanged={onChanged} /> : null}
     </div>
   )
 }

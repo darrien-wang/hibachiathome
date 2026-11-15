@@ -44,6 +44,7 @@ type OrderRow = {
   difficulty_score?: number | null
   difficulty_note?: string | null
   difficulty_source?: string | null
+  requested_staff_member_id?: string | null
 }
 
 type DriveSource = "google_traffic" | "google" | "osrm" | "none"
@@ -128,7 +129,7 @@ export async function GET(request: NextRequest) {
   // 不做时区换算——换算会把 12:00 变成前一天。
   const { data } = await supabase
     .from("orders")
-    .select("id, order_no, customer_name, customer_phone, event_start, event_address, guest_adult_count, guest_child_count, order_status, created_at, invoice_data, setup_selection, dispatch_plan, difficulty_score, difficulty_note, difficulty_source")
+    .select("id, order_no, customer_name, customer_phone, event_start, event_address, guest_adult_count, guest_child_count, order_status, created_at, invoice_data, setup_selection, dispatch_plan, difficulty_score, difficulty_note, difficulty_source, requested_staff_member_id")
     .gte("event_start", `${date}T00:00:00`)
     .lt("event_start", `${date}T23:59:59`)
     .order("event_start")
@@ -155,6 +156,8 @@ export async function GET(request: NextRequest) {
     plan: { chefs: number; grills: number; source: "rule" | "owner" | "promise" }
     /** 难度小结（2026-11-13）：1–5 分 + 理由，内部看。没打分是 null。 */
     difficulty: { score: number; note: string | null; source: string | null } | null
+    /** 客人点名要的师傅（订单上的 requested_staff_member_id），拖单换人时提醒。 */
+    requestedChefId: string | null
   }
   const resolver = makeResolver({ googleKey: process.env.GOOGLE_MAPS_API_KEY || null })
   const stops: StopRow[] = []
@@ -186,6 +189,7 @@ export async function GET(request: NextRequest) {
         return { chefs: p.chefs, grills: p.grills, source: p.source }
       })(),
       difficulty: r.difficulty_score ? { score: r.difficulty_score, note: r.difficulty_note ?? null, source: r.difficulty_source ?? null } : null,
+      requestedChefId: r.requested_staff_member_id ?? null,
     })
   }
 
@@ -313,9 +317,12 @@ export async function GET(request: NextRequest) {
     ok: true,
     date,
     dayPlan,
-    stops: stops.map(({ startMin: _startMin, ...s }) => ({ ...s, chefIds: chefIdsOf.get(s.id) ?? [], helperIds: helperIdsOf.get(s.id) ?? [], pending: pendingOf(s.id) })),
+    stops: stops.map((s) => ({ ...s, chefIds: chefIdsOf.get(s.id) ?? [], helperIds: helperIdsOf.get(s.id) ?? [], pending: pendingOf(s.id) })),
     chefs,
     // 定位不到的单要点名，不能默默从地图上消失——那样看起来就像那天没这一场。
+    // 份额页拖单（老板 2026-11-14）要在浏览器里算"这位师傅接不接得上"：和上面排班同一张车程表，
+    // drive[i][j] 按 stops 的顺序，定位不到的是 null。
+    drive: minutes,
     missing: stops.filter((s) => s.lat === null).map((s) => ({ name: s.name, address: s.address })),
     home: home ? { lat: home.lat, lng: home.lng, label: "家（出发点）" } : null,
     plans: plans.map((plan) => ({
