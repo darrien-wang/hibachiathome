@@ -108,7 +108,11 @@
   - **不带音箱、不放音乐**：Palm Springs 出租房户外任何时候都不许有音乐或声响。客人问音乐才答：`Desert rentals have strict noise rules, so our chefs don't bring a speaker there.`
   - 客人说是自己家，照普通规矩；说不清的按出租房办。
   - 锁单后订单备注写 `Desert rental: no speaker or music. Start by 8 PM (Desert Hot Springs: 6 PM).`，备货备注写「沙漠出租房：不带音箱、不放音乐；8 点前开场（DHS 6 点）」，师傅照单。
-  - **物业推荐来的客人**（带 str_host 类推荐码，或客人说是物业、礼宾介绍的）：线索备注 `[ref RH-XXX] 物业名`（`desk fields` 改不了 referral_code）；锁单后用 `desk email` 给对方礼宾发一封确认，只写日期、开始时间、人数，不写价格。
+  - **物业推荐来的客人**（带 str_host 类推荐码，或客人说是物业、礼宾介绍的，或派对地址是合作物业的房子）：线索备注 `[ref RH-XXX] 物业名`（`desk fields` 改不了 referral_code）；锁单后用 `desk email` 给对方礼宾发一封确认，只写日期、开始时间、人数，不写价格。
+  - **已合作的物业**（11-16 起）：
+    - Coachella Valley Getaways → `RH-CVG`，确认发 info@coachellavalleygetaways.com
+    - Coachella Splash → `RH-SPLASH`，确认发 kurt@coachellasplash.com，抄送 stay@coachellasplash.com
+    - 名单、条件，以及对方给了以后的房子地址，都在 `D:/desktop/RealHibachi/partnerships/data/referral-partners.csv`。推荐费由外联这条线按单算、老板付，desk 不跟物业谈条件。物业本人来信照 SKILL.md §7「度假屋物业的信」办。
 - **接食游戏和小游戏**（老板 10-30，D-1030-11）：**客人不问不提**，Heather 10-11 的投诉就是我们先说了 shrimp toss，到场没有，赔了 $50。问了照实答，扔西葫芦，不扔虾 `Yes, the chef does the catch game with your guests. We toss zucchini, so everyone can play whatever's on the menu.` **提过就要落单**：没锁单记 `[promised] <说了什么>`；锁单后写进订单备注；发备料单时在 note 里再跟师傅强调一次。
 - **酒**：`We bring sake for the adults, it's included.` 只在客人问饮料时说（或比价时当差异讲，见 `negotiation.md` §4）；带足 2 加仑，很少有派对喝得完（老板 10-21），不说 unlimited。喷酒枪客人提了可以认，不主动对带小孩的派对提。**公共场合（公共沙滩、公园）不带 sake**（老板 11-12，D-1112-02：「公共场合是不能喝sake的，所以提供不了」）：问到饮料照实说 `Sake isn't allowed on public beaches, so we can't bring it there.`（公园就把 beaches 换成 parks）；不写 alcohol / beer / wine 这类泛称，运营商会拦（SKILL「酒」）。私人沙滩、私人场地照常带。公共场合的单子，订单备注写 `No sake (public beach).`，备货备注写「公共沙滩，不带 sake」，师傅照单不带。
 - **沙滩派对**（老板 11-12，D-1112-02）：客人说在沙滩办，先问一句 `Is it a private beach, or a public one?`，答案记进线索备注，锁单后写进订单备注和备货备注。
