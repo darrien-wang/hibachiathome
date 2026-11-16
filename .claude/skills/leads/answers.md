@@ -103,7 +103,8 @@
 - **灯**：我们不带灯，师傅戴头灯；客人那边太暗要自己备串灯。被问才答。
 - **下雨、大风**（D-1019-03，老板待最终确认，现在照此答）：下雨在带顶的露台或客人备的 10×10 帐篷下做（我们不带帐篷）；大风或红旗预警不安全时，免费改期或取消，48 小时内也不收 $99（以官方 NWS 预警为准）。
 - **最晚几点开场**：不报"最晚"，问他打算几点 `What time do you have in mind? Later starts usually work.` 半夜 12 点以后要先问师傅（这一层不对客说）。沙漠度假出租房除外，见下一条。
-- **沙漠度假出租房**（老板 11-13 批，跟物业合作计划一起定，见 `D:/desktop/RealHibachi/partnerships/12-palm-springs-indio-rental-managers.md`）：Coachella Valley 各城（Palm Springs、Cathedral City、Desert Hot Springs、Palm Desert、Indian Wells、La Quinta、Indio、Coachella、Bermuda Dunes、Thermal）的出租房，城市的噪音和人数规定罚的是物业，每次 $500–5,000。
+- **沙漠度假出租房**（老板 11-13 批，跟物业合作计划一起定，见 `D:/desktop/RealHibachi/partnerships/12-palm-springs-indio-rental-managers.md`；11-16 老板批第二批合作信时，约书亚树一带也照办）：Coachella Valley 各城（Palm Springs、Cathedral City、Desert Hot Springs、Palm Desert、Indian Wells、La Quinta、Indio、Coachella、Bermuda Dunes、Thermal）和约书亚树一带（Joshua Tree、Yucca Valley、Twentynine Palms、Pioneertown、Landers、Morongo Valley、Flamingo Heights）的出租房。城市和县的噪音、人数规定罚的是物业，每次 $500–5,000。
+  - 约书亚树一带晚 10 点进安静时段。Yucca Valley 镇的出租房白天（早 7 点到晚 10 点）也限人数：3 卧 12 人、4 卧 16 人、5 卧 18 人、6–7 卧 20 人；房东还必须装噪音监测器。规定原文在 `D:/desktop/RealHibachi/partnerships/data/hi-desert-str-rules.md`。这些客人不问不提；在 Yucca Valley 出租房办、人数超过上限的单，先告诉老板。
   - **开场不晚于 8 PM；Desert Hot Springs 不晚于 6 PM**（多数城市晚 10 点、DHS 晚 8 点进安静时段，按约 2 小时收完）。这条盖过"午夜前都行"。客人要更晚：`Most desert rentals go quiet at 10 PM, so an 8 PM start or earlier keeps dinner inside the house rules.`（DHS 换成 `go quiet at 8 PM, so a 6 PM start or earlier`）
   - **不带音箱、不放音乐**：Palm Springs 出租房户外任何时候都不许有音乐或声响。客人问音乐才答：`Desert rentals have strict noise rules, so our chefs don't bring a speaker there.`
   - 客人说是自己家，照普通规矩；说不清的按出租房办。
