@@ -1,0 +1,300 @@
+python scripts/desk/selfcheck.py on claude/gifted-swartz-1cb801 (base origin/main 8df533c2), 2026-11-16: 288 PASS, 0 FAIL (281 on origin/main, plus 7 new). The new ones:
+PASS  chef texts · Jacob Park (RH-20261029-0692, Tue 11/17 Corona): only his own prep sheet - not George's prep sheet, change notice or 4:07 PM reminder, though all three say Corona
+PASS    so no shrimp-allergy item on Jacob's party (the review raised one on 11-16)
+PASS    George (RH-20261004-3574, Fri 11/13 8 PM Corona): his sheet and change notice by their links, the reminder by his name - sent 4:07 PM on the party day, 00:07 UTC the next; the link tokens stay out of the party
+PASS    desk order check (no system texts): George has the reminder, Jacob nothing
+PASS    what a person writes still finds the party: a weekday with the city, tomorrow with the start time, the date alone, the order number - and only that party
+PASS    and nothing less: the city alone, a weekday or 'tomorrow' alone (a reminder to every chef with a Friday party), another party that day by its time, 前后天 (not 后天)
+PASS    a customer's first name counts as written ('Will', not 'will'), and not when it is the chef's own ('Steven，…') - the full name does
+
+The whole run:
+PASS  tiers: desk's read of config/pricing-rules.ts equals the TS export
+PASS  tiers: desk reads the moment the ladder closed as the TS does
+PASS  dispatch rule: desk's GUESTS_PER_CHEF, MAX_CHEFS and chefs by paid heads equal lib/dispatch-plan.ts (what the sheet prints for a rule plan)
+PASS  tiers: the old ladder reads 8+2 as 9 paying heads (no tier), 11+1 as 11 (none, 10-14 closed first), 14+2 as 15 (official_party15 $60)
+PASS  tiers: an order keeps the ladder when booked before it closed or carrying a line, nobody else does (D-1105-01)
+PASS  --headcount 15/1 on a quick-mode order booked after the ladder closed: counts set, no party line, TOTAL $1,168.40 = desk price, --dry saves nothing
+PASS    saved: 15/1, the menu, tables/utensils for 16, and no promotion line
+PASS    the same order booked before the ladder closed keeps it: official_party15 added, TOTAL $1,108.40
+PASS    saved with exactly the official party15 line
+PASS  --headcount 11/1 on an order from between the two closings: 10-14 earns no line, TOTAL $868.80 = desk price
+PASS    booked before 11/02 it keeps 10-14 too: official_party10 added, TOTAL $838.80 (D-1102-01)
+PASS  an order booked after the cutoff but carrying a party line (a lead quoted with the ladder) re-tiers on it: 20 -> 26 is official_party25
+PASS  --headcount alone says the menu and the per-guest setup still count the old party
+PASS  --add-adult on a quick-mode order points at --headcount (not --proteins)
+PASS  --add-extra white_linen=2 white_tablecloth=5: two cloths at $5, five white ones at $8
+PASS  --add-extra folding_chairs=30 folding_tables=2: thirty chairs and two bare tables, by count
+PASS  --headcount refuses an order with guest rows
+PASS  --headcount works on a fresh order (detailed, no rows yet)
+PASS  a stored order missing the tier it keeps: TOTAL CHECK FAILED, $1,168.40 vs $1,108.40, $60.00 too much, fix named
+PASS    --retier on it: official_party15 added, nothing else, ✓ $1,108.40
+PASS    the same order booked after the ladder closed has no tier to miss: ✓ $1,168.40
+PASS    and --retier says no line is right for it
+PASS    the same order with official_party15: ✓
+PASS    --retier on a wrong tier (official_party10 for 15 heads) replaces it
+PASS    --retier when the line is right: says so, nothing to change
+PASS    an order keeping official_party10: ✓ $838.80
+PASS    --retier leaves the kept line alone
+PASS    a headcount inside 10-14 keeps the line, ✓ $748.70
+PASS  --remove-guest 15 -> 14: official_party15 $60 comes off, the other lines untouched, ✓
+PASS  --add-adult 14 -> 15: official_party10 becomes official_party15
+PASS  --guests-file 16 adults on an 8+2 order booked before the cutoff: official_party15 $60 added, rows carry the setup, ✓ $1,138.40
+PASS    booked after it: no party line, ✓ $1,198.40
+PASS  --guests-file with no setup on the rows stops: the order's plates and tables do not fall off
+PASS  --guests-file 28 rows with tables on an order with 30 chairs: the 2 beyond the guests stay on the party line, 30 billed, ✓
+PASS  order plan --rows-out: every row keeps its party-page id, the baby is no row
+PASS  --guests-file: rows from the page are saved with its ids, a new row and a copied row get new ones
+PASS  under 10 paying heads: the kept line comes off too, and the $599 minimum check still matches
+PASS  61+ is a custom quote: line left as it is, said so, check skipped
+PASS  appreciation on an order that keeps the ladder: no party line added, said why, ✓ with the stand-in noted
+PASS  --remove-promo official_party15 in the same command: not put back
+PASS  --headcount 14/2 with a 'Little kids ×1' line: childCount 3, 15 paying heads -> official_party15, ✓
+PASS  --headcount 12/1/1 on a quick-mode order: childCount 2, the Little kids ×1 line added, ✓ $718.70
+PASS    12/1/2 on an order whose line said ×1: childCount 3, the line ×2 in place, ✓ $718.70
+PASS    12/1/0: the line comes off, childCount 1, ✓ $718.70
+PASS    14/0/3: three toddlers never move the tier (official_party10 stays)
+PASS    a fresh order (detailed, no rows yet) takes it too
+PASS    --headcount 12/1/x is refused
+PASS    --headcount 12/1/1/1 is refused
+PASS    --headcount 0/0/2 is refused
+PASS  a little kid's row with its $0 line: ✓
+PASS  a little kid's row billed at the child price (no $0 line): loud, $29.90 too much
+PASS  --guests-file with a little: true row: a child row with no proteins, the Little kids ×1 line added, ✓ $748.70
+PASS    a list with one toddler on an order whose line said ×2: the line becomes ×1 in place, ✓ $718.70
+PASS    a list with no toddler on an order with a ×1 line: the line comes off, said why, ✓ $718.70
+PASS    a guest who is not little still needs two proteins
+PASS  --remove-guest of a toddler: the line drops to ×1 in place, ✓ $718.70
+PASS    both toddlers: the line comes off
+PASS  --remove-guest of a paying kid leaves the toddler's line alone, ✓ $688.80
+PASS  a Monday order with its Weekday Special and free gyoza: ✓ $628.80
+PASS  --headcount 13/0 on it: the frozen weekday line is called out, the check is $5.00 too much, fix named
+PASS  --free-appetizer edamame on it (the line drops $5 with the tray): ✓ $628.80, the free edamame netted
+PASS  --set-extra gyoza=1 edamame=1 over a bought gyoza: back to the free tray, one edamame on
+PASS    gyoza=0 takes the line off, --dry saves nothing
+PASS    a setup item is not a party extra (those ride the rows)
+PASS  20 adults on a Monday, two free gyoza on the weekday line ($30 + 20 x $5): ✓ $1,038.00
+PASS    the same with one of the two gyoza bought ($15 + 20 x $5): ✓ $1,053.00, the bought tray billed
+PASS  a weekday line refunding a gyoza the order does not carry: loud, $15.00 too little
+PASS  26 adults on a Monday, 26 gyoza by the head (2.6 trays, $39 + 26 x $5): ✓ $1,337.40
+PASS    the same with a tray they bought: ✓ $1,352.40, the bought tray billed
+PASS    --add-extra on it keeps the pieces (3.6 trays)
+PASS    --free-item on it keeps the pieces (3.6 trays)
+PASS    --free-appetizer spring_rolls moves all 2.6 and the same money
+PASS    --free-appetizer edamame: the count crosses at the new price, the save settles it by the head
+PASS    --free-appetizer-trays 3 is above the rule: $6 more on the line, three trays
+PASS    moved to a Saturday: the line goes and takes its 2.6, the bought tray stays
+PASS  a gift saved as 'FREE: Edamame (feeds 3) x2' still swaps
+PASS    swapped the other way it says 'FREE: Edamame x2'
+PASS    and that new label swaps too
+PASS  6 adults + a paid gyoza tray under the $599 minimum: ✓ $599.00
+PASS  a past Monday party: compared at the weekday rate its lines imply, ✓
+PASS  order set prints what the invoice engine added, the totals again, and the lint after the save
+PASS  order set --reconcile saves the order as it stands
+PASS  order show prints the ⚠ 缺项 block with the fix
+PASS    an order with no customerNotes prints no 客人留言 line
+PASS  order show prints what the customer wrote on the party page (invoice_data.customerNotes), blanks skipped
+PASS  order remind refuses an order the lint says is missing something
+PASS    --dry shows the text and that it would be held
+PASS    --force sends it anyway
+PASS    a clean order is texted as before
+PASS    the text links the invoice and quotes no amount
+PASS    审查者: an order nobody reviewed is not texted, and says to review first
+PASS    --dry on an unreviewed order shows the text and the hold
+PASS    --skip-review with a reason sends anyway
+PASS  desk price 20 adults: the new price, then the old one for leads from before the ladder closed
+PASS    12 adults: only the 11/02 line (10-14 closed first)
+PASS  desk link deposit --lead for a lead from before the ladder closed: the link carries $1,138
+PASS    a lead from after: $1,198, no old price
+PASS    12 adults on a lead from before 11/02: $689 with the $30 (D-1102-01)
+PASS    12 adults on a lead from between the closings: $719, nothing old to give
+PASS    --flat-off on an old lead says the lock already brings the old tier
+PASS  send: the prom reply 5 s after the customer's second text, no --seen: stopped (exit 2, nothing sent), both fresh texts and the exact --seen printed
+PASS    --seen 18:53 (their first text, the one we answered): stopped, only the text after it printed
+PASS    --seen to the second of their first text: stopped
+PASS    --force alone does not skip it: stopped, and says so
+PASS    --seen 18:54 (HH:MM of a text 5 s old - the clock reads the same): stopped, asks for the seconds
+PASS    --seen to the second of their last text: sent, the payload as before (phone, body, lead, no force), staff list never read
+PASS    --force with --seen (the API's UTC form): sent, force still passed on to the server's brakes
+PASS    a picture is stopped the same way, before anything is uploaded
+PASS    ... and goes with --seen (MM-DD HH:MM:SS): uploaded and sent with its link
+PASS    a --seen desk cannot read is refused before anything is read or sent
+PASS    --seen naming none of their texts (18:57 is our own reply): stopped, their last text and its --seen printed
+PASS    --seen 18:56 (HH:MM of their last text, 106 s old, alone in its minute): sent
+PASS    no --seen, their last text 106 s old: sent (only the last 90 s are checked without --seen)
+PASS    our own text 20 s before (any desk, the App, the machine) is not one of theirs: sent
+PASS    a number with no texts at all: sent
+PASS  send: JT's 10-21 tables answer, 3 s after 'When do you need the menu buy?', no --seen: stopped, both fresh texts printed
+PASS    --seen 20:06 two minutes on, two of JT's texts in that minute: stopped on the second (HH:MM names the first)
+PASS    --seen to the second of the later one: sent
+PASS  send: JT's 10-23 bill reply, read up to 'Please forward me the complete bill': stopped, the two texts after it printed
+PASS    the same with no --seen: stopped on the 90 s rule (58 s and 50 s old)
+PASS    a tapback is a text of theirs too (Loved … 30 s before): stopped
+PASS  send: a staff number's 好的 20 s before does not stop a text to them (not a lead)
+PASS    the same number when it is not on the staff list: stopped
+PASS  voice: 'Perfect - ... ! 🥩🍤' is stopped (exit 2, nothing sent): emotion-word opener and two emoji named
+PASS    two '!', 'your 17', and 'Hi ... Rowling' 5 s after the customer spoke stop it; the two ' - ' are a note
+PASS    'Great question!' and 'Let me know if you have any' stop it; the parenthesis is a note
+PASS    the same first two words as our last text ('Either works'): a note, sent
+PASS    'No rush - ' opener: a note, sent
+PASS    two texts that both open 'Hi, it's ...' days apart: no same-opener note, sent clean
+PASS    the first text a person sends gives the name even though the customer wrote first: sent clean
+PASS    'your 16 adults' (a noun after the number) is ordinary English: sent clean
+PASS    'nothing is charged today' after only the site's automatic quote said it: sent clean (the first link a person sends says it)
+PASS    'nothing is charged today' said to this customer before: named
+PASS    an em dash: named
+PASS    --voice-ok: sent, the hits still printed
+PASS    clean: 'Congrats to your son - prom is a big one! Is it a dinner bef' sent, no VOICE line
+PASS    clean: 'Yes, noon works. Your chef will get there around 11:30 to se' sent, no VOICE line
+PASS    clean: "Happy birthday! When's the party?" sent, no VOICE line
+PASS    clean: '30 people is $1,707 with tax if you pay cash.' sent, no VOICE line
+PASS    clean: 'Got it, 7:30 then.' sent, no VOICE line
+PASS    clean: 'See you on the 17th.' sent, no VOICE line
+PASS    clean: 'Could you send me the street address when you have a minute?' sent, no VOICE line
+PASS    clean: "Your chef is Blu. He'll be there around 5 to set up. 🔥" sent, no VOICE line
+PASS    clean: "Hi, it's Rowling from Real Hibachi. Saturday the 18th is ope" sent, no VOICE line
+PASS    unread comes first: the prom reply with no --seen stops on UNREAD, the voice check is not reached
+PASS  voice: an opening this machine sent 2 other customers in 24 h ('figured you're still'): a note, sent
+PASS    sent to 1 other customer: no note
+PASS    the two others 26 h back: no note
+PASS    sent before to this same customer only: not 'other customers', no note
+PASS  voice: they asked about tables, our first sentence '5:30 works great.': a note naming both, sent
+PASS    'Yes, tables and chairs are $10 a guest.': answers first, clean
+PASS    "We do. They're $10 a guest with linens.": answers first, clean
+PASS    'Tables and chairs are $10 a guest, linen': answers first, clean
+PASS    'You're welcome!' first when they asked about gratuity: a note
+PASS    'Not included. ...': clean
+PASS    a first text: the name intro, then the price for 'How much for 25 guests?': clean
+PASS    a tapback is not a question: clean
+PASS  voice log: a stop is a line (event stop, phone, the rule)
+PASS    the rewrite 4 min later: sent, a sent line after it
+PASS    desk voice-log: 1 sent, 1 stop, the opener rule counted, the rewrite took 4 min
+PASS  thread: ends with the --seen for a reply, to the second of their last text
+PASS  card: the same line under the conversation
+PASS  --seen 23:58 read at 00:03 is last night's minute
+PASS  --seen 12-31 23:59:30 early on New Year's Day is last year's, that second
+PASS  order cancel --dry: one request, dryRun true, the order's id and the reason - and it is the only thing desk sends
+PASS    prints the plan: DRY, the three order columns, each chef's text word for word, the chef with no number, the lead
+PASS    says nothing goes to the customer and no money moves; inside 48 h the $99 line is the owner's to decide
+PASS  order cancel for real: dryRun false, OK, the sent text with its sid, the chef nobody could text, the $99 line again
+PASS  order cancel without --why: refused before anything is sent
+PASS    a blank --why is no reason either
+PASS    already cancelled with nobody left to tell: one line saying so
+PASS    four days out: no $99 line; money already taken and a lead that stays are both said
+PASS    refused by the site (not the owner's key): one readable line, no traceback
+PASS  desk next: the counts open with the chefs' two, and say how many changes wait inside 48 h
+PASS    the chef's card is printed first, as a chef's: name, his party and its sheet, what is open, the thread as 师 / 我
+PASS    it says how to answer, how to close it without a text and how to mark the change confirmed - no brake line, no --seen to copy
+PASS    the customer's card after it, with the open change and what changed on it, its brake line as before
+PASS    a plain chef text (no change waiting) does not offer chef-confirm
+PASS    no sheet has failed to reach a chef: the header does not bring it up
+PASS  desk next: a change text that never reached the chef is counted with the chefs' items, flagged
+PASS    its card comes before the customer's and says it in full: no sheet he can open, which party, why the text failed
+PASS    and what to do about it: the owner sends the sheet again from the order; chef-confirm only if it reached him another way
+PASS    a change text that bounced on his one link (2026-11-13): he was not told, the link still opens - said so, same link to re-send
+PASS    a sheet that never reached him after a reassign: the same card and fix, and no chef-confirm to clear it
+PASS    a party whose order changed since he was last told: his link still opens (one link per party, 2026-11-13), the change not told yet
+PASS    a deploy from before 11-13 still says "stale": read as not told yet, never as void
+PASS  desk ack <chef phone>: checked against the staff list, then ack_text for that number
+PASS    --clear takes it back
+PASS    a number that is not staff is refused: a customer's 不用回 goes by lead id
+PASS    a lead id still marks the lead, exactly as before
+PASS  desk chef-confirm <phone>: confirm_notice for that number, and how many it marked
+PASS    --order narrows it to that party; nothing open is said plainly, not an error
+PASS  desk next: a new lead who wrote the contact form - the card says the machine will not text first
+PASS    once someone has texted, the line is gone
+PASS    the estimator's own contact step alone does not raise it (template A still answers that one)
+PASS  order set --prep-note-file --dry: the new 备货备注 next to the current one, how long it is, nothing written
+PASS    for real: one set_prep_note with the order id and the file's text, and what it replaced
+PASS    over 300 characters: refused before anything is read or sent (the site would cut it)
+PASS    an empty file clears it
+PASS    the same note again: nothing written
+PASS  desk scan G: the orders' own gaps, then one line per order whose party page and invoice disagree, with every difference
+PASS    nothing reported, or the endpoint not there yet: no G block, nothing invented
+PASS    a site that does not send the list yet (old deploy): the gaps as before
+PASS  party check · George (RH-20261004-3574) before: the shrimp allergy / seafood-last only in internal notes blocks; arrival 7:00-7:30 and the flat ground warn
+PASS    host brings tables, chairs and tableware: no setup gap; extra rice and sriracha are in the notes: no bring gap
+PASS    George now (notes and 备货备注 fixed 11-12): nothing
+PASS  party check · Andrea (RH-20260929-2057) before: free tables, linens, place settings in notes + setup_selection + the deal, 0 on the invoice: blocking
+PASS    the gate call only on the party page, and the 5:30 / ready-by-6:30 arrival, warn
+PASS    Andrea now (rows ticked, notes and 备货备注 written): nothing
+PASS  party check · Corrina (RH-20260930-3990) before: the wedding after-party (party page) and 2 spectators (texts, notes) warn; Karen's mushrooms are on her row
+PASS    Corrina now: nothing
+PASS  party check · Jeffrey (RH-20261107-5825) before: Dov's birthday (party page) warns, Alon's double salmon on a single-salmon row warns
+PASS    the kosher 'cook first' was taken back (不需要 kosher 肉了), no butter is in the notes, tables at $10 a guest is no promise: none of them is a gap
+PASS    Jeffrey now (Alon two salmon, birthday in the notes): nothing - Dov's birthday next to Alon's double is not Dov's double
+PASS  party check · Verlener (RH-20261111-9315) before: [occasion] birthday only in the lead's notes warns
+PASS    Verlener now: nothing
+PASS  party check · hosts who bring their own (RH-20261004-3574, RH-20260910-5026, RH-20261017-9824): never a setup gap
+PASS  party check · Kande (RH-20260921-9601, 12/05) before: tables, chairs and utensils free in the internal notes, 0 on the invoice: blocking
+PASS    Kande now (64 place settings on the invoice, the venue's tables, folding tables only as backup): no setup gap
+PASS  party check · false alarms stay out: our own questions and offers, 'no allergies', a question about tables, a planning note, one guest's pork
+PASS    nor do: 'plates' that are food, the 'free' of gluten-free, a host who uses their own tableware, a quote option, two chefs' own grills, a holiday as a price period, a menu question, the guests' arrival, our space spec, what we always bring, a superseded arrival time
+PASS  party check · times: 7:00-7:30 PM, 4 PM, 5 点半, 18:00; a note's own stamps ('11-11 19:28', '19:3x') are not times asked for
+PASS  party check · the party page's words without the 48-hour line or the planner summary; a lead note's tagged parts only
+PASS  party check · city from the address, the comma before CA or not
+PASS  party check · the sheet: before the party day 'not sent yet' is the day-before send's; on the day it is !!; a helper's line is never !!
+PASS    the latest version, opened, the last change confirmed: ✓
+PASS    a change text that never went out, one with no 1, a text that never reached him: flagged
+PASS    a change he has not been told about (stale): the link still opens with it on top - a ! to watch, not a missing sheet; a helper's is ·
+PASS    a save the system has not looked at yet: !, and the text it may send keeps the same link
+PASS    已打开 = opened since it last went to him: an open from before a re-send in place does not count, a newer open does
+PASS  desk order check <date>: one block per party - prep line, notes, allergies, the chef's sheet - then the gaps, !! first, each with its fix
+PASS    it reads and never writes: the prep list, the texts and the database, nothing posted
+PASS    a date that is not YYYY-MM-DD is refused before anything is read
+PASS  desk order show: the setup promised and not on the invoice is a !! 缺项 line, with where it was promised and the fix
+PASS    no database to read: the block is the invoice lint's alone, and show still prints
+PASS  chef texts · Jacob Park (RH-20261029-0692, Tue 11/17 Corona): only his own prep sheet - not George's prep sheet, change notice or 4:07 PM reminder, though all three say Corona
+PASS    so no shrimp-allergy item on Jacob's party (the review raised one on 11-16)
+PASS    George (RH-20261004-3574, Fri 11/13 8 PM Corona): his sheet and change notice by their links, the reminder by his name - sent 4:07 PM on the party day, 00:07 UTC the next; the link tokens stay out of the party
+PASS    desk order check (no system texts): George has the reminder, Jacob nothing
+PASS    what a person writes still finds the party: a weekday with the city, tomorrow with the start time, the date alone, the order number - and only that party
+PASS    and nothing less: the city alone, a weekday or 'tomorrow' alone (a reminder to every chef with a Friday party), another party that day by its time, 前后天 (not 后天)
+PASS    a customer's first name counts as written ('Will', not 'will'), and not when it is the chef's own ('Steven，…') - the full name does
+PASS  dispatch plan · Whitney (RH-20261007-9434) 11-14 before: the stations note seats 40 at '10 six-foot tables ... two U shapes', the order has 30 chairs and no table: a warning, not blocking, with the fix for this order
+PASS    Whitney now (the owner's note: 'No tables: we bring only 30 black chairs'): nothing
+PASS    bare tables on the order, the package ticked on the guest rows, or the host's own tables in the note: no stations warning
+PASS  dispatch plan · two cooks on an 11-guest party, one chef by the rule: a warning - the sheet loads one grill, and the lint only flags too few
+PASS    one of them a helper, or the owner's plan for two: nothing
+PASS  dispatch plan · the rule by paid heads (28 a chef): 27 adults + 2 kids + a free little one is one chef, + 3 kids two; a stored rule plan's old count does not count, an owner's plan stands
+PASS    quick mode: the counts, less the 'Little kids … ×N' line
+PASS  desk order show: the crew line - plan and why, who cooks and helps, the stations note, the whole promise, a cook short; no plan: the rule's count
+PASS  desk order review · Whitney before: 【二】 shows the plan the sheet prints - 2 chefs / 2 grills promised, Blu + Gary, the stations note whole, the 11-04 email - with no sheet sent yet; 【一】 warns that the note seats them at tables
+PASS    it reads and never writes
+PASS    a pass for the order as it stands holds
+PASS    the owner rewrites the stations note after the pass: the pass no longer holds (11-14 the fingerprint stayed b9439e56b74ae31d across it)
+PASS  voice stops: Got it. Tell me if anyone needs something different.
+PASS  voice stops: Hi Irene, pick your proteins on the party page.
+PASS  voice stops: If anything looks off, just text me here.
+PASS  voice stops: No rush, just let me know.
+PASS  voice passes: Please tell me if anyone needs something different.
+PASS  voice passes: Could you tell me which appetizer you'd like?
+PASS  voice passes: You can pick how you're paying at the top.
+PASS  voice passes: Text works too, whichever is easier.
+PASS  voice passes: See you Friday. Reply STOP to opt out.
+PASS  voice stops a courtesy sent a day late
+PASS    and lets it through right away
+PASS  voice notes good news left unanswered
+PASS    and is quiet when we are glad for them
+PASS  voice notes a congratulation with a full stop
+PASS  price: upgrades swapped into all 16 picks stay at the $599 minimum ($664 with travel)
+PASS  price: chicken + shrimp for all, 7 filet / 1 scallops / 3 lobster on top is $672.20
+PASS  price: all five for all 8 is $912.20, not the /quote page's $672.20
+PASS  price: a swap costs the premium, an extra the side price (filet $8 / $18)
+PASS  review gate: no review yet -> not fresh
+PASS  review gate: a pass for the order as it stands -> fresh
+PASS  review gate: the newest verdict is a fail -> not fresh, and says it failed
+PASS  review gate: a guest added after the pass -> stale, re-review
+PASS  review gate: the customer texted after the pass -> stale
+PASS  review gate: only our own text after the pass -> still fresh
+PASS  review gate: the gratuity the customer picked on the bill does not void a review
+PASS  review gate: a reassigned chef -> stale
+PASS  review gate: an order with no dispatch plan keeps the fingerprint it had before the plan was digested
+PASS  review gate: the plan's stations note, chefs or grills changed after the pass -> stale
+PASS    the plan saved again as it was (the owner's now, a new set_at, the promise gone) -> still fresh
+PASS    a pass stamped before the plan was in the digest -> stale, and it says that is all, not that the order changed
+PASS    ... and once the customer has texted since, the usual 'changed since'
+PASS  review email: the quoted thread below a reply is dropped
+PASS  review packet 【三】: 发于 = sent_at, an open from before the last send says so, stale = not told yet, never void
+PASS    an open since the last send, no change waiting: the snapshot is what he sees; a row with no sent_at goes by created_at
+
+all passed

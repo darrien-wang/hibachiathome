@@ -12,7 +12,8 @@ requirement of the customer's found anywhere else that they do not:
   (c) what the customer wrote on the party page (invoice_update_requests, before "Submitted from the
       party planner")
   (d) the customer's texts (what they asked for; from our side only what we promised)
-  (e) what we told the chef: the note sent with his sheet, our texts to his number about this party
+  (e) what we told the chef: the note sent with his sheet, our texts to his number about this party (its order number,
+      prep-sheet link, the customer's name or its day - never the city alone: _mentions_party)
   (f) the deal (customDeal free items / rates) and the setup picked on /rentals (setup_selection)
 
 Blocking (!!), as the owner set them:
@@ -907,17 +908,92 @@ def _safe(fn, default):
         return default
 
 
-def _mentions_party(body: str, order: dict, date: str) -> bool:
+# Which of our texts to a chef are about a party: only what that party alone has (owner 2026-11-16). The city used to be
+# enough, so every text Steven got in the five days before Jacob Park's lunch in Corona (Tue 11/17, RH-20261029-0692) that
+# said "Corona" was read as Jacob's - George's prep sheet, change notice and evening reminder for his 40 in Corona on Fri
+# 11/13 (RH-20261004-3574) - and the review raised George's shrimp allergy on Jacob's party.
+ORDER_NO = re.compile(r"RH-\d{8}-\d{4}")
+CHEF_LINK = re.compile(r"/chef/([A-Za-z0-9_-]{8,})")  # invoice.realhibachi.com/chef/<token>: every prep sheet and change text
+MONTHS = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+WEEKDAY = re.compile(r"(?:周|星期|礼拜)([一二三四五六日天])|\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b", re.I)
+WEEKDAY_NO = {"一": 0, "二": 1, "三": 2, "四": 3, "五": 4, "六": 5, "日": 6, "天": 6, "monday": 0, "tuesday": 1, "wednesday": 2,
+              "thursday": 3, "friday": 4, "saturday": 5, "sunday": 6}
+# Today / tonight, tomorrow: counted from the day the text went out. Not 后天: "5 点前后天就黑了" (Gary 11-10, Long Beach)
+# is "dark around 5", and it read as Verlener's party two days later.
+DAYS_AHEAD = (r"今天|今晚|今早|今日|\btoday\b|\btonight\b|\bthis (?:morning|afternoon|evening)\b",
+              r"明天|明晚|明早|明日|\btomorrow\b")
+ARRIVE_BEFORE_MIN = 150  # a time up to 2.5 hours before the start is when the chefs get there: it fits the party
+
+
+def _written(name: str, text: str) -> bool:
+    """A name as a text writes it: whole and capitalized - 'Will' or 'WILL', not the 'will' of 'Blu will bring'."""
+    return len(name) >= 2 and bool(re.search(r"(?<![A-Za-z])" + re.escape(name[0].upper()) + "(?i:" + re.escape(name[1:]) + r")(?![A-Za-z])", text))
+
+
+def _names_date(text: str, day: _dt.date) -> bool:
+    """The text writes this day's date: Nov 17, November 17th, 11/17, 11月17日, 17号."""
+    m, d, month = day.month, day.day, MONTHS[day.month - 1]
+    return bool(re.search(rf"(?<!\d){m}月{d}(?:日|号)?(?!\d)|(?<!\d){m}/{d}(?!\d)|(?<![\d月]){d}号|\b(?:{month[:3]}|{month})\.? {d}(?:st|nd|rd|th)?\b",
+                          text, re.I))
+
+
+def _says_day(text: str, day: _dt.date, sent: _dt.date | None) -> bool:
+    """The text says this day the way people talk, counted from the day it went out (sent, Pacific): today / tonight /
+    tomorrow, or its weekday (周二, 星期二, Tuesday) in the week ahead."""
+    ahead = (day - sent).days if sent else -1
+    if not 0 <= ahead <= 6:
+        return False
+    if ahead < len(DAYS_AHEAD) and has(DAYS_AHEAD[ahead], text):
+        return True
+    return any(WEEKDAY_NO[(w.group(1) or w.group(2)).lower()] == day.weekday() for w in WEEKDAY.finditer(text))
+
+
+def _time_fits(text: str, start: str, *, none: bool) -> bool:
+    """A time the text names fits a party starting at start (the stored wall clock, '20:00'): the start itself or an
+    arrival up to 2.5 hours before it, on the 12-hour clock times_in reads ('8 点', '8:00 PM', '7:30'). none: the
+    answer when the text names no time."""
+    times = times_in(text)
+    m = re.fullmatch(r"(\d{1,2}):(\d{2})", start or "")
+    if not times or not m:
+        return none
+    at = int(m.group(1)) % 12 * 60 + int(m.group(2))
+    return any((at - int(h) % 12 * 60 - int(mm)) % 720 <= ARRIVE_BEFORE_MIN for h, mm in (t.split(":") for t in times))
+
+
+def _mentions_party(body: str, order: dict, date: str, *, tokens: set[str] | None = None, sent: _dt.date | None = None,
+                    chef: str | None = None) -> bool:
+    """A text we sent a chef is about this party when it names what only this party has, asked in this order:
+      - an order number: this order's - or only others', and then it is not
+      - a prep-sheet link: one of this order's (tokens) - or only others', and then it is not; with no tokens (no link
+        sent for this order, or none read) the link decides nothing
+      - the customer's name as a text writes it ('George'); the first name alone not when it is the chef's own ('Steven，…')
+      - this party's date written out (_names_date), unless the only times it names do not fit the party (_time_fits)
+        and it does not name the city either: "11/17 6 点那场" is not the noon party that day
+      - today / tonight / tomorrow or the weekday (_says_day, from the day the text went out: sent) with the city or a
+        time that fits: on their own they are any party that day ("周五派对前的小提醒" went to every chef with a Friday party)
+    The city alone never (Jacob Park / George, above). date: the party's day, YYYY-MM-DD."""
     text = str(body or "")
-    first, city = first_name(order.get("customer_name")), city_of(order.get("event_address"))
-    if order.get("order_no") and order["order_no"] in text:
+    named = set(ORDER_NO.findall(text))
+    if named:
+        return order.get("order_no") in named
+    links = set(CHEF_LINK.findall(text))
+    if links and tokens:
+        return bool(links & tokens)
+    name = " ".join(str(order.get("customer_name") or "").split())
+    first = first_name(name)
+    own = (str(chef or "").split() or [""])[0].lower()
+    if first and ((first.lower() != own and _written(first, text)) or (name != first and _written(name, text))):
         return True
-    if first and len(first) >= 2 and re.search(r"(?<![A-Za-z])" + re.escape(first) + r"(?![A-Za-z])", text, re.I):
-        return True
-    if city and len(city) >= 3 and city.lower() in text.lower():
-        return True
-    y, m, d = (int(x) for x in date.split("-"))
-    return bool(re.search(rf"(?<!\d){m}月{d}日|(?<!\d){m}/{d}(?!\d)|{_dt.date(y, m, d).strftime('%b')} {d}\b", text))
+    try:
+        day = _dt.date.fromisoformat(str(date or "")[:10])
+    except ValueError:
+        return False
+    city = city_of(order.get("event_address"))
+    at_city = len(city) >= 3 and city.lower() in text.lower()
+    start = str(order.get("event_start") or "")[11:16]
+    if _names_date(text, day):
+        return at_city or _time_fits(text, start, none=True)
+    return _says_day(text, day, sent) and (at_city or _time_fits(text, start, none=False))
 
 
 def load_day(date: str, site_get, db_get) -> list[dict]:
@@ -937,8 +1013,15 @@ def load_parties(order_ids: list[str], db_get, site_get, date: str | None, prep_
                                "&assignment_status=in.(tentative,confirmed,completed)"), [])
     staff_ids = _q(a.get("staff_member_id") for a in asg)
     staff = _safe(lambda: db_get(f"/rest/v1/staff_members?select=id,display_name,full_name,phone&id=in.({staff_ids})"), []) if staff_ids else []
-    links = _safe(lambda: db_get("/rest/v1/chef_sheet_links?select=id,order_id,staff_member_id,sent_via,sent_at,first_opened_at,last_opened_at,revoked_at,stale,change_pending_since"
+    links = _safe(lambda: db_get("/rest/v1/chef_sheet_links?select=id,order_id,staff_member_id,token,sent_via,sent_at,first_opened_at,last_opened_at,revoked_at,stale,change_pending_since"
                                  f"&order_id=in.({ids})&order=created_at.desc"), [])
+    # A link's token says which party a text carrying it is about (_mentions_party). It opens the chef's page, so it goes
+    # no further: not into the party.
+    tokens_of: dict[str, set[str]] = {}
+    for l in links:
+        if isinstance(l, dict) and l.get("token"):
+            tokens_of.setdefault(str(l.get("order_id")), set()).add(str(l["token"]))
+    links = [{k: v for k, v in l.items() if k != "token"} for l in links if isinstance(l, dict)]
     notices = _safe(lambda: db_get(f"/rest/v1/chef_change_notices?select=id,order_id,staff_member_id,summary,sent_at,acked_at,sms_sid&order_id=in.({ids})&order=sent_at.desc"), [])
     events = _safe(lambda: db_get(f"/rest/v1/order_events?select=order_id,action,created_at,metadata&order_id=in.({ids})"
                                   "&action=in.(lead_linked,chef_sheet_sent)&order=created_at.asc"), [])
@@ -986,7 +1069,8 @@ def load_parties(order_ids: list[str], db_get, site_get, date: str | None, prep_
         if texts:
             if o.get("customer_phone"):
                 party["customer_sms"] = [m for m in thread(o["customer_phone"]) if isinstance(m, dict)]
-            # What we texted his chefs about this party: the last five days before it, naming it.
+            # What we texted his chefs about this party: the five days before it and the day itself, on the Pacific clock (a
+            # text at 4 PM on the party day is the next day in UTC: George's evening reminder, 11-13), naming it.
             start = str(o.get("event_start") or "")[:10]
             lo = (_dt.date.fromisoformat(start) - _dt.timedelta(days=5)).isoformat() if start else ""
             for t in team:
@@ -1001,9 +1085,10 @@ def load_parties(order_ids: list[str], db_get, site_get, date: str | None, prep_
                     auto = bool(CHEF_AUTO.search(str(m.get("body") or "")))
                     if auto and not chef_auto:
                         continue
-                    if lo and not (lo <= str(m.get("at") or "")[:10] <= start):
+                    sent = _pt(m.get("at"))
+                    if lo and not (sent and lo <= sent.date().isoformat() <= start):
                         continue
-                    if _mentions_party(m.get("body") or "", o, day):
+                    if _mentions_party(m.get("body") or "", o, day, tokens=tokens_of.get(str(oid)), sent=sent.date() if sent else None, chef=t["name"]):
                         party["chef_sms"].append({"at": m.get("at"), "body": m.get("body"), "chef": t["name"], "status": m.get("status"),
                                                   **({"auto": True} if auto else {})})
         parties.append(party)

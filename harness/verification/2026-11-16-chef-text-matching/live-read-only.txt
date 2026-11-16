@@ -1,0 +1,124 @@
+Production, read-only, 2026-11-16, before the push: party_check / order_review / desk.main with every non-GET HTTP call and every
+database write refused by the runner (keys from the main checkout's .env.local, never printed); sms-thread read by phone only (no lead
+id, so nothing reconciled). Nothing was written; no order data changed. Link tokens, invoice tokens and phone numbers are left out below.
+
+1. HEAD's and this branch's party_check.load_parties (chef_auto=True, as desk order review reads) over every party from 10-20 to 11-30,
+   in one process: each GET made once and shared by both runs, customer threads not read.
+
+parties 2026-10-20..2026-11-30 (not cancelled): 62; with a chef text either way: 36
+chef texts matched: HEAD 142 -> new 143
+
+RH-20261022-7105 · 2026-10-23 18:30 · Desert Hot Springs · JT · chef texts 2 -> 3
+   + added    10-23 20:24 John: John，今晚 JT 那场客人刚刷卡付清了，还选了 25% 小费，给你的 $160.25 已经记进结算 👍 /  / 客人原话的意思：John 做得很棒，菜很好吃，大家都玩得很开心。他也提了一句：表演的气势和花样可以再足一点。下次可以更放得开，多跟客人互动、多来几个花活 🔥 /  / 他们朋友喝多了
+
+RH-20261021-9381 · 2026-10-24 15:30 · Granada Hills · Ana · chef texts 2 -> 1
+   - dropped  10-23 21:27 Blu·系统: Real Hibachi prep sheet - Sat Oct 24 6:00 PM - Los Angeles - 15 guests / https://invoice.realhibachi.com/chef/<token> / (link works until the party wr
+
+RH-20261022-0063 · 2026-10-24 18:00 · Santa Monica · Yunnie · chef texts 4 -> 5
+   + added    10-24 19:43 Gary: Gary，Yunnie 那场更新后的发票（13 位，现金 $898.70）：https://party.realhibachi.com/api/invoice/pdf?token=<token>&order_no=RH-20261022-0063&view=confirmed&customer=1
+
+RH-20260925-7989 · 2026-10-24 18:00 · Los Angeles · Matthew · chef texts 3 -> 2
+   - dropped  10-23 21:27 Blu·系统: Real Hibachi prep sheet - Sat Oct 24 3:30 PM - Granada Hills - 22 guests / https://invoice.realhibachi.com/chef/<token> / (link works until the party
+
+RH-20261022-5789 · 2026-10-30 19:30 · Lancaster · Denise · chef texts 3 -> 4
+   + added    10-30 17:50 Gary: Gary，今晚 Lancaster 这单春卷要按人头给，26 位就是 26 个，不是备料单上的 20 个。路上方便就多买几个；来不及的话切开分，保证每位客人都有。收到回一下。Real Hibachi
+
+RH-20261029-1396 · 2026-10-31 19:00 · Desert Hot Springs · Valerie · chef texts 6 -> 7
+   + added    10-31 19:10 Blu·系统: Real Hibachi prep sheet - Sat Oct 31 7:00 PM - Desert Hot Springs - 21 guests / 3 black tablecloths added at $5 each. Cash balance now $1,016.00. One
+
+RH-20261015-3238 · 2026-11-02 17:00 · Indio · Jenna · chef texts 1 -> 8
+   + added    11-02 17:30 John·系统: Real Hibachi prep sheet - Mon Nov 2 5:00 PM - Indio - 12 guests / Jenna 现场问麸质，马上看：Sarah、Ashley、Brody 三位无麸质：用无麸质酱油和照烧，这三位先做，铁板先擦干净；沙拉不放姜汁酱；不给饺子春卷。Sarah
+   + added    11-02 17:34 John·系统: Real Hibachi prep sheet - Mon Nov 2 5:00 PM - Indio - 12 guests / 更正：照烧听你的。Sarah、Ashley、Brody 三位今晚一律不放照烧。酱油只有瓶子写 gluten free 才能用，先给客人看标签；没有就不放酱油，炒饭也不放
+   + added    11-02 17:38 John·系统: Real Hibachi prep sheet - Mon Nov 2 5:00 PM - Indio - 12 guests / 酱油没标签，按有麸质算。Sarah、Ashley、Brody 三位今晚不放酱油、不放照烧、不放炒饭调味料，腌过酱油的肉也不给。只用盐、蒜、油，这三位先做，铁板先擦干净。
+   + added    11-02 18:06 John·系统: Real Hibachi prep sheet - Mon Nov 2 5:00 PM - Indio - 12 guests / 老板给 Jenna 这单 $50 折扣。今晚现金收 $595.45，Zelle/Venmo 收 $619.27。发票显示 $599，以这条为准。 / https://i
+   + added    11-02 18:22 John·系统: Real Hibachi prep sheet - Mon Nov 2 5:00 PM - Indio - 12 guests / 客人反馈：节奏慢，小孩饿了要先吃，气氛冷。请先把小孩的饭上了，过敏那几份做完就加快，边做边和客人聊。 / https://invoice.realhibachi.com
+   + added    11-02 19:52 John·系统: Real Hibachi prep sheet - Mon Nov 2 5:00 PM - Indio - 12 guests / Jenna 这单收款先等一下：老板要给客人再减价，新金额马上发你。 / https://invoice.realhibachi.com/chef/<token> / (
+   + added    11-02 19:53 John·系统: Real Hibachi prep sheet - Mon Nov 2 5:00 PM - Indio - 12 guests / 老板定：Jenna 这单餐费只收 $500，现金、Zelle、Venmo 都是 $500，发票上的数不算。小费客人自己看着给，不要提。 / https://invoic
+
+RH-20260928-5064 · 2026-11-06 18:30 · Indio · Esmeralda · chef texts 1 -> 2
+   + added    11-06 18:46 JASON·系统: Real Hibachi prep sheet - Fri Nov 6 6:30 PM - Indio - 16 guests / UPDATE from the owner: Esme gets $100 off for the table mix-up. New total $867.70, m
+
+RH-20261027-8206 · 2026-11-07 15:00 · Orange · Cassandra · chef texts 8 -> 5
+   - dropped  11-06 15:19 Gary·系统: Real Hibachi prep sheet - Sat Nov 7 6:00 PM - Wilmington - 18 guests / https://invoice.realhibachi.com/chef/<token> / (link works until the party wrap
+   - dropped  11-06 16:02 Gary·系统: Real Hibachi prep sheet - Sat Nov 7 6:00 PM - Wilmington - 18 guests / Edamame SPICY - the customer asked for it. A few birthdays at this party. Comin
+   - dropped  11-07 13:43 Gary·系统: Real Hibachi prep sheet - Sat Nov 7 6:00 PM - Wilmington - 18 guests / 补充提醒：爸爸生日（还有几位一起过）。毛豆做辣的（5 份），春卷 1 份。ESME、JERRY、MIREYA 加面；JOSE、AMELIA 豆腐；DAD 三文
+
+RH-20261023-2568 · 2026-11-07 18:00 · Wilmington · Gerardo · chef texts 8 -> 3
+   - dropped  11-06 15:19 Gary·系统: Real Hibachi prep sheet - Sat Nov 7 3:00 PM - Orange - 8 guests / https://invoice.realhibachi.com/chef/<token> / (link works until the party wraps up)
+   - dropped  11-06 16:02 Gary·系统: Real Hibachi prep sheet - Sat Nov 7 3:00 PM - Orange - 8 guests / Park at the back entrance by the driveway and go in through the back door; Cassandra
+   - dropped  11-06 16:06 Gary·系统: Real Hibachi prep sheet - Sat Nov 7 3:00 PM - Orange - 9 guests / Park at the back entrance by the driveway and go in through the back door; Cassandra
+   - dropped  11-07 10:07 Gary·系统: Real Hibachi prep sheet - Sat Nov 7 3:00 PM - Orange - 10 guests / Now 10 guests: steak and chicken for all 10 (9 adults + 1 kid). Park at the back en
+   - dropped  11-07 13:43 Gary·系统: Real Hibachi prep sheet - Sat Nov 7 3:00 PM - Orange - 10 guests / 补充提醒：这场是伴娘邀请派对，Cassandra 要在派对上请朋友当伴娘，配合她的节奏，别抢先说破。我们答应过给大人带 sake，记得带。10 位都是牛排+鸡肉。客人
+
+RH-20261105-2461 · 2026-11-11 17:00 · Irvine · Joyce · chef texts 6 -> 10
+   + added    11-11 16:09 Gary: Gary，今天 Irvine Joyce 那场客人特别提了要餐具：8 位的盘子餐具都要带上（桌椅也是 8 位），备料单上有。
+   + added    11-11 16:11 Gary·系统: Real Hibachi prep sheet - Wed Nov 11 5:00 PM - Irvine - 8 guests / Gary，Joyce 这场最新备料单在下面。之前那个链接是旧的，我 11/10 说'打开就是最新的'说错了，对不起。跟旧单不一样的：8 位都要盘子餐具；Shin 鸡+
+   + added    11-11 16:28 Gary·系统: Real Hibachi prep sheet - Wed Nov 11 5:00 PM - Irvine - 8 guests / Gary，老板定了：Joyce 这场桌椅和盘子餐具的钱全免，客人现金只收 $429（原来 $549）。这次是办公室这边单子没同步好，不是你的问题，已经跟客人道歉说明了
+   + added    11-11 19:07 Gary·系统: Real Hibachi prep sheet - Wed Nov 11 5:00 PM - Irvine - 8 guests / Gary，Joyce 这场最新的发票金额：现金收 $429（桌椅和餐具全免，已经算在里面）。客人用 Zelle/Venmo 付给你是 $446.16；刷卡是 $476
+
+RH-20261111-9315 · 2026-11-12 19:00 · Corona · Verlener · chef texts 11 -> 9
+   - dropped  11-09 19:14 Gary·系统: Real Hibachi prep sheet - Thu Nov 12 6:30 PM - Palm Springs - 8 guests / https://invoice.realhibachi.com/chef/<token> / (link works until the party wr
+   - dropped  11-12 15:12 Gary·系统: Real Hibachi prep sheet - Fri Nov 13 7:00 PM - Downey - 17 guests / 明天（11/13 周五）Andres 这场的新单：3-4 岁的 Riley、Luan 是免费小孩，不带蛋白，多带炒饭蔬菜，所以牛排 10 份、鸡肉 4 份。以这张为
+
+RH-20261004-3574 · 2026-11-13 20:00 · Corona · George · chef texts 4 -> 6
+   + added    11-13 16:07 Blu: Blu，今晚 8 点 Corona George 那场，中午 12:58 发你的新备料单你已经打开过了，麻烦回个 1 确认：有客人对虾过敏，海鲜最后做，小游戏只扔西葫芦。
+   + added    11-13 16:07 Steven: Steven，今晚 8 点 Corona George 那场，中午 12:58 发你的新备料单你已经打开过了，麻烦回个 1 确认：有客人对虾过敏，海鲜最后做，小游戏只扔西葫芦。
+
+RH-20261107-5825 · 2026-11-14 17:00 · Valencia · Jeffrey · chef texts 7 -> 9
+   + added    11-14 17:08 Eason: Eason，Jeffrey 这场（Valencia 5 点）老板因为桌子的事给客人减了 $50，收款按新数：现金 $745.30，转你 Zelle/Venmo $775.11，刷卡 $846.34。看完回个 1。
+   + added    11-14 17:18 Eason·系统: Real Hibachi 改单通知 / 周六 11/14 5:00 PM · Valencia · Jeffrey · 12 位 / 备料单已更新（还是原来这个链接），改了这些： / 1. 应收（现金价）$795.30 → $745.30 / https://invoice.realhibachi.
+
+RH-20261007-9434 · 2026-11-15 17:30 · Los Angeles · Whitney · chef texts 6 -> 2
+   - dropped  11-10 19:33 Blu·系统: Real Hibachi prep sheet - Thu Nov 12 7:00 PM - Los Angeles - 18 guests / 菜单今晚刚填齐：18 位都是大人（客人今晚加了 1 位）。Karen 不吃蘑菇，她那份别放蘑菇。送的前菜是饺子 18 个。客人付现金。 / https:/
+   - dropped  11-12 00:42 Blu·系统: Real Hibachi 改单通知 / 周四 11/12 7:00 PM · Los Angeles · Corrina · 18 位 / 这场订单有改动： / 1. 新备注：Wedding after-party dinner. Dinner is for 18; two more friends
+   - dropped  11-12 10:58 Blu·系统: Real Hibachi prep sheet - Thu Nov 12 7:00 PM - Los Angeles - 18 guests / https://invoice.realhibachi.com/chef/<token> / (link works until the party wr
+   - dropped  11-12 11:52 Blu·系统: Real Hibachi prep sheet - Thu Nov 12 7:00 PM - Los Angeles - 18 guests / https://invoice.realhibachi.com/chef/<token> / (link works until the party wr
+
+RH-20261029-0692 · 2026-11-17 12:00 · Corona · Jacob · chef texts 4 -> 1
+   - dropped  11-12 17:15 Steven·系统: Real Hibachi prep sheet - Fri Nov 13 8:00 PM - Corona - 40 guests - 2 chefs, 2 grills / https://invoice.realhibachi.com/chef/<token> / (link works unt
+   - dropped  11-13 12:58 Steven·系统: Real Hibachi 改单通知 / 周五 11/13 8:00 PM · Corona · George · 40 位 / 这场订单有改动： / 1. 办公室备注改为：两位师傅、两台灶，7:00–7:30 到场，烤炉放平地（草地可以）。有客人对虾过敏：海鲜最后做。多带炒饭，带 sriracha。
+   - dropped  11-13 16:07 Steven: Steven，今晚 8 点 Corona George 那场，中午 12:58 发你的新备料单你已经打开过了，麻烦回个 1 确认：有客人对虾过敏，海鲜最后做，小游戏只扔西葫芦。
+   gap gone   warn/allergy: 过敏只在短信 / 派对页 / 发给师傅的话里
+
+parties whose chef texts or gaps moved: 16
+reads: 10 database GETs, 7 site GETs (sms-thread by phone only); nothing else was called
+
+   Every dropped text is another party's: each carries a prep-sheet link that chef_sheet_links gives to a different order (Ana /
+   Matthew 10-24, Cassandra / Gerardo 11-07 - same chef, same day, matched by the date; Verlener <- Andrea's and Andres's sheets; Whitney
+   <- Corrina's by "Los Angeles"; Jacob <- George's by "Corona"), or it is George's 16:07 reminder on Jacob's party. Every added text is
+   the party's own, sent on the party day after 4 PM PT (5 PM in PDT), which the UTC-dated window left out. The one gap that moved is
+   Jacob's false allergy.
+   A first version also read a weekday or today / tomorrow on its own, and 后天; on this same data it pulled a coaching text sent to every
+   chef with a Friday party ("周五派对前的小提醒") into Heather's 10-23 party (a false birthday warning) and Gary's Long Beach note "5 点前后天
+   就黑了" into Verlener's 11-12 party (a false blocking setup gap). The rule now needs the city or a fitting time with those words, and
+   reads no 后天; the selfcheck holds both.
+
+2. desk order review (the packet, no --pass / --fail) with this branch's code. The fingerprint does not digest chef texts, so the pass
+   recorded on RH-20261029-0692 at 11-16 10:17 still holds.
+
+RH-20261029-0692 · Tue 11-17 12:00 · Corona · Jacob
+指纹 7e7ed361d6bce3c2 · 审查状态：✓ 11-16 10:17 审查通过，之后没有变化：重审核了 16 条都在：11-16 10:15 Jacob 回『Chicken and steak will work, nobody has requested anything else』，菜单已由客人确认 1
+  RH-20261029-0692 · 12:00 PM · Corona · Jacob · 19 大 · 师傅 Steven
+     过敏：无
+     备料单 ✓ Steven：最新版，已打开
+     ✓ 缺项：无
+  【四】 chef texts:
+     11-16 10:11 师·Steven·系统  Real Hibachi prep sheet - Tue Nov 17 12:00 PM - Corona - 19 guests 明天周二中午 Corona Jacob 公司团队午餐，19 位：11:30 到场布置，12:00 准时开始。客人没在派对页选菜，先按全员鸡+牛备；他要
+
+RH-20261004-3574 · Fri 11-13 20:00 · Corona · George
+指纹 36e0dca30e48e62f · 审查状态：✗ 11-13 12:55 审查过，之后订单、派工或客人的话变了（指纹 2cdf306c577b5b7f → 36e0dca30e48e62f），要重新审查
+  RH-20261004-3574 · 8:00 PM · Corona · George · 40 大 · 师傅 Steven、Blu
+     过敏：无
+     备料单 ✓ Steven：最新版，已打开，改单通知 11-13 12:58 已回 1
+     备料单 ✓ Blu：最新版，已打开，改单通知 11-13 12:58 已回 1
+     ✓ 缺项：无
+  【四】 chef texts:
+     11-12 14:47 师·Blu·系统  Real Hibachi prep sheet - Fri Nov 13 8:00 PM - Corona - 40 guests - 2 chefs, 2 grills George 这场：有一位客人对虾过敏，虾和海鲜最后做；小游戏只扔西葫芦，不扔虾（客人家 10-04 听我们说过 sh
+     11-12 17:15 师·Steven·系统  Real Hibachi prep sheet - Fri Nov 13 8:00 PM - Corona - 40 guests - 2 chefs, 2 grills https://invoice.realhibachi.com/chef/<token> (link works
+     11-13 12:58 师·Steven·系统  Real Hibachi 改单通知 周五 11/13 8:00 PM · Corona · George · 40 位 这场订单有改动： 1. 办公室备注改为：两位师傅、两台灶，7:00–7:30 到场，烤炉放平地（草地可以）。有客人对虾过敏：海鲜最后做。多带炒饭，带 srirach
+     11-13 12:58 师·Blu·系统  Real Hibachi 改单通知 周五 11/13 8:00 PM · Corona · George · 40 位 这场订单有改动： 1. 办公室备注改为：两位师傅、两台灶，7:00–7:30 到场，烤炉放平地（草地可以）。有客人对虾过敏：海鲜最后做。多带炒饭，带 sriracha。牛
+     11-13 16:07 师·Blu  Blu，今晚 8 点 Corona George 那场，中午 12:58 发你的新备料单你已经打开过了，麻烦回个 1 确认：有客人对虾过敏，海鲜最后做，小游戏只扔西葫芦。
+     11-13 16:07 师·Steven  Steven，今晚 8 点 Corona George 那场，中午 12:58 发你的新备料单你已经打开过了，麻烦回个 1 确认：有客人对虾过敏，海鲜最后做，小游戏只扔西葫芦。
+
+   Reads: RH-20261029-0692 16 GETs: db GET /rest/v1/chef_change_notices, db GET /rest/v1/chef_sheet_links, db GET /rest/v1/invoice_update_requests, db GET /rest/v1/lead_touchpoints, db GET /rest/v1/order_events, db GET /rest/v1/order_staff_assignments, db GET /rest/v1/orders, db GET /rest/v1/staff_members, site GET /api/admin/prep, site GET /api/admin/sms-thread
+          RH-20261004-3574 17 GETs: db GET /rest/v1/chef_change_notices, db GET /rest/v1/chef_sheet_links, db GET /rest/v1/invoice_update_requests, db GET /rest/v1/lead_touchpoints, db GET /rest/v1/order_events, db GET /rest/v1/order_staff_assignments, db GET /rest/v1/orders, db GET /rest/v1/staff_members, site GET /api/admin/prep, site GET /api/admin/sms-thread

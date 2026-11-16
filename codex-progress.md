@@ -604,3 +604,35 @@ Verification completed:
   - Output: `before-fix.txt`.
 - Production before the push, read-only (SQL SELECTs only): the activity filed on merged rows after their merge, and the lead each rule picks per number on main versus this change. The quiet state moves for no number today: the one kept lead with a merged-only number has no ack or hold. Lead-watch runs were ok, 0 / 0. Output: `prod-before.txt`.
 - Outputs: `harness/verification/2026-11-16-merged-leads-filing/`. Not a `harness/feature_list.json` item.
+
+## CHEF-TEXTS-BY-PARTY - A text to a chef is a party's by what only that party has, never the city alone (2026-11-16)
+
+Status: done; pushed to main.
+
+Why: `party_check._mentions_party` decides which of our texts to a party's chefs `desk order review` (the order-review gate: 【一】's checks and 【四】) and `desk order check` read as that party's. A text naming the party's city was enough. Steven had George's 40 in Corona on Fri 11/13 8 PM (RH-20261004-3574) and Jacob Park's lunch in Corona on Tue 11/17 noon (RH-20261029-0692). So George's prep sheet, his change notice and Steven's 11-13 16:07 reminder ("今晚 8 点 Corona George 那场 ... 有客人对虾过敏") were all read as Jacob's, and the review raised a shrimp-allergy item on Jacob's party. The same rule had matched same-day parties by the date (Ana / Matthew 10-24, Cassandra / Gerardo 11-07), and Corrina's 11/12 texts into Whitney's 11/15 party by "Los Angeles". Separately, the five-day window compared the text's UTC date with the party's date. Texts sent on the party day after 4 PM PT (5 PM in PDT) were left out of the party they were about, George's own 16:07 reminders among them.
+
+What changed:
+- `scripts/desk/party_check.py` `_mentions_party(body, order, date, *, tokens, sent, chef)`, asked in this order:
+  - an order number: this order's, or only other orders' and then it is not this party's;
+  - a prep-sheet link `/chef/<token>`: one of this order's links, or only other orders' and then it is not;
+  - the customer's name as it is written: capitalized ('Will', not 'will'), and the first name alone does not count when it is the recipient chef's own name; the full name always counts;
+  - the party's date written out (Nov 17, 11/17, 11月17日, 17号), unless the only times the text names do not fit the party (the start, or an arrival up to 2.5 h before it) and it does not name the city;
+  - today / tonight / tomorrow or the weekday, counted from the Pacific day the text went out, only together with the city or a fitting time.
+  The city alone never counts. 后天 is not read at all, because it shows up inside "前后天就黑了".
+- `load_parties` reads `chef_sheet_links.token` to know each order's links. The tokens stay out of the party: each link row is copied without its token. The window now compares the text's Pacific date.
+- `scripts/desk/selfcheck.py` `chef_text_checks` (7 checks): Steven's four real texts (links shortened) go through `load_parties` against fakes, read both the way the review reads them and the way the 10:00 check does. The checks also cover what a person writes that still finds the party, and what no longer does.
+
+Verification completed:
+- `python scripts/desk/selfcheck.py`: 288 pass, 0 fail (281 on origin/main, plus 7 new). With HEAD's `party_check.py` swapped in, exactly the 7 new checks fail. Outputs: `selfcheck.txt`, `before-fix.txt`.
+- `npm test` was not run: no TypeScript changed, and it never touches desk.
+- Production, read-only (every non-GET call refused; sms-thread read by phone only): HEAD's and the new `load_parties` over the 62 parties from 10-20 to 11-30. Chef texts or gaps moved on 16 parties:
+  - Every dropped text carries another order's prep-sheet link, or is George's reminder on Jacob's party.
+  - Every added text is the party's own, sent on the party day after 4 PM.
+  - The only gap that moved is Jacob's false allergy.
+  A first version that also read a weekday or tomorrow on its own, and 后天, raised two false gaps on the same data: a birthday warning on Heather 10-23 from a coaching text sent to every chef with a Friday party, and a blocking setup gap on Verlener 11-12 from "5 点前后天就黑了". The shipped rule raises neither.
+- `desk order review` for both orders: Jacob's 【四】 has only his own prep sheet and his 【一】 shows nothing. George's 【四】 has all six of his texts. The fingerprint does not digest chef texts, so the pass recorded on RH-20261029-0692 at 11-16 10:17 still holds. Output: `live-read-only.txt`.
+- All outputs are in `harness/verification/2026-11-16-chef-text-matching/`. Not a `harness/feature_list.json` item.
+
+Noticed, not changed:
+- A chef with two parties on the same day still gets a person's text that names the day but no time, city or customer ("明天的派对多带炒饭") on both parties. Prep-sheet and change texts carry their link, so this only affects texts a person writes.
+- AGENTS.md names `scripts/codex-session-start.sh` and `init.sh`; neither file is in the repo.

@@ -1054,6 +1054,88 @@ def party_check_checks() -> None:
     check("  no database to read: the block is the invoice lint's alone, and show still prints", r.has("✓ 缺项：无") and r.exit is None, r)
 
 
+# ---------------------------------------------------------------- whose chef texts --
+# Which texts we sent a chef are a party's (owner 2026-11-16). Steven had George's 40 in Corona on Fri 11/13 8 PM
+# (RH-20261004-3574) and Jacob Park's lunch for 19 in Corona on Tue 11/17 noon (RH-20261029-0692). The city was enough, so
+# every text of Steven's in the five days before 11/17 that said "Corona" was read as Jacob's, and the review raised George's
+# shrimp allergy on Jacob's party; and the reminder Steven got at 4:07 PM on 11/13 (00:07 UTC on the 14th) was left out of
+# George's own. His texts as they went out, the links shortened.
+STEVEN_TEXTS = [
+    ("2026-11-13T01:15:54Z", "Real Hibachi prep sheet - Fri Nov 13 8:00 PM - Corona - 40 guests - 2 chefs, 2 grills\n"
+                             "https://invoice.realhibachi.com/chef/tokGeorgeSteven1\n(link works until the party wraps up)"),
+    ("2026-11-13T20:58:02Z", "Real Hibachi 改单通知\n周五 11/13 8:00 PM · Corona · George · 40 位\n这场订单有改动：\n"
+                             "1. 办公室备注改为：两位师傅、两台灶，7:00–7:30 到场，烤炉放平地（草地可以）。有客人对虾过敏：海鲜最后做。…\n"
+                             "2. 新备注：If it rains, the host has a covered spot for the grills.\n新备料单（旧链接已作废，用这个）：\n"
+                             "https://invoice.realhibachi.com/chef/tokGeorgeSteven2\n看完请回 1 确认。"),
+    ("2026-11-14T00:07:55Z", "Steven，今晚 8 点 Corona George 那场，中午 12:58 发你的新备料单你已经打开过了，麻烦回个 1 确认：有客人对虾过敏，"
+                             "海鲜最后做，小游戏只扔西葫芦。"),
+    ("2026-11-16T18:11:25Z", "Real Hibachi prep sheet - Tue Nov 17 12:00 PM - Corona - 19 guests\n明天周二中午 Corona Jacob 公司团队午餐，19 位："
+                             "11:30 到场布置，12:00 准时开始。客人没在派对页选菜，先按全员鸡+牛备；他要是发名单改了，系统会再通知你。送饺子 19 个。看完回个 1。\n"
+                             "https://invoice.realhibachi.com/chef/tokJacobSteven1\n(link works until the party wraps up)"),
+]
+
+
+def jacob() -> dict:  # RH-20261029-0692, Tue 11/17 noon, Corona
+    return pc_party("RH-20261029-0692", "2026-11-17T12:00:00+00:00", name="Jacob Test", mode="quick",
+                    notes="Company team lunch for 19. The chef arrives at 11:30 to set up; lunch starts at 12:00.",
+                    prep_note="公司团队午餐 19 位：11:30 到场布置，12:00 准时开始。先按全员鸡+牛备。送饺子 19 个。", address="1 Test Way, Corona, CA 92879")
+
+
+def chef_text_checks() -> None:
+    g, j = george(GEORGE_NOTES_NOW, GEORGE_PREP_NOW)["order"], jacob()["order"]
+    link = lambda lid, o, token, at, revoked=None: {"id": lid, "order_id": o["id"], "staff_member_id": "s-steven", "token": token, "sent_via": "twilio",
+                                                   "sent_at": at, "first_opened_at": None, "last_opened_at": None, "revoked_at": revoked, "stale": False,
+                                                   "change_pending_since": None}
+    db = fake_db({
+        "orders": [g, j],
+        "order_staff_assignments": [{"order_id": o["id"], "staff_member_id": "s-steven", "assignment_role": "lead_chef", "assignment_status": "confirmed"}
+                                    for o in (g, j)],
+        "staff_members": [{"id": "s-steven", "display_name": "Steven", "full_name": None, "phone": "+15555550166"}],
+        "chef_sheet_links": [link("l-g1", g, "tokGeorgeSteven1", "2026-11-13T01:15:53Z", "2026-11-13T20:58:00Z"),
+                             link("l-g2", g, "tokGeorgeSteven2", "2026-11-13T20:58:00Z"), link("l-j1", j, "tokJacobSteven1", "2026-11-16T18:11:24Z")],
+        "chef_change_notices": [], "order_events": [], "invoice_update_requests": [], "lead_touchpoints": [],
+    })
+    steven = [{"at": at, "direction": "outbound", "body": body, "status": "delivered"} for at, body in STEVEN_TEXTS]
+    site = lambda path, params=None: {"messages": steven if (params or {}).get("phone") == "+15555550166" else []}
+    load = lambda chef_auto: {p["order"]["order_no"]: p for p in party_check.load_parties([g["id"], j["id"]], db, site, None, chef_auto=chef_auto)}
+    bodies = lambda p: [m["body"] for m in p["chef_sms"]]
+    seen = load(True)  # as the review reads them (desk order review)
+    check("chef texts · Jacob Park (RH-20261029-0692, Tue 11/17 Corona): only his own prep sheet - not George's prep sheet, change notice or "
+          "4:07 PM reminder, though all three say Corona",
+          bodies(seen["RH-20261029-0692"]) == [STEVEN_TEXTS[3][1]], None, json.dumps(bodies(seen["RH-20261029-0692"]), ensure_ascii=False)[:400])
+    check("  so no shrimp-allergy item on Jacob's party (the review raised one on 11-16)",
+          not any(x["kind"] == "allergy" for x in party_check.gaps_of(seen["RH-20261029-0692"])))
+    check("  George (RH-20261004-3574, Fri 11/13 8 PM Corona): his sheet and change notice by their links, the reminder by his name - "
+          "sent 4:07 PM on the party day, 00:07 UTC the next; the link tokens stay out of the party",
+          bodies(seen["RH-20261004-3574"]) == [b for _, b in STEVEN_TEXTS[:3]]
+          and all("token" not in l for p in seen.values() for l in p["links"]) and len(seen["RH-20261004-3574"]["links"]) == 2,
+          None, json.dumps(bodies(seen["RH-20261004-3574"]), ensure_ascii=False)[:400])
+    day = load(False)  # desk order check: the system's own texts left out
+    check("  desk order check (no system texts): George has the reminder, Jacob nothing",
+          bodies(day["RH-20261004-3574"]) == [STEVEN_TEXTS[2][1]] and bodies(day["RH-20261029-0692"]) == [])
+
+    def says(body: str, at: str, order: dict, chef: str = "Steven") -> bool:
+        return party_check._mentions_party(body, order, str(order["event_start"])[:10], sent=party_check._pt(at).date(), chef=chef)
+
+    nov13, nov16 = "2026-11-13T18:00:00Z", "2026-11-16T18:00:00Z"  # 10 AM Pacific
+    check("  what a person writes still finds the party: a weekday with the city, tomorrow with the start time, the date alone, "
+          "the order number - and only that party",
+          says("Steven，周二 Corona 那场客人改成 21 位", nov13, j) and not says("Steven，周二 Corona 那场客人改成 21 位", nov13, g)
+          and says("明天中午 12 点那场多带一包炒饭", nov16, j) and says("11/17 多带一包炒饭", nov16, j)
+          and says("RH-20261004-3574 的雨棚在后院", nov13, g) and not says("RH-20261004-3574 的雨棚在后院", nov13, j))
+    verlener_o = verlener(False)["order"]  # 11/12 7 PM Corona
+    check("  and nothing less: the city alone, a weekday or 'tomorrow' alone (a reminder to every chef with a Friday party), "
+          "another party that day by its time, 前后天 (not 后天)",
+          not says("Corona 那场多带一包炒饭", nov16, j) and not says("周五派对前的小提醒：抛接对准人手，点火离桌面远一点。", "2026-11-12T06:02:00Z", g)
+          and not says("可以，收到了，谢谢！明天辛苦了。", nov16, j) and not says("11/17 6 点 Irvine 那场多带一包炒饭", nov16, j)
+          and not says("Gary，今天 5:30 Jamie 那场补充两点：5 点前后天就黑了，带上灯。", "2026-11-10T20:57:00Z", verlener_o, chef="Gary"))
+    steven_lee = {**j, "order_no": "RH-20301117-0001", "customer_name": "Steven Lee"}
+    will = {**j, "order_no": "RH-20301117-0002", "customer_name": "Will Test"}
+    check("  a customer's first name counts as written ('Will', not 'will'), and not when it is the chef's own ('Steven，…') - the full name does",
+          not says(STEVEN_TEXTS[2][1], STEVEN_TEXTS[2][0], steven_lee) and says("Steven Lee 那场多带一包炒饭", nov16, steven_lee)
+          and not says("Blu will bring the extra rice", nov16, will) and says("Will 那场多带一包炒饭", nov16, will))
+
+
 # ---------------------------------------------------------------- 派工计划 in the review --
 # Whitney RH-20261007-9434 (11/15 Los Angeles) on 11-14, before the owner rewrote the stations note: the plan still
 # seated the guests at "10 six-foot tables ... two U shapes", captured from an 11-04 email, while the order had gone
@@ -1748,6 +1830,7 @@ def main() -> int:
     send_checks()
     order_flow_checks()
     party_check_checks()
+    chef_text_checks()
     dispatch_plan_checks()
 
     # A request with no "please" stops a send (owner 2026-11-01). Same samples as tests/voice-check.test.ts.

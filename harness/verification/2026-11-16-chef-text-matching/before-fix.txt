@@ -1,0 +1,24 @@
+Before the fix, 2026-11-16.
+
+1. The real orders, read-only (database GETs, sms-thread by phone): HEAD's party_check gave desk order review these chef texts.
+   RH-20261029-0692 Jacob, Tue 11/17 12:00 Corona (Steven): 4 texts, all four by "Corona":
+     11-12 17:15 Steven·系统  Real Hibachi prep sheet - Fri Nov 13 8:00 PM - Corona - 40 guests   <- its link is RH-20261004-3574's
+     11-13 12:58 Steven·系统  Real Hibachi 改单通知 周五 11/13 8:00 PM · Corona · George · 40 位 ... 有客人对虾过敏   <- link RH-20261004-3574's
+     11-13 16:07 Steven       Steven，今晚 8 点 Corona George 那场 ... 有客人对虾过敏，海鲜最后做，小游戏只扔西葫芦。
+     11-16 10:11 Steven·系统  Real Hibachi prep sheet - Tue Nov 17 12:00 PM - Corona - 19 guests   <- his own (link RH-20261029-0692's)
+   and so, in 【一】:  warn/allergy 过敏只在短信 / 派对页 / 发给师傅的话里 - 发给师傅的短信 11-13 · Steven | Steven，今晚 8 点 Corona George 那场 ... 有客人对虾过敏
+   RH-20261004-3574 George, Fri 11/13 20:00 Corona (Steven, Blu): 4 texts. The two reminders sent 16:07 PT on the party day are 00:07 UTC
+   on 11-14, so the window (UTC date <= the party's date) left them out.
+
+2. selfcheck with HEAD's party_check.py swapped in (its _mentions_party called without the new tokens / sent / chef), everything else
+   as on this branch: 281 PASS, 7 FAIL.
+FAIL  chef texts · Jacob Park (RH-20261029-0692, Tue 11/17 Corona): only his own prep sheet - not George's prep sheet, change notice or 4:07 PM reminder, though all three say Corona
+      ["Real Hibachi prep sheet - Fri Nov 13 8:00 PM - Corona - 40 guests - 2 chefs, 2 grills\nhttps://invoice.realhibachi.com/chef/tokGeorgeSteven1\n(link works until the party wraps up)", "Real Hibachi 改单通知\n周五 11/13 8:00 PM · Corona · George · 40 位\n这场订单有改动：\n1. 办公室备注改为：两位师傅、两台灶，7:00–7:30 到场，烤炉放平地（草地可以）。有客人对虾过敏：海鲜最后做。…\n2. 新备注：If it rains, the host has a covered spot for the grills.\n新备料单（旧链接已作
+FAIL    so no shrimp-allergy item on Jacob's party (the review raised one on 11-16)
+FAIL    George (RH-20261004-3574, Fri 11/13 8 PM Corona): his sheet and change notice by their links, the reminder by his name - sent 4:07 PM on the party day, 00:07 UTC the next; the link tokens stay out of the party
+      ["Real Hibachi prep sheet - Fri Nov 13 8:00 PM - Corona - 40 guests - 2 chefs, 2 grills\nhttps://invoice.realhibachi.com/chef/tokGeorgeSteven1\n(link works until the party wraps up)", "Real Hibachi 改单通知\n周五 11/13 8:00 PM · Corona · George · 40 位\n这场订单有改动：\n1. 办公室备注改为：两位师傅、两台灶，7:00–7:30 到场，烤炉放平地（草地可以）。有客人对虾过敏：海鲜最后做。…\n2. 新备注：If it rains, the host has a covered spot for the grills.\n新备料单（旧链接已作
+FAIL    desk order check (no system texts): George has the reminder, Jacob nothing
+FAIL    what a person writes still finds the party: a weekday with the city, tomorrow with the start time, the date alone, the order number - and only that party
+FAIL    and nothing less: the city alone, a weekday or 'tomorrow' alone (a reminder to every chef with a Friday party), another party that day by its time, 前后天 (not 后天)
+FAIL    a customer's first name counts as written ('Will', not 'will'), and not when it is the chef's own ('Steven，…') - the full name does
+   Only the 7 new checks fail, so they cover the bug.
