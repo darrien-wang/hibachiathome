@@ -1,0 +1,23 @@
+Live replay, read-only (2026-11-16 ~21:20Z): main's and the new loadCallerFacts (lib/caller-card.ts) over live
+data in one tsx process, for every number a merged row carries. The Supabase client's fetch refused anything but
+GET/HEAD to the database. Printed: which facts the ring-screen card would carry, never their values (no names,
+dates, prices or texts).
+
+number 1: merged rows 1d558f80; live leads on it: 1 -> same card
+  main: {"name":true,"heads":true,"date":true,"time":true,"price":true,"order":true,"locked":true,"returning":false,"lastText":true,"channel":true}
+number 2: merged rows 3e9e58e9; live leads on it: 1 -> same card
+  main: {"name":true,"heads":true,"date":false,"time":false,"price":false,"order":false,"locked":false,"returning":false,"lastText":true,"channel":true}
+number 3: merged rows 763c4888, a847657f; live leads on it: 0 -> card differs
+  main: {"name":true,"heads":false,"date":false,"time":false,"price":false,"order":false,"locked":false,"returning":true,"lastText":false,"channel":false}
+  new:  {"name":true,"heads":true,"date":false,"time":false,"price":false,"order":false,"locked":false,"returning":true,"lastText":true,"channel":true}
+number 4: merged rows 9658a648; live leads on it: 1 -> same card
+  main: {"name":true,"heads":true,"date":false,"time":false,"price":true,"order":false,"locked":false,"returning":false,"lastText":true,"channel":true}
+number 5: merged rows ebf27281; live leads on it: 1 -> same card
+  main: {"name":true,"heads":true,"date":false,"time":false,"price":false,"order":false,"locked":false,"returning":true,"lastText":true,"channel":true}
+46 GETs to the database, nothing else allowed out
+
+Reading it: the four numbers with a live lead ring exactly as before. The one number only merged rows carry
+(both merged into e6296797) rang with just a name and "returning" (from a past order on that number); it now also
+carries the party size, the customer's last text and the channel, read from the lead they went into. It has no
+upcoming party, so there is no date or total to show either way.
+(Numbering here is this replay's own, not prod-before.txt's of the filing change.)

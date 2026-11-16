@@ -33,6 +33,7 @@ import { CALLER_CARD_PARAM, encodeCallerCard, type CallerCard } from "@/lib/call
 import { HINT_TYPES, hintFromRows } from "@/lib/lead-event-hint"
 import { isDefaultLeaveQuote } from "@/lib/lead-scan"
 import { isPlaceholderName } from "@/lib/leads"
+import { survivorOf, withMergedInto } from "@/lib/merged-leads"
 import { toE164 } from "@/lib/sms-thread"
 import { escapeXml } from "@/lib/twilio-identity"
 import { channelLabel } from "@/lib/channels"
@@ -264,7 +265,12 @@ type LeadRow = {
   adult_count: number | null
   child_count: number | null
   little_count: number | null
+  normalized_phone: string | null
+  merged_into?: string | null
 }
+const LEAD_COLUMNS = "id, full_name, guest_count, adult_count, child_count, little_count, normalized_phone"
+const ORDER_COLUMNS =
+  "customer_name, customer_phone, source_metadata, event_start, order_status, deposit_status, quoted_total_cents, guest_adult_count, guest_child_count"
 type OrderRow = {
   customer_name: string | null
   source_metadata: Record<string, unknown> | null
@@ -329,33 +335,34 @@ export async function loadCallerFacts(supabase: SupabaseClient, phone: string, n
   const d10 = digits10(phone)
   const today = pacificDate(now)
   const [leadRes, orderRes] = await Promise.all([
-    // The lead the desk and the missed-call text read: newest, not merged away.
+    // The lead the desk and the missed-call text read: the newest live lead on the number - or, when
+    // only merged rows carry it (a customer's other phone, kept on the row merged away), the lead
+    // they went into (lib/merged-leads.ts). Until 2026-11-16 such a caller rang with no card.
     supabase
       .from("leads")
-      .select("id, full_name, guest_count, adult_count, child_count, little_count")
+      .select(withMergedInto(LEAD_COLUMNS))
       .eq("normalized_phone", d10)
-      .is("merged_into", null)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .limit(20),
     supabase
       .from("orders")
-      .select("customer_name, customer_phone, source_metadata, event_start, order_status, deposit_status, quoted_total_cents, guest_adult_count, guest_child_count")
+      .select(ORDER_COLUMNS)
       .ilike("customer_phone", `%${d10}%`)
       .order("created_at", { ascending: false })
       .limit(10),
   ])
   if (leadRes.error) throw new Error(`lead lookup: ${leadRes.error.message}`)
   if (orderRes.error) throw new Error(`order lookup: ${orderRes.error.message}`)
-  const lead = leadRes.data as LeadRow | null
-  const orders = ((orderRes.data ?? []) as OrderRow[]).filter(
-    (o) => digits10(o.customer_phone) === d10 && !CLOSED_STATUSES.has(str(o.order_status).toLowerCase()),
-  )
+  const lead = await survivorOf(supabase, leadRes.data as unknown as LeadRow[], LEAD_COLUMNS)
+  // Reached through a merge, the lead's own number is another one, and its party is booked under it.
+  const leadD10 = digits10(lead?.normalized_phone)
+  const otherNumber = leadD10.length === 10 && leadD10 !== d10 ? leadD10 : null
 
   let rows: TimelineRow[] = []
   let channel: string | null = null
+  let otherOrders: OrderRow[] = []
   if (lead) {
-    const [tl, attribution] = await Promise.all([
+    const [tl, attribution, more] = await Promise.all([
       supabase
         .from("lead_touchpoints")
         .select("touchpoint_type, occurred_at, raw_payload_json")
@@ -365,12 +372,26 @@ export async function loadCallerFacts(supabase: SupabaseClient, phone: string, n
         .limit(200),
       // Where the lead came from, as the scorecard classifies it (rh_resolve_channel).
       supabase.from("lead_attribution").select("channel").eq("id", lead.id).maybeSingle(),
+      otherNumber
+        ? supabase
+            .from("orders")
+            .select(ORDER_COLUMNS)
+            .ilike("customer_phone", `%${otherNumber}%`)
+            .order("created_at", { ascending: false })
+            .limit(10)
+        : Promise.resolve({ data: [] as OrderRow[], error: null }),
     ])
     if (tl.error) throw new Error(`timeline lookup: ${tl.error.message}`)
+    if (more.error) throw new Error(`order lookup: ${more.error.message}`)
     rows = (tl.data ?? []) as TimelineRow[]
     const resolved = (attribution.data as { channel: string | null } | null)?.channel ?? null
     channel = resolved && resolved !== "unresolved" ? resolved : null
+    otherOrders = (more.data ?? []) as OrderRow[]
   }
+  const numbers = new Set([d10, ...(otherNumber ? [otherNumber] : [])])
+  const orders = [...((orderRes.data ?? []) as OrderRow[]), ...otherOrders].filter(
+    (o) => numbers.has(digits10(o.customer_phone)) && !CLOSED_STATUSES.has(str(o.order_status).toLowerCase()),
+  )
   const timeline = readTimeline(rows)
   const lastIn = rows.find((r) => r.touchpoint_type === "sms_inbound")
   const lastText = lastIn ? { body: str(lastIn.raw_payload_json?.Body) || str(lastIn.raw_payload_json?.body), at: lastIn.occurred_at } : null

@@ -637,3 +637,26 @@ Verification completed:
 Noticed, not changed:
 - A chef with two parties on the same day still gets a person's text that names the day but no time, city or customer ("明天的派对多带炒饭") on both parties. Prep-sheet and change texts carry their link, so this only affects texts a person writes.
 - AGENTS.md names `scripts/codex-session-start.sh` and `init.sh`; neither file is in the repo.
+
+## CALLER-CARD-MERGED - The ring screen knows a caller whose number only a merged row carries (2026-11-16)
+
+Status: done; pushed to main. The production check after the deploy is added in its own evidence commit.
+
+Why: the owner's follow-up to MERGED-LEADS-FILING. When two of a customer's leads are merged, the kept lead keeps its own number, and the other number stays on the row merged away. The caller card (`lib/caller-card.ts`, the ring screen in the App and the softphone) looked only for a live lead on the calling number. So a call from that other number rang with nothing about the lead: no party size, no last text, no channel. It showed only a name and "returning", and only when a past order happened to be on that number. In production one number is like this: both its rows (763c4888, a847657f) were merged into e6296797.
+
+What changed:
+- `lib/caller-card.ts` `loadCallerFacts` reads the number's leads with `merged_into`, newest first, and takes the kept lead through `survivorOf` (lib/merged-leads.ts). That means the live lead on the number when there is one, as before; otherwise the lead the merged rows went into. Reached that way, the kept lead's own number is a different one, and its party is booked under it. The orders on that number are read alongside the timeline and the channel, so the usual call (a live lead on the number) adds no round trip. Only the merged-only case adds one read, inside `callerCardFor`'s 1.5 s budget. A merge into a lead that cannot be read falls back to that row itself (its own name).
+- `tests/caller-card-merged.test.ts` (new, 5 tests):
+  - The other phone gets the kept lead and its booked party.
+  - The kept lead's own number reads as before.
+  - A live lead beats a newer row merged into another lead.
+  - A number nobody carries still reads as new; a broken merge reads its own row.
+  - The full card for the other phone ("Dana Yelp / 20人 · 11月22日 周五 18:00 · 总价 $1,225 · 已锁单 / 昨天短信：…").
+
+Not changed: `desk card --phone` (the desk route's `leadByPhone`) still skips merged rows. The desk's own cards carry the kept lead's id since 0363b1d4.
+
+Verification completed:
+- `npm test`: 638 pass, 0 fail. `npm run lint:copy`: 0 hard-rule hits (the soft `4pct-v2` line as before). `tsc --noEmit`: no errors in `lib/caller-card.ts` or the new test (93 in the project, as before).
+- The new tests against main's `lib/caller-card.ts`: 3 fail (the other phone's facts and its card come back empty; the broken merge reads nothing), 2 pass (the controls). Output: `before-fix.txt`.
+- Live replay, read-only: main's and the new `loadCallerFacts` over live data for every number a merged row carries, behind a fetch that allowed only GET/HEAD to the database (46 GETs). The four numbers with a live lead get the same card. The merged-only number now also carries the party size, the last text and the channel. It has no upcoming party either way. Only which facts are present was printed, not their values. Output: `live-replay-read-only.txt`.
+- Outputs: `harness/verification/2026-11-16-caller-card-merged/`. Not a `harness/feature_list.json` item.

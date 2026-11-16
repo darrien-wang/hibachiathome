@@ -1,0 +1,111 @@
+tests/caller-card-merged.test.ts against main's lib/caller-card.ts (8de0f59c)
+npx tsx --tsconfig ./tsconfig.json --test tests/caller-card-merged.test.ts
+
+[caller-card] {
+  caller: '…0188',
+  card: { name: '', line: '新号码 · 无记录' },
+  ms: -126225663084
+}
+✖ caller card · a number only merged rows carry: the kept lead and its booked party (24.7477ms)
+✔ caller card · the kept lead's own number reads as before (1.1557ms)
+✔ caller card · a live lead on the number beats a newer row merged into another lead (0.6897ms)
+✖ caller card · a number nobody carries still rings as new; a broken merge reads its own row (0.9826ms)
+✖ caller card · the card for the other phone rings with the party on it (1.7575ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 2
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 360.0705
+
+✖ failing tests:
+
+test at tests\caller-card-merged.test.ts:2:2764
+✖ caller card · a number only merged rows carry: the kept lead and its booked party (24.7477ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+    {
+  +   channel: null,
+  +   date: null,
+  -   channel: 'yelp',
+  -   date: '2030-11-22',
+      dateTbd: false,
+  +   heads: null,
+  +   lastText: null,
+  +   locked: false,
+  +   name: '',
+  +   order: false,
+  +   price: null,
+  -   heads: 20,
+  -   lastText: {
+  -     at: '2030-11-15T22:40:00Z',
+  -     body: 'Can we start at 6 pm instead?'
+  -   },
+  -   locked: true,
+  -   name: 'Dana Yelp',
+  -   order: true,
+  -   price: 1225,
+      returning: false,
+  +   time: null
+  -   time: '18:00'
+    }
+
+      at TestContext.<anonymous> (D:\desktop\RealHibachi\realhibachi-marketing\.claude\worktrees\mystifying-banach-06fdf4\tests\caller-card-merged.test.ts:84:10)
+      at async Test.run (node:internal/test_runner/test:1102:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { name: '', heads: null, date: null, time: null, dateTbd: false, price: null, locked: false, order: false, returning: false, lastText: null, channel: null },
+    expected: { name: 'Dana Yelp', heads: 20, date: '2030-11-22', time: '18:00', dateTbd: false, price: 1225, locked: true, order: true, returning: false, lastText: { body: 'Can we start at 6 pm instead?', at: '2030-11-15T22:40:00Z' }, channel: 'yelp' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests\caller-card-merged.test.ts:2:3902
+✖ caller card · a number nobody carries still rings as new; a broken merge reads its own row (0.9826ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+    [
+  +   '',
+  -   'Lee Broken',
+      false
+    ]
+
+      at TestContext.<anonymous> (D:\desktop\RealHibachi\realhibachi-marketing\.claude\worktrees\mystifying-banach-06fdf4\tests\caller-card-merged.test.ts:110:10)
+      at async Test.run (node:internal/test_runner/test:1102:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:777:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ '', false ],
+    expected: [ 'Lee Broken', false ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests\caller-card-merged.test.ts:2:4576
+✖ caller card · the card for the other phone rings with the party on it (1.7575ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+    {
+  +   line: '新号码 · 无记录',
+  +   name: ''
+  -   line: '20人 · 11月22日 周五 18:00 · 总价 $1,225 · 已锁单\n' +
+  -     '昨天短信：Can we start at 6 pm instead? · yelp',
+  -   name: 'Dana Yelp'
+    }
+
+      at TestContext.<anonymous> (D:\desktop\RealHibachi\realhibachi-marketing\.claude\worktrees\mystifying-banach-06fdf4\tests\caller-card-merged.test.ts:115:10)
+      at async Test.run (node:internal/test_runner/test:1102:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:777:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { name: '', line: '新号码 · 无记录' },
+    expected: { name: 'Dana Yelp', line: '20人 · 11月22日 周五 18:00 · 总价 $1,225 · 已锁单\n昨天短信：Can we start at 6 pm instead? · yelp' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
