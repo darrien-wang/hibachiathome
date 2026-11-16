@@ -116,6 +116,12 @@
   - **公共沙滩**（公园等公共场所同理）：不带 sake，见上一条。公共场所不能做商业经营，这件事老板自己跟师傅交代；desk 对客不提，短信和邮件里不写任何"朋友""不是买的服务""被问到怎么说"之类的话。客人问许可、问被查怎么办、问能不能挂横幅搭棚子 → `desk callback --why "沙滩：…"` 转老板，不答。
   - 场地照「场地」那条：沙滩上也要一块平地放灶。
 - **软饮**：$5/位，或客人自备。
+- **服务范围**（老板 11-15，Gracie 12/18 那单问出来的）：
+  - **牛排熟度**：客人要求按每个人的熟度做，可以照做（「可以按照熟度要求」），开做前逐位问清几分熟。这推翻了 09-25「一块铁板没法按人做生熟」的说法，但派对页上的熟度选项还是关着。客人问了才答，答应了就写进备货备注，开头标【重点】。
+  - **上菜顺序**：客人指定顺序（比如先上虾和炒饭当前菜，再上蛋白和蔬菜），可以照办，写进备货备注。
+  - **没有另外的服务员**。客人自带桌椅餐具的，师傅只负责做菜；用我们的桌椅和餐具的，我们帮忙收（「如果我们不提供桌椅的话，师傅只负责炒餐，要是我们的桌椅和餐具，我们会帮忙收掉」）。
+  - **饮料**：师傅给大人倒 sake，其他饮料不归我们（「师傅会给客人sake 饮料就不负责了」）。
+  - 对客说法：`Your chef can cook each guest's steak the way they like it, and will serve the shrimp and fried rice first as the appetizer, then the steak, chicken and veggies as the main course. We don't have a separate server, so your party planner would be great for drinks and clearing plates. Your chef handles all the cooking and brings sake for the adults, on us.`（按客人问到的部分取用，没问的不说。）
 
 ## 桌椅、餐具
 
