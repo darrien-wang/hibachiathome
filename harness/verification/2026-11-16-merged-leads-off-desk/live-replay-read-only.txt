@@ -1,0 +1,13 @@
+replay at 2026-11-16T18:18:16.108Z · 7 merged rows in leads
+
+[desk] events HEAD 1 · fixed 1
+  events pointing at a merged row: HEAD [] · fixed []
+  counts that moved: none
+  no event moved
+
+[phone] events HEAD 1 · fixed 1
+  events pointing at a merged row: HEAD [] · fixed []
+  counts that moved: none
+  no event moved
+
+127 GET requests, nothing else allowed

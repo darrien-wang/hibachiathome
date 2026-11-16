@@ -535,3 +535,27 @@ Verification completed:
 Noticed, not changed:
 - Every live order carries a stored plan (48 rule plans from order creation or the 10-18 backfill), so once this is in use every pass recorded before it reads as stale one time. On 11-14 that is the passes of five 11-13 and 11-14 parties, whose sheets already went out, and RH-20261007-9434's 14:38 pass, which is stale anyway after the customer's 14:45 text.
 - Promise capture writes the stations note from our outbound texts and emails, and nothing re-reads it when the order's setup changes later. The new warning catches the tables case only.
+
+## MERGED-LEADS-OFF-DESK - A merged lead is off the desk's lists (2026-11-16)
+
+Status: done; pushed to main. The production check after the deploy is added in its own evidence commit.
+
+Why: on 2026-11-15 at 22:08 PST, lead 9658a648 (status 'new', made from an inbound text) was merged into the same customer's Yelp lead 5a0c64e1 (PATCH /api/admin/leads, action merge). A merge hides the row and moves its touchpoints, but leaves its status at 'new'. With no first response of its own, the row stayed on the lists for its whole first day. At 23:10 `desk next` still listed it as "[lead] 等了 63 分钟 ⚠️", and the watcher kept reminding until `desk ack` on the hidden row. The workbench list (GET /api/admin/leads) has always filtered `.is("merged_into", null)`, and the scan's pool already did. Two lists did not: the inbox's new-lead bucket (`desk next`, the phone) and lead-watch's first-response loop. In lead-watch the row read as never answered: each cron run today counted it (still_open 1 / needs_human 1), and inside its 24 hours it could have been texted an opener or escalated. There was also a second path back onto the desk: the merge keeps the oldest row, so a merged row is the newest one on its number. "Newest row per number" then named the customer's next text, and our undelivered texts, after the hidden row. 4 of the 7 merged rows in production are that case, including this one.
+
+What changed:
+- `lib/inbox.ts` `computeInbox`: the new-lead bucket (and the 新线索 count) reads `.is("merged_into", null)`, like the workbench list.
+- `lib/inbox.ts` `leadPerPhone` (new, exported): one lead per number from rows newest first. A live lead on the number wins over a newer merged row. A number that only merged rows carry stands for the lead they went into (id swapped; that row's name and block state still describe the number). Used for the names and links on text cards and in `leadsByPhones` (undelivered cards and the "known customer" check for texts older than a day). Both queries now also select `merged_into`.
+- `app/api/admin/lead-watch/route.ts`: the first-response candidates read `.is("merged_into", null)`, so no opener, flag or escalation for a merged row.
+- `tests/merged-leads-off-desk.test.ts` (new, 7 tests): the 11-15 timeline end to end through `computeInbox`. The merged row is off the list and out of the count, and the same row unmerged is listed (control). A text from the shared number links the live lead. A number only the merged row carries links the lead it went into. An undelivered card links the live lead. The `leadPerPhone` rules. The scan's pool leaves the merged row out.
+
+Verification completed:
+- `npm test`: 620 pass, 0 fail. `npm run lint:copy`: 0 hard-rule hits (the soft `4pct-v2` line as before). `tsc --noEmit`: no errors in the touched files (the 95 elsewhere were already there).
+- The new tests against HEAD's `lib/inbox.ts`: 5 fail (the four inbox behaviours and the helper), 2 pass (the control, and the scan, which already filtered). Output: `before-fix.txt`.
+- Production before the push, read-only (SQL SELECTs only): the only 'new' unanswered lead of the last 24 h is the merged 9658a648. Every lead-watch cron run today reported still_open 1 / needs_human 1. No escalation mark names it. Output: `prod-before.txt`.
+- Live replay, read-only: HEAD's and the fixed `computeInbox` over live data in one process, as the desk and the phone call it, behind a fetch that refuses anything but GET (127 GETs). The results were identical: 1 event each, no counts moved, nothing pointing at a merged row. 9658a648 is quiet since the 23:11 ack, and none of the four customers has an open text today, so nothing moves on today's data. Output: `live-replay-read-only.txt`.
+- Outputs: `harness/verification/2026-11-16-merged-leads-off-desk/`. Not a `harness/feature_list.json` item.
+
+Noticed, not changed (paths that still write onto a merged row; none listed on the desk now):
+- lead-watch `logAutoSms` (pre-party and party-bill texts) and the missed-call backstop file their touchpoint on the newest lead with the number. That can be a merged row, so the text is missing from the survivor's timeline. The Twilio thread still shows it.
+- `lib/leads.ts` `findExistingLead` (inbound dedupe by phone or email inside the window) does not skip merged rows either. Not seen in the 11-15 case: the only touchpoint on 9658a648 after the merge is the desk ack's note.
+- `desk ack` / notes on a merged row's id still land on that row. With these lists fixed, the desk no longer offers one.

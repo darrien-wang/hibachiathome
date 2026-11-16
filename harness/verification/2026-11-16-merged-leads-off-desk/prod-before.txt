@@ -1,0 +1,26 @@
+Production before the push, read-only (SQL SELECTs on the RealHibachi project, 2026-11-16 ~18:17Z = 10:17 PST)
+
+The repro rows
+  5a0c64e1  yelp           created 05:12:07Z  qualified  live (merged_into null), 11 touchpoints
+  9658a648  sms_inbound    created 06:07:58Z  new        merged_into 5a0c64e1 at 06:08:42Z (22:08 PST 11-15)
+            same number as 5a0c64e1; one touchpoint, an agent_note from admin_dashboard at 07:11:02Z (the desk ack)
+
+Leads with status 'new', created in the last 24 h, no agent_first_response touchpoint
+  9658a648 (merged)        <- the only one; lead-watch's first-response list has no merged filter
+
+lead-watch runs (lead_watch_runs, every cron run today)
+  18:15:02Z cron  still_open 1  needs_human 1  escalated 0  auto_sent 0
+  18:05:04Z cron  still_open 1  needs_human 1  escalated 0  auto_sent 0
+  17:45:02Z cron  still_open 1  needs_human 1  escalated 0  auto_sent 0
+  9658a648 stays inside lead-watch's 24 h window until 2026-11-17 06:07:58Z (22:07 PST 11-16).
+  No lead_watch_notified mark mentions 9658a648 (no escalation text went out about it).
+
+Merged rows overall
+  7 merged rows, all created in the last 90 days, no chains (no survivor is itself merged)
+  1 still has status 'new' (9658a648)
+  4 are newer than a live lead with the same number -> the inbox named / linked that number's
+    text and undelivered cards to the merged row (newest row per number won)
+  2 carry a number no live lead has (the survivor kept its own number)
+
+The desk's inbox today (live replay, HEAD vs fixed lib/inbox.ts, GETs only): see live-replay-read-only.txt.
+Nothing moves today: 9658a648 is quiet since the 23:11 ack, and none of the 4 customers has an open text.

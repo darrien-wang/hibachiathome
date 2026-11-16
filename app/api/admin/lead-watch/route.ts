@@ -407,11 +407,15 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
   const ours = ourSmsNumber()
 
   // ---- open leads with no first response --------------------------------
+  // Not a merged lead: its touchpoints went to the lead it was merged into, so
+  // it would read as never answered and be sent an opener or flagged all day
+  // (the inbox's new-lead list skips them too, lib/inbox.ts).
   const since = new Date(now - MAX_LEAD_AGE_HOURS * 3600_000).toISOString()
   const { data: leads, error } = await supabase
     .from("leads")
     .select("id, created_at, full_name, phone, email, status, lead_source, city_or_zip, guest_count, latest_message, sms_blocked_at, adult_count, child_count")
     .eq("status", "new")
+    .is("merged_into", null)
     .gte("created_at", since)
     .order("created_at", { ascending: false })
     .limit(40)

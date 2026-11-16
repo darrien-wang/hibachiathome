@@ -1,0 +1,110 @@
+✖ merged · the merged row is off the new-lead list and out of the 新线索 count (22.7809ms)
+✔ merged · the same row before the merge was a new lead waiting (the list itself still works) (1.4702ms)
+✖ merged · a text from the customer's number names the live lead, not the newer merged row (2.7554ms)
+✖ merged · a number only a merged row carries stands for the lead it went into (2.7777ms)
+✖ merged · a text of ours that never arrived points at the live lead (1.744ms)
+✖ merged · leadPerPhone: the live lead wins over a newer merged one; a lone merged row stands for its lead (0.1648ms)
+✔ merged · the scan's pool leaves the merged row out (1.7522ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 2
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 352.4004
+
+✖ failing tests:
+
+test at tests\merged-leads-off-desk.test.ts:2:4030
+✖ merged · the merged row is off the new-lead list and out of the 新线索 count (22.7809ms)
+  AssertionError [ERR_ASSERTION]: [["lead","00000000-0000-4000-8000-0000000000e3","新询盘 · Fresh Lead"],["lead","00000000-0000-4000-8000-0000000000e2","新询盘 · (909) 000-0177"]]
+  + actual - expected
+
+    [
+      '00000000-0000-4000-8000-0000000000e3',
+  +   '00000000-0000-4000-8000-0000000000e2'
+    ]
+
+      at TestContext.<anonymous> (D:\desktop\RealHibachi\realhibachi-marketing\.claude\worktrees\mystifying-banach-06fdf4\tests\merged-leads-off-desk.test.ts:97:10)
+      at async Test.run (node:internal/test_runner/test:1102:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ '00000000-0000-4000-8000-0000000000e3', '00000000-0000-4000-8000-0000000000e2' ],
+    expected: [ '00000000-0000-4000-8000-0000000000e3' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests\merged-leads-off-desk.test.ts:2:4924
+✖ merged · a text from the customer's number names the live lead, not the newer merged row (2.7554ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + '00000000-0000-4000-8000-0000000000e2'
+  - '00000000-0000-4000-8000-0000000000e1'
+                                        ^
+
+      at TestContext.<anonymous> (D:\desktop\RealHibachi\realhibachi-marketing\.claude\worktrees\mystifying-banach-06fdf4\tests\merged-leads-off-desk.test.ts:114:10)
+      at async Test.run (node:internal/test_runner/test:1102:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:777:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '00000000-0000-4000-8000-0000000000e2',
+    expected: '00000000-0000-4000-8000-0000000000e1',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\merged-leads-off-desk.test.ts:2:5544
+✖ merged · a number only a merged row carries stands for the lead it went into (2.7777ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + '00000000-0000-4000-8000-0000000000e2'
+  - '00000000-0000-4000-8000-0000000000e1'
+                                        ^
+
+      at TestContext.<anonymous> (D:\desktop\RealHibachi\realhibachi-marketing\.claude\worktrees\mystifying-banach-06fdf4\tests\merged-leads-off-desk.test.ts:125:10)
+      at async Test.run (node:internal/test_runner/test:1102:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:777:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '00000000-0000-4000-8000-0000000000e2',
+    expected: '00000000-0000-4000-8000-0000000000e1',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\merged-leads-off-desk.test.ts:2:6172
+✖ merged · a text of ours that never arrived points at the live lead (1.744ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + '00000000-0000-4000-8000-0000000000e2'
+  - '00000000-0000-4000-8000-0000000000e1'
+                                        ^
+
+      at TestContext.<anonymous> (D:\desktop\RealHibachi\realhibachi-marketing\.claude\worktrees\mystifying-banach-06fdf4\tests\merged-leads-off-desk.test.ts:134:10)
+      at async Test.run (node:internal/test_runner/test:1102:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:777:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '00000000-0000-4000-8000-0000000000e2',
+    expected: '00000000-0000-4000-8000-0000000000e1',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\merged-leads-off-desk.test.ts:2:6729
+✖ merged · leadPerPhone: the live lead wins over a newer merged one; a lone merged row stands for its lead (0.1648ms)
+  TypeError: (0 , import_inbox.leadPerPhone) is not a function
+      at TestContext.<anonymous> (D:\desktop\RealHibachi\realhibachi-marketing\.claude\worktrees\mystifying-banach-06fdf4\tests\merged-leads-off-desk.test.ts:146:18)
+      at Test.runInAsyncScope (node:async_hooks:213:14)
+      at Test.run (node:internal/test_runner/test:1095:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:777:18)
+      at Test.postRun (node:internal/test_runner/test:1224:19)
+      at Test.run (node:internal/test_runner/test:1152:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:777:7)
+exit=1

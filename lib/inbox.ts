@@ -178,10 +178,16 @@ export async function computeInbox(
   const notCustomer = (e164: string | null) => isTestNumber(e164) || isStaffNumber(staff, e164)
 
   // ---- new leads nobody answered ------------------------------------------
+  // A merged lead is not one. Merging hides the row and moves its touchpoints
+  // to the lead it went into, but leaves its status at 'new', so with no first
+  // response of its own it waited here for a day: 9658a648, a text merged into
+  // the same customer's Yelp lead at 22:08 on 2026-11-15, was still "[lead]
+  // 等了 63 分钟" on the desk at 23:10. The workbench list skips them the same way.
   const { data: leads } = await supabase
     .from("leads")
     .select("id, created_at, full_name, phone, lead_source, city_or_zip, guest_count, latest_message, sms_blocked_reason")
     .eq("status", "new")
+    .is("merged_into", null)
     .gte("created_at", new Date(now - LEAD_LOOKBACK_MS).toISOString())
     .order("created_at", { ascending: false })
     .limit(40)
@@ -258,19 +264,16 @@ export async function computeInbox(
   }
   const unrepliedTotal = unanswered.length
   if (unanswered.length) {
-    // Name the customer when we know them: recent leads, matched by number.
+    // Name the customer when we know them: recent leads, matched by number
+    // (the live lead on it, not a newer row merged into it: leadPerPhone).
     const { data: known } = await supabase
       .from("leads")
-      .select("id, full_name, phone, created_at")
+      .select("id, full_name, phone, created_at, merged_into")
       .not("phone", "is", null)
       .gte("created_at", new Date(now - 90 * 86400_000).toISOString())
       .order("created_at", { ascending: false })
       .limit(600)
-    const byPhone = new Map<string, { id: string; full_name: string | null }>()
-    for (const k of (known ?? []) as Array<{ id: string; full_name: string | null; phone: string | null }>) {
-      const p = toE164(k.phone)
-      if (p && !byPhone.has(p)) byPhone.set(p, k)
-    }
+    const byPhone = leadPerPhone((known ?? []) as Array<{ id: string; full_name: string | null; phone: string | null; merged_into: string | null }>, (k) => toE164(k.phone))
     for (const u of unanswered) {
       const lead = byPhone.get(u.peer)
       const who = (lead?.full_name ?? "").trim() || prettyPhone(u.peer)
@@ -1033,23 +1036,45 @@ async function leadsByPhones(supabase: SupabaseClient, peers: string[]): Promise
   if (!digits.length) return out
   const { data } = await supabase
     .from("leads")
-    .select("id, full_name, status, email, normalized_phone, created_at, sms_blocked_at, sms_blocked_reason")
+    .select("id, full_name, status, email, normalized_phone, created_at, sms_blocked_at, sms_blocked_reason, merged_into")
     .in("normalized_phone", digits)
     .order("created_at", { ascending: false })
     .limit(500)
-  for (const r of (data ?? []) as Array<PhoneLead & { normalized_phone: string | null }>) {
-    const e164 = r.normalized_phone ? `+1${r.normalized_phone}` : null
-    if (e164 && !out.has(e164)) {
-      out.set(e164, {
-        id: r.id,
-        full_name: r.full_name,
-        status: r.status,
-        email: r.email,
-        created_at: r.created_at,
-        sms_blocked_at: r.sms_blocked_at,
-        sms_blocked_reason: r.sms_blocked_reason,
-      })
-    }
+  const rows = (data ?? []) as Array<PhoneLead & { normalized_phone: string | null; merged_into: string | null }>
+  for (const [e164, r] of leadPerPhone(rows, (row) => (row.normalized_phone ? `+1${row.normalized_phone}` : null))) {
+    out.set(e164, {
+      id: r.id,
+      full_name: r.full_name,
+      status: r.status,
+      email: r.email,
+      created_at: r.created_at,
+      sms_blocked_at: r.sms_blocked_at,
+      sms_blocked_reason: r.sms_blocked_reason,
+    })
+  }
+  return out
+}
+
+/**
+ * One lead per number, from rows sorted newest first. A merged lead stays in
+ * the table as a hidden row whose merged_into names the lead it went into,
+ * which took its touchpoints (PATCH /api/admin/leads, action merge). The oldest
+ * row is the one kept, so a merged row is newer than the lead it went into, and
+ * "newest wins" put the hidden row on the desk's card, where every action then
+ * landed on it. So a live lead on the number wins; a number that only merged
+ * rows carry stands for the lead they went into (id swapped; their name and
+ * block state still describe that number).
+ */
+export function leadPerPhone<T extends { id: string; merged_into?: string | null }>(rows: readonly T[], phoneOf: (row: T) => string | null): Map<string, T> {
+  const out = new Map<string, T>()
+  for (const r of rows) {
+    const p = phoneOf(r)
+    if (p && !r.merged_into && !out.has(p)) out.set(p, r)
+  }
+  for (const r of rows) {
+    const p = phoneOf(r)
+    const into = r.merged_into
+    if (p && into && !out.has(p)) out.set(p, { ...r, id: into })
   }
   return out
 }
