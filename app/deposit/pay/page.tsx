@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState, type ReactNode } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { AlertCircle, CalendarCheck, Check, Loader2, Lock, MessageSquare } from "lucide-react"
@@ -963,43 +963,79 @@ function DepositPaymentPageInner() {
 }
 
 /** Bump when the wording below changes; it travels to Stripe metadata as `terms`. */
-const TERMS_VERSION = "2026-11-16"
+const TERMS_VERSION = "2026-11-16.2"
 
-/** 派对条款（老板 2026-11-16 加：服务 2 小时/超时、等待、桌布蜡烛）。勾选框点开看的就是这一段。 */
+/**
+ * 派对条款。老板 2026-11-16 加：服务 2 小时/超时、等待、桌布蜡烛；同日老板同意按同行
+ * (Hibachi2U / Let's Hibachi / hibachiathome / Love Hibachi) 吸收：人数只加不减、做饭位置与安全、
+ * 小孩宠物、过敏、清酒、指定师傅、拍视频（默认可拍、提前说不拍）、有问题先找我们、
+ * 免责改成"赔偿上限=这场付的钱，自身过失除外"。都是我们自己的话，没抄同行原文。
+ * 勾选框点开看的就是这一段。
+ */
 function PartyTerms() {
   return (
     <>
-      <p>
-        <span className="font-semibold text-ink">Service time:</span> your chef&apos;s service is 2 hours, from your party&apos;s
-        start time until the chef finishes. Time past those 2 hours — including keeping the rental tables and chairs after
-        the party — is overtime at $50 per chef per hour.
-      </p>
-      <p>
-        <span className="font-semibold text-ink">Waiting time:</span> if your chef is there on time and has to wait before
-        cooking can start, waiting time is $50 per chef per hour.
-      </p>
-      <p>
-        <span className="font-semibold text-ink">Tablecloths:</span> please don&apos;t put candles on our tablecloths. A
-        tablecloth damaged by candles or wax is charged at its replacement cost.
-      </p>
-      <p>
-        <span className="font-semibold text-ink">Cancellation:</span> nothing is charged today. Tell us at least 48 hours
-        before your event to cancel or reschedule for free; cancellations inside 48 hours are charged a $99 fee to the card on file.
-      </p>
-      <p>
-        <span className="font-semibold text-ink">Weather:</span> cooking is outdoors. If rain is in the forecast we
-        recommend a 10&apos;x10&apos; pop-up tent over the chef&apos;s station — we do not supply tents. Weather
-        cancellations with 48+ hours notice are free.
-      </p>
-      <p>
-        <span className="font-semibold text-ink">Liability:</span> Real Hibachi LLC is not liable for property
-        damage during events; the host waives claims against Real Hibachi for loss, damage or destruction of
-        property.
-      </p>
-      <p>
-        <span className="font-semibold text-ink">Texts:</span> by proceeding you agree to receive text messages
-        about your booking. Reply STOP to opt out.
-      </p>
+      <Term title="Service time">
+        your chef&apos;s service is 2 hours, from your party&apos;s start time until the chef finishes. Time past those 2
+        hours — including keeping the rental tables and chairs after the party — is overtime at $50 per chef per hour.
+      </Term>
+      <Term title="Waiting time">
+        if your chef is there on time and has to wait before cooking can start, waiting time is $50 per chef per hour.
+      </Term>
+      <Term title="Guest count">
+        the guest count can go up on the day, but not down — the total stays the same if fewer guests come.
+      </Term>
+      <Term title="Cooking spot">
+        the chef cooks outdoors on a flat spot with nothing flammable overhead. Please make sure open flame and propane are
+        allowed where you&apos;re hosting (HOA, landlord or venue). The grill can spatter oil, so please move or cover
+        anything close to the cooking spot. The chef makes the final safety call and may move the grill or pause the show
+        if something isn&apos;t safe.
+      </Term>
+      <Term title="Kids and pets">please have an adult keep children and pets away from the grill.</Term>
+      <Term title="Allergies">
+        please tell us about allergies before the party. Everything is cooked on one shared grill, so we can&apos;t promise
+        any dish is completely free of an allergen.
+      </Term>
+      <Term title="Sake">
+        sake is for guests 21 and over, and the chef may skip anyone who seems to have had enough. Any alcohol you bring is
+        your responsibility.
+      </Term>
+      <Term title="Tablecloths">
+        please don&apos;t put candles on our tablecloths. A tablecloth damaged by candles or wax is charged at its
+        replacement cost.
+      </Term>
+      <Term title="Your chef">
+        we&apos;ll try to send the chef you ask for, but a specific chef is only guaranteed if we confirm it in writing.
+      </Term>
+      <Term title="Photos and video">
+        your chef may film the cooking for our social media. Tell us before the party if you&apos;d rather not be filmed.
+      </Term>
+      <Term title="If something isn't right">
+        tell the chef on the spot and text us within 48 hours so we can make it right. Please reach us before disputing a
+        charge with your bank.
+      </Term>
+      <Term title="Cancellation">
+        nothing is charged today. Tell us at least 48 hours before your event to cancel or reschedule for free;
+        cancellations inside 48 hours are charged a $99 fee to the card on file.
+      </Term>
+      <Term title="Weather">
+        cooking is outdoors. If rain is in the forecast we recommend a 10&apos;x10&apos; pop-up tent over the chef&apos;s
+        station — we do not supply tents. Weather cancellations with 48+ hours notice are free.
+      </Term>
+      <Term title="Liability">
+        Real Hibachi LLC is insured. Our total liability for a party is limited to what you paid for it, except for harm
+        caused by our own negligence or anything else the law doesn&apos;t allow us to limit. You&apos;re responsible for
+        claims that come from the condition of your venue, your guests&apos; conduct, or alcohol you provide.
+      </Term>
+      <Term title="Texts">by proceeding you agree to receive text messages about your booking. Reply STOP to opt out.</Term>
     </>
+  )
+}
+
+function Term({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <p>
+      <span className="font-semibold text-ink">{title}:</span> {children}
+    </p>
   )
 }
