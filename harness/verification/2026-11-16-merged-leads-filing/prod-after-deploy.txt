@@ -1,0 +1,21 @@
+Production after the push, read-only (2026-11-16)
+
+Deploy
+  b23d5478 pushed to main at 20:50:44Z, a fast-forward from 8df533c2 (main moved once while this was
+  being written; the branch was fast-forwarded onto it before the commit, no file in common).
+  /_release/ready named b23d5478 at 20:51:40Z (4 checks, 15 s apart).
+
+Desk and phone (GETs with the admin key; both run loadQuiet, now with the merged-numbers lookup)
+  GET /api/admin/desk          20:51:52Z  ok  1 card: call_summary on live lead 0ee080ae
+                                          newLeads 0  changedOrders 1  callSummaries 1  every other count 0
+  GET /api/admin/mobile/inbox  20:51:56Z  ok  the same counts, 2 events, none on a merged row
+
+lead-watch (lead_watch_runs read with a PostgREST GET; the run endpoint was not called)
+  20:45:02Z cron ok  still_open 0  needs_human 0  auto_sent 0  missed_call_texts 0  escalated 0  1467 ms  (8df533c2)
+  20:55:02Z cron ok  still_open 0  needs_human 0  auto_sent 0  missed_call_texts 0  escalated 0  1310 ms  (b23d5478, first run on it)
+
+Filing since the deploy (SQL SELECTs at 20:55:27Z)
+  0 touchpoints written since 20:51:40Z, so 0 on merged rows; no merged row updated (7 merged rows, unchanged).
+  No inbound text, call, email, failed delivery or payment failure came in during the window, so those
+  webhook paths have not run on live traffic yet. The lead each of them picks for today's numbers is in
+  prod-before.txt; the paths themselves are covered by tests/merged-leads-filing.test.ts.

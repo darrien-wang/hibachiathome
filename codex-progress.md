@@ -604,6 +604,7 @@ Verification completed:
   - Output: `before-fix.txt`.
 - Production before the push, read-only (SQL SELECTs only): the activity filed on merged rows after their merge, and the lead each rule picks per number on main versus this change. The quiet state moves for no number today: the one kept lead with a merged-only number has no ack or hold. Lead-watch runs were ok, 0 / 0. Output: `prod-before.txt`.
 - Outputs: `harness/verification/2026-11-16-merged-leads-filing/`. Not a `harness/feature_list.json` item.
+- Deployed: b23d5478 pushed to main at 20:50:44Z, a fast-forward from 8df533c2. `/_release/ready` named it at 20:51:40Z. On the new deploy, `GET /api/admin/desk` and the phone's inbox GET returned ok with the same counts. Both run the extended `loadQuiet`. Their 1 card and 2 events point at no merged row. lead-watch's first run on b23d5478 (20:55:02Z) was ok, 0 / 0, 1310 ms, in line with the runs before. Nothing was filed on any lead between the deploy and 20:55:27Z: no inbound traffic came in, so the webhook paths have not run on live traffic yet. Output: `prod-after-deploy.txt`.
 
 ## CHEF-TEXTS-BY-PARTY - A text to a chef is a party's by what only that party has, never the city alone (2026-11-16)
 
