@@ -1,0 +1,20 @@
+Production after the push, read-only (2026-11-16)
+
+Deploy
+  ea0487a3 pushed to main at 21:21:41Z, a fast-forward from 8de0f59c.
+  /_release/ready named ea0487a3 at 21:23:07Z (6 checks, 15 s apart).
+
+The ring screen
+  The caller card is built only inside the inbound-call webhook, and a test call would write to production
+  (a lead, a call touchpoint, a ring on every phone), so none was placed. No call came in between the deploy
+  and 21:23:19Z (SQL SELECT on lead_touchpoints). The lib/caller-card.ts now live is the one that
+  live-replay-read-only.txt ran over live data before the push.
+
+Also, for MERGED-LEADS-FILING (b23d5478, live since 20:51:40Z) - SQL SELECTs at 21:23:19Z
+  13 touchpoints filed since 20:51:40Z, every one on a live lead, none on a merged row; no merged row updated
+  (7 merged rows, unchanged). Live traffic through the paths that change touched:
+    3 inbound texts      sms_inbound / twilio          (the inbound dedupe, lib/leads.ts findExistingLead)
+    1 inbound email      email_inbound / gmail_script  (email-inbound's address owner)
+    2 texts we sent      sms_outbound / workbench      (the send route, app/api/admin/sms-thread)
+  None of them came from a number or address a merged row carries, so the merged branch itself has still
+  only run in the tests.
