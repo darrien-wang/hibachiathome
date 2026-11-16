@@ -55,6 +55,8 @@ type DepositStartPayload = {
   oppref?: string
   /** "Booking another party" door: skip the already-paid check. */
   another?: boolean | string
+  /** Version of the party terms the customer ticked on /deposit/pay. */
+  termsAccepted?: string
 }
 
 type NormalizedDepositStartPayload = {
@@ -81,6 +83,7 @@ type NormalizedDepositStartPayload = {
   currency: string
   attribution: AttributionFields
   another: boolean
+  termsAccepted?: string
 }
 
 type AttributionFields = {
@@ -318,6 +321,7 @@ function buildNormalizedPayload(payload: DepositStartPayload): NormalizedDeposit
     estimateHigh: normalizeNumber(payload.estimateHigh),
     totalAmount: normalizeNumber(payload.totalAmount),
     depositAmount: normalizeNumber(payload.depositAmount),
+    termsAccepted: normalizeString(payload.termsAccepted)?.slice(0, 20),
     currency: normalizeCurrency(payload.currency),
     another: payload.another === true || payload.another === "1" || payload.another === "true",
     attribution: normalizeAttributionInput({
@@ -471,6 +475,8 @@ function buildMetadata(
     // Rules, not a number: the order system re-prices them per change.
     custom_deal: metadataField(payload.deal ? encodeDeal(payload.deal) : undefined),
     deposit_source: metadataField(payload.source),
+    // 客人勾了哪一版派对条款（/deposit/pay，老板 2026-11-16）。
+    terms: metadataField(payload.termsAccepted),
     customer_name: metadataField(payload.customerName),
     customer_email: metadataField(payload.customerEmail),
     event_date: metadataField(payload.eventDate),

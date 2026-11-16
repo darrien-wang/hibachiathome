@@ -307,6 +307,9 @@ function DepositPaymentPageInner() {
   const [error, setError] = useState<string | null>(null)
   const [checkoutStarting, setCheckoutStarting] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  // 同意条款（老板 2026-11-16）：小勾选 + 点开看全文；不勾不能锁。
+  const [termsOk, setTermsOk] = useState(false)
+  const [termsOpen, setTermsOpen] = useState(false)
 
   // Already paid? Three layers: what this device remembers (instant), what
   // the server knows (durable), and the server's refusal when paying (last).
@@ -543,6 +546,7 @@ function DepositPaymentPageInner() {
           agreedTotal: agreedTotalParam || undefined,
           agreedSig: agreedSigParam || undefined,
           deal: dealParam || undefined,
+          termsAccepted: termsOk ? TERMS_VERSION : undefined,
           dealSig: dealSigParam || undefined,
           source: source || "deposit_pay",
           customerName: booking.full_name,
@@ -886,10 +890,39 @@ function DepositPaymentPageInner() {
           <p className="mt-1 text-xs text-clay-600">Nothing is charged today. Change or cancel free up to 48 hours before; $99 inside 48 hours.</p>
         </div>
 
+        <div className="mt-6 rounded-2xl border border-clay-600/20 bg-white px-4 py-3 text-left text-sm text-ink">
+          <div className="flex items-start gap-3">
+            <input
+              id="party-terms"
+              type="checkbox"
+              checked={termsOk}
+              onChange={(e) => setTermsOk(e.target.checked)}
+              className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-flame"
+            />
+            <label htmlFor="party-terms" className="cursor-pointer">
+              I agree to the party terms
+            </label>
+            <button
+              type="button"
+              onClick={() => setTermsOpen((o) => !o)}
+              aria-expanded={termsOpen}
+              aria-controls="party-terms-text"
+              className="ml-auto shrink-0 font-semibold text-flame-700 underline-offset-[3px] hover:underline"
+            >
+              {termsOpen ? "Hide" : "Read terms"}
+            </button>
+          </div>
+          {termsOpen ? (
+            <div id="party-terms-text" className="mt-3 space-y-2 rounded-xl bg-cream p-3 text-[13px] leading-5 text-clay-700">
+              <PartyTerms />
+            </div>
+          ) : null}
+        </div>
+
         <button
           type="button"
           onClick={handleDepositCtaClick}
-          disabled={checkoutStarting || detailsMissing}
+          disabled={checkoutStarting || detailsMissing || !termsOk}
           className="mt-[26px] flex min-h-14 w-full items-center justify-center gap-2 text-balance rounded-full bg-flame px-6 py-3 text-center text-lg font-semibold leading-tight text-white transition hover:bg-flame-600 active:bg-flame-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {checkoutStarting ? (
@@ -899,6 +932,8 @@ function DepositPaymentPageInner() {
             </>
           ) : detailsMissing ? (
             needsDate && !ISO_DATE.test(dateInput) ? "Pick your date to continue" : "Pick a start time to continue"
+          ) : !termsOk ? (
+            "Tick the box above to continue"
           ) : (
             // No-break space keeps the "·" on the first line when this wraps on a phone.
             `Lock ${ISO_DATE.test(effectiveDate) ? formatUiDateShort(effectiveDate, "the date") : "the date"} · nothing charged today`
@@ -922,32 +957,49 @@ function DepositPaymentPageInner() {
           </div>
         ) : null}
 
-        <details className="mt-7 text-left text-[13px] leading-5 text-clay-700">
-          <summary className="cursor-pointer text-center font-medium text-clay-700 hover:text-ink">
-            By continuing you agree to our terms and cancellation policy — read the fine print
-          </summary>
-          <div className="mt-3 space-y-2 rounded-2xl bg-cream p-4">
-            <p>
-              <span className="font-semibold text-ink">Cancellation:</span> nothing is charged today. Tell us at least 48 hours
-              before your event to cancel or reschedule for free; cancellations inside 48 hours are charged a $99 fee to the card on file.
-            </p>
-            <p>
-              <span className="font-semibold text-ink">Weather:</span> cooking is outdoors. If rain is in the forecast we
-              recommend a 10&apos;x10&apos; pop-up tent over the chef&apos;s station — we do not supply tents. Weather
-              cancellations with 48+ hours notice are free.
-            </p>
-            <p>
-              <span className="font-semibold text-ink">Liability:</span> Real Hibachi LLC is not liable for property
-              damage during events; the host waives claims against Real Hibachi for loss, damage or destruction of
-              property.
-            </p>
-            <p>
-              <span className="font-semibold text-ink">Texts:</span> by proceeding you agree to receive text messages
-              about your booking. Reply STOP to opt out.
-            </p>
-          </div>
-        </details>
       </div>
     </main>
+  )
+}
+
+/** Bump when the wording below changes; it travels to Stripe metadata as `terms`. */
+const TERMS_VERSION = "2026-11-16"
+
+/** 派对条款（老板 2026-11-16 加：服务 2 小时/超时、等待、桌布蜡烛）。勾选框点开看的就是这一段。 */
+function PartyTerms() {
+  return (
+    <>
+      <p>
+        <span className="font-semibold text-ink">Service time:</span> your chef&apos;s service is 2 hours, from your party&apos;s
+        start time until the chef finishes. Time past those 2 hours — including keeping the rental tables and chairs after
+        the party — is overtime at $50 per chef per hour.
+      </p>
+      <p>
+        <span className="font-semibold text-ink">Waiting time:</span> if your chef is there on time and has to wait before
+        cooking can start, waiting time is $50 per chef per hour.
+      </p>
+      <p>
+        <span className="font-semibold text-ink">Tablecloths:</span> please don&apos;t put candles on our tablecloths. A
+        tablecloth damaged by candles or wax is charged at its replacement cost.
+      </p>
+      <p>
+        <span className="font-semibold text-ink">Cancellation:</span> nothing is charged today. Tell us at least 48 hours
+        before your event to cancel or reschedule for free; cancellations inside 48 hours are charged a $99 fee to the card on file.
+      </p>
+      <p>
+        <span className="font-semibold text-ink">Weather:</span> cooking is outdoors. If rain is in the forecast we
+        recommend a 10&apos;x10&apos; pop-up tent over the chef&apos;s station — we do not supply tents. Weather
+        cancellations with 48+ hours notice are free.
+      </p>
+      <p>
+        <span className="font-semibold text-ink">Liability:</span> Real Hibachi LLC is not liable for property
+        damage during events; the host waives claims against Real Hibachi for loss, damage or destruction of
+        property.
+      </p>
+      <p>
+        <span className="font-semibold text-ink">Texts:</span> by proceeding you agree to receive text messages
+        about your booking. Reply STOP to opt out.
+      </p>
+    </>
   )
 }
