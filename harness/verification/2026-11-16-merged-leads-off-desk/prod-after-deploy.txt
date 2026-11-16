@@ -1,0 +1,27 @@
+Production after the push, read-only (GETs and SQL SELECTs only; nothing written)
+
+Deploy
+  0363b1d4 pushed to main at 18:21:00Z, a fast-forward from e8964311 (main had not moved).
+  GET https://www.realhibachi.com/_release/ready named 0363b1d4 at 18:22:14Z (about 74 s).
+
+desk next (GET /api/admin/desk), before and after
+  10:21 PT, live e8964311: 新线索 1 (the 1 is d4ef7036, a home-estimator lead created 18:21:04Z, live and unanswered)
+  10:22 PT, live 0363b1d4: 新线索 1, one [lead] card: d4ef7036. 9658a648 (merged) and 5a0c64e1 appear nowhere.
+  Full counts line after:
+  收件箱 11-16 10:22 PT · 师傅 0 · 师傅没确认改动 0 · 未回 0 · 邮件 0 · 网站回复 0 · 漏网 0 · 没送达 0 · 联系不上 0 · 新线索 1 · 订单变动 1（48h 内等确认 0） · planner 0 · reddit 0
+  (9658a648 had been quiet in the inbox since the 23:11 ack, so the inbox count could not move on it today;
+  the inbox side is proven by tests/merged-leads-off-desk.test.ts and the live replay.)
+
+Phone inbox (GET /api/admin/mobile/inbox) on 0363b1d4
+  ok true · newLeads 1 (d4ef7036) · events: lead, order_change
+
+lead-watch (GET /api/admin/lead-watch status = lead_watch_runs; the run endpoint was not called)
+  17:35:02Z cron  still_open 1  needs_human 1   <- old code
+  17:45:02Z cron  still_open 1  needs_human 1
+  18:05:04Z cron  still_open 1  needs_human 1
+  18:15:02Z cron  still_open 1  needs_human 1
+  18:25:02Z cron  still_open 0  needs_human 0   <- first run on 0363b1d4
+  Between 18:15 and 18:25 nothing changed on 9658a648 (SQL at 18:25:16Z): status 'new', merged, still inside
+  lead-watch's 24 h window, no agent_first_response, updated_at 07:11:02Z (the ack). The new d4ef7036
+  (landing_contact 18:21:04Z) was inside the 5-minute grace at 18:25:02 and is not counted either way.
+  So the 1 the old code carried all morning was the merged row, and the filter removed it.
