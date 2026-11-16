@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { survivorOf, type MergeRef } from "@/lib/merged-leads"
 
 type LeadType = "booking_inquiry" | "customer_support" | "partner_application"
 
@@ -334,6 +335,11 @@ async function findExistingLead(
 
   const windowStart = new Date(Date.now() - DEDUPE_WINDOW_HOURS * 60 * 60 * 1000).toISOString()
 
+  // A merged row still carries its number and address, and after a merge it
+  // is often the one seen last: a text from that number used to land on the
+  // hidden row (2026-09-10, two days after its merge - lib/merged-leads.ts).
+  // A live lead with the number wins; a merged one stands for the lead it
+  // went into.
   if (input.normalizedPhone) {
     const { data, error } = await supabase
       .from("leads")
@@ -342,10 +348,10 @@ async function findExistingLead(
       .eq("lead_type", input.leadType)
       .gte("last_seen_at", windowStart)
       .order("last_seen_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
+      .limit(10)
     if (error) throw new Error(`Failed to query leads by normalized_phone: ${error.message}`)
-    if (data) return { row: data as Record<string, any>, reason: "phone_window" }
+    const row = await survivorOf(supabase, data as Array<Record<string, any> & MergeRef> | null, "*")
+    if (row) return { row, reason: "phone_window" }
   }
 
   if (input.email) {
@@ -356,10 +362,10 @@ async function findExistingLead(
       .eq("lead_type", input.leadType)
       .gte("last_seen_at", windowStart)
       .order("last_seen_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
+      .limit(10)
     if (error) throw new Error(`Failed to query leads by email: ${error.message}`)
-    if (data) return { row: data as Record<string, any>, reason: "email_window" }
+    const row = await survivorOf(supabase, data as Array<Record<string, any> & MergeRef> | null, "*")
+    if (row) return { row, reason: "email_window" }
   }
 
   return null

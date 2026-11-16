@@ -3,6 +3,7 @@ import { CALL_TRANSCRIPT_PREFIX, callSummaryNote, summarizeCallTranscript } from
 import { resolveAdminActor, publicActor, type AdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
+import { leadOnNumber } from "@/lib/merged-leads"
 import { isStaffNumber, loadStaffDigits, phoneDigits10 } from "@/lib/staff-phones"
 import { fetchLastByPeer, toE164 } from "@/lib/sms-thread"
 import { HEARD_CHANNELS, HEARD_LABELS, classifyHeard, isHeardChannel } from "@/lib/heard-from"
@@ -496,6 +497,7 @@ export async function PATCH(request: NextRequest) {
     }
     const digits = phone.replace(/\D/g, "")
     const dedupeKey = digits.length > 10 ? digits.slice(-10) : digits
+    if (!supabase) return NextResponse.json({ error: "database not configured" }, { status: 500 })
     if (!dedupeKey) {
       return NextResponse.json({ error: "unusable phone" }, { status: 400 })
     }
@@ -505,15 +507,11 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ ok: true, staff: true, skipped: true })
     }
 
-    const { data: match } = await supabase
-      .from("leads")
-      .select("id")
-      .eq("normalized_phone", dedupeKey)
-      .order("last_seen_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
+    // The live lead on the number, not a row merged into it that was seen
+    // last: a note on that one is on a hidden row (lib/merged-leads.ts).
+    const match = await leadOnNumber(supabase, dedupeKey, "id", { orderBy: "last_seen_at" })
 
-    let targetId = match?.id ? String(match.id) : ""
+    let targetId = match?.leadId ?? ""
     if (!targetId) {
       const created = await upsertLeadFromContact(supabase, {
         name: phone,

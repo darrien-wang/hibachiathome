@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { upsertLeadFromContact } from "@/lib/leads"
+import { survivorOf } from "@/lib/merged-leads"
 import { platformOf } from "@/lib/heard-from"
 import { facebookLeadName, parseFacebookNotification } from "@/lib/fb-notification"
 import { type YelpNotification, parseYelpNotification, yelpFirstName, yelpLeadName, yelpSamePerson } from "@/lib/yelp-notification"
@@ -135,13 +136,19 @@ export async function POST(request: NextRequest) {
   // The lead that owns this address, however old - a customer who booked in
   // June and writes in October is the same person. (upsertLeadFromContact's
   // email match only looks back a few weeks and would open a duplicate.)
-  const { data: owner } = await supabase
+  // A merged row keeps its address; the mail goes to the lead it went into
+  // (lib/merged-leads.ts).
+  const { data: owners } = await supabase
     .from("leads")
-    .select("id, full_name, status, touchpoint_count")
+    .select("id, full_name, status, touchpoint_count, merged_into")
     .ilike("email", from.email)
     .order("last_seen_at", { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .limit(10)
+  const owner = await survivorOf(
+    supabase,
+    owners as Array<{ id: string; full_name: string | null; status: string | null; touchpoint_count: number | null; merged_into: string | null }> | null,
+    "id, full_name, status, touchpoint_count",
+  )
 
   const nowIso = new Date().toISOString()
   let leadId: string

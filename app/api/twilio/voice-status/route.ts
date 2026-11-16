@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 import { sendSms, toE164 } from "@/lib/sms-thread"
 import { isValidTwilioSignature } from "@/lib/twilio-signature"
 import { MISSED_CALL_TEXT, missedCallTouchpointId } from "@/lib/missed-call"
+import { leadOnNumber } from "@/lib/merged-leads"
 import { escapeXml } from "@/lib/twilio-identity"
 import { recordingAttributes } from "@/lib/twilio-recording"
 
@@ -74,15 +75,12 @@ export async function POST(request: NextRequest) {
   const digits = from.replace(/\D/g, "").slice(-10)
   let leadId: string | null = null
   if (supabase) {
-    const { data: lead } = await supabase
-      .from("leads")
-      .select("id, sms_blocked_at")
-      .eq("normalized_phone", digits)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    const row = lead as { id: string; sms_blocked_at: string | null } | null
-    leadId = row?.id ?? null
+    // Blocked or not is the number's own row; the text is filed on the live
+    // lead, not a newer row merged into it (lib/merged-leads.ts) - the same
+    // lead the lead-watch backstop checks for this CallSid.
+    const onNumber = await leadOnNumber<{ id: string; sms_blocked_at: string | null }>(supabase, digits, "id, sms_blocked_at")
+    const row = onNumber?.row ?? null
+    leadId = onNumber?.leadId ?? null
     // Opted out or unreachable: the voice prompt still asks them to text us,
     // but we do not text a number that told us to stop.
     if (row?.sms_blocked_at) {

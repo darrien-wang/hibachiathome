@@ -1,0 +1,37 @@
+Production before the push, read-only (SQL SELECTs on the RealHibachi project, 2026-11-16 ~20:50Z = 12:50 PST)
+Live deploy at the time: 8df533c2 (/_release/ready).
+
+Activity filed on a merged row after its merge (lead_touchpoints created after merged_at, all 7 merged rows)
+  763c4888  sms_inbound / twilio  2026-09-10 18:58Z
+            A customer's text, two days after the merge (merged 2026-09-08 03:05Z). Its number is carried
+            only by merged rows (763c4888 and a847657f, both merged into e6296797), so the inbound dedupe
+            (lib/leads.ts findExistingLead) filed it on the hidden row.
+  6 owner actions by lead id, admin_dashboard, actor owner, 09-19 .. 11-16: agent_note x4 (two "[dup] ..."
+            labels on the merged rows themselves, a note, the 11-16 desk ack), agent_edit, agent_status_change.
+            Deliberate writes on a merged row's id: left as they are.
+  No lead-watch text, missed-call text, failed-delivery note, call note or payment note has landed on a
+  merged row so far. 0 orders link a merged row (orders.source_metadata->>'lead_id').
+
+Which lead each rule picks for the 5 numbers merged rows carry (no merged row has an email address)
+                       dedupe, inbound     newest by created_at        newest by last_seen_at   this change
+                       (180 d, last seen)  (lead-watch texts, missed   (softphone call notes)
+                                           call, failed delivery)
+  number 1             kept                merged 3e9e58e9             kept                     kept e6296797
+  number 2             kept                merged 9658a648             kept                     kept 5a0c64e1
+  number 3             kept                merged ebf27281             kept                     kept 760677b0
+  number 4             kept                merged 1d558f80             kept                     kept de6d6578
+  number 5 (only merged rows carry it)
+                       merged a847657f     merged a847657f             merged a847657f          kept e6296797
+  On numbers 1-4 the kept lead happens to be the one seen last (a merge copies the latest last_seen_at onto
+  it), so the dedupe picks it today; the first activity that lands on the merged row would flip that.
+
+Quiet state (不用回 / hold) after the change
+  The only kept lead with numbers of its own merged into it is e6296797 (number 5). It has no ack and no hold,
+  so loadQuiet answers the same for every number today. 16dad33f is acked; the row merged into it has no number.
+
+lead-watch runs before the push (lead_watch_runs)
+  20:45:02Z cron ok  still_open 0  needs_human 0  auto_sent 0  missed_call_texts 0  escalated 0  1467 ms
+  20:35:02Z cron ok  still_open 0  needs_human 0  auto_sent 0  missed_call_texts 0  escalated 0  1565 ms
+  20:25:02Z cron ok  still_open 0  needs_human 0  auto_sent 0  missed_call_texts 0  escalated 0  1137 ms
+  20:15:02Z cron ok  still_open 0  needs_human 0  auto_sent 0  missed_call_texts 0  escalated 0  1177 ms
+  20:05:02Z cron ok  still_open 0  needs_human 0  auto_sent 0  missed_call_texts 0  escalated 0  1289 ms

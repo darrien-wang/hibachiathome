@@ -1,0 +1,11 @@
+tsc --noEmit -p tsconfig.json: errors in the 9 touched files, line numbers dropped, sorted
+main's versions of the 9 files: 34 errors (95 in the whole project)
+this change:                    32 errors (93 in the whole project)
+
+diff main -> this change (only removals: the call_note guard narrows supabase for that block):
+25d24
+< app/api/admin/leads/route.ts: error TS18047: 'supabase' is possibly 'null'.
+30d28
+< app/api/admin/leads/route.ts: error TS2345: Argument of type 'SupabaseClient<any, "public", "public", any, any> | null' is not assignable to parameter of type 'SupabaseClient<any, "public", "public", any, any>'.
+
+lib/merged-leads.ts and tests/merged-leads-filing.test.ts: no errors

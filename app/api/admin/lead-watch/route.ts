@@ -34,6 +34,7 @@ import { lastOutboundByPeer, smsWaiting } from "@/lib/sms-waiting"
 import { isStaffNumber, loadStaffDigits } from "@/lib/staff-phones"
 import { cityForZip } from "@/lib/zip-city"
 import { MISSED_CALL_TEXT, missedCallTouchpointId } from "@/lib/missed-call"
+import { leadOnNumber } from "@/lib/merged-leads"
 import { isBlockedNumber, loadBlockedDigits } from "@/lib/blocked-callers"
 import { sendCustomerEmail } from "@/lib/ops-notifications"
 import { blockingLine, fetchOrderLints } from "@/lib/order-lint-client"
@@ -200,14 +201,16 @@ async function partyInProgress(supabase: AnySupabase, now: number): Promise<bool
   return (data ?? []).length > 0
 }
 
-/** File an automatic text on the lead behind a phone number (bare SID as the id, the same key sms reconcile uses). */
+/**
+ * File an automatic text on the lead behind a phone number (bare SID as the id, the same key sms
+ * reconcile uses): the live lead on it, not a newer row merged into it (lib/merged-leads.ts).
+ */
 async function logAutoSms(supabase: AnySupabase, phone: string, sid: string, body: string, source: string, extra: Record<string, unknown>) {
   const digits = phone.replace(/\D/g, "").slice(-10)
-  const { data: leadRow } = await supabase.from("leads").select("id").eq("normalized_phone", digits).order("created_at", { ascending: false }).limit(1).maybeSingle()
-  const lead = leadRow as { id: string } | null
+  const lead = await leadOnNumber(supabase, digits, "id")
   if (!lead) return
   await supabase.from("lead_touchpoints").insert({
-    lead_id: lead.id,
+    lead_id: lead.leadId,
     touchpoint_type: "sms_outbound",
     touchpoint_source: source,
     external_touchpoint_id: sid,
@@ -683,15 +686,12 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
     // Anyone (the handler, a person, the app) already texted after the call.
     if ((lastOut.get(from) ?? 0) >= startedAt) continue
     const digits = from.replace(/\D/g, "").slice(-10)
-    const { data: leadRow } = await supabase
-      .from("leads")
-      .select("id, sms_blocked_at")
-      .eq("normalized_phone", digits)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    const lead = leadRow as { id: string; sms_blocked_at: string | null } | null
-    if (lead?.sms_blocked_at) continue
+    // Blocked or not is the number's own row; the text is filed on the live
+    // lead, not a newer row merged into it (lib/merged-leads.ts) - the same
+    // lead the <Dial action> handler files it on, so the CallSid key matches.
+    const onNumber = await leadOnNumber<{ id: string; sms_blocked_at: string | null }>(supabase, digits, "id, sms_blocked_at")
+    if (onNumber?.row.sms_blocked_at) continue
+    const lead = onNumber ? { id: onNumber.leadId } : null
     if (lead) {
       const { data: done } = await supabase
         .from("lead_touchpoints")

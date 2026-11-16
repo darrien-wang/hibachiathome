@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { isValidTwilioSignature } from "@/lib/twilio-signature"
 import { isOpsEmailEffectivelyHandled, sendSupportNotificationEmail } from "@/lib/ops-notifications"
+import { survivorOf } from "@/lib/merged-leads"
 
 export const dynamic = "force-dynamic"
 
@@ -52,13 +53,15 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServerSupabaseClient()
   try {
+    // The live lead on the number, not a newer row merged into it (lib/merged-leads.ts).
     const { data: leads } = await supabase
       .from("leads")
-      .select("id, full_name, email")
+      .select("id, full_name, email, merged_into")
       .eq("phone", to)
       .order("created_at", { ascending: false })
-      .limit(1)
-    const lead = leads?.[0]
+      .limit(10)
+    type Lead = { id: string; full_name: string | null; email: string | null; merged_into: string | null }
+    const lead = supabase ? await survivorOf(supabase, leads as Lead[] | null, "id, full_name, email") : null
 
     // A number that is off / unreachable (30003) or a landline (30006) is not
     // texted again (owner, 2026-09-19): every lead on it is blocked, and the

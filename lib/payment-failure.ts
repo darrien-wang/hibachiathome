@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type Stripe from "stripe"
 import { sendSupportNotificationEmail } from "@/lib/ops-notifications"
+import { survivorOf, withMergedInto } from "@/lib/merged-leads"
 
 // We were blind to declines until the customer told us.
 //
@@ -177,31 +178,37 @@ type OrderRow = {
   event_start: string | null
 }
 
-/** The lead this failure belongs to: metadata first, then phone, then email. */
+/**
+ * The lead this failure belongs to: metadata first, then phone, then email. A lead merged since the
+ * link was made, or a merged row still carrying the number or address, stands for the lead it went
+ * into (lib/merged-leads.ts) - the one staff read.
+ */
 async function findLead(supabase: SupabaseClient, facts: FailureFacts): Promise<LeadRow | null> {
   const select = "id, full_name, phone, email"
+  const columns = withMergedInto(select)
+  type Row = LeadRow & { merged_into: string | null }
   if (facts.leadId && /^[0-9a-f-]{36}$/i.test(facts.leadId)) {
-    const { data } = await supabase.from("leads").select(select).eq("id", facts.leadId).maybeSingle()
-    if (data) return data as LeadRow
+    const { data } = await supabase.from("leads").select(columns).eq("id", facts.leadId).maybeSingle()
+    if (data) return survivorOf(supabase, [data as unknown as Row], select)
   }
   const phone = digits10(facts.phone)
   if (phone) {
     const { data } = await supabase
       .from("leads")
-      .select(select)
+      .select(columns)
       .eq("normalized_phone", phone)
       .order("created_at", { ascending: false })
-      .limit(1)
-    if (data?.[0]) return data[0] as LeadRow
+      .limit(10)
+    if (data?.[0]) return survivorOf(supabase, data as unknown as Row[], select)
   }
   if (facts.email) {
     const { data } = await supabase
       .from("leads")
-      .select(select)
+      .select(columns)
       .ilike("email", facts.email)
       .order("created_at", { ascending: false })
-      .limit(1)
-    if (data?.[0]) return data[0] as LeadRow
+      .limit(10)
+    if (data?.[0]) return survivorOf(supabase, data as unknown as Row[], select)
   }
   return null
 }

@@ -7,6 +7,7 @@ import { CUSTOMER_FORM_TYPES } from "@/lib/customer-forms"
 import { otherSenderJustAnswered } from "@/lib/duplicate-brake"
 import { isOptOutBlock } from "@/lib/sms-opt-out"
 import { reconcileThread } from "@/lib/sms-reconcile"
+import { currentLeadId, leadOnNumber } from "@/lib/merged-leads"
 import { getWorkbenchSettings } from "@/lib/workbench-settings"
 import { ASKS_SOURCE } from "@/lib/heard-from"
 import { captureStaffingPromise } from "@/lib/promise-capture"
@@ -36,11 +37,15 @@ export async function GET(request: NextRequest) {
   const phones: string[] = []
   const phoneParam = toE164(request.nextUrl.searchParams.get("phone"))
   if (phoneParam) phones.push(phoneParam)
-  const leadId = request.nextUrl.searchParams.get("leadId")?.trim()
+  let leadId = request.nextUrl.searchParams.get("leadId")?.trim()
   const leadIds: string[] = []
   if (leadId && /^[0-9a-f-]{36}$/i.test(leadId)) {
     const supabase = createServerSupabaseClient()
     if (supabase) {
+      // A merged lead's id opens the lead it went into: its conversation and
+      // timeline live there now, and the reconcile below files what it copies
+      // there, not on the hidden row (lib/merged-leads.ts).
+      leadId = await currentLeadId(supabase, leadId)
       const { data } = await supabase.from("leads").select("id, phone").or(`id.eq.${leadId},merged_into.eq.${leadId}`)
       for (const row of data ?? []) {
         leadIds.push(String((row as { id: string }).id))
@@ -79,19 +84,15 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ ok: true, phones: unique, messages, synced })
 }
 
-/** The newest unmerged lead on this number, or null (staff numbers have none). */
+/**
+ * The lead a text to this number is filed on: the newest unmerged lead on it, else - when only a
+ * merged row carries the number - the lead that row went into (lib/merged-leads.ts); until 2026-11-16
+ * such a text was filed nowhere. Null for none (staff numbers have none).
+ */
 async function leadIdForPhone(phone: string): Promise<string | null> {
   const supabase = createServerSupabaseClient()
   if (!supabase) return null
-  const { data } = await supabase
-    .from("leads")
-    .select("id")
-    .eq("normalized_phone", phone.replace(/\D/g, "").slice(-10))
-    .is("merged_into", null)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  return (data as { id: string } | null)?.id ?? null
+  return (await leadOnNumber(supabase, phone.replace(/\D/g, "").slice(-10), "id"))?.leadId ?? null
 }
 
 /**
@@ -151,7 +152,12 @@ export async function POST(request: NextRequest) {
   if (!phone) return NextResponse.json({ error: "invalid phone" }, { status: 400 })
   if (!body) return NextResponse.json({ error: "empty message" }, { status: 400 })
   if (body.length > 1200) return NextResponse.json({ error: "message too long" }, { status: 400 })
-  const leadIdParam = typeof payload.leadId === "string" && /^[0-9a-f-]{36}$/i.test(payload.leadId) ? payload.leadId : null
+  const leadIdGiven = typeof payload.leadId === "string" && /^[0-9a-f-]{36}$/i.test(payload.leadId) ? payload.leadId : null
+  // A merged lead's id (a card or link from before the merge) stands for the
+  // lead it went into: the guards below read that lead's timeline and the text
+  // is filed on it (lib/merged-leads.ts).
+  const supabaseForLead = leadIdGiven ? createServerSupabaseClient() : null
+  const leadIdParam = leadIdGiven && supabaseForLead ? await currentLeadId(supabaseForLead, leadIdGiven) : leadIdGiven
   // Who is sending: the desk CLI passes its Claude session id, the workbench
   // UI is the signed-in member. Written on the touchpoint so the next send
   // can tell "I answered a minute ago" from "someone else did".

@@ -560,3 +560,47 @@ Noticed, not changed (paths that still write onto a merged row; none listed on t
 - lead-watch `logAutoSms` (pre-party and party-bill texts) and the missed-call backstop file their touchpoint on the newest lead with the number. That can be a merged row, so the text is missing from the survivor's timeline. The Twilio thread still shows it.
 - `lib/leads.ts` `findExistingLead` (inbound dedupe by phone or email inside the window) does not skip merged rows either. Not seen in the 11-15 case: the only touchpoint on 9658a648 after the merge is the desk ack's note.
 - `desk ack` / notes on a merged row's id still land on that row. With these lists fixed, the desk no longer offers one.
+
+## MERGED-LEADS-FILING - New activity follows a merged lead to the lead it went into (2026-11-16)
+
+Status: done; pushed to main. The production check after the deploy is added in its own evidence commit.
+
+Why: the follow-up to MERGED-LEADS-OFF-DESK, which the owner approved in the same session. A merge hides a row and moves its timeline, but the row keeps its number and address. Everything that filed new activity by number or address took "the newest lead on it", and after a merge that is often the hidden row. In production it has happened once: on 2026-09-10 a customer's text went onto 763c4888 two days after it was merged. Its number is carried only by merged rows, so the text never reached e6296797, the lead it went into. Today, for the 5 numbers merged rows carry, these paths would pick the merged row on all 5: lead-watch's automatic texts, the missed-call text (handler and backstop) and the failed-delivery note. The inbound dedupe and softphone call notes would pick it on the one number only merged rows carry. The previous change also left a gap. A text from such a number now names the kept lead on the desk and the phone, so that is the lead "不用回" or a hold gets set on. But the watermark covered only the kept lead's own number, so `desk ack <kept lead>` did not clear the card.
+
+What changed:
+- `lib/merged-leads.ts` (new) holds the rule in one place: the inbox's `leadPerPhone` rule, against the database.
+  - `pickContactRow`: the first live row, else the newest merged one.
+  - `survivorOf`: reads the lead a merged row went into and follows a merge of a merge (5 hops at most). A broken chain stops on the deepest row that can be read, so an insert never names an id that may not exist.
+  - `survivorId`.
+  - `currentLeadId`: a stored id merged since.
+  - `leadOnNumber`: the number's own row for its block state, and the kept lead for filing.
+- `lib/leads.ts` `findExistingLead`: the phone and email windows read up to 10 rows and take a live one. A merged match stands for its lead, read in full so the upsert fills the kept lead. This covers every inbound path through `upsertLeadFromContact`: texts, calls, the quote page, forms, planner unlock, booking request, contact.
+- `app/api/admin/email-inbound/route.ts`: the owner of an address (any age) is chosen the same way.
+- `app/api/admin/lead-watch/route.ts`: `logAutoSms` (pre-party and party-bill texts) and the missed-call backstop use `leadOnNumber`. `app/api/twilio/voice-status/route.ts`: the missed-call handler does the same, so it files on the same lead as the backstop and the CallSid key still matches. `app/api/twilio/sms-status/route.ts`: the failed-delivery note.
+- `app/api/admin/leads/route.ts` `call_note`: softphone notes and 来电小结 (by last_seen_at as before), plus a `supabase` null guard.
+- `lib/payment-failure.ts` `findLead`: the Stripe metadata id, the number and the address. planner-activity already forwarded its id this way.
+- `app/api/admin/sms-thread/route.ts`:
+  - GET `?leadId=` of a merged lead opens the lead it went into (the thread and the reconcile).
+  - POST forwards a merged `leadId`.
+  - A text sent by number alone to a number only merged rows carry is filed on the kept lead. Before, it was filed nowhere.
+- `lib/lead-hold.ts` `loadQuiet` / `loadHolds`: a lead's ack and hold also cover the numbers of the rows merged into it. A merged row's own watermark still covers only its own number.
+- `tests/merged-leads-filing.test.ts` (new, 13 tests):
+  - Inbound text, live-over-merged, address, and an unmerged control.
+  - The picks: chain, broken chain, loop, block state.
+  - Ack and hold on the kept lead, and a merged row's own ack.
+  - `computeInbox`: a text from the merged number leaves the desk once the kept lead is acked.
+
+Left as it is on purpose:
+- PATCH /api/admin/leads actions by an explicit lead id (desk ack, note, status, ...). The owner writes on merged rows deliberately: the 6 owner writes in production include "[dup]" labels on the merged rows themselves. The desk no longer offers a merged id anyway.
+- Stored ids in the Stripe webhook and deposit-confirm (status won, order link), order-cancel, checkout-struggle, setup-selection, send-followup and promise-capture. 0 orders link a merged row today.
+- Reads: the caller card and `desk card --phone` skip merged rows, so a number only merged rows carry shows no lead there.
+
+Verification completed:
+- `npm test` on 8df533c2 plus this change: 633 pass, 0 fail. `npm run lint:copy`: 0 hard-rule hits (the soft `4pct-v2` line as before).
+- `tsc --noEmit`: no new errors in the 9 touched files. They had 34 on main and have 32 now; the `call_note` guard removed two. The new files have none. Output: `tsc-touched-files.txt`.
+- The new tests against main's `lib/leads.ts` and `lib/lead-hold.ts`: 6 fail, 7 pass.
+  - The 6 that fail: the three filing tests (the text and the email go onto the merged rows f2/f3), and ack, hold and the desk card from the merged number.
+  - The 7 that pass: the control and the helper units.
+  - Output: `before-fix.txt`.
+- Production before the push, read-only (SQL SELECTs only): the activity filed on merged rows after their merge, and the lead each rule picks per number on main versus this change. The quiet state moves for no number today: the one kept lead with a merged-only number has no ack or hold. Lead-watch runs were ok, 0 / 0. Output: `prod-before.txt`.
+- Outputs: `harness/verification/2026-11-16-merged-leads-filing/`. Not a `harness/feature_list.json` item.

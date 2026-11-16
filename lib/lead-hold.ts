@@ -22,6 +22,7 @@ import { notAQuestion } from "@/lib/courtesy-text"
 // 挂起的那种（Micah Hamilton，2026-09-24，状态 won）。
 
 type HoldRow = {
+  id: string
   normalized_phone: string | null
   phone: string | null
   hold_until: string
@@ -29,6 +30,46 @@ type HoldRow = {
 }
 
 const digits10 = (phone: string | null | undefined) => String(phone ?? "").replace(/\D/g, "").slice(-10)
+
+// ============================================================
+// 合并进来的号码（2026-11-16）。被合并的线索藏起来了，号码还在它身上。客人从这个号码
+// 发来的短信，收件箱、桌面、手机的卡片都挂在它合并进去的那条线索上（lib/inbox.ts
+// leadPerPhone），所以「不用回」和挂起也是标在那条上——可水位线以前只认那条线索自己
+// 的号码，客人另一个号码照样响。现在一条线索的水位线也管合并进它的那些号码。
+// 被合并的那条自己身上的水位线照旧只管它自己的号码。
+// ============================================================
+
+/** 线索 id → 只通过合并挂在它名下的号码（合并的合并一路跟到底）。 */
+type MergedNumbers = Map<string, string[]>
+
+/** 查不到就当没有：水位线退回到只认线索自己的号码，和以前一样。 */
+async function loadMergedNumbers(supabase: SupabaseClient): Promise<MergedNumbers> {
+  const out: MergedNumbers = new Map()
+  try {
+    const { data, error } = await supabase
+      .from("leads")
+      .select("id, normalized_phone, phone, merged_into")
+      .not("merged_into", "is", null)
+      .limit(5000)
+    if (error || !data) return out
+    const rows = data as Array<{ id: string; normalized_phone: string | null; phone: string | null; merged_into: string }>
+    const into = new Map(rows.map((r) => [r.id, r.merged_into]))
+    for (const r of rows) {
+      const d = digits10(r.normalized_phone ?? r.phone)
+      if (!d) continue
+      let root = r.merged_into
+      for (let hop = 0; into.has(root) && hop < 5; hop++) root = into.get(root)!
+      out.set(root, [...(out.get(root) ?? []), d])
+    }
+  } catch {}
+  return out
+}
+
+/** 一条线索的水位线管哪些号码：它自己的，加上合并进它的。 */
+function numbersOf(r: { id: string; normalized_phone: string | null; phone: string | null }, merged: MergedNumbers): string[] {
+  const own = digits10(r.normalized_phone ?? r.phone)
+  return [...(own ? [own] : []), ...(merged.get(r.id) ?? [])]
+}
 
 export type HoldLookup = {
   /**
@@ -42,24 +83,31 @@ export type HoldLookup = {
 /** 查不到就按"没挂起"走：宁可多提醒一次，也不要静默吞掉客人的问题。 */
 const NO_HOLDS: HoldLookup = { onHold: () => false }
 
-export async function loadHolds(supabase: SupabaseClient, now = Date.now()): Promise<HoldLookup> {
-  const { data, error } = await supabase
-    .from("leads")
-    .select("normalized_phone, phone, hold_until, hold_set_at")
-    .not("hold_until", "is", null)
-    .gt("hold_until", new Date(now).toISOString())
+export async function loadHolds(
+  supabase: SupabaseClient,
+  now = Date.now(),
+  mergedNumbers: Promise<MergedNumbers> = loadMergedNumbers(supabase),
+): Promise<HoldLookup> {
+  const [{ data, error }, merged] = await Promise.all([
+    supabase
+      .from("leads")
+      .select("id, normalized_phone, phone, hold_until, hold_set_at")
+      .not("hold_until", "is", null)
+      .gt("hold_until", new Date(now).toISOString()),
+    mergedNumbers,
+  ])
   if (error || !data) return NO_HOLDS
 
   const byPhone = new Map<string, { until: number; setAt: number }>()
   for (const r of data as HoldRow[]) {
-    const d = digits10(r.normalized_phone ?? r.phone)
-    if (!d) continue
     const until = Date.parse(r.hold_until)
     if (!Number.isFinite(until)) continue
-    // 同一个号码可能挂在好几条线索上，取挂得最久的那条。
-    const prev = byPhone.get(d)
-    if (prev && prev.until >= until) continue
-    byPhone.set(d, { until, setAt: r.hold_set_at ? Date.parse(r.hold_set_at) : 0 })
+    for (const d of numbersOf(r, merged)) {
+      // 同一个号码可能挂在好几条线索上，取挂得最久的那条。
+      const prev = byPhone.get(d)
+      if (prev && prev.until >= until) continue
+      byPhone.set(d, { until, setAt: r.hold_set_at ? Date.parse(r.hold_set_at) : 0 })
+    }
   }
 
   return {
@@ -92,21 +140,22 @@ export type QuietLookup = {
  * 查不到就按"要回"走——宁可多提醒一次，也不要静默吞掉客人的问题。
  */
 export async function loadQuiet(supabase: SupabaseClient, now = Date.now()): Promise<QuietLookup> {
-  const [holds, ackRes] = await Promise.all([
-    loadHolds(supabase, now),
+  const mergedNumbers = loadMergedNumbers(supabase)
+  const [holds, ackRes, merged] = await Promise.all([
+    loadHolds(supabase, now, mergedNumbers),
     supabase
       .from("leads")
-      .select("normalized_phone, phone, acked_until")
+      .select("id, normalized_phone, phone, acked_until")
       .not("acked_until", "is", null),
+    mergedNumbers,
   ])
 
   const ackByPhone = new Map<string, number>()
-  for (const r of (ackRes.data ?? []) as Array<{ normalized_phone: string | null; phone: string | null; acked_until: string }>) {
-    const d = digits10(r.normalized_phone ?? r.phone)
+  for (const r of (ackRes.data ?? []) as Array<{ id: string; normalized_phone: string | null; phone: string | null; acked_until: string }>) {
     const at = Date.parse(r.acked_until)
-    if (!d || !Number.isFinite(at)) continue
-    // 同号多条线索：以标得最晚的那条为准。
-    if ((ackByPhone.get(d) ?? 0) < at) ackByPhone.set(d, at)
+    if (!Number.isFinite(at)) continue
+    // 同号多条线索：以标得最晚的那条为准。合并进来的号码跟着它合并进去的那条走。
+    for (const d of numbersOf(r, merged)) if ((ackByPhone.get(d) ?? 0) < at) ackByPhone.set(d, at)
   }
 
   return {

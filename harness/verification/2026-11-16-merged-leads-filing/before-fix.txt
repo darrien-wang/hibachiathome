@@ -1,0 +1,147 @@
+tests/merged-leads-filing.test.ts against main's lib/leads.ts and lib/lead-hold.ts (50b07d3c), with the new lib/merged-leads.ts beside them
+npx tsx --tsconfig ./tsconfig.json --test tests/merged-leads-filing.test.ts
+
+✖ merged filing · a text from a number only a merged row carries lands on the lead it went into (5.3756ms)
+✖ merged filing · a live lead on the number beats the merged row seen after it (0.7225ms)
+✖ merged filing · an address only a merged row carries lands on the lead it went into (0.5853ms)
+✔ merged filing · without merged rows nothing changed: same lead, or a new one (0.7184ms)
+✔ merged filing · pickContactRow: the first live row, else the newest merged one (0.1496ms)
+✔ merged filing · survivorOf reads the lead a merged row went into, following a merge of a merge (0.5697ms)
+✔ merged filing · currentLeadId: a stored merged id stands for its lead; others come back as they are (0.2412ms)
+✔ merged filing · leadOnNumber: the number's own row for its block state, the kept lead for filing (0.4772ms)
+✔ merged filing · withMergedInto adds the column once (0.1579ms)
+✖ merged filing · 不用回 on the kept lead quiets the numbers merged into it (0.6129ms)
+✖ merged filing · a hold on the kept lead holds the numbers merged into it (0.3202ms)
+✔ merged filing · a merged row's own 不用回 still quiets only its own number (0.1612ms)
+✖ merged filing · desk: a text from the merged number leaves once the kept lead is marked 不用回 (21.5091ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 7
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 333.96
+
+✖ failing tests:
+
+test at tests\merged-leads-filing.test.ts:2:3497
+✖ merged filing · a text from a number only a merged row carries lands on the lead it went into (5.3756ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+    {
+      dedupeReason: 'phone_window',
+      deduped: true,
+  +   leadId: '00000000-0000-4000-8000-0000000000f3'
+  -   leadId: '00000000-0000-4000-8000-0000000000f1'
+    }
+
+      at TestContext.<anonymous> (D:\desktop\RealHibachi\realhibachi-marketing\.claude\worktrees\mystifying-banach-06fdf4\tests\merged-leads-filing.test.ts:97:10)
+      at async Test.run (node:internal/test_runner/test:1102:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { leadId: '00000000-0000-4000-8000-0000000000f3', deduped: true, dedupeReason: 'phone_window' },
+    expected: { leadId: '00000000-0000-4000-8000-0000000000f1', deduped: true, dedupeReason: 'phone_window' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests\merged-leads-filing.test.ts:2:4336
+✖ merged filing · a live lead on the number beats the merged row seen after it (0.7225ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + '00000000-0000-4000-8000-0000000000f2'
+  - '00000000-0000-4000-8000-0000000000f1'
+                                        ^
+
+      at TestContext.<anonymous> (D:\desktop\RealHibachi\realhibachi-marketing\.claude\worktrees\mystifying-banach-06fdf4\tests\merged-leads-filing.test.ts:109:10)
+      at async Test.run (node:internal/test_runner/test:1102:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:777:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '00000000-0000-4000-8000-0000000000f2',
+    expected: '00000000-0000-4000-8000-0000000000f1',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\merged-leads-filing.test.ts:2:4727
+✖ merged filing · an address only a merged row carries lands on the lead it went into (0.5853ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+    {
+      dedupeReason: 'email_window',
+      deduped: true,
+  +   leadId: '00000000-0000-4000-8000-0000000000f3'
+  -   leadId: '00000000-0000-4000-8000-0000000000f1'
+    }
+
+      at TestContext.<anonymous> (D:\desktop\RealHibachi\realhibachi-marketing\.claude\worktrees\mystifying-banach-06fdf4\tests\merged-leads-filing.test.ts:116:10)
+      at async Test.run (node:internal/test_runner/test:1102:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:777:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { leadId: '00000000-0000-4000-8000-0000000000f3', deduped: true, dedupeReason: 'email_window' },
+    expected: { leadId: '00000000-0000-4000-8000-0000000000f1', deduped: true, dedupeReason: 'email_window' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests\merged-leads-filing.test.ts:2:10801
+✖ merged filing · 不用回 on the kept lead quiets the numbers merged into it (0.6129ms)
+  AssertionError [ERR_ASSERTION]: +19090000188 before the ack
+
+  false !== true
+
+      at TestContext.<anonymous> (D:\desktop\RealHibachi\realhibachi-marketing\.claude\worktrees\mystifying-banach-06fdf4\tests\merged-leads-filing.test.ts:216:12)
+      at async Test.run (node:internal/test_runner/test:1102:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:777:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\merged-leads-filing.test.ts:2:11370
+✖ merged filing · a hold on the kept lead holds the numbers merged into it (0.3202ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at TestContext.<anonymous> (D:\desktop\RealHibachi\realhibachi-marketing\.claude\worktrees\mystifying-banach-06fdf4\tests\merged-leads-filing.test.ts:224:10)
+      at async Test.run (node:internal/test_runner/test:1102:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:777:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\merged-leads-filing.test.ts:2:12323
+✖ merged filing · desk: a text from the merged number leaves once the kept lead is marked 不用回 (21.5091ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+  + [
+  +   '00000000-0000-4000-8000-0000000000f1'
+  + ]
+  - []
+
+      at TestContext.<anonymous> (D:\desktop\RealHibachi\realhibachi-marketing\.claude\worktrees\mystifying-banach-06fdf4\tests\merged-leads-filing.test.ts:267:10)
+      at async Test.run (node:internal/test_runner/test:1102:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:777:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ '00000000-0000-4000-8000-0000000000f1' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
