@@ -206,11 +206,16 @@ A、B 由机器发（§3 表）。人要手发的首条：机器让出来的（�
 - **度假屋物业的信**（11-13 起；计划 `D:/desktop/RealHibachi/partnerships/12-palm-springs-indio-rental-managers.md`，名单 `D:/desktop/RealHibachi/partnerships/data/coachella-valley-pm-targets.csv`）：发件人域名在名单 website、contact 两列里的，是物业回我们的合作信，不是客人。线索改 disqualified，备注 `[partner] 公司名`。回信内容从计划第 5 节和材料 ⑥⑦ 里取，**先给老板稿子，他回"发"再用 `desk email` 发，署 Darrien**；对方要 10%、问保险或营业执照、要电话或见面的，总结给老板，不自己答应。对方同意合作：码登记进 `D:/desktop/RealHibachi/partnerships/data/referral-partners.csv`（type=str_host），回一句确认。
 - **Facebook / Instagram**：主页私信和评论由我们看（老板 10-21 授权管理）。公开回复、隐藏、私信都是代发，**每次先给老板稿子，他回"发"再做**；只隐藏不删除。私信里一定要拿到手机号，把人拉进短信。Marketplace 挂在老板个人号，Meta 没有接口，我拟稿、老板粘贴，**禁止自动化个人号**。操作见 `tools.md` §Facebook。
 - **Airbnb Services**（老板 11-16 定由我们回 Airbnb 消息；服务 11-16 已提交，Airbnb 说审核最长两周，通过后一周上线；上架内容见 `D:/desktop/RealHibachi/partnerships/13-airbnb-services-listing.md`）：
-  - **只在 Airbnb 消息页回，钱只在 Airbnb 收。** 跟 FB/IG 相反，不要电话、不拉进短信：订之前不发锁单链接、/quote 或任何网址，不留电话、邮箱，不报官网的价；订了以后也不在站外收任何钱。Airbnb 规定当前、以后和回头的订单都要在 Airbnb 上付，违规会下架、封号。老板 11-16 问过能不能在 Airbnb 只收定金、其余线下收：Airbnb 不允许。
+  - **只在 Airbnb 消息页回，钱只在 Airbnb 收。** 跟 FB/IG 相反，不要电话、不拉进短信：订之前不发锁单链接、/quote 或任何网址，不留电话、邮箱，不报官网的价；订了以后也不在站外收任何钱。Airbnb 规定当前、以后和回头的订单都要在 Airbnb 上付，违规会下架、封号。老板 11-16 问过能不能在 Airbnb 只收定金、其余线下收：Airbnb 不允许；11-17 老板定**全款在 Airbnb 收**（D-1117-01）。
   - **Airbnb 上的价**：Hibachi dinner for your group 每位 $60；Filet and lobster hibachi dinner 每位 $80（两样蛋白是菲力和龙虾尾）。13 岁以上算一位，每单最低 $599，最多 60 位，服务 2 小时，每天 11 AM–10 PM 可订（最晚 8 点开场）。菜跟官网一样，5 岁以下免费。Airbnb 只能填整数，比官网多的 10 美分不解释。没有周中特价和折扣，**不收路费**（服务范围是 Palm Springs 开车 2 小时以内）。
   - **加购**（5–12 岁小孩、桌椅、餐具、第三种蛋白）Airbnb 上没有单列，套餐说明里写了小孩另加。客人订之前问到，在消息页发 custom offer（带付款请求，Airbnb 官方做法）报一个总价，单价照官网取整：小孩 $30，桌椅 $10/位，餐具 $5/位，第三种蛋白 $10/位。**第一次发 custom offer 前先把总价给老板看。** 订完以后再加东西怎么收，Airbnb 没写清楚，先问老板。
-  - **取消、改期、改人数按 Airbnb 的规则**，不提我们的留卡、$99 和"当天只能加人"。
-  - 订了以后照常建订单、发备料单，订单备注写 `Airbnb Services`；沙漠出租房、沙滩、清酒这些规矩照 `answers.md`。
+  - **取消、改期、改人数按 Airbnb 的规则**，不提我们的留卡、$99 和"当天只能加人"。Airbnb 上取消了，照常 `desk order cancel`（它只通知师傅），结果里的 $99 和已收的钱不用管，退不退由 Airbnb 按它的规则办。
+  - **订了以后**（钱全在 Airbnb，我们只记账、派师傅）：
+    - 建单用工作台线索里的「押金已付 → 转入订单」：收款方式选「其他」，金额记 Airbnb 订单总额（客人付的数，Airbnb 扣 15% 之前）。订单备注写 `Airbnb Services · <Airbnb 订单号> · 已在 Airbnb 付清 $<总额>`。
+    - **订单上必须是付清的**：路费设 0（`--travel-fee 0`），订单总价跟记的这笔钱对上，差额用订单上的价格行调平。建完 `desk order show` 不能有欠款，备料单要显示「已付清」。还欠着的话，派对开始后系统会自动给客人发 /pay 付款链接，备料单的「结束收款」也会让师傅收钱。第一张 Airbnb 单建完自己这样核一遍。
+    - 备货备注写「Airbnb 单：客人已在 Airbnb 付清，现场不收钱，不发付款链接，不主动提小费；客人自己给可以收」。小费这条照 Airbnb 写给客人的说明：小费不必要，好评或小费都欢迎。
+    - 不给客人发我们的发票邮件、派对页和付款链接。选蛋白、改人数、加东西都在 Airbnb 消息里谈，钱走 Airbnb。系统 72 小时前的确认短信没有链接，照发没关系；客人在短信里提改动，回到 Airbnb 消息里接着谈。
+    - 沙漠出租房、沙滩、清酒这些规矩照 `answers.md`。
 - **西语**：客人写西语才切，数字口径一样，句式见 `templates.md`。
 
 ---
