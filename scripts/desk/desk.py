@@ -52,7 +52,7 @@
   python scripts/desk/desk.py order send  <orderNo>   email the PDF AND text the invoice link, no reply needed (the normal way)
   python scripts/desk/desk.py order remind <orderNo> [--dry]   day before / morning of: email the invoice and text its link, no amounts in the text
   python scripts/desk/desk.py order set  <orderNo> --prep-note-file F [--dry]   the 备货备注 (prep list / cooler sheet line, 300 chars)
-  python scripts/desk/desk.py order check <YYYY-MM-DD> [--json]   派对当天核对 (D-1112-01, 10:00 on the day): per party, what the prep
+  python scripts/desk/desk.py order check <YYYY-MM-DD> [--json]   派对当天核对 (D-1112-01; 07:00 on the day since 11-17 for early parties): per party, what the prep
                                    list and the order carry, the chef's sheet, and every requirement found elsewhere that they do not
                                    (!! = fix first). Reads only.
   python scripts/desk/desk.py order cancel <orderNo> --why "..." [--dry]   cancel the order: its chefs are texted (Chinese) and taken
@@ -2477,7 +2477,8 @@ def _order_review_ops(a) -> None:
 
 def cmd_order(a):
     if a.op == "check":
-        # 派对当天核对 (owner 2026-11-12, D-1112-01): 10:00 on the party day, every party that day. Chefs work
+        # 派对当天核对 (owner 2026-11-12, D-1112-01): 07:00 on the party day since 2026-11-17 (owner: 早台 run before
+        # 10:00), every party that day. Chefs work
         # from the prep list and the order only - 「只要没列在这个上面的…师傅都会忘」 - so this prints what those
         # carry and every requirement found elsewhere (internal notes, the lead's notes, the party page, texts,
         # what we told the chef, the deal, the setup they picked) that they do not. Reads only
