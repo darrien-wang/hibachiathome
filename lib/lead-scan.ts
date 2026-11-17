@@ -181,6 +181,7 @@ function replyChannel(lead: LeadRow): string | null {
   if (src === "facebook_marketplace" || ch === "facebook_marketplace") return "Marketplace"
   if (ch === "facebook" || src === "manual_facebook") return "Facebook"
   if (ch === "instagram" || src === "manual_instagram") return "Instagram"
+  if (ch === "airbnb" || src === "manual_airbnb") return "Airbnb"
   return null
 }
 

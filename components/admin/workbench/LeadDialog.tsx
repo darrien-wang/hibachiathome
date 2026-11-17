@@ -213,7 +213,7 @@ export function LeadDialog({
   const fname = firstName(lead.full_name)
   // A Yelp / Facebook / Instagram conversation is answered there; the desk copies
   // each message into this thread (lib/channel-messages.ts, owner 2026-10-26).
-  const chatChannel = ({ yelp: "Yelp", facebook: "Facebook", instagram: "Instagram" } as Record<string, string>)[lead.lead_channel ?? ""] ?? (lead.lead_source === "yelp" ? "Yelp" : null)
+  const chatChannel = ({ yelp: "Yelp", facebook: "Facebook", instagram: "Instagram", airbnb: "Airbnb" } as Record<string, string>)[lead.lead_channel ?? ""] ?? (lead.lead_source === "yelp" ? "Yelp" : null)
 
   // ---- links the owner sends ------------------------------------------
   const depositLink = useCallback(async (): Promise<string> => {

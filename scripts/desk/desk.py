@@ -1394,7 +1394,7 @@ def cmd_note(a):
     _patch({"action": "add_note", "leadId": a.lead, "note": read_text_arg(a.note, a.body_file)})
 
 
-CHANNEL_NAMES = {"yelp": "Yelp", "facebook": "Facebook", "instagram": "Instagram"}
+CHANNEL_NAMES = {"yelp": "Yelp", "facebook": "Facebook", "instagram": "Instagram", "airbnb": "Airbnb"}
 
 
 def _pt_iso(s: str) -> str:
@@ -3443,11 +3443,11 @@ def main(argv=None):
     p = sp.add_parser("contacted"); p.add_argument("lead"); p.set_defaults(fn=cmd_contacted)
     p = sp.add_parser("block", help="a sales pitch: its calls to 213 are rejected before they ring")
     p.add_argument("lead"); p.add_argument("--why"); p.add_argument("--clear", action="store_true"); p.set_defaults(fn=cmd_block)
-    p = sp.add_parser("newlead", help="a lead for a Yelp / Facebook / Instagram / phone conversation")
-    p.add_argument("name"); p.add_argument("--via", required=True, choices=["yelp", "facebook", "instagram", "phone", "sms", "wechat", "walk_in", "referral", "other"])
+    p = sp.add_parser("newlead", help="a lead for a Yelp / Facebook / Instagram / Airbnb / phone conversation")
+    p.add_argument("name"); p.add_argument("--via", required=True, choices=["yelp", "facebook", "instagram", "airbnb", "phone", "sms", "wechat", "walk_in", "referral", "other"])
     p.add_argument("--phone"); p.add_argument("--email"); p.add_argument("--message"); p.add_argument("--body-file")
     p.set_defaults(fn=cmd_newlead)
-    p = sp.add_parser("channel", help="copy a Yelp / Facebook / Instagram message into the lead's conversation")
+    p = sp.add_parser("channel", help="copy a Yelp / Facebook / Instagram / Airbnb message into the lead's conversation")
     p.add_argument("lead"); p.add_argument("direction", choices=["in", "out"], help="in = the customer, out = us")
     p.add_argument("text", nargs="?"); p.add_argument("--via", required=True, choices=sorted(CHANNEL_NAMES))
     p.add_argument("--at", help="when the channel shows it, Pacific: 'YYYY-MM-DD HH:MM' or 'MM-DD HH:MM', ':SS' to order same-minute lines (default now)")

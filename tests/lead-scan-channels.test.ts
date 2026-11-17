@@ -128,3 +128,17 @@ test("scan channels · an Instagram lead who moved to texts: the texts decide", 
   assert.equal(it.bucket, "A")
   assert.equal(it.reason, "客人最后说话，欠回复")
 })
+
+// Airbnb Services guests (owner 2026-11-16): answered in Airbnb's host inbox, copied in like Messenger.
+test("scan channels · an Airbnb guest's message copied in is owed an answer in Airbnb; ours after it ends that", async () => {
+  const ab = { full_name: "Sarah (Airbnb)", lead_source: "manual_airbnb", lead_channel: "airbnb" }
+  const asked: Tp[] = [{ at: "2026-11-20T03:31:00Z", type: "channel_inbound", payload: { channel: "airbnb", body: "Can you do 12 of us on Saturday at 6?" } }]
+  const open = await scanAt(pool(asked, ab), "2026-11-20T04:00:00Z")
+  assert.equal(open.bucket, "A")
+  assert.equal(open.reason, "客人在 Airbnb 发了消息，去 Airbnb 回，回完 desk ack")
+
+  const answered: Tp[] = [...asked, { at: "2026-11-20T03:40:00Z", type: "channel_outbound", payload: { channel: "airbnb", body: "Yes, Saturday at 6 works for the 12 of you." } }]
+  const after = await scanAt(pool(answered, ab), "2026-11-20T17:00:00Z")
+  assert.equal(after.bucket, "H")
+  assert.equal(after.reason, "Airbnb 对话，我们最后说话：在 Airbnb 里等他回（巡查盯着，跟进人工定）")
+})

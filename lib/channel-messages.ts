@@ -12,7 +12,10 @@
 import { createHash } from "node:crypto"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
-export const CHANNEL_LABELS = { yelp: "Yelp", facebook: "Facebook", instagram: "Instagram" } as const
+// Airbnb (owner 2026-11-16 「需要你再加入一个渠道的监控，回 Airbnb 的消息」): the
+// Airbnb Services listing's guest messages are answered in Airbnb's host inbox
+// and copied here the same way; nothing off-platform goes into them.
+export const CHANNEL_LABELS = { yelp: "Yelp", facebook: "Facebook", instagram: "Instagram", airbnb: "Airbnb" } as const
 export type MessageChannel = keyof typeof CHANNEL_LABELS
 
 export const CHANNEL_IN = "channel_inbound"

@@ -19,7 +19,7 @@ const EDIT_TYPE = "agent_edit"
 const NOTE_TYPE = "agent_note"
 const MERGE_TYPE = "agent_merge"
 const ALLOWED_STATUSES = ["new", "qualified", "disqualified", "won", "lost"] as const
-const MANUAL_CHANNELS = ["phone", "sms", "facebook", "instagram", "yelp", "wechat", "walk_in", "referral", "other"] as const
+const MANUAL_CHANNELS = ["phone", "sms", "facebook", "instagram", "yelp", "airbnb", "wechat", "walk_in", "referral", "other"] as const
 const EDITABLE_FIELDS = ["full_name", "phone", "email", "city_or_zip", "guest_count"] as const
 
 type Actor = AdminActor
