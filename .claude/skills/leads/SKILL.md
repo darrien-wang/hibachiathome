@@ -205,6 +205,12 @@ A、B 由机器发（§3 表）。人要手发的首条：机器让出来的（�
 - **邮件**：support@ 的信自动进工作台，`desk email` 回；地址只从卡片复制。The Knot、Zola 等平台询价也走这里。
 - **度假屋物业的信**（11-13 起；计划 `D:/desktop/RealHibachi/partnerships/12-palm-springs-indio-rental-managers.md`，名单 `D:/desktop/RealHibachi/partnerships/data/coachella-valley-pm-targets.csv`）：发件人域名在名单 website、contact 两列里的，是物业回我们的合作信，不是客人。线索改 disqualified，备注 `[partner] 公司名`。回信内容从计划第 5 节和材料 ⑥⑦ 里取，**先给老板稿子，他回"发"再用 `desk email` 发，署 Darrien**；对方要 10%、问保险或营业执照、要电话或见面的，总结给老板，不自己答应。对方同意合作：码登记进 `D:/desktop/RealHibachi/partnerships/data/referral-partners.csv`（type=str_host），回一句确认。
 - **Facebook / Instagram**：主页私信和评论由我们看（老板 10-21 授权管理）。公开回复、隐藏、私信都是代发，**每次先给老板稿子，他回"发"再做**；只隐藏不删除。私信里一定要拿到手机号，把人拉进短信。Marketplace 挂在老板个人号，Meta 没有接口，我拟稿、老板粘贴，**禁止自动化个人号**。操作见 `tools.md` §Facebook。
+- **Airbnb Services**（老板 11-16 定由我们回 Airbnb 消息；服务 11-16 已提交，Airbnb 说审核最长两周，通过后一周上线；上架内容见 `D:/desktop/RealHibachi/partnerships/13-airbnb-services-listing.md`）：
+  - **只在 Airbnb 消息页回，钱只在 Airbnb 收。** 跟 FB/IG 相反，不要电话、不拉进短信：订之前不发锁单链接、/quote 或任何网址，不留电话、邮箱，不报官网的价；订了以后也不在站外收任何钱。Airbnb 规定当前、以后和回头的订单都要在 Airbnb 上付，违规会下架、封号。老板 11-16 问过能不能在 Airbnb 只收定金、其余线下收：Airbnb 不允许。
+  - **Airbnb 上的价**：Hibachi dinner for your group 每位 $60；Filet and lobster hibachi dinner 每位 $80（两样蛋白是菲力和龙虾尾）。13 岁以上算一位，每单最低 $599，最多 60 位，服务 2 小时，每天 11 AM–10 PM 可订（最晚 8 点开场）。菜跟官网一样，5 岁以下免费。Airbnb 只能填整数，比官网多的 10 美分不解释。没有周中特价和折扣，**不收路费**（服务范围是 Palm Springs 开车 2 小时以内）。
+  - **加购**（5–12 岁小孩、桌椅、餐具、第三种蛋白）Airbnb 上没有单列，套餐说明里写了小孩另加。客人订之前问到，在消息页发 custom offer（带付款请求，Airbnb 官方做法）报一个总价，单价照官网取整：小孩 $30，桌椅 $10/位，餐具 $5/位，第三种蛋白 $10/位。**第一次发 custom offer 前先把总价给老板看。** 订完以后再加东西怎么收，Airbnb 没写清楚，先问老板。
+  - **取消、改期、改人数按 Airbnb 的规则**，不提我们的留卡、$99 和"当天只能加人"。
+  - 订了以后照常建订单、发备料单，订单备注写 `Airbnb Services`；沙漠出租房、沙滩、清酒这些规矩照 `answers.md`。
 - **西语**：客人写西语才切，数字口径一样，句式见 `templates.md`。
 
 ---
