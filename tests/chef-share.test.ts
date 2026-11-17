@@ -77,7 +77,7 @@ test("the 30-40 target applies to Blu, Gary and John only", () => {
     [],
     ...WEEK,
   )
-  assert.deepEqual(r.slices.map((s) => s.target), ["low", "ok", "high", null])
+  assert.deepEqual(r.slices.map((s) => [s.label, s.target]), [["John", "high"], ["Gary", "ok"], ["Blu", "low"], ["Eason", null]])
 })
 
 test("two weeks together scale the target and add up across the weeks", () => {
@@ -94,7 +94,7 @@ test("two weeks together scale the target and add up across the weeks", () => {
   assert.deepEqual(r.slices.map((s) => [s.label, s.heads, s.target]), [["Blu", 70, "ok"], ["John", 41, "low"]])
 })
 
-test("part-timers each get their own named slice, after the rotation, most heads first (owner 2026-11-14)", () => {
+test("every chef gets their own named slice, sorted by heads, most first (owner 2026-11-14, 2026-11-17)", () => {
   const r = weekShare(
     [
       { id: "n", name: "Niko", shifts: [shift("a", "2026-11-03", 10, 0, 1)] },
@@ -104,7 +104,7 @@ test("part-timers each get their own named slice, after the rotation, most heads
     [],
     ...WEEK,
   )
-  assert.deepEqual(r.slices.map((s) => s.label), ["Blu", "David", "Niko"])
-  assert.deepEqual(r.slices.map((s) => !!s.partTime), [false, true, true])
+  assert.deepEqual(r.slices.map((s) => s.label), ["David", "Niko", "Blu"])
+  assert.deepEqual(r.slices.map((s) => !!s.partTime), [true, true, false])
   assert.equal(r.slices.some((s) => s.label === "兼职师傅"), false)
 })

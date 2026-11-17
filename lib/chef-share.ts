@@ -112,8 +112,12 @@ export function weekShare(chefs: ShareChef[], orders: ShareOrder[], week: string
     if (s.key === OTHER_KEY || s.partTime) return ROTATION.length
     return ROTATION.indexOf(s.label)
   }
-  // 兼职的排在派单顺序后面，人多的在前。
-  const slices = [...byKey.values()].sort((a, b) => rank(a) - rank(b) || (a.partTime && b.partTime ? b.heads - a.heads : 0))
+  // 人数从大到小（老板 2026-11-17）；未派永远最后；一样多按派单顺序。颜色跟人走，不跟名次。
+  const slices = [...byKey.values()].sort((a, b) => {
+    const ua = a.key === UNASSIGNED_KEY ? 1 : 0
+    const ub = b.key === UNASSIGNED_KEY ? 1 : 0
+    return ua - ub || b.heads - a.heads || rank(a) - rank(b)
+  })
   const totalHeads = slices.reduce((n, s) => n + s.heads, 0)
   for (const s of slices) {
     s.ratio = totalHeads > 0 ? s.heads / totalHeads : 0
