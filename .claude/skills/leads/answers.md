@@ -115,6 +115,7 @@
     - Coachella Splash → `RH-SPLASH`，确认发 kurt@coachellasplash.com，抄送 stay@coachellasplash.com
     - 名单、条件，以及对方给了以后的房子地址，都在 `D:/desktop/RealHibachi/partnerships/data/referral-partners.csv`。推荐费由外联这条线按单算、老板付，desk 不跟物业谈条件。物业本人来信照 SKILL.md §7「度假屋物业的信」办。
 - **接食游戏和小游戏**（老板 10-30，D-1030-11）：**客人不问不提**，Heather 10-11 的投诉就是我们先说了 shrimp toss，到场没有，赔了 $50。问了照实答，扔西葫芦，不扔虾 `Yes, the chef does the catch game with your guests. We toss zucchini, so everyone can play whatever's on the menu.` **提过就要落单**：没锁单记 `[promised] <说了什么>`；锁单后写进订单备注；发备料单时在 note 里再跟师傅强调一次。
+- **过生日有没有特别的**（老板 11-18：「一般来说都有点onion volcano 唱生日歌，然后师傅都会对寿星多一些关注，重点互动玩游戏」）：客人问了才答，用 usually，不点名具体游戏：`Yes. Our chefs usually light up an onion volcano for the birthday, lead everyone in singing happy birthday, and give the birthday guest extra attention during the show with plenty of fun interaction.` 答了就记 `[promised]`，锁单后写进订单备注和备货备注（洋葱火山、带唱生日歌、多照顾寿星），发备料单时再跟师傅强调。
 - **酒**：`We bring sake for the adults, it's included.` 只在客人问饮料时说（或比价时当差异讲，见 `negotiation.md` §4）；带足 2 加仑，很少有派对喝得完（老板 10-21），不说 unlimited。喷酒枪客人提了可以认，不主动对带小孩的派对提。**公共场合（公共沙滩、公园）不带 sake**（老板 11-12，D-1112-02：「公共场合是不能喝sake的，所以提供不了」）：问到饮料照实说 `Sake isn't allowed on public beaches, so we can't bring it there.`（公园就把 beaches 换成 parks）；不写 alcohol / beer / wine 这类泛称，运营商会拦（SKILL「酒」）。私人沙滩、私人场地照常带。公共场合的单子，订单备注写 `No sake (public beach).`，备货备注写「公共沙滩，不带 sake」，师傅照单不带。
 - **沙滩派对**（老板 11-12，D-1112-02）：客人说在沙滩办，先问一句 `Is it a private beach, or a public one?`，答案记进线索备注，锁单后写进订单备注和备货备注。
   - **私人沙滩**、海边房子自己的院子和露台：和平常一样，sake 照带（还是只在问饮料时说）。
