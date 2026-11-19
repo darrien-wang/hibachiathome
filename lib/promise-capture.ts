@@ -9,6 +9,7 @@ import {
   type StaffingPromise,
 } from "@/lib/dispatch-plan"
 import { orderPaidHeads } from "@/lib/dispatch-plan-order"
+import { keepOutsourcedMark } from "@/lib/outsourced"
 
 // Promise capture (2026-10-18). What the desk tells a customer about staffing -
 // "2 chefs and 2 grills for 30", "each chef cooks from an open end", "we'll set
@@ -83,7 +84,8 @@ export async function patchOrderPlan(supabase: SupabaseClient, order: OrderLite,
   const plan = applyPromise(existing, promise, orderPaidHeads(order), at)
   // Same promise already on the order: nothing to write.
   if (existing?.promise?.sid && promise.sid && existing.promise.sid === promise.sid && existing.chefs === plan.chefs && existing.grills === plan.grills) return null
-  const { error } = await supabase.from("orders").update({ dispatch_plan: plan, required_staff_count: plan.chefs, updated_at: at }).eq("id", order.id)
+  // An outsourced party (lib/outsourced.ts) stays outsourced: the mark rides along with the new plan.
+  const { error } = await supabase.from("orders").update({ dispatch_plan: keepOutsourcedMark(order.dispatch_plan, plan), required_staff_count: plan.chefs, updated_at: at }).eq("id", order.id)
   if (error) throw new Error(`dispatch_plan update failed: ${error.message}`)
   await supabase.from("order_events").insert({
     order_id: order.id,

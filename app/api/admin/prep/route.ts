@@ -6,6 +6,7 @@ import { isBulkItem, stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
 import { setVegTotal, vegTotal } from "@/lib/prep-reservations"
 import type { SetupSelection } from "@/config/table-themes"
 import { coolerWork, zhTime } from "@/lib/cooler-sheet"
+import { isOutsourced } from "@/lib/outsourced"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -14,6 +15,8 @@ export const runtime = "nodejs"
 // 用料合计 + 按单明细。份量来自发票系统同一套配比（lib/prep-bom.ts 镜像），
 // 所以采购清单、厨师备料单、发票三者说同一个数。没填菜单的订单只按人头
 // 算主食蔬菜蛋，蛋白质会标"菜单未定"，绝不悄悄按零算。
+// 外包的单（老板 2026-11-18，lib/outsourced.ts）合作公司做，我们不买不备：照样列在 orders 里
+// （outsourced: true，份量全空、没有后勤备货单），不进合计、份数、场数、人数和"菜单未定"提醒。
 
 const PT = "America/Los_Angeles"
 const ptDay = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: PT })
@@ -31,6 +34,7 @@ type Row = {
   invoice_data: InvoiceLite | null
   setup_selection: SetupSelection | null
   prep_note?: string | null
+  dispatch_plan?: unknown
 }
 
 export async function GET(request: NextRequest) {
@@ -50,7 +54,7 @@ export async function GET(request: NextRequest) {
     .slice(0, 40)
   const byOrders = orderIds.length > 0
 
-  const sel = "id, order_no, customer_name, event_start, event_address, guest_adult_count, guest_child_count, order_status, created_at, invoice_data, setup_selection, prep_note"
+  const sel = "id, order_no, customer_name, event_start, event_address, guest_adult_count, guest_child_count, order_status, created_at, invoice_data, setup_selection, prep_note, dispatch_plan"
   const query = byOrders
     ? supabase.from("orders").select(sel).in("id", orderIds).order("event_start")
     : (() => {
@@ -81,13 +85,8 @@ export async function GET(request: NextRequest) {
   const PER_HEAD = ["fried_rice", "salad", "mixed_vege", "zucchini", "broccoli", "onion", "carrots", "ginger_sauce", "ginger_dressing", "garlic_butter", "eggs", "fried_rice_seasoning"]
   const orders = rows.map((r) => {
     const prep = orderPrep(r.invoice_data, r.created_at, r.guest_adult_count ?? 0, r.guest_child_count ?? 0, r.setup_selection)
-    const mine = prep.menuKnown ? prep.items : prep.items.filter((i) => i.group !== "protein")
-    if (prep.menuKnown) allItems.push(...prep.items)
-    else allItems.push(...prep.items.filter((i) => i.group !== "protein"))
-    if (prep.menuKnown) for (const ps of prep.proteinServings) addServ(ps.id, ps.adults, ps.kids)
-    for (const id of PER_HEAD) addServ(id, prep.adults, prep.kids)
     const t = new Date(r.event_start as string)
-    return {
+    const head = {
       id: r.id,
       dateLabel: (r.event_start ?? "").slice(5, 10),
       orderNo: r.order_no,
@@ -96,39 +95,53 @@ export async function GET(request: NextRequest) {
       city: (r.event_address ?? "").split(",").slice(-3, -2).join("").trim() || null,
       adults: prep.adults,
       kids: prep.kids,
+    }
+    // 外包：人数照写（看得出是哪一场），料一样不算。
+    if (isOutsourced(r)) return { ...head, menuKnown: true, proteinLine: "", extrasLine: "", outsourced: true, cooler: undefined }
+    const mine = prep.menuKnown ? prep.items : prep.items.filter((i) => i.group !== "protein")
+    if (prep.menuKnown) allItems.push(...prep.items)
+    else allItems.push(...prep.items.filter((i) => i.group !== "protein"))
+    if (prep.menuKnown) for (const ps of prep.proteinServings) addServ(ps.id, ps.adults, ps.kids)
+    for (const id of PER_HEAD) addServ(id, prep.adults, prep.kids)
+    return {
+      ...head,
       menuKnown: prep.menuKnown,
       proteinLine: prep.proteinServings.map((p) => `${p.label.split(" ")[0]} ×${p.servings}`).join(" · "),
       extrasLine: prep.items
         .filter((i) => i.group === "frozen" || i.group === "setup")
         .map((i) => `${i.label.split(" ")[0]}${i.unit === "份" ? ` ${i.qty}份` : ` ${i.qty}${i.unit}`}`)
         .join(" · "),
+      outsourced: false,
       // 后勤备货单：这一单要提前处理的量（切肉、切菜、切豆腐、煮饭），打印时几场合成一张。
       cooler: { time: zhTime(r.event_start as string), chef: null as string | null, owner: null as string | null, note: (r.prep_note ?? "").trim() || null, adults: prep.adults, kids: prep.kids, menuKnown: prep.menuKnown, work: coolerWork(prep.items, prep.menuKnown) },
     }
   })
+  // 我们自己备的（外包的不备）：同一批对象，下面写的厨师和负责人就写在 orders 里。
+  type Ours = (typeof orders)[number] & { cooler: NonNullable<(typeof orders)[number]["cooler"]> }
+  const ours = orders.filter((o): o is Ours => !o.outsourced && !!o.cooler)
   // 备货单上写哪位厨师来拿这一箱（不写客户）。
-  if (orders.length) {
-    const { data: asg } = await supabase.from("order_staff_assignments").select("order_id, staff_member_id, assignment_status").in("order_id", orders.map((o) => o.id)).in("assignment_status", ["tentative", "confirmed", "completed"]).neq("assignment_role", "assistant_chef")
+  if (ours.length) {
+    const { data: asg } = await supabase.from("order_staff_assignments").select("order_id, staff_member_id, assignment_status").in("order_id", ours.map((o) => o.id)).in("assignment_status", ["tentative", "confirmed", "completed"]).neq("assignment_role", "assistant_chef")
     const staffIds = Array.from(new Set((asg ?? []).map((a) => String(a.staff_member_id))))
     const { data: staffRows } = staffIds.length ? await supabase.from("staff_members").select("id, display_name, full_name").in("id", staffIds) : { data: [] as Array<{ id: string; display_name: string | null; full_name: string | null }> }
     const nameOf = new Map((staffRows ?? []).map((s) => [String(s.id), String(s.display_name ?? s.full_name ?? "").trim()]))
-    for (const o of orders) {
+    for (const o of ours) {
       const names = (asg ?? []).filter((a) => a.order_id === o.id).map((a) => nameOf.get(String(a.staff_member_id)) ?? "").filter(Boolean)
       o.cooler.chef = names.length ? names.join("、") : null
     }
     // 备货负责人：后勤里这一单勾给了谁（员工 → 结算页，staff_order_pay）。以后帮忙备货的人多了，
     // 纸上得写清楚这一箱是谁的（老板 2026-10-11）。没勾就留空，打出来手写。
-    const { data: marks } = await supabase.from("staff_order_pay").select("order_id, staff_member_id").in("order_id", orders.map((o) => o.id))
+    const { data: marks } = await supabase.from("staff_order_pay").select("order_id, staff_member_id").in("order_id", ours.map((o) => o.id))
     const ownerIds = Array.from(new Set((marks ?? []).map((m) => String(m.staff_member_id))))
     const { data: ownerRows } = ownerIds.length ? await supabase.from("staff_members").select("id, display_name, full_name").in("id", ownerIds) : { data: [] as Array<{ id: string; display_name: string | null; full_name: string | null }> }
     const ownerName = new Map((ownerRows ?? []).map((s) => [String(s.id), String(s.display_name ?? s.full_name ?? "").trim()]))
-    for (const o of orders) {
+    for (const o of ours) {
       const names = (marks ?? []).filter((m) => m.order_id === o.id).map((m) => ownerName.get(String(m.staff_member_id)) ?? "").filter(Boolean)
       o.cooler.owner = names.length ? names.join("、") : null
     }
   }
 
-  const unknown = orders.filter((o) => !o.menuKnown)
+  const unknown = ours.filter((o) => !o.menuKnown)
   // 装备库存（桌椅桌布餐具气罐）：跟需求放在一张清单里对着看。
   const { data: stock } = await supabase.from("equipment_stock").select("item_key, label, unit, qty, low_at, note, updated_at").order("item_key")
   // 食材库存：收据入库进来的，备料时拿来和需求对着看（"还差多少"）。
@@ -159,9 +172,11 @@ export async function GET(request: NextRequest) {
       date: byOrders ? null : date,
       byOrders,
       stores,
-      orderCount: orders.length,
+      // 场数、人数只数我们自己备的；外包的另外数（页面写"另有 N 场外包，不备货"）。
+      orderCount: ours.length,
+      outsourcedCount: orders.length - ours.length,
       servings,
-      guestTotal: orders.reduce((n, o) => n + o.adults + o.kids, 0),
+      guestTotal: ours.reduce((n, o) => n + o.adults + o.kids, 0),
       orders,
       // pack = 这一行的采购单位，页面用它把缺口翻成"买几瓶/几盒"。
       // 备货模式把"蔬菜合计"拆成四样各一行（按单看的订单页还是一行合计）

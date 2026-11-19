@@ -13,6 +13,7 @@ import { getWorkbenchSettings } from "@/lib/workbench-settings"
 import { orderPaidHeads, planForOrder } from "@/lib/dispatch-plan-order"
 import { staleHolders, teamNeedingSheet, type SheetLink } from "@/lib/chef-notify"
 import { wallToInstant } from "@/lib/first-response"
+import { outsourcedMark, partnerInvoiceUrl, splitOutsourced } from "@/lib/outsourced"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -135,6 +136,10 @@ export async function GET(request: NextRequest) {
     .order("event_start")
 
   const rows = ((data ?? []) as OrderRow[]).filter((r) => !/cancel|void|refund/i.test(r.order_status ?? ""))
+  // 外包的单（老板 2026-11-18，lib/outsourced.ts）合作公司去做：不定位、不进排班、不算师傅数，
+  // 单独列在 outsourced 里。stops / plans / drive 只有直营的单——份额页拖单和 desk dispatch 读的也是这几个。
+  // 名单和备料单链接两类都读：外包前拿过备料单的人，"通知改动"还要告诉他不用去。
+  const { direct, outsourced } = splitOutsourced(rows)
 
   type StopRow = {
     id: string
@@ -161,7 +166,7 @@ export async function GET(request: NextRequest) {
   }
   const resolver = makeResolver({ googleKey: process.env.GOOGLE_MAPS_API_KEY || null })
   const stops: StopRow[] = []
-  for (const r of rows) {
+  for (const r of direct) {
     const addr = (r.event_address ?? "").trim()
     const geo = addr ? await locate(supabase, resolver, addr) : null
     const t = r.event_start ? new Date(r.event_start) : null
@@ -318,6 +323,30 @@ export async function GET(request: NextRequest) {
     date,
     dayPlan,
     stops: stops.map((s) => ({ ...s, chefIds: chefIdsOf.get(s.id) ?? [], helperIds: helperIdsOf.get(s.id) ?? [], pending: pendingOf(s.id) })),
+    // 外包的单：开场先后，带给合作方的 invoice 链接（lib/outsourced.ts）。还挂着的名单（外包后又派上的不会有，
+    // 派单接口拦着）和欠的通知照样算。
+    outsourced: outsourced.map((r) => {
+      const t = r.event_start ? new Date(r.event_start) : null
+      const startMin = t ? t.getUTCHours() * 60 + t.getUTCMinutes() : 0
+      const mark = outsourcedMark(r.dispatch_plan)
+      return {
+        id: r.id,
+        orderNo: r.order_no,
+        name: (r.customer_name ?? "").trim() || "未留名",
+        address: (r.event_address ?? "").trim(),
+        time: clock(startMin),
+        startMin,
+        guests: orderPaidHeads(r),
+        headsNote: `${r.guest_adult_count ?? 0} 大${r.guest_child_count ? ` ${r.guest_child_count} 小` : ""}`,
+        outsourcedAt: mark?.at ?? null,
+        outsourcedBy: mark?.by ?? null,
+        note: mark?.note ?? null,
+        invoiceUrl: partnerInvoiceUrl(mark?.invoice_token),
+        chefIds: chefIdsOf.get(r.id) ?? [],
+        helperIds: helperIdsOf.get(r.id) ?? [],
+        pending: pendingOf(r.id),
+      }
+    }),
     chefs,
     // 定位不到的单要点名，不能默默从地图上消失——那样看起来就像那天没这一场。
     // 份额页拖单（老板 2026-11-14）要在浏览器里算"这位师傅接不接得上"：和上面排班同一张车程表，

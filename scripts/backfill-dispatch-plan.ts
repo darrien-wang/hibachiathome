@@ -20,6 +20,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 import { applyPromise, normalizeDispatchPlan, parseStaffingPromise, PROMISE_TOUCHPOINT_SOURCE, PROMISE_TOUCHPOINT_TYPE, rulePlan, type StaffingPromise } from "../lib/dispatch-plan"
 import { orderPaidHeads } from "../lib/dispatch-plan-order"
+import { keepOutsourcedMark } from "../lib/outsourced"
 
 const APPLY = process.argv.includes("--apply")
 const DAYS = 60
@@ -189,7 +190,8 @@ async function main() {
   let wroteOrders = 0
   for (const c of changes) {
     if (!c.write) continue
-    const { error } = await supabase.from("orders").update({ dispatch_plan: c.plan, required_staff_count: c.plan.chefs }).eq("id", c.order.id)
+    // An outsourced party (lib/outsourced.ts, 2026-11-18) keeps its mark: the plan is rewritten, the mark rides along.
+    const { error } = await supabase.from("orders").update({ dispatch_plan: keepOutsourcedMark(c.order.dispatch_plan, c.plan), required_staff_count: c.plan.chefs }).eq("id", c.order.id)
     if (error) {
       console.error("order update failed", c.order.order_no, error.message)
       continue

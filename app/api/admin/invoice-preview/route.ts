@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
+import { mintInvoiceView } from "@/lib/partner-invoice"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -14,8 +15,7 @@ export const dynamic = "force-dynamic"
 // 为什么不直接存一个长期链接：发票会改（改人数、改菜单、加 Special rate），
 // 长期链接会指向旧版本。每次现铸，看到的就永远是当前这版。
 // 要看「当时发给客户的那一版」用订单抽屉里的"已发送的发票（存档）"。
-
-const INVOICE_API = "https://invoice.realhibachi.com/api/invoice"
+// 铸法在 lib/partner-invoice.ts mintInvoiceView，外包单给合作方的长期链接（/p/invoice/<token>）也是它。
 
 export async function POST(request: NextRequest) {
   const actor = await resolveAdminActor(request)
@@ -39,28 +39,7 @@ export async function POST(request: NextRequest) {
     .eq("id", orderId)
     .maybeSingle()
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
-  if (!order?.invoice_data) {
-    return NextResponse.json({ ok: false, error: "这单还没有发票数据，先用专业表单开一张" }, { status: 404 })
-  }
-
-  try {
-    const res = await fetch(INVOICE_API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(order.invoice_data),
-      cache: "no-store",
-    })
-    const data = (await res.json()) as { pdfUrl?: string; errors?: string[]; error?: string }
-    if (!res.ok || !data.pdfUrl) {
-      return NextResponse.json(
-        { ok: false, error: data.errors?.join("; ") || data.error || "发票工具没接受这份数据" },
-        { status: 502 },
-      )
-    }
-    // view=confirmed 是客户看的那一版（只印点了的菜，不印内部勾选清单）。
-    const url = `${data.pdfUrl}&order_no=${encodeURIComponent(order.order_no ?? "")}&view=confirmed`
-    return NextResponse.json({ ok: true, url })
-  } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e) }, { status: 502 })
-  }
+  const minted = await mintInvoiceView({ order_no: (order?.order_no as string | null) ?? null, invoice_data: order?.invoice_data ?? null })
+  if (!minted.ok) return NextResponse.json({ ok: false, error: minted.error }, { status: minted.status })
+  return NextResponse.json({ ok: true, url: minted.url })
 }

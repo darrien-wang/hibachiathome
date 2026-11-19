@@ -30,6 +30,8 @@ import {
 } from "@/lib/chef-notify"
 import { ackNotices } from "@/lib/chef-notices"
 import { phoneDigits10 } from "@/lib/staff-phones"
+import { isOutsourced, keepOutsourcedMark, outsourcedMark, partnerInvoiceUrl, withOutsourcedMark, type OutsourcedMark } from "@/lib/outsourced"
+import { newInvoiceToken } from "@/lib/partner-invoice"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -46,6 +48,9 @@ export const runtime = "nodejs"
 // ack_text = 这位师傅发来的不用回了；confirm_notice = 师傅用别的方式确认了改动。
 // assign：这单的备料单已经发出去过，新名单里还没有的人当场自动发（老板 2026-11-12 D-1112-01
 // 「给师傅更新发也是直接发」），返回 sheets / sheetNotice 说发给了谁、谁没发到（没发到的进收件箱）。
+// set_outsourced（老板 2026-11-18，lib/outsourced.ts）：这单交给合作公司做 / 改回直营。标外包时这单
+// 派的人（师傅和帮手）全部撤下，和排班图上把名字点掉一样只改名单、不发短信；拿过备料单的人在日地图
+// 「通知改动」里通知。外包单不能再派人、发备料单（409 code outsourced），先改回直营。
 // send_sheet：2026-11-13 起每位师傅一场一条链接：他手里有能打开的，发票应用就在那条上更新、短信发同一个网址，
 // 一条都没有才新开（11-11 到 11-13 是每发一次换一条新的、旧的作废）。resent:true = 他原来就有一条（现在是原链接更新）。
 // Money is cents everywhere. Pay per shift = base + (share - head_from) × per_head,
@@ -698,7 +703,15 @@ const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f-]
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "")
 const int = (v: unknown, fallback = 0) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : fallback)
 const dateOrNull = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)
-const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup", "set_tables", "add_review", "delete_review", "settle_reviews", "settle_logistics", "mark_logistics", "set_logistics_owner", "set_prep_note", "set_dispatch_plan", "set_difficulty"])
+const OWNER_ACTIONS = new Set(["update_profile", "update_docs", "settle", "unsettle", "approve_receipt", "reject_receipt", "delete_file", "delete_perf", "set_cash", "archive", "delete_chef", "issue_assets", "return_asset", "delete_asset", "set_settlement", "card_lookup", "set_tables", "add_review", "delete_review", "settle_reviews", "settle_logistics", "mark_logistics", "set_logistics_owner", "set_prep_note", "set_dispatch_plan", "set_difficulty", "set_outsourced"])
+
+/** What an outsourced order answers to an assign / a prep-sheet send (409, code "outsourced"). */
+const OUTSOURCED_REFUSAL = "这单外包给合作公司了，我们不派师傅、不发备料单。要自己做，先在当天的派单地图里点「改回直营」。"
+/** The order is outsourced (lib/outsourced.ts). A read that fails counts as not: the guard must never stop our own parties. */
+async function orderOutsourced(supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>, orderId: string): Promise<boolean> {
+  const { data } = await supabase.from("orders").select("dispatch_plan").eq("id", orderId).maybeSingle()
+  return isOutsourced(data as { dispatch_plan?: unknown } | null)
+}
 
 export async function POST(request: NextRequest) {
   const actor = await resolveAdminActor(request)
@@ -832,6 +845,8 @@ export async function POST(request: NextRequest) {
         // done at read time when guest_share is null, so we clear it here).
         if (!isUuid(body.order_id)) return NextResponse.json({ error: "order_id required" }, { status: 400 })
         const want = (Array.isArray(body.staff_member_ids) ? body.staff_member_ids : []).filter(isUuid)
+        // 外包单不派人（撤人照常可以）。
+        if (want.length && (await orderOutsourced(supabase, body.order_id))) return NextResponse.json({ error: OUTSOURCED_REFUSAL, code: "outsourced" }, { status: 409 })
         const { data: allRows } = await supabase.from("order_staff_assignments").select("id, staff_member_id, assignment_status, assignment_role").eq("order_id", body.order_id).in("assignment_status", ACTIVE_ASSIGNMENT)
         // 帮手那几行不归这里管；但被派成师傅的人不能同时还是这单的帮手。
         const existing = (allRows ?? []).filter((a) => a.assignment_role !== HELPER_ROLE)
@@ -878,6 +893,7 @@ export async function POST(request: NextRequest) {
         // 这一单的帮手换成这几个人（可以是空）。帮手不计工钱、不分人头；已经是这单师傅的人跳过。
         if (!isUuid(body.order_id)) return NextResponse.json({ error: "order_id required" }, { status: 400 })
         const wantH = Array.from(new Set((Array.isArray(body.staff_member_ids) ? body.staff_member_ids : []).filter(isUuid)))
+        if (wantH.length && (await orderOutsourced(supabase, body.order_id))) return NextResponse.json({ error: OUTSOURCED_REFUSAL, code: "outsourced" }, { status: 409 })
         const { data: rowsH } = await supabase.from("order_staff_assignments").select("id, staff_member_id, assignment_role").eq("order_id", body.order_id).in("assignment_status", ACTIVE_ASSIGNMENT)
         const leads = new Set((rowsH ?? []).filter((a) => a.assignment_role !== HELPER_ROLE).map((a) => a.staff_member_id))
         const helpersNow = (rowsH ?? []).filter((a) => a.assignment_role === HELPER_ROLE)
@@ -1012,9 +1028,10 @@ export async function POST(request: NextRequest) {
         if (!can(actor, "sms")) return NextResponse.json({ error: "没有发短信的权限" }, { status: 403 })
         if (!isUuid(body.order_id)) return NextResponse.json({ error: "order_id required" }, { status: 400 })
         if (!isUuid(body.staff_member_id)) return NextResponse.json({ error: "staff_member_id required" }, { status: 400 })
-        const { data: ord } = await supabase.from("orders").select("order_no, invoice_data").eq("id", body.order_id).maybeSingle()
+        const { data: ord } = await supabase.from("orders").select("order_no, invoice_data, dispatch_plan").eq("id", body.order_id).maybeSingle()
         const orderNo = str((ord as { order_no?: string | null } | null)?.order_no, 30)
         if (!orderNo) return NextResponse.json({ error: "这单还没有订单号" }, { status: 400 })
+        if (isOutsourced(ord as { dispatch_plan?: unknown } | null)) return NextResponse.json({ error: OUTSOURCED_REFUSAL, code: "outsourced" }, { status: 409 })
         if (!(ord as { invoice_data?: unknown } | null)?.invoice_data) {
           return NextResponse.json({ error: "这单还没在发票工具里存过发票，先保存一次发票再发备料单。" }, { status: 400 })
         }
@@ -1524,7 +1541,9 @@ export async function POST(request: NextRequest) {
             set_at: now,
           }
         }
-        const { error } = await supabase.from("orders").update({ dispatch_plan: plan, required_staff_count: plan.chefs, updated_at: now }).eq("id", body.order_id)
+        // 外包标记（lib/outsourced.ts）跟着计划走，不能被这次重写抹掉。
+        const stored = keepOutsourcedMark((ordRow as { dispatch_plan?: unknown }).dispatch_plan, plan)
+        const { error } = await supabase.from("orders").update({ dispatch_plan: stored, required_staff_count: plan.chefs, updated_at: now }).eq("id", body.order_id)
         if (error) throw error
         await supabase.from("order_events").insert({
           order_id: body.order_id,
@@ -1538,6 +1557,65 @@ export async function POST(request: NextRequest) {
         const helpers = (asgRows ?? []).length - cooks
         const lint = lintOrderStaffing({ ...(ordRow as OrderForPlan), dispatch_plan: plan }, { cooks, helpers })
         return NextResponse.json({ ok: true, plan, lint })
+      }
+      case "set_outsourced": {
+        // 外包（老板 2026-11-18，lib/outsourced.ts）：这单卖给合作公司、他们去做。outsourced:true 标上，false 改回直营。
+        // 标上时这单派的人（师傅和帮手）全部撤下，和排班图上把名字点掉一样（assign quiet）：只改名单，谁都不发短信；
+        // 拿过备料单的人出现在日地图「通知改动」里，老板点了才通知。同时给合作方一个不过期的 invoice 链接
+        // （/p/invoice/<token>；再标一次 token 不换，发出去的链接一直能用）。改回直营 = 标记和链接一起删掉，
+        // 撤下的人不恢复，回日地图重新派。客人那边什么都不变。订单用 order_id，或者单号 order_no（RH-…）。
+        const byNo = typeof body.order_no === "string" && /^RH-\d{8}-\d{4}$/.test(body.order_no.trim()) ? body.order_no.trim() : null
+        if (!isUuid(body.order_id) && !byNo) return NextResponse.json({ error: "order_id（或 order_no RH-…）required" }, { status: 400 })
+        if (typeof body.outsourced !== "boolean") return NextResponse.json({ error: "outsourced: true（交给合作公司）或 false（改回直营）" }, { status: 400 })
+        const { data: ordO } = await supabase.from("orders").select("id, order_no, order_status, dispatch_plan").eq(isUuid(body.order_id) ? "id" : "order_no", isUuid(body.order_id) ? body.order_id : byNo).maybeSingle()
+        if (!ordO) return NextResponse.json({ error: "order not found" }, { status: 404 })
+        const oid = String((ordO as { id: string }).id)
+        const rawPlan = (ordO as { dispatch_plan?: unknown }).dispatch_plan
+        const was = outsourcedMark(rawPlan)
+        if (body.outsourced === false) {
+          if (!was) return NextResponse.json({ ok: true, orderId: oid, outsourced: false, already: true })
+          const { error } = await supabase.from("orders").update({ dispatch_plan: withOutsourcedMark(rawPlan, null), updated_at: now }).eq("id", oid)
+          if (error) throw error
+          await supabase.from("order_events").insert({ order_id: oid, actor: `workbench:${actor.alias}`, action: "outsourced_cleared", metadata: { was: { at: was.at, by: was.by } } })
+          return NextResponse.json({ ok: true, orderId: oid, outsourced: false })
+        }
+        if (/cancel|void|refund/i.test(String((ordO as { order_status?: string | null }).order_status ?? ""))) return NextResponse.json({ error: "这单已经取消了" }, { status: 409 })
+        const note = str(body.note, 200) || was?.note || null
+        const mark: OutsourcedMark = { at: was?.at ?? now, by: was?.by ?? `workbench:${actor.alias}`, invoice_token: was?.invoice_token ?? newInvoiceToken(), ...(note ? { note } : {}) }
+        const changed = !was || was.at !== mark.at || was.invoice_token !== mark.invoice_token || (was.note ?? null) !== (mark.note ?? null)
+        // 先标记再撤人：撤人失败了再点一次就行（这一步可以重复），反过来会留下一单没人也没标外包的。
+        if (changed) {
+          const { error } = await supabase.from("orders").update({ dispatch_plan: withOutsourcedMark(rawPlan, mark), updated_at: now }).eq("id", oid)
+          if (error) throw error
+        }
+        const { data: onIt } = await supabase.from("order_staff_assignments").select("id, staff_member_id, assignment_role").eq("order_id", oid).in("assignment_status", ACTIVE_ASSIGNMENT)
+        const off = (onIt ?? []) as Array<{ id: string; staff_member_id: string; assignment_role: string | null }>
+        if (off.length) {
+          const { error } = await supabase.from("order_staff_assignments").update({ assignment_status: "cancelled", updated_at: now }).in("id", off.map((a) => a.id))
+          if (error) throw error
+        }
+        const offIds = Array.from(new Set(off.map((a) => a.staff_member_id)))
+        const { data: offStaff } = offIds.length ? await supabase.from("staff_members").select("id, display_name, full_name").in("id", offIds) : { data: [] as Array<{ id: string; display_name: string | null; full_name: string | null }> }
+        const offName = new Map((offStaff ?? []).map((s) => [String(s.id), String(s.display_name ?? s.full_name ?? "").trim() || "?"]))
+        const removed = off.map((a) => ({ id: a.staff_member_id, name: offName.get(a.staff_member_id) ?? "?", role: a.assignment_role }))
+        if (changed || off.length) {
+          await supabase.from("order_events").insert({
+            order_id: oid,
+            actor: `workbench:${actor.alias}`,
+            action: "outsourced_set",
+            metadata: { ...(was ? { again: true } : {}), cancelled: off.length, removed, names: removed.map((r) => r.name), ...(mark.note ? { note: mark.note } : {}) },
+          })
+        }
+        return NextResponse.json({
+          ok: true,
+          orderId: oid,
+          outsourced: true,
+          ...(was ? { already: true } : {}),
+          mark: { at: mark.at, by: mark.by, ...(mark.note ? { note: mark.note } : {}) },
+          invoiceUrl: partnerInvoiceUrl(mark.invoice_token),
+          cancelled: off.length,
+          removed,
+        })
       }
       case "set_logistics_owner": {
         // 订单弹窗里选"这单谁备货"：一单一个负责人。换人 = 把别人没结的勾去掉、给新的人勾上；

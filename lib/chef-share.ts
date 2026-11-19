@@ -1,5 +1,8 @@
 // 师傅份额：每位师傅占这一周总人数的比例，点一块看是哪些单（老板 2026-10-30）。
 // 人数口径和工钱一样：大人 1、收费小孩 0.5、免费小孩 0，多位师傅同场平分。帮手不算。
+// 外包的单（合作公司做，lib/outsourced.ts）不是我们派的，不进"未派"，也不进这周的总人数。
+
+import { isOutsourced } from "@/lib/outsourced"
 
 /** 派单顺序，也是饼图的固定次序。颜色跟人走，换一周不变色。 */
 export const ROTATION = ["Blu", "Gary", "John", "Eason", "易非"]
@@ -58,6 +61,7 @@ type ShareOrder = {
   guest_adult_count: number | null
   guest_child_count: number | null
   order_status: string | null
+  dispatch_plan?: unknown
 }
 
 const KID_HEAD = 0.5
@@ -100,7 +104,7 @@ export function weekShare(chefs: ShareChef[], orders: ShareOrder[], week: string
   // 还没派师傅的单也在这周的总人数里，不然比例会虚高。
   for (const o of orders) {
     const date = (o.event_start ?? "").slice(0, 10)
-    if (!date || o.order_status === "cancelled" || seen.has(o.id) || !inWeek(date, week, weekEnd)) continue
+    if (!date || o.order_status === "cancelled" || seen.has(o.id) || !inWeek(date, week, weekEnd) || isOutsourced(o)) continue
     const heads = (o.guest_adult_count ?? 0) + KID_HEAD * (o.guest_child_count ?? 0)
     const slice = sliceOf(UNASSIGNED_KEY, "未派")
     slice.heads += heads
