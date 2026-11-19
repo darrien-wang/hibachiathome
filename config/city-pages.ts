@@ -2095,7 +2095,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in Santa Monica — beachside patios, rooftop decks, sunset dinner parties. $59.90/adult flat rate: 2 proteins, veggies, fried rice & salad.",
     intro: [
       "Sunset over the Pacific, a private chef at the grill, and nobody has to find parking on Ocean Avenue. Hibachi at home in Santa Monica means rooftop decks, courtyard patios, and North of Montana backyards turned into the city's most exclusive teppanyaki table.",
-      "Our chefs are pros at compact coastal setups — smaller patios, ocean breeze, and building rules included. We bring everything and leave the space spotless.",
+      "Our chefs are pros at compact coastal setups — smaller patios, ocean breeze, and building rules included. We bring the grill, propane and all the food, and leave the space spotless.",
     ],
     neighborhoods: [
       "North of Montana",

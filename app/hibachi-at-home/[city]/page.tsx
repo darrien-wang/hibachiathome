@@ -54,7 +54,7 @@ export async function generateMetadata({ params }: { params: Promise<{ city: str
 }
 
 const included = [
-  "Professional chef & mobile teppanyaki grill — we bring everything",
+  "Professional chef & mobile teppanyaki grill — we bring the grill, propane and all the food",
   "2 proteins per guest: chicken, steak, shrimp, salmon or tofu",
   "Garlic butter fried rice, vegetables & salad — refills free",
   "Onion volcano, egg toss, fire tricks, crowd games",

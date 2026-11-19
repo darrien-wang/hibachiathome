@@ -36,7 +36,7 @@ import { PlannerPill, type PlannerSession } from "./planner-live"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
 import { WEEKDAY_SPECIAL, WEEKDAY_SPECIAL_BLACKOUTS, normalizePricingTerms } from "@/config/pricing-rules"
 import { formatTaxRate } from "@/lib/sales-tax-rate"
-import { computeQuote, isSaturday, quoteDateLabel, quotePromiseNote, quoteSms, QUOTE_APPETIZERS, TABLES_HALF_PRICE, usd, type QuoteAppetizer } from "./quote-tool"
+import { computeQuote, quoteDateLabel, quotePromiseNote, quoteSms, QUOTE_APPETIZERS, usd, type QuoteAppetizer } from "./quote-tool"
 
 // 线索弹窗 · 客服：对话 + 承诺 + 操作. Everything a person does with a lead
 // before the deposit lands. Writes go through /api/admin/leads (PATCH) and
@@ -105,7 +105,6 @@ export function LeadDialog({
   const [appId, setAppId] = useState<"" | QuoteAppetizer>("")
   const [appTrays, setAppTrays] = useState("")
   // 桌椅换锁日期（D-1017-01）：周六最多半价 $5/人，周日到周五最多免费。
-  const [tables, setTables] = useState<"" | "half" | "free">("")
   const [freeUtensils, setFreeUtensils] = useState(false)
   // 协议价默认只有答应的东西（2026-11-03）；勾了才叠送前菜/周中价。
   const [stackPromos, setStackPromos] = useState(false)
@@ -193,12 +192,13 @@ export function LeadDialog({
         adultRate: Number(rate) || null,
         flatOff: Number(flatOff) || null,
         freeAppetizer: appId && Number(appTrays) > 0 ? { id: appId, trays: Math.floor(Number(appTrays)) } : null,
-        freeTables: tables === "free",
-        tablesRate: tables === "half" ? TABLES_HALF_PRICE : null,
+        // 桌椅不再当让价（老板 2026-11-19，D-1119-01「不再拿送桌椅当让价，最多送餐具」）：报价工具里只剩送餐具。
+        freeTables: false,
+        tablesRate: null,
         freeUtensils,
         stackPromos,
       }),
-    [adults, kids, weekday, qDate, lead.event_hint, travel, rate, flatOff, appId, appTrays, tables, freeUtensils, stackPromos],
+    [adults, kids, weekday, qDate, lead.event_hint, travel, rate, flatOff, appId, appTrays, freeUtensils, stackPromos],
   )
   const qLabel = quoteDateLabel(qDate || lead.event_hint, qTime)
   const linked = useMemo(() => ordersForLead(lead, orders), [lead, orders])
@@ -603,7 +603,7 @@ export function LeadDialog({
               ))}
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-              <input className="input" placeholder="记一条承诺，如：桌椅半价，10/15 前订" value={promiseDraft} onChange={(e) => setPromiseDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && promiseDraft.trim() && void patch({ action: "add_note", note: `${PROMISE_PREFIX} ${promiseDraft.trim()}` }, "promise").then(() => setPromiseDraft(""))} />
+              <input className="input" placeholder="记一条承诺，如：送餐具，10/15 前订" value={promiseDraft} onChange={(e) => setPromiseDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && promiseDraft.trim() && void patch({ action: "add_note", note: `${PROMISE_PREFIX} ${promiseDraft.trim()}` }, "promise").then(() => setPromiseDraft(""))} />
               <button type="button" className="btn btn-secondary" disabled={!promiseDraft.trim() || !!busy} onClick={() => void patch({ action: "add_note", note: `${PROMISE_PREFIX} ${promiseDraft.trim()}` }, "promise").then(() => setPromiseDraft(""))}>
                 记下
               </button>
@@ -649,11 +649,6 @@ export function LeadDialog({
               {appId ? (
                 <input className="input" style={{ width: 80 }} type="number" min={1} value={appTrays} onChange={(e) => setAppTrays(e.target.value)} placeholder="盘数" aria-label="盘数" />
               ) : null}
-              <select className="input" style={{ width: "auto" }} value={tables} onChange={(e) => setTables(e.target.value as "" | "half" | "free")} aria-label="桌椅">
-                <option value="">桌椅不送</option>
-                <option value="half">桌椅半价 ${TABLES_HALF_PRICE}/人</option>
-                <option value="free">桌椅免费</option>
-              </select>
               <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <input type="checkbox" checked={freeUtensils} onChange={(e) => setFreeUtensils(e.target.checked)} />
                 餐具
@@ -686,7 +681,7 @@ export function LeadDialog({
                 <div style={{ color: quote.belowFloor ? "var(--color-danger-600, #b91c1c)" : undefined, fontWeight: quote.belowFloor ? 600 : undefined }}>
                   人均实收 ${quote.effectivePerHead.toFixed(2)}（底线 {quote.floorRate < (weekday ? 45 : 50) ? "40 人以上" : weekday ? "周一–四" : "周五–日"} ${quote.floorRate}
                   {quote.kids ? "，小孩算半个" : ""}
-                  {tables === "free" ? "，桌椅按 $4/人计入" : ""}）
+                  ）
                   {quote.belowFloor ? (
                     <label style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 8 }}>
                       <input type="checkbox" checked={floorOk} onChange={(e) => setFloorOk(e.target.checked)} />
@@ -704,9 +699,6 @@ export function LeadDialog({
                 <div>
                   桌椅 {quote.adults + quote.kids} 位 × ${quote.tablesRate}（原 $10）= {usd(quote.tablesCharge)}，进总价（和发票一样算在 $599 起订之内）
                 </div>
-              ) : null}
-              {tables === "free" && isSaturday(qDate || lead.event_hint) ? (
-                <div style={{ color: "var(--color-warning-700, #b45309)" }}>桌椅只在客人比价或超预算时让：周五–日最多半价，周一–四最多免费，节假日不给（D-1029-02）</div>
               ) : null}
               {quote.freebiesZh.length ? <div>送：{quote.freebiesZh.join("、")}，共值 ${quote.freeValue}，不进总价</div> : null}
               {appId ? <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>前菜不签进押金链接，付押金后发票里按盘数加上（发出后记在承诺里）</div> : null}
