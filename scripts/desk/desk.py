@@ -3027,6 +3027,7 @@ def cmd_order(a):
             data["promotions"] = [x for x in (data.get("promotions") or []) if not str(x.get("id", "")).startswith("deal_")]
             changes.append(f"customDeal: {data.get('customDeal')} -> None")
             data["customDeal"] = None
+        note_only = False
         if a.deal_free or a.deal_rate:
             # A setup item promised free (tables for locking the date, skill 8)
             # or at a set price (Saturday's half-price tables, D-1017-01) is
@@ -3062,6 +3063,21 @@ def cmd_order(a):
                 if _setup_units(data, x) == 0:
                     print(f"   ⚠ the order bills no {x} yet - nothing to take off; set it on the rows first"
                           f" (before there are rows: --add-extra {x}=<guests> in the same command)")
+        elif a.deal_note is not None and data.get("customDeal"):
+            # The note on its own (2026-11-19): it prints on the invoice after "Special discount", so
+            # an internal one has to come off without re-signing the deal - Michele's invoice read
+            # "Special discount (... (owner D-1009-02))". An empty --deal-note takes the note off.
+            deal = dict(data["customDeal"])
+            was_note = deal.get("note")
+            note = a.deal_note.strip()[:80]
+            if note:
+                deal["note"] = note
+            else:
+                deal.pop("note", None)
+            if deal.get("note") != was_note:
+                changes.append(f"customDeal.note: {was_note!r} -> {deal.get('note')!r}")
+                data["customDeal"] = deal
+                note_only = True
         # "Can I add one more?" the day of. order set used to have no answer for
         # a detailed-mode party: --proteins refuses one (and would wipe every
         # guest's picks), so the only route was the planner. The new rows copy
@@ -3139,7 +3155,7 @@ def cmd_order(a):
         # --deal-rate land here too, after any rows the command changed.
         recount = bool(a.headcount or a.guests_file or a.add_adult or a.add_child or a.remove_guest or data.get("mode") != prefill.get("mode")
                        or any(x.split("=")[0] in SETUP_PRICES for x in (a.add_extra or [])))
-        if a.deal_free or a.deal_rate or (recount and data.get("customDeal")):
+        if a.deal_free or a.deal_rate or note_only or (recount and data.get("customDeal")):
             promos = data.get("promotions") or []
             new = _deal_lines(data)
             for pid in DEAL_PROMO_IDS:
