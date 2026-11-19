@@ -17,7 +17,9 @@
                                    sentence that does not answer the question they just asked
   python scripts/desk/desk.py voice-log [--date YYYY-MM-DD]   what the voice check did on this machine that day: stops,
                                    how long each rewrite took, notes, --voice-ok (the daily report reads it)
-  python scripts/desk/desk.py email  <to> --subject s [--body-file f] [--lead id] [--cc a b]   from support@, logged on the lead
+  python scripts/desk/desk.py email  <to> --subject s [--body-file f] [--lead id] [--cc a b] [--seen <when>]   from support@, logged on the lead
+                                   --seen = the customer's last email you read (desk card prints it). With --lead, an email
+                                   of theirs after it - with no --seen, one from the last 90 s - stops the send
   python scripts/desk/desk.py note   <leadId> [note] [--body-file f]
   python scripts/desk/desk.py hold   <leadId> <days>       0 clears
   python scripts/desk/desk.py status <leadId> <new|qualified|won|lost|disqualified>
@@ -84,7 +86,7 @@ import time
 import urllib.parse
 from zoneinfo import ZoneInfo
 
-from _api import INVOICE, ROOT, ApiError, _call, _supabase, dump, e164, invoice_post, is_uuid, pt, read_text_arg, site_get, site_post
+from _api import INVOICE, ROOT, ApiError, _call, _supabase, dump, e164, invoice_post, is_uuid, iso_datetime, pt, read_text_arg, site_get, site_post
 import order_review
 import party_check
 
@@ -511,6 +513,9 @@ def render_card(c: dict) -> None:
     for e in c.get("emails") or []:
         who = "客" if e.get("direction") == "inbound" else "我"
         print(f"   ✉ {who} {pt(e.get('at'))}  {e.get('subject') or '(no subject)'} — {(e.get('snippet') or '')[:120]}")
+    mail_seen = email_seen_line(c.get("emails") or [])
+    if mail_seen:
+        print(mail_seen)
     # Pre-party contact flags (lead-watch): the customer has not answered the confirmation text.
     for al in c.get("alerts") or []:
         print(f"   ⚑ {al.get('title') or ''} — {al.get('body') or ''}")
@@ -805,7 +810,7 @@ def _now() -> _dt.datetime:
 
 def _at(iso: str | None) -> _dt.datetime | None:
     try:
-        t = _dt.datetime.fromisoformat((iso or "").replace("Z", "+00:00"))
+        t = iso_datetime(iso or "")
     except ValueError:
         return None
     return t if t.tzinfo else t.replace(tzinfo=_dt.timezone.utc)
@@ -936,6 +941,74 @@ def check_unread(phone: str, seen_arg: str | None, forced: bool, msgs: list[dict
     if forced:
         print("      --force 只放行服务器的刹车，不跳过这一道")
     sys.exit(2)
+
+
+# The same stop for `desk email` (2026-11-19). Sylvia Cantu's street address
+# was sent at 11:01:05; our "the one thing I still need is the street address"
+# went at 11:01:56, written from a card read a minute earlier, and she sent the
+# address a second time. An email has no Twilio thread to re-read: the
+# customer's emails reach the lead through the Gmail script, once a minute, so
+# hers was filed at 11:02:08 - after ours had gone. Two steps, then, and only
+# with --lead (the emails are the card's `emails`, the rows the card prints;
+# only the customer's count):
+#   1. what is filed already - an email after the one --seen names, or with no
+#      --seen one from the last 90 s - stops the send, as for a text;
+#   2. while the exchange is live (their last email under 10 minutes old), wait
+#      one filing round and read the card again: an email that was not there
+#      before stops the send.
+EMAIL_LIVE_S = 600
+EMAIL_FILING_WAIT_S = 70
+_sleep = time.sleep  # selfcheck swaps it
+
+
+def inbound_emails(emails: list[dict]) -> list[dict]:
+    """The customer's emails on a card, oldest first (rows with no readable time are left out)."""
+    return sorted((e for e in emails if e.get("direction") == "inbound" and _at(e.get("at"))), key=lambda e: _at(e["at"]))
+
+
+def email_seen_line(emails: list[dict]) -> str | None:
+    """The line under a card's emails that hands an email reply its --seen: the customer's newest email."""
+    theirs = inbound_emails(emails)
+    if not theirs:
+        return None
+    return f"   回邮件带 --seen {seen_value(theirs[-1]['at'])}（客人最后一封 {pt(theirs[-1]['at'], True)}）"
+
+
+def _stop_unread_email(to: str, head: str, hits: list[dict]) -> None:
+    print(f"UNREAD {to}  {head}：")
+    for e in hits[-6:]:
+        print(f"   ✉ 客 {pt(e.get('at'), True)}  {e.get('subject') or '(no subject)'} — {(e.get('snippet') or '')[:200]}")
+    print(f"      没发。读完再写，稿子要接上客人最后一封；改好再发，带 --seen {seen_value(hits[-1]['at'])}")
+    sys.exit(2)
+
+
+def check_unread_email(to: str, seen_arg: str | None, emails: list[dict], reread=None) -> None:
+    """Stop the email (exit 2, nothing sent) over a customer email the sender has not read.
+    `reread` fetches the lead's emails again (step 2); None skips the wait."""
+    now = _now()
+    seen = parse_seen(seen_arg, now) if seen_arg else None
+    why, hits = unread_inbound(emails, seen, now)
+    if hits:
+        age = max(0, round((now - _at(hits[-1]["at"])).total_seconds()))
+        if why == "fresh":
+            head = f"客人 {age} 秒前刚来了一封邮件，你没读过"
+        elif why == "newer":
+            head = f"你读到的是 --seen {seen_arg}，客人之后又来了 {len(hits)} 封"
+        elif why == "unnamed":
+            head = f"--seen {seen_arg} 对不上客人的任何一封邮件（要写你读到的客人最后一封），最后一封是"
+        else:
+            head = f"--seen {seen_arg} 只到分钟，那封 {age} 秒前才到：分钟分不清读过的和刚到的，要写到秒"
+        _stop_unread_email(to, head, hits)
+    theirs = inbound_emails(emails)
+    if reread is None or not theirs or (now - _at(theirs[-1]["at"])).total_seconds() >= EMAIL_LIVE_S:
+        return
+    had = {e.get("at") for e in theirs}
+    print(f"      客人 {max(1, round((now - _at(theirs[-1]['at'])).total_seconds() / 60))} 分钟前来过邮件，可能还有一封在路上："
+          f"收信一分钟归一次档，等 {EMAIL_FILING_WAIT_S} 秒再查一遍…", flush=True)
+    _sleep(EMAIL_FILING_WAIT_S)
+    landed = [e for e in inbound_emails(reread()) if e.get("at") not in had]
+    if landed:
+        _stop_unread_email(to, f"等的这一会儿客人又来了 {len(landed)} 封", landed)
 
 
 # ---------------------------------------------------------------------------
@@ -1307,11 +1380,13 @@ def cmd_email(a):
     text = read_text_arg(a.body, a.body_file)
     if not text.strip():
         raise SystemExit("empty email - pass the text or --body-file")
+    if a.seen:
+        parse_seen(a.seen, _now())  # a --seen desk cannot read is refused before anything is read
+    card = (site_get("/api/admin/desk", {"lead": a.lead}).get("cards") or [{}])[0] if a.lead else {}
     if a.lead and not a.any_address:
         # Never an address typed from memory: 10-14 a guessed jackson.rogow@gmail.com got
         # Jackson's booking link, and his address is me@jacksonrogow.com. Allowed: the
         # lead's own email and the addresses the customer has written to us from.
-        card = (site_get("/api/admin/desk", {"lead": a.lead}).get("cards") or [{}])[0]
         found = re.findall(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", " ".join(
             [str((card.get("lead") or {}).get("email") or "")]
             + [str(e.get("from") or "") for e in (card.get("emails") or []) if e.get("direction") == "inbound"]))
@@ -1319,6 +1394,11 @@ def cmd_email(a):
         if a.to.strip().lower() not in known:
             raise SystemExit(f"not sent: {a.to} is not this customer's address (on file: {', '.join(sorted(known)) or 'none'}). "
                              "Use one of those, or --any-address if the customer gave you a new one.")
+    if a.lead:
+        check_unread_email(a.to, a.seen, card.get("emails") or [],
+                           reread=lambda: (site_get("/api/admin/desk", {"lead": a.lead}).get("cards") or [{}])[0].get("emails") or [])
+    elif a.seen:
+        raise SystemExit("--seen needs --lead: the customer's emails are read from the lead's card")
     payload = {"to": a.to, "subject": a.subject, "text": text}
     if a.lead:
         payload["leadId"] = a.lead
@@ -3517,7 +3597,11 @@ def main(argv=None):
     p = sp.add_parser("email"); p.add_argument("to"); p.add_argument("body", nargs="?"); p.add_argument("--subject", required=True)
     p.add_argument("--body-file"); p.add_argument("--lead"); p.add_argument("--cc", nargs="*")
     p.add_argument("--attach", nargs="+", action="extend", metavar="FILE", help="pdf/png/jpg files to attach (up to 3, about 3 MB in all)")
-    p.add_argument("--any-address", action="store_true", help="send to an address the lead does not have on file (a new one the customer gave)"); p.set_defaults(fn=cmd_email)
+    p.add_argument("--any-address", action="store_true", help="send to an address the lead does not have on file (a new one the customer gave)")
+    p.add_argument("--seen", metavar="WHEN", help="the customer's last email you read: the value desk card prints under the emails "
+                   "(2026-11-19T11:01:05-08:00). With --lead, an email of theirs after it - with no --seen, one from the last 90 s - "
+                   "stops the send, printed, exit 2")
+    p.set_defaults(fn=cmd_email)
     # Sales daily / weekly report, numbers half (docs/销售日志/README.md): read-only.
     def _report(a):
         import datetime as _dt

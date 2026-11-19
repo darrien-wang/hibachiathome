@@ -668,6 +668,107 @@ def _send_checks() -> None:
           detail=f"{start} {end} {exact}")
 
 
+# ------------------------------------------- desk email over an unread email (2026-11-19) --
+# Sylvia Cantu, 11-19: she confirmed the count at 10:59:54 and sent her street address at 11:01:05. Our "the one
+# thing I still need is the street address" went at 11:01:56 - and her email was only filed at 11:02:08, because
+# the customer's emails reach the lead once a minute. So `desk email` stops over what is filed, and in a live
+# exchange waits one filing round and reads again.
+MAIL_TO = "selfcheck@example.com"
+
+
+def mail(direction: str, when: str, snippet: str, at: str | None = None) -> dict:
+    """One email as the desk card lists it (`when` on the Pacific clock; `at` overrides the stamp as the API would write it)."""
+    return {"direction": direction, "at": at or wall(when).strftime("%Y-%m-%dT%H:%M:%S+00:00"), "subject": "Re: your date is locked",
+            "snippet": snippet, "from": MAIL_TO if direction == "inbound" else "support@realhibachi.com"}
+
+
+SYLVIA = [
+    mail("inbound", "2026-11-19 10:56:34", "Need to change to 30 people"),
+    mail("outbound", "2026-11-19 10:58:47", "Your party is now set for 30 guests. Could you also send me the street address?"),
+    mail("inbound", "2026-11-19 10:59:54", "Yes is right."),
+]
+SYLVIA_ADDRESS = mail("inbound", "2026-11-19 11:01:05", "83191 Long Cove Dr Indio, Ca 92203")
+
+
+class MailRun:
+    """One `desk email --lead` at the second `at`: `cards` are the lead's emails as each read of the card finds them
+    (the last one repeats). Its output, exit, what it posted (None = nothing sent), how long it waited."""
+
+    def __init__(self, cards: list[list[dict]], *args: str, at: str):
+        self.cards, self.card_reads, self.posted, self.slept = cards, 0, None, []
+        kept = desk.site_get, desk.site_post, desk._now, desk._sleep
+        desk.site_get, desk.site_post, desk._now, desk._sleep = self.site_get, self.site_post, lambda: wall(at), self.slept.append
+        buf = io.StringIO()
+        self.exit = None
+        try:
+            with contextlib.redirect_stdout(buf):
+                try:
+                    desk.main(["email", MAIL_TO, "You're very welcome.", "--subject", "Re: your date is locked", "--lead", LEAD_ID, *args])
+                except SystemExit as e:
+                    self.exit = e.code
+        finally:
+            desk.site_get, desk.site_post, desk._now, desk._sleep = kept
+        self.out = buf.getvalue()
+
+    def site_get(self, path, params=None, admin=True, timeout=90):
+        if path != "/api/admin/desk":
+            raise RuntimeError(f"selfcheck: unexpected site read {path} {params}")
+        emails = self.cards[min(self.card_reads, len(self.cards) - 1)]
+        self.card_reads += 1
+        return {"ok": True, "cards": [{"lead": {"id": LEAD_ID, "email": MAIL_TO}, "emails": copy.deepcopy(emails)}]}
+
+    def site_post(self, path, payload, method="POST", timeout=90):
+        if path != "/api/admin/send-followup":
+            raise RuntimeError(f"selfcheck: unexpected site write {path}")
+        self.posted = payload
+        return {"ok": True, "id": "selfcheck", "provider": "resend", "cc": [], "attachments": []}
+
+    @property
+    def stopped(self) -> bool:
+        return self.exit == 2 and self.posted is None and "UNREAD" in self.out
+
+    @property
+    def sent(self) -> bool:
+        return self.exit is None and self.posted is not None and "OK    emailed" in self.out
+
+    def has(self, *parts: str) -> bool:
+        return all(p in self.out for p in parts)
+
+
+def email_checks() -> None:
+    seen_count = ("--seen", "2026-11-19T10:59:54-08:00")
+    r = MailRun([SYLVIA, SYLVIA + [SYLVIA_ADDRESS]], *seen_count, at="2026-11-19 11:01:56")
+    check("email: Sylvia's address was sent 51 s before our 'still need the address' and not filed yet: waits one filing round, reads again, stopped (exit 2, nothing sent)",
+          r.stopped and r.slept == [desk.EMAIL_FILING_WAIT_S] and r.card_reads == 2
+          and r.has("等的这一会儿客人又来了 1 封", "11:01:05", "83191 Long Cove Dr", "--seen 2026-11-19T11:01:05-08:00"), r)
+    r = MailRun([SYLVIA], *seen_count, at="2026-11-19 11:01:56")
+    check("  nothing new after the wait: sent", r.sent and r.slept == [desk.EMAIL_FILING_WAIT_S] and r.posted.get("leadId") == LEAD_ID, r)
+    r = MailRun([SYLVIA + [SYLVIA_ADDRESS]], *seen_count, at="2026-11-19 11:02:30")
+    check("  her address already filed, --seen names the email before it: stopped at once, no wait",
+          r.stopped and r.slept == [] and r.has("之后又来了 1 封", "83191 Long Cove Dr"), r)
+    r = MailRun([SYLVIA + [SYLVIA_ADDRESS]], at="2026-11-19 11:01:40")
+    check("  no --seen, her email 35 s old: stopped as fresh", r.stopped and r.slept == [] and r.has("35 秒前刚来了一封邮件"), r)
+    r = MailRun([SYLVIA], "--seen", "2026-11-19T10:59:54-08:00", at="2026-11-19 14:00:00")
+    check("  three hours on, the exchange is not live: sent with no wait", r.sent and r.slept == [], r)
+    r = MailRun([SYLVIA], at="2026-11-22 09:00:00")
+    check("  no --seen on a quiet thread: sent with no wait", r.sent and r.slept == [], r)
+    r = MailRun([SYLVIA], "--seen", "2026-11-19T11:30:00-08:00", at="2026-11-19 14:00:00")
+    check("  a --seen that names none of her emails: stopped, her last one printed", r.stopped and r.has("对不上客人的任何一封邮件", "Yes is right."), r)
+    # Postgres trims trailing zeros off the fraction; Python 3.10 reads only 0, 3 or 6 digits.
+    trimmed = mail("inbound", "", "Thank you!", at="2026-11-19T19:07:07.76433+00:00")
+    r = MailRun([SYLVIA + [trimmed]], *seen_count, at="2026-11-19 11:20:00")
+    check("  an email stamped .76433 (five fraction digits) still counts as hers: stopped", r.stopped and r.has("11:07:07", "Thank you!"), r)
+    check("  pt / _at read a trimmed fraction", desk.pt("2026-11-19T19:06:02.7+00:00", True) == "11-19 11:06:02"
+          and desk._at("2026-11-19T19:06:02.76433+00:00") == wall("2026-11-19 11:06:02") + datetime.timedelta(microseconds=764330))
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        desk.render_card({"phone": PROM_PHONE, "emails": SYLVIA + [SYLVIA_ADDRESS]})
+    check("card: the --seen for an email reply under the emails, to the second of her last one",
+          "   回邮件带 --seen 2026-11-19T11:01:05-08:00（客人最后一封 11-19 11:01:05）" in buf.getvalue(), detail=buf.getvalue())
+    r = MailRun([SYLVIA], "--seen", "nonsense", at="2026-11-19 11:01:56")
+    check("  a --seen desk cannot read is refused before anything is read", r.exit not in (None, 0) and r.posted is None and r.card_reads == 0, r)
+
+
 # ------------------------------------------------- order flow (2026-11-11) --
 # desk order cancel, the chef cards of desk next, desk ack / chef-confirm on a
 # chef's number, and the party-page / invoice lines of desk scan's bucket G
@@ -1906,6 +2007,7 @@ def main() -> int:
 
     quoted_price_checks()
     send_checks()
+    email_checks()
     order_flow_checks()
     party_check_checks()
     chef_text_checks()

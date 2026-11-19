@@ -16,7 +16,7 @@ python scripts/desk/desk.py price  --adults 7 --kids 1 --zip 92201 --date 2026-1
 python scripts/desk/desk.py travel "<地址或 zip>"         # 里程和路费
 python scripts/desk/desk.py send   <手机> --lead <id> --body-file draft.txt --seen <时间> [--force] [--voice-ok]   # 发短信；会清掉挂起，先发后挂
 python scripts/desk/desk.py send   <手机> --lead <id> --body "..." --media photo.jpg --seen <时间>     # 发图（只用于回复）
-python scripts/desk/desk.py email  <to> --lead <id> --subject "..." --body-file e.txt [--cc x] [--attach W-9.pdf]
+python scripts/desk/desk.py email  <to> --lead <id> --subject "..." --body-file e.txt --seen <时间> [--cc x] [--attach W-9.pdf]   # 回邮件带 --seen：卡片邮件下面「回邮件带 --seen …」那一行（客人最后一封，到秒）。客人在它之后又来了邮件就不发、打出来；客人 10 分钟内来过邮件的，发之前先等 70 秒再查一遍（客人的邮件一分钟才归一次档，11-19 Sylvia 的地址就是这样被我们又要了一遍）
 python scripts/desk/desk.py note   <leadId> "[SOP:f_one] ..."     # 备注标签见 SKILL §3 ⑥
 python scripts/desk/desk.py hold   <leadId> <天数>                 # 等客户回；0 撤销
 python scripts/desk/desk.py status <leadId> won|lost|disqualified|qualified|new

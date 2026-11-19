@@ -128,17 +128,31 @@ def dump(obj) -> str:
     return json.dumps(obj, ensure_ascii=False, indent=1)
 
 
+def iso_datetime(iso: str):
+    """An API / Postgres timestamp as a datetime (ValueError when it is not one).
+    Postgres trims trailing zeros ("19:06:02.76433+00:00") and Python 3.10 reads
+    only 0, 3 or 6 fraction digits: 11-19 an email filed at .76433 printed as raw
+    UTC on the card, and would not have counted as the customer's newest."""
+    from datetime import datetime
+
+    s = (iso or "").strip().replace("Z", "+00:00")
+    m = re.match(r"^(.*?[T ]\d\d:\d\d:\d\d)\.(\d+)(.*)$", s)
+    if m:
+        s = f"{m.group(1)}.{m.group(2)[:6].ljust(6, '0')}{m.group(3)}"
+    return datetime.fromisoformat(s)
+
+
 def pt(iso: str | None, seconds: bool = False) -> str:
     """ISO timestamp -> 'MM-DD HH:MM PT' (customers and the desk share the
     Pacific clock; the API speaks UTC). `seconds` adds :SS - two texts can
     share a minute."""
     if not iso:
         return "-"
-    from datetime import datetime, timezone
+    from datetime import timezone
     from zoneinfo import ZoneInfo
 
     try:
-        t = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+        t = iso_datetime(iso)
     except ValueError:
         return iso[:16]
     if t.tzinfo is None:
