@@ -77,6 +77,7 @@ python scripts/desk/desk.py order set  <单号> --headcount 11/1[/1] --dry      
 python scripts/desk/desk.py order set  <单号> --retier --dry                         # 老单的人数折扣那行按现在的人数重排（自查报 party size 不对时用）
 python scripts/desk/desk.py order set  <单号> --guests-file rows.json [--replace-guests]   # 逐人名单 [{name, child?, little?, proteins:[...], allergy?, note?}]，每人 ≥2 种（little 的 3–4 岁可以不写）
 python scripts/desk/desk.py order set  <单号> --add-extra tables_chairs=27 | edamame=1 | side_shrimp=15   # 买的加购 / 桌椅按人头 / 整桌蛋白份
+python scripts/desk/desk.py order set  <单号> --add-extra canopy=6                    # 替客人租的 10×10 帐篷，$20 一顶，按顶（老板 11-19）；装车清单列出来，告诉老板去订
 python scripts/desk/desk.py order set  <单号> --free-item edamame=2                    # 送的前菜
 python scripts/desk/desk.py order set  <单号> --free-appetizer spring_rolls --dry      # 客人挑的免费前菜（押金页默认 gyoza）
 python scripts/desk/desk.py order set  <单号> --prep-note-file F [--dry]       # 备货备注（备货清单/备货单上这一单那行，300 字内，空文件=清空）：要师傅带的、要注意的写这里或订单备注（D-1112-01，短信不算数）

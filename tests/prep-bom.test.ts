@@ -154,3 +154,12 @@ test("prep · little kids (3-4) picked steak: no protein from 11-13 on, a kid's 
   assert.equal(steakOz("2026-11-12"), 9)
   assert.equal(steakOz("2026-11-13"), 6.8)
 })
+
+// Canopies rented for the customer (owner 2026-11-19: our rental partner rents us 10x10s at $20 each).
+test("setup · canopies on the order reach the load list by count, and stay out of the table money", () => {
+  const counts = setupCountsOf({ mode: "quick", adultCount: 37, childCount: 0, partyExtras: [{ id: "canopy", qty: 6 }] } as never)
+  assert.deepEqual([counts.tcPersons, counts.chairsOnly, counts.bareTables, counts.canopies], [0, 0, 0, 6])
+  const prep = orderPrep({ mode: "quick", adultCount: 37, childCount: 0, partyExtras: [{ id: "canopy", qty: 6 }] } as never, "2026-10-23T00:00:00Z", 37, 0)
+  const setup = prep.items.filter((i) => i.group === "setup").map((i) => [i.id, i.qty])
+  assert.deepEqual(setup, [["canopies", 6]])
+})

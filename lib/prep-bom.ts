@@ -209,8 +209,10 @@ const r1 = (n: number) => Math.round(n * 10) / 10
  *   chairsOnly / bareTables —— 单租的椅子、桌子（folding_chairs / folding_tables），按件数，
  *     不从人头推（老板 2026-11-06 D-1106-03「只能要或者不要」）。单租的桌子不带桌布。
  *   linen / whiteCloths —— 单租的桌布（客人自己的桌子用）：黑的 $5、白的 $8，按条。
+ *   canopies —— 替客人租的 10×10 帐篷（canopy），$20 一顶，按顶（老板 2026-11-19，合作公司租给我们）。
+ *     不进师傅的桌椅钱。
  */
-export type SetupCounts = { tcPersons: number; utPersons: number; chairsOnly: number; bareTables: number; linen: number; whiteCloths: number }
+export type SetupCounts = { tcPersons: number; utPersons: number; chairsOnly: number; bareTables: number; linen: number; whiteCloths: number; canopies: number }
 
 export function setupCountsOf(inv: InvoiceLite | null | undefined): SetupCounts {
   const data = inv ?? {}
@@ -225,7 +227,15 @@ export function setupCountsOf(inv: InvoiceLite | null | undefined): SetupCounts 
       if (g.utensils) utPersons++
     }
   }
-  return { tcPersons, utPersons, chairsOnly: lineOf("folding_chairs"), bareTables: lineOf("folding_tables"), linen: lineOf("white_linen"), whiteCloths: lineOf("white_tablecloth") }
+  return {
+    tcPersons,
+    utPersons,
+    chairsOnly: lineOf("folding_chairs"),
+    bareTables: lineOf("folding_tables"),
+    linen: lineOf("white_linen"),
+    whiteCloths: lineOf("white_tablecloth"),
+    canopies: lineOf("canopy"),
+  }
 }
 
 /** 一张订单 → 用料行。人数以发票为准，发票没有就用订单行上的人数兜底。 */
@@ -364,7 +374,7 @@ export function orderPrep(
   // 或者不要」）：按件数，不从人头推。Lawrence 自己有桌子、只租 30 把椅子，套餐只能写
   // "28 位带桌椅"，装车单就成了 7 桌 7 布 28 椅。单租的桌子不带桌布，要布另有布的行。
   // 镜像发票 calcBom（同天改）。
-  const { tcPersons, utPersons, chairsOnly, bareTables, linen, whiteCloths } = setupCountsOf(data)
+  const { tcPersons, utPersons, chairsOnly, bareTables, linen, whiteCloths, canopies } = setupCountsOf(data)
   const chairs = tcPersons + chairsOnly
   if (tcPersons > 0) {
     const tables = Math.ceil(tcPersons / GUESTS_PER_TABLE)
@@ -386,6 +396,9 @@ export function orderPrep(
   // 发票上，装车单上没有）。
   if (linen > 0) items.push({ id: "tablecloths", label: "桌布（客人自己的桌子）", qty: linen, unit: "条", group: "setup" })
   if (whiteCloths > 0) items.push({ id: "white_tablecloths", label: "白桌布（客人自己的桌子）", qty: whiteCloths, unit: "条", group: "setup" })
+  // 替客人租的 10×10 帐篷（老板 2026-11-19：合作公司 $20 一顶租给我们，客人那天要就替他订）。
+  // 在装车清单上，订帐篷的人看得到要几顶。镜像发票 calcBom（同天改）。
+  if (canopies > 0) items.push({ id: "canopies", label: "帐篷 10×10（替客人租）", qty: canopies, unit: "顶", group: "setup" })
   if (utPersons > 0) {
     // 客户在 /rentals 选过主题就写具体哪箱，没选过还是笼统一行（存量订单不变）。
     const theme = setup?.pkg === "full" ? findTheme(setup.themeId) : undefined

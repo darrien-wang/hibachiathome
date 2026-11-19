@@ -107,8 +107,12 @@ CLOTH_LABELS = {"white_linen": "tablecloths", "white_tablecloth": "white tablecl
 # yes or no, and the chef brings what the order says). A party on its own tables rents
 # chairs only: RH-20261029-8929 had 30. Bare tables bring no cloth (a cloth line does).
 # Owner's prices (11-06): $5 a chair, $10 a table - invoice CHAIR_ONLY_PRICE / TABLE_ONLY_PRICE.
-PIECE_PRICES = {"folding_chairs": 5.0, "folding_tables": 10.0}  # invoice lib/pricing.ts PARTY_EXTRAS
-PIECE_LABELS = {"folding_chairs": "chairs on their own", "folding_tables": "6-ft tables on their own (no cloth)"}
+# A 10x10 canopy rented for the customer (owner 2026-11-19: our rental partner rents them to
+# us at $20 each, and we order them when the day needs them) is billed the same way, by count:
+# --add-extra canopy=6. Invoice CANOPY_PRICE.
+CANOPY_PRICE = 20.0
+PIECE_PRICES = {"folding_chairs": 5.0, "folding_tables": 10.0, "canopy": CANOPY_PRICE}  # invoice lib/pricing.ts PARTY_EXTRAS
+PIECE_LABELS = {"folding_chairs": "chairs on their own", "folding_tables": "6-ft tables on their own (no cloth)", "canopy": "10x10 canopies"}
 RICE_ADDIN_PRICES = {"diy_rice_chicken": 10.0, "diy_rice_shrimp": 10.0}  # same list; one order is enough for about 10 guests (owner 2026-11-01)
 ADULT_PRICE, CHILD_PRICE = 59.90, 29.90  # invoice ADULT_BASE_PRICE / CHILD_BASE_PRICE, what a deal's rate is cut from
 WEEKDAY_ADULT_OFF, WEEKDAY_CHILD_OFF = 5.0, 2.45  # invoice WEEKDAY_SPECIAL adultOff / childOff, the official_weekday line's per-head part
