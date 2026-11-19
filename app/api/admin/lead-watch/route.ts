@@ -33,7 +33,7 @@ import { loadQuiet } from "@/lib/lead-hold"
 import { lastOutboundByPeer, smsWaiting } from "@/lib/sms-waiting"
 import { isStaffNumber, loadStaffDigits } from "@/lib/staff-phones"
 import { cityForZip } from "@/lib/zip-city"
-import { MISSED_CALL_TEXT, missedCallTouchpointId } from "@/lib/missed-call"
+import { MISSED_CALL_TEXT, callWasMissed, missedCallTouchpointId } from "@/lib/missed-call"
 import { leadOnNumber } from "@/lib/merged-leads"
 import { isBlockedNumber, loadBlockedDigits } from "@/lib/blocked-callers"
 import { sendCustomerEmail } from "@/lib/ops-notifications"
@@ -279,6 +279,20 @@ async function listTwilioCalls(ours: string): Promise<TwilioCall[]> {
   if (!res.ok) return []
   const data = (await res.json().catch(() => ({}))) as { calls?: TwilioCall[] }
   return data.calls ?? []
+}
+
+/** The legs one call into the line dialed (the app's seats, the backup phone); null when Twilio cannot be read. */
+async function listTwilioLegs(parentSid: string): Promise<TwilioCall[] | null> {
+  const sid = process.env.TWILIO_ACCOUNT_SID
+  const token = process.env.TWILIO_AUTH_TOKEN
+  if (!sid || !token) return null
+  const res = await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${sid}/Calls.json?ParentCallSid=${encodeURIComponent(parentSid)}&PageSize=20`,
+    { headers: { Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString("base64")}` }, cache: "no-store" },
+  ).catch(() => null)
+  if (!res || !res.ok) return null
+  const data = (await res.json().catch(() => null)) as { calls?: TwilioCall[] } | null
+  return data?.calls ?? null
 }
 
 export async function POST(request: NextRequest) {
@@ -682,9 +696,12 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
     // minutes into a call picked up in the app when this texted the caller
     // "sorry we missed your call" (2026-10-27 10:35).
     if (c.status === "in-progress" || c.status === "ringing" || c.status === "queued") continue
-    if (c.status === "completed" && (Number(c.duration) || 0) >= 20) continue
     // Anyone (the handler, a person, the app) already texted after the call.
     if ((lastOut.get(from) ?? 0) >= startedAt) continue
+    // 20 s or more is not proof somebody picked up - ringing is on the clock
+    // too (lib/missed-call.ts): read the dialed legs before calling it answered.
+    const long = c.status === "completed" && (Number(c.duration) || 0) >= 20
+    if (!callWasMissed(c, long ? await listTwilioLegs(c.sid) : null)) continue
     const digits = from.replace(/\D/g, "").slice(-10)
     // Blocked or not is the number's own row; the text is filed on the live
     // lead, not a newer row merged into it (lib/merged-leads.ts) - the same
