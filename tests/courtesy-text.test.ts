@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { isTapback, notAQuestion } from "../lib/courtesy-text"
+import { courtesyOnly, isTapback, notAQuestion } from "../lib/courtesy-text"
 
 test("English iMessage reactions are tapbacks", () => {
   assert.equal(isTapback("Liked “See you tomorrow!”"), true)
@@ -28,4 +28,19 @@ test("Italian iPhone and Android emoji reactions are tapbacks", () => {
 test("Spanish sentences that only start like a reaction are real messages", () => {
   assert.equal(isTapback("Le gustó mucho la comida, ¿tienen fecha en diciembre?"), false)
   assert.equal(notAQuestion("How many chefs come?"), false)
+})
+
+// 2026-11-19: a Lancaster lead's "Hello" (11:59) and "Hi" (12:02) counted as courtesy -
+// no inbox line, no ring - and she phoned at 12:03.
+test("a bare greeting is the customer opening a conversation, not a courtesy", () => {
+  for (const hi of ["Hello", "Hi", "hi!", "Hey", "Heyyy", "Hello Bling", "Hi there", "Hi again", "Good morning", "Good evening!", "Morning"]) {
+    assert.equal(courtesyOnly(hi), false, hi)
+    assert.equal(notAQuestion(hi), false, hi)
+  }
+})
+
+test("a greeting in front of a courtesy is still a courtesy, and goodbyes stay quiet", () => {
+  for (const thanks of ["Hi, thank you!", "Hello, thanks so much", "Hey sounds good", "Good morning, thank you!", "Good night", "You too!", "Ok thanks", "Perfect"]) {
+    assert.equal(courtesyOnly(thanks), true, thanks)
+  }
 })

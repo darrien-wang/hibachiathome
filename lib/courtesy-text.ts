@@ -42,6 +42,22 @@ const FILLER = new Set([
   "everything", "great!", "ok!",
 ])
 
+// A bare greeting is the customer opening a conversation and waiting for us,
+// not a courtesy. 2026-11-19: a Lancaster lead texted "Hello" at 11:59 and "Hi"
+// at 12:02; both read as "nothing to answer" ("hi" and "hello" are filler), so
+// no inbox line and no ring, and she phoned at 12:03. "hi" stays filler inside
+// a longer text ("Hi, thank you!" is still a thank-you); a text that is ONLY a
+// greeting - "Hi", "Hello Bling", "Heyyy", "Good morning" - needs an answer.
+// "Good night" is a goodbye, and "you too" answers ours: both stay courtesy.
+const GREETING_WORD = /^(h+i+|h+e+l+o+|h+e+y+|yo+|hiya|heya)$/
+const GREETING_DAYPART = new Set(["morning", "afternoon", "evening"])
+const GREETING_EXTRA = new Set(["good", "there", "again", "bling", "rowling", "guys", "team", "everyone", "all", "man", "dear"])
+
+function greetingOnly(words: string[]): boolean {
+  if (!words.some((w) => GREETING_WORD.test(w) || GREETING_DAYPART.has(w))) return false
+  return words.every((w) => GREETING_WORD.test(w) || GREETING_DAYPART.has(w) || GREETING_EXTRA.has(w))
+}
+
 /**
  * True when a customer text is pure courtesy and needs no answer — every
  * single word has to be courtesy or filler, so anything with real content
@@ -58,6 +74,7 @@ export function courtesyOnly(body: string): boolean {
   if (ACTION_WORDS.test(t) || QUESTION_WORDS.test(t)) return false
   const words = t.split(" ").filter(Boolean)
   if (words.length > 12) return false
+  if (greetingOnly(words)) return false
   return words.every((w) => COURTESY.has(w) || FILLER.has(w))
 }
 
