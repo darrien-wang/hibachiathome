@@ -110,6 +110,11 @@
 2. `Seafood is the one exception. Shrimp and salmon come in frozen, ours and everyone's, because that's the only way they travel safely. I'd rather say that than pretend otherwise.`
 3. `If you're open to it, could you send me what they quoted and what the upgrades are? I'll see whether I can get there for [his 59th / your party]. Our food costs more, so I may not be able to match it, but I'd rather check than assume.`
 
+**已订的客人家里另订了一家、在两家之间选**（老板 11-19，Heather 11/29：嫂子先订了别家）：先照实答取消政策，不追。老板给的三点，可以分开说，说完就停：
+- 大公司不知道来的是哪位师傅，水平差别大：`With a lot of the bigger hibachi companies you don't know which chef will show up, and the experience varies a lot from chef to chef.` 不点名哪一家。
+- 点名派师傅要老板先点头（派单是老板的）：`For your party we'd send Chef Blu. More than 30 of our Google reviews mention him by name:` + Google 评价链接（`lib/gbp-sync.ts` GOOGLE_ALL_REVIEWS_URL）。数字发之前现查 `business_reviews`（11-19：106 条里 32 条提到 Blu，全 5 星）。答应了就写进订单备注和备货备注。
+- 牛肉是 Costco 买的：老板说「整个南加可能也只有我们一家」，对客写成 `As far as we know, we're the only hibachi company in Southern California that does that.` 重点说牛肉（老板随后补「我们的牛肉」），虾不提。
+
 客人还在比、还没拒绝的，用前两条 + `If someone quotes you lower, please send me what they're offering and I'll see what I can do on my end.` 他回了数再动：先用交换（周中价、桌椅让价、送前菜），底线之上自己定，匹配不了就照实说、留好印象，不第二次挽留。记 `[compete]`。
 
 ## 8. 心理学，落到动作上
