@@ -2437,6 +2437,14 @@ def _order_review_ops(a) -> None:
         _supabase("POST", "/rest/v1/order_events", json.dumps(row, ensure_ascii=False).encode("utf-8"), "application/json")
         print(f"OK    {a.ident} 审查{'通过' if a.pass_ else '没过'}（指纹 {packet['fingerprint']}）：{summary}")
         return
+    # 外包 (owner 2026-11-18): a partner runs it - no chef of ours, no prep sheet. The partner gets the invoice link.
+    try:
+        rows = _db_read(f"/rest/v1/orders?select=id,order_no,dispatch_plan&order_no=eq.{urllib.parse.quote(a.ident)}")
+    except Exception:  # noqa: BLE001 - a read that fails here is read again below; the workbench refuses an outsourced send too
+        rows = []
+    if isinstance(rows, list) and rows and party_check.outsourced_mark(rows[0]):
+        link = party_check.partner_invoice_url(rows[0])
+        raise SystemExit(f"{a.ident} 外包给合作公司了：我们不派师傅、不发备料单。给合作方的是 invoice 链接：{link or '还没有（在日地图上改回直营、再标一次外包会生成）'}")
     ok, why = _review_gate(a.ident, a, "备料单")
     if not ok:
         raise SystemExit(why)

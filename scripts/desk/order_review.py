@@ -139,6 +139,9 @@ def fingerprint(packet: dict, *, with_plan: bool = True) -> str:
     plan = party_check.stored_plan(o) if with_plan else None
     if plan:
         parts["dispatch_plan"] = {k: plan[k] for k in ("chefs", "grills", "stations_note")}
+    # 外包 (2026-11-18): who runs the party changed. Only on an outsourced order, so every other keeps its fingerprint.
+    if party_check.outsourced_mark(o):
+        parts["outsourced"] = True
     return hashlib.sha256(json.dumps(parts, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8")).hexdigest()[:16]
 
 
@@ -245,7 +248,7 @@ def render(packet: dict) -> list[str]:
     out += ["", "【三】师傅的备料单链接（打开就是订单现在的样子；下面每条是他上次被告知的那一版）"]
     names = {t.get("id"): t.get("name") for t in party.get("team") or []}
     if not packet["links"]:
-        out.append("   （还没有在用的备料单链接）")
+        out.append("   （外包：合作公司做，我们不发备料单）" if party_check.outsourced_mark(o) else "   （还没有在用的备料单链接）")
     for l in packet["links"]:
         out.append(link_line(l, names))
         out += _snapshot_lines(l.get("sheet_snapshot") or {})

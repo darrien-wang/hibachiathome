@@ -1249,6 +1249,84 @@ def dispatch_plan_checks() -> None:
           r.has("审查状态：✗", f"（指纹 {fp} → ", "要重新审查", f"站位（备料单原样印出）: {WHITNEY_FIXED}") and "派工站位写着桌子" not in r.out, r)
 
 
+# ---------------------------------------------------------------- 外包 (owner 2026-11-18) --
+# A party sold to a partner company that runs it (lib/outsourced.ts): orders.dispatch_plan.outsourced. No chef of ours and
+# no prep sheet - neither is a gap on it - and the partner gets a lasting invoice link instead.
+
+PARTNER_TOKEN = "AbCdEfGhIjKlMnOpQrStUvWxYz012-_9"
+PARTNER_LINK = f"https://www.realhibachi.com/p/invoice/{PARTNER_TOKEN}"
+OUTSOURCED = {"at": "2026-11-18T20:00:00.000Z", "by": "workbench:owner", "invoice_token": PARTNER_TOKEN}
+
+
+def outsourced_checks() -> None:
+    mark = party_check.outsourced_mark
+    check("外包 · the mark as lib/outsourced.ts reads it: an object, true, or nothing; a token not of ours is no link",
+          mark({"dispatch_plan": {"chefs": 2, "grills": 2, "source": "owner", "outsourced": OUTSOURCED}}) == {**OUTSOURCED, "note": None}
+          and mark({"dispatch_plan": {"outsourced": True}}) == {"at": None, "by": None, "invoice_token": None, "note": None}
+          and mark({"dispatch_plan": {"chefs": 2, "grills": 2, "source": "owner"}}) is None and mark({"dispatch_plan": None}) is None
+          and party_check.partner_invoice_url({"dispatch_plan": {"outsourced": OUTSOURCED}}) == PARTNER_LINK
+          and party_check.partner_invoice_url({"dispatch_plan": {"outsourced": {**OUTSOURCED, "invoice_token": "short"}}}) is None)
+
+    # The party the owner sold on 11-18 (RH-20261107-9978): 11 heads, a two-chef promise from 11-07, the chef already gone.
+    sold = pc_party("RH-20261107-9978", "2026-11-21T17:00:00+00:00", name="Partner Test", guests=[pc_guest(f"Guest {i}", "chicken", "steak") for i in range(1, 12)],
+                    address="1 Test Way, Irvine, CA 92618")
+    sold["order"]["dispatch_plan"] = {"chefs": 2, "grills": 2, "source": "promise", "heads": 11, "outsourced": OUTSOURCED,
+                                      "promise": {"chefs": 2, "grills": 2, "via": "sms", "at": "2026-11-07T20:00:00Z", "text": "Two chefs, two grills."}}
+    check("外包 · the crew line (desk order show, the reviewer's 【二】): the partner runs it, the invoice link, what the customer was promised",
+          party_check.plan_lines(sold["order"], [], []) == [
+              "   派工: 外包（合作公司做，我们不派师傅）",
+              f"         给合作方的 invoice（不过期，打开就是订单现在的样子）: {PARTNER_LINK}",
+              "         答应过: 2 厨 / 2 灶 · 11-07 12:00 短信 \"Two chefs, two grills.\""],
+          None, "\n".join(party_check.plan_lines(sold["order"], [], [])))
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        desk._print_plan(sold["order"], {"cooks": [], "helpers": []})
+    check("  desk order show prints it: 派工: 外包（合作公司做，我们不派师傅）, then the link",
+          buf.getvalue().splitlines()[:2] == ["   派工: 外包（合作公司做，我们不派师傅）", f"         给合作方的 invoice（不过期，打开就是订单现在的样子）: {PARTNER_LINK}"],
+          None, buf.getvalue())
+
+    lines = party_check.sheet_lines(sold, "2026-11-21")
+    check("外包 · the party day: no chef and no sheet are not gaps - one plain line with the partner's link, no !!",
+          lines == [("· ", f"外包（合作公司做）：我们不派师傅、不发备料单；给合作方的 invoice {PARTNER_LINK}")], None, str(lines))
+    held = {**sold, "links": [{"staff_member_id": "s-blu", "sent_via": "twilio", "first_opened_at": None, "revoked_at": None},
+                              {"staff_member_id": "s-gary", "sent_via": "twilio", "first_opened_at": None, "revoked_at": "2026-11-18T20:05:00Z"}]}
+    check("  a sheet that went out before it was outsourced and was never called off: a ! to tell him he does not have to go",
+          party_check.sheet_lines(held, "2026-11-21")[1:] == [("! ", "外包前发出去的备料单还有 1 份没作废：日地图「通知改动」里告诉他不用去")])
+    # The prep list's line for it (app/api/admin/prep): listed, nothing counted, no cooler.
+    listed = {**sold, "prep": {"id": sold["order"]["id"], "timeLabel": "5:00 PM", "adults": 11, "kids": 0, "menuKnown": True, "proteinLine": "", "extrasLine": "", "outsourced": True}}
+    out = party_check.render(listed, party_check.gaps_of(listed), "2026-11-21")
+    check("  desk order check: the header names the partner, not 未派; the prep line says nothing is packed",
+          "RH-20261107-9978 · 5:00 PM · Irvine · Partner · 11 大 · 师傅 外包（合作公司做）" in out and "   备货：外包 · 不备货（合作公司做）" in out
+          and not any("还没派师傅" in x or "未派" in x for x in out), None, "\n".join(out))
+    before = george(GEORGE_NOTES_BEFORE)
+    sold_george = copy.deepcopy(before)
+    sold_george["order"]["dispatch_plan"] = {"outsourced": OUTSOURCED}
+    check("  every other check stays: George's gaps (the shrimp allergy only in the internal notes is !!) are the same on the outsourced party",
+          pc_kinds(sold_george) == pc_kinds(before) and any(s == "block" for s, _ in pc_kinds(before)), None, str(pc_kinds(sold_george)))
+
+    # desk order send-sheet: refused before the review gate, with the partner's link; nothing posted.
+    o = {**sold["order"], "order_no": ORDER_NO, "id": CANCEL_ID}
+    r = DeskRun(["order", "send-sheet", ORDER_NO], db=fake_db({"orders": [o]}))
+    check("外包 · desk order send-sheet: refused - no chef, no sheet - and it names the partner's invoice link instead; nothing written",
+          "外包给合作公司了" in str(r.exit) and PARTNER_LINK in str(r.exit) and r.posted == [] and r.reads == [], r)
+
+    # desk order review: 【二】 names the partner, 【三】 says no sheet goes out, and outsourcing changes the fingerprint.
+    direct = copy.deepcopy(sold)
+    direct["order"]["dispatch_plan"] = {k: v for k, v in sold["order"]["dispatch_plan"].items() if k != "outsourced"}
+    prep = {"ok": True, "orders": [{"id": sold["order"]["id"], "orderNo": sold["order"]["order_no"], "timeLabel": "5:00 PM", "adults": 11, "kids": 0,
+                                    "menuKnown": True, "proteinLine": "", "extrasLine": "", "outsourced": True}]}
+    gets = {"/api/admin/prep": prep, "/api/admin/sms-thread": {"messages": []}}
+    r = DeskRun(["order", "review", sold["order"]["order_no"]], gets=gets, db=fake_db(review_db(sold)))
+    fp_out = (re.search(r"指纹 ([0-9a-f]{16})", r.out) or [None, None])[1]
+    r2 = DeskRun(["order", "review", sold["order"]["order_no"]], gets=gets, db=fake_db(review_db(direct)))
+    fp_direct = (re.search(r"指纹 ([0-9a-f]{16})", r2.out) or [None, None])[1]
+    check("外包 · desk order review: 【二】 names the partner and the link, 【三】 says no sheet goes out, nothing !! about a chef",
+          r.exit is None and r.has("派工: 外包（合作公司做，我们不派师傅）", PARTNER_LINK, "（外包：合作公司做，我们不发备料单）", "备货：外包 · 不备货（合作公司做）")
+          and "还没派师傅" not in r.out and r.posted == [], r)
+    check("  outsourcing is in the fingerprint (a pass for the party we ran does not hold for the partner's), and only there",
+          bool(fp_out) and bool(fp_direct) and fp_out != fp_direct and "（还没有在用的备料单链接）" in r2.out, r2)
+
+
 def order_flow_checks() -> None:
     cancel = ["order", "cancel", ORDER_NO]
     r = DeskRun([*cancel, "--why", CANCEL_WHY, "--dry"], posts=cancel_reply)
@@ -1832,6 +1910,7 @@ def main() -> int:
     party_check_checks()
     chef_text_checks()
     dispatch_plan_checks()
+    outsourced_checks()
 
     # A request with no "please" stops a send (owner 2026-11-01). Same samples as tests/voice-check.test.ts.
     now = datetime.datetime(2026, 11, 1, 12, 0, tzinfo=datetime.timezone.utc)

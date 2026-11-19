@@ -19,6 +19,7 @@ from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from _api import site_get, site_post  # noqa: E402
+from party_check import outsourced_mark  # noqa: E402
 
 LEADS = ["Blu", "Gary", "John"]  # 每周 30–40，超过 15 人的桌只给他们
 BIG_LEAD = "Blu"  # 大单尽可能给 Blu，每周人数要排第一
@@ -80,6 +81,9 @@ def load(week: dt.date):
     for o in orders:
         day = (o.get("event_start") or "")[:10]
         if not day or o.get("order_status") == "cancelled" or o["id"] in parties or not (str(week) <= day <= str(end)):
+            continue
+        # 外包（老板 2026-11-18，lib/outsourced.ts）：合作公司做，不是"未派"，不派人。
+        if outsourced_mark(o):
             continue
         open_orders.append({"id": o["id"], "day": day, "at": o["event_start"], "who": o.get("customer_name"), "addr": o.get("event_address"), "heads": heads_of(o.get("guest_adult_count"), o.get("guest_child_count")), "need": o.get("required_staff_count") or 1, "chefs": []})
     open_orders.sort(key=lambda x: x["at"])

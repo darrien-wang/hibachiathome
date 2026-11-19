@@ -32,6 +32,10 @@ loads no table (the sheet prints the note word for word), more cooks on the orde
 
 Matching is by keywords, English and Chinese, kept narrow: tuned on the 11-11/11-12 cases (selfcheck has
 them). A requirement taken back later ("不需要 kosher 肉了") is dropped. Nothing here writes anything.
+
+An outsourced party (外包, owner 2026-11-18, lib/outsourced.ts) is run by a partner company: no chef of ours and no
+prep sheet, so neither is flagged on it (sheet_lines), and its crew line names the partner's invoice link (plan_lines).
+Every other check stays - the customer's requirements still have to reach whoever cooks.
 """
 from __future__ import annotations
 
@@ -413,6 +417,35 @@ def effective_plan(order: dict) -> dict:
             "promise": (stored or {}).get("promise"), "stored": bool(stored), "heads": heads, "per": guests_per_chef()}
 
 
+# ---------------------------------------------------------------- outsourced --
+# 外包 (owner 2026-11-18, lib/outsourced.ts): a party sold to a partner company that runs it. Marked on
+# orders.dispatch_plan.outsourced = {at, by, invoice_token, note?}. We send no chef and no prep sheet, so "no chef" and
+# "no sheet" are not gaps on it; every other check stays. The partner gets the invoice, not the sheet: a link that
+# never expires and always opens the order as it stands (www.realhibachi.com/p/invoice/<token>).
+
+PARTNER_INVOICE_BASE = "https://www.realhibachi.com/p/invoice"  # lib/outsourced.ts PARTNER_INVOICE_BASE
+_INVOICE_TOKEN = re.compile(r"[A-Za-z0-9_-]{32}")
+
+
+def outsourced_mark(order: dict) -> dict | None:
+    """The outsourced mark as lib/outsourced.ts outsourcedMark reads it: {at, by, invoice_token, note}; None = ours (直营)."""
+    raw = order.get("dispatch_plan") if isinstance(order, dict) else None
+    mark = raw.get("outsourced") if isinstance(raw, dict) else None
+    if mark is True:
+        return {"at": None, "by": None, "invoice_token": None, "note": None}
+    if not isinstance(mark, dict):
+        return None
+    token = mark.get("invoice_token")
+    return {"at": _text(mark.get("at"), 40), "by": _text(mark.get("by"), 80),
+            "invoice_token": token if isinstance(token, str) and _INVOICE_TOKEN.fullmatch(token) else None, "note": _text(mark.get("note"), 200)}
+
+
+def partner_invoice_url(order: dict) -> str | None:
+    """The partner's invoice link of an outsourced order; None when it is ours or the mark has no token yet."""
+    mark = outsourced_mark(order)
+    return f"{PARTNER_INVOICE_BASE}/{mark['invoice_token']}" if mark and mark["invoice_token"] else None
+
+
 def first_name(name: str | None) -> str:
     n = str(name or "").strip()
     return "" if not n or re.search(r"\d{3}", n) else n.split()[0]
@@ -773,6 +806,19 @@ def sheet_lines(party: dict, today: str | None = None) -> list[tuple[str, str]]:
     out = []
     links = party.get("links") or []
     notices = party.get("notices") or []
+    if outsourced_mark(party["order"]):
+        # 外包: nobody of ours goes and no sheet is due - not "还没派师傅". What is left to watch: a sheet that went out
+        # before the party was outsourced (the day map's 通知改动 tells him he does not have to go), and a name still on it.
+        on = {t.get("id") for t in party.get("team") or []}
+        held = {l.get("staff_member_id") for l in links if l.get("staff_member_id") and l.get("staff_member_id") not in on and not l.get("revoked_at")
+                and (l.get("sent_via") in ("twilio", "manual") or l.get("first_opened_at"))}
+        link = partner_invoice_url(party["order"])
+        out.append(("· ", "外包（合作公司做）：我们不派师傅、不发备料单" + (f"；给合作方的 invoice {link}" if link else "")))
+        if held:
+            out.append(("! ", f"外包前发出去的备料单还有 {len(held)} 份没作废：日地图「通知改动」里告诉他不用去"))
+        if party.get("team"):
+            out.append(("! ", f"标了外包，名单上还有 {'、'.join(str(t.get('name') or '?') for t in party['team'])}：工作台里把人拿掉，或者改回直营"))
+        return out
     today = today or _dt.datetime.now(PACIFIC).date().isoformat()
     party_day = str(party["order"].get("event_start") or "")[:10]
     early = bool(party_day) and party_day > today
@@ -823,8 +869,24 @@ def sheet_lines(party: dict, today: str | None = None) -> list[tuple[str, str]]:
 def plan_lines(order: dict, cooks: list[str] | None, helpers: list[str] | None = None) -> list[str]:
     """The crew line at the top of the chef sheet as desk prints it (`desk order show`, the reviewer's 【二】): chefs /
     grills and why, who cooks and who helps, the stations note the sheet prints word for word, the promise the plan
-    carries. cooks / helpers: the names on the order; None = the assignments were not read."""
+    carries. cooks / helpers: the names on the order; None = the assignments were not read.
+    An outsourced party (外包): who runs it and the partner's invoice link instead of chefs and grills; what the customer
+    was promised (stations note, the promise) still prints - the partner has to keep it."""
     plan = effective_plan(order)
+    mark = outsourced_mark(order)
+    if mark:
+        link = partner_invoice_url(order)
+        out = ["   派工: 外包（合作公司做，我们不派师傅）" + (f" · {mark['note']}" if mark.get("note") else "")
+               + (f" · 名单上还有 {' + '.join([*(cooks or []), *(helpers or [])])}" if cooks or helpers else ""),
+               f"         给合作方的 invoice（不过期，打开就是订单现在的样子）: {link or '还没有链接（在日地图上改回直营、再标一次外包会生成）'}"]
+        if plan["stations_note"]:
+            out.append(f"         站位（答应过客人的摆法）: {plan['stations_note']}")
+        pr = plan["promise"]
+        if pr:
+            via = {"sms": " 短信", "email": " 邮件"}.get(pr["via"] or "", "")
+            said = re.sub(r"\s+", " ", pr["text"]).strip()
+            out.append(f"         答应过: {pr['chefs']} 厨 / {pr['grills']} 灶 · {_mdhm(pr['at']) or '?'}{via} \"{said}\"")
+        return out
     shown = lambda v: "?" if v is None else v
     why = PLAN_SOURCES.get(plan["source"], plan["source"])
     if plan["source"] == "rule":
@@ -855,14 +917,18 @@ def render(party: dict, gaps: list[dict], today: str | None = None) -> list[str]
     c = inv.get("contactInfo") if isinstance(inv.get("contactInfo"), dict) else {}
     prep = party.get("prep") or {}
     when = prep.get("timeLabel") or str(order.get("event_start") or "")[11:16]  # wall time stored as UTC - never convert
-    chefs = "、".join(t["name"] for t in party.get("team") or [] if t.get("role") != "assistant_chef") or "未派"
+    out_mark = outsourced_mark(order)
+    chefs = "、".join(t["name"] for t in party.get("team") or [] if t.get("role") != "assistant_chef") or ("外包（合作公司做）" if out_mark else "未派")
     adults = prep.get("adults", inv.get("adultCount", "?"))
     kids = prep.get("kids", inv.get("childCount") or 0)
     heads = f"{adults} 大" + (f" {kids} 小" if kids else "")
     lines = ["━" * 78,
              f"{order.get('order_no')} · {when or '时间未定'} · {city_of(order.get('event_address')) or '-'} · {first_name(order.get('customer_name')) or '-'} · {heads} · 师傅 {chefs}"]
-    protein = prep.get("proteinLine") if prep.get("menuKnown") else "菜单未定"
-    lines.append(f"   备货：{protein or '-'}" + (f" | {prep['extrasLine']}" if prep.get("extrasLine") else ""))
+    if out_mark:
+        lines.append("   备货：外包 · 不备货（合作公司做）")
+    else:
+        protein = prep.get("proteinLine") if prep.get("menuKnown") else "菜单未定"
+        lines.append(f"   备货：{protein or '-'}" + (f" | {prep['extrasLine']}" if prep.get("extrasLine") else ""))
     cooler = prep.get("cooler") if isinstance(prep.get("cooler"), dict) else {}
     lines.append(f"   备货备注：{(cooler.get('note') if cooler else None) or order.get('prep_note') or '(空)'}")
     lines.append(f"   订单备注（客人看得到）：{str(c.get('specialNotes') or '').strip() or '(空)'}")
