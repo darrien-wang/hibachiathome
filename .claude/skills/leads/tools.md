@@ -54,8 +54,8 @@ python scripts/desk/desk.py report day|week [--date 2026-10-17]      # 日报/�
 **锁单链接**（全部先签规则再缩短）
 ```bash
 python scripts/desk/desk.py link deposit --lead <id> --adults 18 --kids 0 --city Tustin --zip 92780 --date 2026-11-07 [--time 19:00] --email <e>
-python scripts/desk/desk.py link deposit ... --rate tables_chairs=5        # 周六桌椅半价（D-1017-01）
-python scripts/desk/desk.py link deposit ... --free tables_chairs          # 免费桌椅
+python scripts/desk/desk.py link deposit ... --rate tables_chairs=5        # 桌椅半价：11-19 起不再用作让价（D-1119-01），只给以前答应过的
+python scripts/desk/desk.py link deposit ... --free tables_chairs          # 免费桌椅：同上，只给以前答应过的；新的让步最多送餐具 --free utensils
 python scripts/desk/desk.py link deposit ... --flat-off 60 --deal-note "why"
 python scripts/desk/desk.py link deposit ... --waive-travel --deal-note "why"   # 路费老板请：单上路费 $0，里程照记（师傅照拿）
 python scripts/desk/desk.py link planner --email <e> --phone <p> [--booked] --lead <id>
