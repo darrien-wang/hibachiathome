@@ -40,6 +40,8 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
   const [proposal, setProposal] = useState<Proposal | null>(null)
   const [busy, setBusy] = useState(false)
   const [history, setHistory] = useState<Undo[]>([])
+  // 只看一位师傅（老板 2026-11-19「截图给师傅看，需要看日期，但是不想让他看到其他人的排单」）。
+  const [only, setOnly] = useState<string | null>(null)
   const today = ptToday()
 
   const loadDay = useCallback(
@@ -296,11 +298,24 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ fontWeight: 700, fontSize: 15 }}>拖单调人数</div>
-        <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-          {isMobile ? "先点一张单，再点同一天要给的那一格" : "把单拖到同一天另一位师傅那一格；手机上先点单再点格子"} · 双击打开订单 · 改完先不发短信
-        </div>
-        <span style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>{only ? `${nameOf(only)} · 这周排班` : "拖单调人数"}</div>
+        {only ? null : (
+          <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
+            {isMobile ? "先点一张单，再点同一天要给的那一格" : "把单拖到同一天另一位师傅那一格；手机上先点单再点格子"} · 双击打开订单 · 改完先不发短信
+          </div>
+        )}
+        <span style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+          <label style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }} title="截图给师傅看：只留他这一行">
+            只看
+            <select value={only ?? ""} onChange={(e) => setOnly(e.target.value || null)} style={{ font: "inherit", fontSize: 12, padding: "2px 4px" }}>
+              <option value="">全部师傅</option>
+              {rows.map((id) => (
+                <option key={id} value={id}>
+                  {nameOf(id)}
+                </option>
+              ))}
+            </select>
+          </label>
           <button type="button" className="btn btn-secondary btn-sm" disabled={!history.length || busy} onClick={() => void undo()}>
             撤销上一步{history.length ? `（${history.length}）` : ""}
           </button>
@@ -324,9 +339,9 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
             </tr>
           </thead>
           <tbody>
-            {rows.map((id) => {
+            {(only ? rows.filter((id) => id === only) : rows).map((id) => {
               const t = totals.get(id)
-              const note = targetNote(id)
+              const note = only ? null : targetNote(id)
               return (
                 <tr key={id}>
                   <td style={{ verticalAlign: "top", padding: "6px", borderBottom: "1px solid var(--color-line)", fontSize: 13 }}>
@@ -343,13 +358,13 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
                 </tr>
               )
             })}
-            <tr>
+            {only ? null : <tr>
               <td style={{ verticalAlign: "top", padding: "6px", fontSize: 13 }}>
                 <div style={{ fontWeight: 700 }}>未派</div>
                 <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>拖到这里 = 拿掉这位师傅</div>
               </td>
               {dates.map((d) => cell(null, d))}
-            </tr>
+            </tr>}
           </tbody>
         </table>
       </div>
