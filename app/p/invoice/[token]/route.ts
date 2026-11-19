@@ -2,17 +2,24 @@ import { type NextRequest, NextResponse } from "next/server"
 
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { PARTNER_ORDER_COLUMNS, partnerInvoiceRedirect, payOf, type PartnerOrder } from "@/lib/partner-invoice"
+import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 // /p/invoice/<token> —— 给合作方的 invoice 链接（外包单，老板 2026-11-18）。不用登录：token 本身就是钥匙
 // （32 位随机，lib/outsourced.ts）。每次打开按订单现在的 invoice_data 现铸一份，302 到发票工具的客户视角
-// （lib/partner-invoice.ts），所以链接不过期、永远是最新版。改回直营、订单取消，链接就 404。
+// （lib/partner-invoice.ts），所以链接一直是最新版，到派对后两周才停。改回直营、订单取消，链接就 404。
 // 默认打开现金那张账单（老板发给合作方的就是 pay=cash）；?pay=card / venmo 换一张。
 // 不发短信、不发邮件，客人那边什么都不变。
 export async function GET(request: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
+  // A partner opens this a handful of times; 60 in ten minutes per IP is far above that and stops a scan.
+  const limited = await rateLimit("partner-invoice", request, 60, 600)
+  if (!limited.ok) {
+    const { status } = tooManyRequests()
+    return new NextResponse("Too many requests. Please try again in a few minutes.", { status, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } })
+  }
   const supabase = createServerSupabaseClient()
   const result = await partnerInvoiceRedirect(token, {
     pay: payOf(request.nextUrl.searchParams.get("pay")) ?? "cash",

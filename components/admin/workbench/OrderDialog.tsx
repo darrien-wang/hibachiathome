@@ -1037,7 +1037,7 @@ export function OrderDialog({
                       onClick={() => {
                         if (!partnerLink) return
                         copyText(partnerLink)
-                        setMsg(`已复制给合作方的 invoice 链接（打开就是订单现在的样子，不会过期）：${partnerLink}`)
+                        setMsg(`已复制给合作方的 invoice 链接（打开就是订单现在的样子，派对后两周内都能打开）：${partnerLink}`)
                       }}
                     >
                       复制给合作方的 invoice 链接

@@ -5,8 +5,8 @@ import { isInvoiceToken, outsourcedMark } from "@/lib/outsourced"
 //
 // 发票工具只有 /api/invoice/pdf?token=…，token 要先把发票数据 POST 到 /api/invoice 才拿得到，
 // 而且 30 分钟就失效——老板发给合作方的那条第二天就打不开了。所以这边给每个外包单一个
-// 不过期的链接 www.realhibachi.com/p/invoice/<token>（app/p/invoice/[token]/route.ts）：
-// 每次打开，按订单现在的 invoice_data 现铸一份，302 跳过去。链接本身永远不过期，打开看到的
+// 长期有效的链接 www.realhibachi.com/p/invoice/<token>（app/p/invoice/[token]/route.ts）：
+// 每次打开，按订单现在的 invoice_data 现铸一份，302 跳过去。链接本身到派对后两周才停（PARTNER_LINK_DAYS_AFTER_PARTY），打开看到的
 // 永远是订单现在的样子。铸法和工作台"看现在的发票"（app/api/admin/invoice-preview）是同一个：
 // 客户视角 view=confirmed，带单号。
 //
@@ -54,8 +54,14 @@ export async function mintInvoiceView(
 }
 
 /** The order columns the partner link reads. */
-export const PARTNER_ORDER_COLUMNS = "id, order_no, order_status, invoice_data, dispatch_plan"
-export type PartnerOrder = { id: string; order_no: string | null; order_status: string | null; invoice_data: unknown; dispatch_plan: unknown }
+export const PARTNER_ORDER_COLUMNS = "id, order_no, order_status, event_start, invoice_data, dispatch_plan"
+export type PartnerOrder = { id: string; order_no: string | null; order_status: string | null; event_start?: string | null; invoice_data: unknown; dispatch_plan: unknown }
+
+/**
+ * The partner's link stops this long after the party (review 2026-11-19): the invoice carries the
+ * customer's name, phone, email and address, and nobody needs it once the party is settled.
+ */
+export const PARTNER_LINK_DAYS_AFTER_PARTY = 14
 
 export type PartnerInvoiceResult = { status: 302; location: string } | { status: 404 | 502; body: string }
 
@@ -68,8 +74,8 @@ const NOT_FOUND: PartnerInvoiceResult = { status: 404, body: "Not found" }
 
 /**
  * GET /p/invoice/<token>: where the partner's link goes right now. 404 for a token that is malformed or
- * unknown, an order that is no longer outsourced (改回直营 drops the token) or cancelled, or one with no
- * invoice yet; 502 when the invoice tool would not mint (the partner sees no internals, the log does).
+ * unknown, an order that is no longer outsourced (改回直营 drops the token) or cancelled, one whose party
+ * was more than PARTNER_LINK_DAYS_AFTER_PARTY days ago, or one with no invoice yet; 502 when the invoice tool would not mint (the partner sees no internals, the log does).
  * findOrders: the orders whose mark carries this token (the database filter); the mark is checked
  * again here, so a loose filter cannot open someone else's invoice.
  */
@@ -94,10 +100,13 @@ export async function partnerInvoiceRedirect(
   const hits = rows.filter((o) => outsourcedMark(o.dispatch_plan)?.invoice_token === token && !/cancel|void|refund/i.test(o.order_status ?? ""))
   if (hits.length !== 1) return NOT_FOUND
   const order = hits[0]
+  const now = deps.now ?? Date.now()
+  // event_start is PT wall time stored as UTC, so this is off by 7-8 hours at most: nothing against 14 days.
+  const partyAt = order.event_start ? Date.parse(order.event_start) : NaN
+  if (Number.isFinite(partyAt) && now > partyAt + PARTNER_LINK_DAYS_AFTER_PARTY * 86_400_000) return NOT_FOUND
   if (!order.invoice_data) return { status: 404, body: "This invoice is not ready yet." }
 
   const cache = deps.cache ?? partnerCache
-  const now = deps.now ?? Date.now()
   const digest = createHash("sha256").update(JSON.stringify([order.order_no, order.invoice_data])).digest("hex").slice(0, 24)
   const key = `${token}|${deps.pay ?? ""}|${digest}`
   const hit = cache.get(key)

@@ -1816,7 +1816,7 @@ export const cityPages: CityPage[] = [
       "Private hibachi chef in Anaheim — vacation rentals near Disneyland, Anaheim Hills backyards, family reunions. $59.90/adult flat rate: 2 proteins, veggies, fried rice & salad.",
     intro: [
       "Anaheim is one of our busiest cities — and not just because of the mouse. Families renting vacation homes near Disneyland book our chefs for the one night nobody wants to fight park crowds for dinner, while Anaheim Hills backyards host birthdays, reunions, and graduation parties all year.",
-      "The chef brings everything: mobile teppanyaki grill, fresh ingredients, the full performance, and cleanup. You provide the outdoor space and the guests.",
+      "The chef brings the mobile teppanyaki grill, propane, fresh ingredients and the full performance, and cleans up the cooking area. You provide the outdoor space and the guests; tables and chairs are an add-on.",
     ],
     neighborhoods: [
       "Anaheim Hills",
@@ -3250,7 +3250,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "The mountain is a real drive from our base and past the free 50-mile radius, so a travel fee applies and is shown upfront in your quote. Big Bear sits at about 6,750 feet: the grill runs the same, the cook takes a little longer, and evenings are cold year-round once the sun is behind the ridge — an earlier start than you would book down the hill is the right call, and a heater on the deck helps. In winter, please make sure the deck or driveway spot where the chef will set up has been cleared of snow.",
-      "Cabin driveways are steep and parking is tight in the village neighborhoods, so tell us where the chef can park close to the setup spot. Everything for the party arrives with the chef — grill, food, tables for the show, cleanup — and everything leaves with the chef. Your rental's kitchen never opens.",
+      "Cabin driveways are steep and parking is tight in the village neighborhoods, so tell us where the chef can park close to the setup spot. The grill, propane and food arrive with the chef, and all of it leaves with the chef. Your rental's kitchen never opens.",
     ],
     faqs: [
       {
@@ -3346,7 +3346,7 @@ export const cityPages: CityPage[] = [
     ],
     logistics: [
       "This end of the valley runs even hotter than Palm Springs. From May through September we cook after sunset — the patio is genuinely pleasant once the sun is down, and the fire show is better in the dark anyway. From October through April a lunch or late-afternoon booking on the patio is one of the best things about the desert. La Quinta is well past our free 50-mile radius, so a travel fee applies and is shown upfront in your quote.",
-      "Almost every rental here is behind a gate: put the chef's name on the guest list or send the gate code ahead of the party. We need a level spot about the size of a king-size bed with roughly 10 ft of clearance — a patio pad or pool deck well clear of the water is ideal. The chef brings everything and takes everything away; your rental's kitchen stays clean.",
+      "Almost every rental here is behind a gate: put the chef's name on the guest list or send the gate code ahead of the party. We need a level spot about the size of a king-size bed with roughly 10 ft of clearance — a patio pad or pool deck well clear of the water is ideal. The chef brings the grill, propane and food and takes it all away; your rental's kitchen stays clean.",
     ],
     faqs: [
       {

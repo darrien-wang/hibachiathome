@@ -10,7 +10,7 @@
 //
 // invoice_token：给合作方的 invoice 链接 https://www.realhibachi.com/p/invoice/<token>（合作方要的是
 // invoice，不是备料单）。每次打开都按订单现在的 invoice_data 现铸一份（lib/partner-invoice.ts），
-// 所以链接不过期、永远是最新版。改回直营 = 标记连同 token 一起删掉，链接随即 404。
+// 所以链接在派对后两周内一直能用（lib/partner-invoice.ts PARTNER_LINK_DAYS_AFTER_PARTY）、永远是最新版。改回直营 = 标记连同 token 一起删掉，链接随即 404。
 //
 // 这个文件浏览器和服务器都用（日地图、订单列表、份额饼图），不能 import 任何 node 模块。
 
@@ -86,6 +86,23 @@ export function splitOutsourced<T extends { dispatch_plan?: unknown }>(rows: T[]
   const outsourced: T[] = []
   for (const r of rows) (isOutsourced(r) ? outsourced : direct).push(r)
   return { direct, outsourced }
+}
+
+/**
+ * Why a party can no longer be handed to a partner, or null when it can. Marking a party outsourced
+ * cancels its assignment rows; on one that has started, is done or is settled that would take the
+ * chef's pay out of the ledgers (review 2026-11-19). eventStartWall / nowWall are the orders table's
+ * wall-clock-as-UTC ISO strings (lib/first-response.ts instantToWallIso).
+ */
+export function outsourceBlocker(
+  eventStartWall: string | null | undefined,
+  nowWall: string,
+  assignments: Array<{ assignment_status?: string | null; settled_at?: string | null; pay_settled_at?: string | null; settlement_id?: string | null }>,
+): string | null {
+  if (assignments.some((a) => a.settled_at || a.pay_settled_at || a.settlement_id)) return "这场已经和师傅结过账了，不能再标外包。"
+  if (assignments.some((a) => a.assignment_status === "completed")) return "这场已经做完了，不能再标外包。"
+  if (eventStartWall && Date.parse(eventStartWall) < Date.parse(nowWall)) return "这场已经开始或办完了，不能再标外包。"
+  return null
 }
 
 export const PARTNER_INVOICE_BASE = "https://www.realhibachi.com/p/invoice"

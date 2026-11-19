@@ -1275,14 +1275,14 @@ def outsourced_checks() -> None:
     check("外包 · the crew line (desk order show, the reviewer's 【二】): the partner runs it, the invoice link, what the customer was promised",
           party_check.plan_lines(sold["order"], [], []) == [
               "   派工: 外包（合作公司做，我们不派师傅）",
-              f"         给合作方的 invoice（不过期，打开就是订单现在的样子）: {PARTNER_LINK}",
+              f"         给合作方的 invoice（派对后两周内能打开，打开就是订单现在的样子）: {PARTNER_LINK}",
               "         答应过: 2 厨 / 2 灶 · 11-07 12:00 短信 \"Two chefs, two grills.\""],
           None, "\n".join(party_check.plan_lines(sold["order"], [], [])))
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
         desk._print_plan(sold["order"], {"cooks": [], "helpers": []})
     check("  desk order show prints it: 派工: 外包（合作公司做，我们不派师傅）, then the link",
-          buf.getvalue().splitlines()[:2] == ["   派工: 外包（合作公司做，我们不派师傅）", f"         给合作方的 invoice（不过期，打开就是订单现在的样子）: {PARTNER_LINK}"],
+          buf.getvalue().splitlines()[:2] == ["   派工: 外包（合作公司做，我们不派师傅）", f"         给合作方的 invoice（派对后两周内能打开，打开就是订单现在的样子）: {PARTNER_LINK}"],
           None, buf.getvalue())
 
     lines = party_check.sheet_lines(sold, "2026-11-21")

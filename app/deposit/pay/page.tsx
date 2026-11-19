@@ -72,8 +72,9 @@ const QUESTION_SMS = "Hi Real Hibachi! Quick question about locking my date."
 
 // Lunch parties lock here too (2026-11-06): Lilibeth's 12 PM corporate lunch
 // had no option and she had to text us for a link with the time preset.
-// The list runs to 11 PM (owner 2026-11-19: any start time is fine since 11-16, and a party that
-// wanted 9:30 had to text for a link). It is not a cutoff: we never name a latest start. A start
+// The list runs to 10:30 PM (owner 2026-11-19: any start time is fine since 11-16, and a party that
+// wanted 9:30 had to text for a link). Not 11 PM: the automatic bill text falls due an hour after the
+// start, and lead-watch is silent from midnight to 7, so an 11 PM party would never get it. It is not a cutoff: we never name a latest start. A start
 // between midnight and 4 AM carries the $200 late-night fee and comes through a desk link; mornings
 // come through "Not sure yet" or a desk link.
 const TIME_OPTIONS: ReadonlyArray<readonly [string, string]> = [
@@ -100,7 +101,6 @@ const TIME_OPTIONS: ReadonlyArray<readonly [string, string]> = [
   ["21:30", "9:30 PM"],
   ["22:00", "10:00 PM"],
   ["22:30", "10:30 PM"],
-  ["23:00", "11:00 PM"],
   ["TBD", "Not sure yet"],
 ]
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/

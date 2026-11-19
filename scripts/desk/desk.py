@@ -2618,7 +2618,8 @@ def cmd_order(a):
         return
     invoice_flags = (a.date, a.time, a.address, a.name, a.email, a.phone, a.notes_file, a.travel_miles, a.travel_fee, a.proteins,
                      a.headcount, a.retier, a.guests_file, a.deal_free, a.deal_rate, a.drop_deal or None, a.free_item, a.add_extra, a.set_extra, a.add_promo, a.remove_promo,
-                     a.free_appetizer, a.free_appetizer_trays, a.add_adult, a.add_child, a.remove_guest, a.promo, a.reconcile or None)
+                     a.free_appetizer, a.free_appetizer_trays, a.add_adult, a.add_child, a.remove_guest, a.promo, a.reconcile or None,
+                     a.deal_note)
     no_invoice_change = all(v in (None, False, []) for v in invoice_flags)
     plan_change = a.chefs is not None or a.grills is not None or a.stations is not None or a.plan_rule
     if a.op == "set" and a.prep_note_file is not None:

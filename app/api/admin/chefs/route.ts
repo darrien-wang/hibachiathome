@@ -30,8 +30,9 @@ import {
 } from "@/lib/chef-notify"
 import { ackNotices } from "@/lib/chef-notices"
 import { phoneDigits10 } from "@/lib/staff-phones"
-import { isOutsourced, keepOutsourcedMark, outsourcedMark, partnerInvoiceUrl, withOutsourcedMark, type OutsourcedMark } from "@/lib/outsourced"
+import { isOutsourced, keepOutsourcedMark, outsourceBlocker, outsourcedMark, partnerInvoiceUrl, withOutsourcedMark, type OutsourcedMark } from "@/lib/outsourced"
 import { newInvoiceToken } from "@/lib/partner-invoice"
+import { instantToWallIso } from "@/lib/first-response"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -1561,13 +1562,13 @@ export async function POST(request: NextRequest) {
       case "set_outsourced": {
         // 外包（老板 2026-11-18，lib/outsourced.ts）：这单卖给合作公司、他们去做。outsourced:true 标上，false 改回直营。
         // 标上时这单派的人（师傅和帮手）全部撤下，和排班图上把名字点掉一样（assign quiet）：只改名单，谁都不发短信；
-        // 拿过备料单的人出现在日地图「通知改动」里，老板点了才通知。同时给合作方一个不过期的 invoice 链接
+        // 拿过备料单的人出现在日地图「通知改动」里，老板点了才通知。同时给合作方一个派对后两周内都能用的 invoice 链接
         // （/p/invoice/<token>；再标一次 token 不换，发出去的链接一直能用）。改回直营 = 标记和链接一起删掉，
         // 撤下的人不恢复，回日地图重新派。客人那边什么都不变。订单用 order_id，或者单号 order_no（RH-…）。
         const byNo = typeof body.order_no === "string" && /^RH-\d{8}-\d{4}$/.test(body.order_no.trim()) ? body.order_no.trim() : null
         if (!isUuid(body.order_id) && !byNo) return NextResponse.json({ error: "order_id（或 order_no RH-…）required" }, { status: 400 })
         if (typeof body.outsourced !== "boolean") return NextResponse.json({ error: "outsourced: true（交给合作公司）或 false（改回直营）" }, { status: 400 })
-        const { data: ordO } = await supabase.from("orders").select("id, order_no, order_status, dispatch_plan").eq(isUuid(body.order_id) ? "id" : "order_no", isUuid(body.order_id) ? body.order_id : byNo).maybeSingle()
+        const { data: ordO } = await supabase.from("orders").select("id, order_no, order_status, event_start, dispatch_plan").eq(isUuid(body.order_id) ? "id" : "order_no", isUuid(body.order_id) ? body.order_id : byNo).maybeSingle()
         if (!ordO) return NextResponse.json({ error: "order not found" }, { status: 404 })
         const oid = String((ordO as { id: string }).id)
         const rawPlan = (ordO as { dispatch_plan?: unknown }).dispatch_plan
@@ -1580,6 +1581,12 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true, orderId: oid, outsourced: false })
         }
         if (/cancel|void|refund/i.test(String((ordO as { order_status?: string | null }).order_status ?? ""))) return NextResponse.json({ error: "这单已经取消了" }, { status: 409 })
+        const { data: onIt } = await supabase.from("order_staff_assignments").select("id, staff_member_id, assignment_role, assignment_status, settled_at, pay_settled_at, settlement_id").eq("order_id", oid).in("assignment_status", ACTIVE_ASSIGNMENT)
+        // 已经开始、做完或结过账的场不能标外包：标了会把师傅的派工行取消，工钱从账里消失。
+        if (!was) {
+          const blocked = outsourceBlocker((ordO as { event_start?: string | null }).event_start ?? null, instantToWallIso(Date.now()), (onIt ?? []) as Array<{ assignment_status: string | null; settled_at: string | null; pay_settled_at: string | null; settlement_id: string | null }>)
+          if (blocked) return NextResponse.json({ error: blocked, code: "finished" }, { status: 409 })
+        }
         const note = str(body.note, 200) || was?.note || null
         const mark: OutsourcedMark = { at: was?.at ?? now, by: was?.by ?? `workbench:${actor.alias}`, invoice_token: was?.invoice_token ?? newInvoiceToken(), ...(note ? { note } : {}) }
         const changed = !was || was.at !== mark.at || was.invoice_token !== mark.invoice_token || (was.note ?? null) !== (mark.note ?? null)
@@ -1588,7 +1595,6 @@ export async function POST(request: NextRequest) {
           const { error } = await supabase.from("orders").update({ dispatch_plan: withOutsourcedMark(rawPlan, mark), updated_at: now }).eq("id", oid)
           if (error) throw error
         }
-        const { data: onIt } = await supabase.from("order_staff_assignments").select("id, staff_member_id, assignment_role").eq("order_id", oid).in("assignment_status", ACTIVE_ASSIGNMENT)
         const off = (onIt ?? []) as Array<{ id: string; staff_member_id: string; assignment_role: string | null }>
         if (off.length) {
           const { error } = await supabase.from("order_staff_assignments").update({ assignment_status: "cancelled", updated_at: now }).in("id", off.map((a) => a.id))

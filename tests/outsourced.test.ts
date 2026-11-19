@@ -14,13 +14,14 @@ import {
   isInvoiceToken,
   isOutsourced,
   keepOutsourcedMark,
+  outsourceBlocker,
   outsourcedMark,
   partnerInvoiceUrl,
   splitOutsourced,
   withOutsourcedMark,
   type OutsourcedMark,
 } from "../lib/outsourced"
-import { INVOICE_API, mintInvoiceView, newInvoiceToken, partnerInvoiceRedirect, PARTNER_INVOICE_REUSE_MS, payOf, type PartnerOrder } from "../lib/partner-invoice"
+import { INVOICE_API, mintInvoiceView, newInvoiceToken, partnerInvoiceRedirect, PARTNER_INVOICE_REUSE_MS, PARTNER_LINK_DAYS_AFTER_PARTY, payOf, type PartnerOrder } from "../lib/partner-invoice"
 
 const TOKEN = "AbCdEfGhIjKlMnOpQrStUvWxYz012-_9"
 const MARK: OutsourcedMark = { at: "2026-11-18T20:00:00.000Z", by: "workbench:owner", invoice_token: TOKEN }
@@ -219,4 +220,30 @@ test("partner link · 502 says nothing of the internals when the invoice tool or
   } finally {
     console.error = errors
   }
+})
+
+test("mark · a party that started, is done or is settled cannot be handed to a partner", () => {
+  const now = "2026-11-19T09:00:00.000Z" // wall clock as UTC, like orders.event_start
+  // Saturday's party, chefs only assigned: fine.
+  assert.equal(outsourceBlocker("2026-11-21T17:00:00+00:00", now, [{ assignment_status: "confirmed" }]), null)
+  assert.equal(outsourceBlocker("2026-11-21T17:00:00+00:00", now, []), null)
+  // Yesterday's party: its chef's pay row is still open until Saturday's settlement.
+  assert.match(outsourceBlocker("2026-11-18T18:00:00+00:00", now, [{ assignment_status: "confirmed" }]) ?? "", /已经开始或办完/)
+  assert.match(outsourceBlocker("2026-11-21T17:00:00+00:00", now, [{ assignment_status: "completed" }]) ?? "", /做完/)
+  assert.match(outsourceBlocker("2026-11-21T17:00:00+00:00", now, [{ assignment_status: "confirmed", pay_settled_at: "2026-11-15T03:00:00Z" }]) ?? "", /结过账/)
+  assert.match(outsourceBlocker(null, now, [{ assignment_status: "confirmed", settlement_id: "s1" }]) ?? "", /结过账/)
+  // No start time on the order yet: nothing to compare, nothing blocks.
+  assert.equal(outsourceBlocker(null, now, [{ assignment_status: "tentative" }]), null)
+})
+
+test("partner link · stops two weeks after the party (the invoice carries the customer's details)", async () => {
+  const tool = fakeInvoiceTool()
+  const party = "2026-11-21T17:00:00+00:00"
+  const at = (daysAfter: number) => Date.parse(party) + daysAfter * 86_400_000
+  const run = (now: number) => partnerInvoiceRedirect(TOKEN, { findOrders: async () => [partnerOrder({ event_start: party })], fetchImpl: tool.fetchImpl, cache: new Map(), now })
+  assert.equal((await run(at(-2))).status, 302)
+  assert.equal((await run(at(PARTNER_LINK_DAYS_AFTER_PARTY - 1))).status, 302)
+  assert.deepEqual(await run(at(PARTNER_LINK_DAYS_AFTER_PARTY + 1)), { status: 404, body: "Not found" })
+  // An order with no start time keeps working (nothing to count from).
+  assert.equal((await partnerInvoiceRedirect(TOKEN, { findOrders: async () => [partnerOrder()], fetchImpl: tool.fetchImpl, cache: new Map(), now: at(400) })).status, 302)
 })

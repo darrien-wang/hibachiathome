@@ -878,7 +878,7 @@ def plan_lines(order: dict, cooks: list[str] | None, helpers: list[str] | None =
         link = partner_invoice_url(order)
         out = ["   派工: 外包（合作公司做，我们不派师傅）" + (f" · {mark['note']}" if mark.get("note") else "")
                + (f" · 名单上还有 {' + '.join([*(cooks or []), *(helpers or [])])}" if cooks or helpers else ""),
-               f"         给合作方的 invoice（不过期，打开就是订单现在的样子）: {link or '还没有链接（在日地图上改回直营、再标一次外包会生成）'}"]
+               f"         给合作方的 invoice（派对后两周内能打开，打开就是订单现在的样子）: {link or '还没有链接（在日地图上改回直营、再标一次外包会生成）'}"]
         if plan["stations_note"]:
             out.append(f"         站位（答应过客人的摆法）: {plan['stations_note']}")
         pr = plan["promise"]

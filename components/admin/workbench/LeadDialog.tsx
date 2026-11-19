@@ -104,7 +104,7 @@ export function LeadDialog({
   const [flatOff, setFlatOff] = useState("")
   const [appId, setAppId] = useState<"" | QuoteAppetizer>("")
   const [appTrays, setAppTrays] = useState("")
-  // 桌椅换锁日期（D-1017-01）：周六最多半价 $5/人，周日到周五最多免费。
+  // 桌椅不当让价（D-1119-01，老板 2026-11-19）：报价工具能送的只有餐具。老客人答应过的桌椅优惠用 desk link deposit --free / --rate 出链接。
   const [freeUtensils, setFreeUtensils] = useState(false)
   // 协议价默认只有答应的东西（2026-11-03）；勾了才叠送前菜/周中价。
   const [stackPromos, setStackPromos] = useState(false)
@@ -693,11 +693,6 @@ export function LeadDialog({
               {quote.semiBuffet ? (
                 <div style={{ color: "var(--color-warning-700, #b45309)" }}>
                   低于平时底线 → 按半自助做：表演照做，食物放桌上大盘自己添，{quote.semiBuffetChefs} 个厨师（50 人一个）。报价短信里已写明 family-style。
-                </div>
-              ) : null}
-              {quote.tablesRate !== null ? (
-                <div>
-                  桌椅 {quote.adults + quote.kids} 位 × ${quote.tablesRate}（原 $10）= {usd(quote.tablesCharge)}，进总价（和发票一样算在 $599 起订之内）
                 </div>
               ) : null}
               {quote.freebiesZh.length ? <div>送：{quote.freebiesZh.join("、")}，共值 ${quote.freeValue}，不进总价</div> : null}

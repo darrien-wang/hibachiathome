@@ -50,7 +50,7 @@ type Stop = {
 }
 /**
  * 外包的单（老板 2026-11-18，lib/outsourced.ts）：合作公司去做。不上地图、不进排班线、不算师傅数，
- * 单独列在排班线下面。invoiceUrl = 给合作方的 invoice 链接（不过期，打开就是订单现在的样子）。
+ * 单独列在排班线下面。invoiceUrl = 给合作方的 invoice 链接（派对后两周内都能打开，打开就是订单现在的样子）。
  */
 type OutStop = {
   id: string
@@ -446,7 +446,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
 
   // ---- 外包（老板 2026-11-18）：这单卖给合作公司、他们去做，和直营的分开。标上之后从排班线、师傅数、
   // 未派提醒、备货清单里拿掉，名单上的人撤下（只改名单不发短信，拿过备料单的进"通知改动"）。
-  // 合作方要的是 invoice，不是备料单：每单一个不过期的链接，打开就是订单现在的样子。客人那边什么都不变。
+  // 合作方要的是 invoice，不是备料单：每单一个链接，派对后两周内都能打开，打开就是订单现在的样子。客人那边什么都不变。
   const [outBusy, setOutBusy] = useState<string | null>(null)
   const markOutsourced = async (s: Stop) => {
     if (outBusy) return
@@ -457,7 +457,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
         `${headsText(s.guests)} 人 · ${cityOf(s.address) || "地址未定"}，交给合作公司做：`,
         "· 从派单路线里拿掉，不算师傅数，也不进备货清单",
         team.length ? `· 撤下 ${namesOf(team)}：只改名单，不发短信（拿过备料单的人会出现在"通知改动"里）` : "· 这单还没派人",
-        "· 生成一条给合作方的 invoice 链接，打开就是订单现在的样子，不会过期",
+        "· 生成一条给合作方的 invoice 链接，打开就是订单现在的样子，派对后两周内都能打开",
         "",
         "客人那边看不到任何变化。",
       ].join("\n"),
@@ -496,7 +496,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
   }
   const copyInvoiceLink = async (o: OutStop) => {
     if (!o.invoiceUrl) return
-    const said = `${o.time} ${o.name} 给合作方的 invoice 链接，打开就是订单现在的样子，不会过期：`
+    const said = `${o.time} ${o.name} 给合作方的 invoice 链接，打开就是订单现在的样子，派对后两周内都能打开：`
     try {
       await navigator.clipboard.writeText(o.invoiceUrl)
       void tell({ title: "已复制 invoice 链接", message: `${said}\n${o.invoiceUrl}` })
@@ -592,7 +592,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
         })}
       </div>
       <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 6 }}>
-        合作公司做：不派师傅、不发备料单、不进备货清单，也不算在上面的师傅数里。给合作方的是 invoice 链接，打开就是订单现在的样子，不会过期。客人那边看不到外包。
+        合作公司做：不派师傅、不发备料单、不进备货清单，也不算在上面的师傅数里。给合作方的是 invoice 链接，打开就是订单现在的样子，派对后两周内都能打开。客人那边看不到外包。
       </div>
     </div>
   ) : null
