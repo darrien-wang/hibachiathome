@@ -20,6 +20,8 @@ import { checkMove, teamsAfter, weekHeads, type BoardDay, type BoardStop, type M
 
 type DayResp = BoardDay & {
   chefs: Array<{ id: string; name: string; active: boolean; canHelp: boolean }>
+  /** 外包的单（lib/outsourced.ts）：不上这张板，只看还欠不欠"不用去"的通知。stops 里只有直营的。 */
+  outsourced?: Array<Pick<BoardStop, "id" | "name" | "time" | "pending">>
 }
 
 type Drag = { orderId: string; from: string | null; date: string }
@@ -149,7 +151,8 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
   }
 
   // 通知改动：和日历地图同一个入口——拿着备料单却被换下的说"不用去"，新上来的、这单发过备料单的补发。
-  const pending = loaded.flatMap((d) => d.stops.filter((s) => (s.pending?.add.length ?? 0) + (s.pending?.remove.length ?? 0) > 0).map((s) => ({ d, s })))
+  // 外包的单也算：外包前拿过备料单的人要告诉他不用去。
+  const pending = loaded.flatMap((d) => [...d.stops, ...(d.outsourced ?? [])].filter((s) => (s.pending?.add.length ?? 0) + (s.pending?.remove.length ?? 0) > 0).map((s) => ({ d, s })))
   const notify = async () => {
     if (!pending.length || busy) return
     const names = (ids: string[]) => ids.map(nameOf).join("、")

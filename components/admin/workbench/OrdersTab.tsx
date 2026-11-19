@@ -5,6 +5,7 @@ import { Chip, Tag } from "./ui"
 import { confirmState, CONFIRM_LABEL, CONFIRM_TAG_CLS, displayName, dowZh, eventParts, inDaysLabel, md, money, prettyPhone, ptToday, stageOf, STAGE_TAG_CLASS, type OrderRow, type Stage, type UpdateRequest } from "./helpers"
 import { orderPaidHeads } from "@/lib/dispatch-plan-order"
 import { headsText } from "@/lib/party-heads"
+import { isOutsourced } from "@/lib/outsourced"
 import type { AssignmentMap } from "./chef-types"
 import { PlannerPill, type PlannerLive } from "./planner-live"
 import { PrepDialog } from "./PrepDialog"
@@ -61,8 +62,10 @@ export function OrdersTab({
   onOpenOrder: (id: string) => void
 }) {
   const [prepOpen, setPrepOpen] = useState(false)
-  const chefLine = (id: string) => {
-    const team = assignments[id] ?? []
+  const chefLine = (o: OrderRow) => {
+    // 外包（合作公司做，lib/outsourced.ts）不派师傅，不是"未派"。
+    if (isOutsourced(o)) return { text: "外包（合作公司做）", color: "var(--color-neutral-600)" }
+    const team = assignments[o.id] ?? []
     return team.length ? { text: `师傅 ${team.map((a) => a.name).join(" + ")}`, color: "var(--color-neutral-600)" } : { text: "师傅 未派", color: "var(--color-accent-700)" }
   }
   const [filter, setFilter] = useState<OrderFilter>(initialFilter ?? "upcoming")
@@ -181,8 +184,8 @@ export function OrdersTab({
                   <td style={{ maxWidth: 0, width: "28%" }}>
                     <div className="clamp1">{r.o.event_address ?? "—"}</div>
                     {r.stage !== "已取消" && r.stage !== "已办完" ? (
-                      <div className="clamp1" style={{ fontSize: 11, color: chefLine(r.o.id).color }}>
-                        {chefLine(r.o.id).text}
+                      <div className="clamp1" style={{ fontSize: 11, color: chefLine(r.o).color }}>
+                        {chefLine(r.o).text}
                       </div>
                     ) : null}
                   </td>
@@ -245,7 +248,7 @@ export function OrdersTab({
                 <div style={{ fontSize: 12, color: pl.color }}>
                   {pl.text} · {r.ev ? inDaysLabel(r.ev.ymd, today) : ""}
                 </div>
-                {r.stage !== "已取消" && r.stage !== "已办完" ? <div style={{ fontSize: 12, color: chefLine(r.o.id).color }}>{chefLine(r.o.id).text}</div> : null}
+                {r.stage !== "已取消" && r.stage !== "已办完" ? <div style={{ fontSize: 12, color: chefLine(r.o).color }}>{chefLine(r.o).text}</div> : null}
               </article>
             )
           })}

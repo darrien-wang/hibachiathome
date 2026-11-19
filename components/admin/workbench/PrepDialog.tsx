@@ -24,12 +24,16 @@ type PrepOrder = {
   proteinLine: string
   extrasLine: string
   cooler?: CoolerParty
+  /** 外包（合作公司做，lib/outsourced.ts）：列出来，不备货，不进合计。 */
+  outsourced?: boolean
 }
 type StockRow = { item_key: string; label: string; unit: string; qty: number; low_at: number | null; note: string | null; updated_at: string }
 type PrepData = {
   ok: boolean
   date: string
+  /** 我们自己备的场数和人数（外包的不算）。 */
   orderCount: number
+  outsourcedCount?: number
   guestTotal: number
   orders: PrepOrder[]
   totals: PrepItem[]
@@ -98,7 +102,7 @@ export function PrepDialog({ adminKey, owner, onClose, onOpenOrder }: { adminKey
 
   const copyText = useMemo(() => {
     if (!d) return ""
-    const lines: string[] = [`${md(d.date)} ${dowZh(d.date)} 备料 · ${d.orderCount} 场 ${d.guestTotal} 人（宁多勿少：建议量已 +10% 取整）`]
+    const lines: string[] = [`${md(d.date)} ${dowZh(d.date)} 备料 · ${d.orderCount} 场 ${d.guestTotal} 人${d.outsourcedCount ? `（另有 ${d.outsourcedCount} 场外包，不备货）` : ""}（宁多勿少：建议量已 +10% 取整）`]
     for (const w of d.warnings) lines.push(`⚠ ${w}`)
     for (const g of groups) {
       lines.push(``, `【${g.title}】`)
@@ -115,7 +119,12 @@ export function PrepDialog({ adminKey, owner, onClose, onOpenOrder }: { adminKey
       }
     }
     lines.push(``, `——按单——`)
-    for (const o of d.orders) lines.push(`${o.timeLabel} ${o.name} ${o.adults + o.kids}人${o.city ? ` · ${o.city}` : ""}：${o.menuKnown ? o.proteinLine : "菜单未定"}${o.extrasLine ? ` · ${o.extrasLine}` : ""}`)
+    for (const o of d.orders)
+      lines.push(
+        o.outsourced
+          ? `${o.timeLabel} ${o.name} ${o.adults + o.kids}人${o.city ? ` · ${o.city}` : ""}：外包 · 不备货`
+          : `${o.timeLabel} ${o.name} ${o.adults + o.kids}人${o.city ? ` · ${o.city}` : ""}：${o.menuKnown ? o.proteinLine : "菜单未定"}${o.extrasLine ? ` · ${o.extrasLine}` : ""}`,
+      )
     lines.push(``, `冰箱里已有的自己扣掉。`)
     return lines.join("\n")
   }, [d, groups])
@@ -166,7 +175,11 @@ export function PrepDialog({ adminKey, owner, onClose, onOpenOrder }: { adminKey
 
         {err ? <div className="notice">{err}</div> : null}
         {!d && !err ? <div className="empty">算料中…</div> : null}
-        {d && d.orderCount === 0 ? <div className="empty">{md(d.date)} {dowZh(d.date)} 没有订单，不用备料。</div> : null}
+        {d && d.orderCount === 0 ? (
+          <div className="empty">
+            {md(d.date)} {dowZh(d.date)} {d.outsourcedCount ? `只有 ${d.outsourcedCount} 场外包（合作公司做），不用备料。` : "没有订单，不用备料。"}
+          </div>
+        ) : null}
 
         {d?.warnings.map((w, i) => (
           <div key={i} className="notice" style={{ borderColor: "var(--color-accent)", color: "var(--color-accent-700)" }}>
@@ -178,16 +191,16 @@ export function PrepDialog({ adminKey, owner, onClose, onOpenOrder }: { adminKey
           <>
             <div>
               <Kicker style={{ marginBottom: 8 }}>
-                {md(d.date)} {dowZh(d.date)} · {d.orderCount} 场 · {d.guestTotal} 人
+                {md(d.date)} {dowZh(d.date)} · {d.orderCount} 场 · {d.guestTotal} 人{d.outsourcedCount ? ` · 另有 ${d.outsourcedCount} 场外包（不备货）` : ""}
               </Kicker>
               {d.orders.map((o) => (
-                <div key={o.id} className="wb-row" onClick={() => onOpenOrder(o.id)} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "8px 0", borderBottom: "1px solid var(--color-line)", cursor: "pointer" }}>
+                <div key={o.id} className="wb-row" onClick={() => onOpenOrder(o.id)} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "8px 0", borderBottom: "1px solid var(--color-line)", cursor: "pointer", ...(o.outsourced ? { opacity: 0.6 } : {}) }}>
                   <strong style={{ whiteSpace: "nowrap" }}>{o.timeLabel}</strong>
                   <span style={{ minWidth: 0, flex: 1 }}>
                     {o.name} · {o.adults + o.kids} 人{o.kids ? `（小孩 ${o.kids}）` : ""}
-                    <span style={{ color: "var(--color-neutral-700)" }}>{o.menuKnown ? ` · ${o.proteinLine}` : ""}{o.extrasLine ? ` · ${o.extrasLine}` : ""}</span>
+                    {o.outsourced ? null : <span style={{ color: "var(--color-neutral-700)" }}>{o.menuKnown ? ` · ${o.proteinLine}` : ""}{o.extrasLine ? ` · ${o.extrasLine}` : ""}</span>}
                   </span>
-                  {!o.menuKnown ? <Tag cls="tag-accent">菜单未定</Tag> : null}
+                  {o.outsourced ? <Tag cls="tag-neutral">外包 · 不备货</Tag> : !o.menuKnown ? <Tag cls="tag-accent">菜单未定</Tag> : null}
                 </div>
               ))}
             </div>

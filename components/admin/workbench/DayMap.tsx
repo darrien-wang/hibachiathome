@@ -8,6 +8,7 @@ import { operatorName } from "./helpers"
 import { headsText } from "@/lib/party-heads"
 import { TileMap } from "@/components/schedule/TileMap"
 import { coolerSheetHtml, type CoolerParty } from "@/lib/cooler-sheet"
+import { dayMapTitle } from "@/lib/outsourced"
 
 // 一天几场摆到地图上，并算出最少要几个师傅、谁接谁（老板 2026-09-29）。
 // 排班规则照的是他们人工的算法，见 lib/dispatch.ts。
@@ -47,6 +48,26 @@ type Stop = {
   /** 难度小结（老板 2026-11-13）：1–5 分 + 理由；source owner = 老板定的 */
   difficulty?: { score: number; note: string | null; source: string | null } | null
 }
+/**
+ * 外包的单（老板 2026-11-18，lib/outsourced.ts）：合作公司去做。不上地图、不进排班线、不算师傅数，
+ * 单独列在排班线下面。invoiceUrl = 给合作方的 invoice 链接（不过期，打开就是订单现在的样子）。
+ */
+type OutStop = {
+  id: string
+  orderNo: string
+  name: string
+  address: string
+  time: string
+  guests: number
+  headsNote?: string
+  outsourcedAt: string | null
+  outsourcedBy: string | null
+  note: string | null
+  invoiceUrl: string | null
+  chefIds: string[]
+  helperIds?: string[]
+  pending?: { add: string[]; remove: string[] }
+}
 // 偏新手的人（师傅派单规则 D-1030-04：John 偏新手、Eason 15 人以下、易非只当帮手）。
 // 难度 3 分以上的场派到他们，图上标红提醒（老板 2026-11-13）。
 const NOVICE_NAMES = new Set(["John", "Eason", "易非"])
@@ -70,7 +91,9 @@ type Link = {
 type Plan = { key: string; tolerance: number; chefs: number; chains: string[][]; links: Link[]; spread: boolean; onePerParty: boolean }
 type Resp = {
   date: string
+  /** 直营的单（我们自己做）：上地图、排班、派师傅。外包的在 outsourced。 */
   stops: Stop[]
+  outsourced?: OutStop[]
   chefs: Chef[]
   missing: Array<{ name: string; address: string }>
   home: { lat: number; lng: number; label: string } | null
@@ -379,7 +402,9 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
 
   // ---- 通知改动（老板 2026-11-13「我需要有个入口最终通知」）：排班图上悄悄改的名单，一次性通知。
   // 拿着备料单、已经不在名单上的 -> 「那场改给别人了，你不用去」；这单发过备料单、新上来还没拿到的 -> 发备料单。
-  const pendingStops = (d?.stops ?? []).filter((s) => (s.pending?.add.length ?? 0) + (s.pending?.remove.length ?? 0) > 0)
+  // 外包的单也在里面：外包前拿过备料单的人要告诉他不用去（标外包只改名单、不发短信）。
+  const outs = d?.outsourced ?? []
+  const pendingStops: Array<Pick<Stop, "id" | "time" | "name" | "pending">> = [...(d?.stops ?? []), ...outs].filter((s) => (s.pending?.add.length ?? 0) + (s.pending?.remove.length ?? 0) > 0)
   const [notifying, setNotifying] = useState(false)
   const notifyChanges = async () => {
     if (notifying || !pendingStops.length) return
@@ -416,6 +441,67 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
     } finally {
       await load()
       setNotifying(false)
+    }
+  }
+
+  // ---- 外包（老板 2026-11-18）：这单卖给合作公司、他们去做，和直营的分开。标上之后从排班线、师傅数、
+  // 未派提醒、备货清单里拿掉，名单上的人撤下（只改名单不发短信，拿过备料单的进"通知改动"）。
+  // 合作方要的是 invoice，不是备料单：每单一个不过期的链接，打开就是订单现在的样子。客人那边什么都不变。
+  const [outBusy, setOutBusy] = useState<string | null>(null)
+  const markOutsourced = async (s: Stop) => {
+    if (outBusy) return
+    const team = actualOf(s)
+    const ok = await askConfirm({
+      title: `改成外包：${s.time} ${s.name}`,
+      message: [
+        `${headsText(s.guests)} 人 · ${cityOf(s.address) || "地址未定"}，交给合作公司做：`,
+        "· 从派单路线里拿掉，不算师傅数，也不进备货清单",
+        team.length ? `· 撤下 ${namesOf(team)}：只改名单，不发短信（拿过备料单的人会出现在"通知改动"里）` : "· 这单还没派人",
+        "· 生成一条给合作方的 invoice 链接，打开就是订单现在的样子，不会过期",
+        "",
+        "客人那边看不到任何变化。",
+      ].join("\n"),
+      okLabel: "改成外包",
+    })
+    if (!ok) return
+    setOutBusy(s.id)
+    try {
+      const r = await adminJson<{ ok: boolean; error?: string }>(adminKey, "/api/admin/chefs", { body: { action: "set_outsourced", order_id: s.id, outsourced: true } })
+      if (!r.ok) throw new Error(r.error ?? "没改成")
+    } catch (e) {
+      void tell({ title: "没改成外包", message: e instanceof Error ? e.message : "出错了" })
+    } finally {
+      await load()
+      setOutBusy(null)
+    }
+  }
+  const backToDirect = async (o: OutStop) => {
+    if (outBusy) return
+    const ok = await askConfirm({
+      title: `改回直营：${o.time} ${o.name}`,
+      message: "回到派单路线里，我们自己做，要重新派师傅。\n给合作方的 invoice 链接随即失效（打开是 404）。",
+      okLabel: "改回直营",
+    })
+    if (!ok) return
+    setOutBusy(o.id)
+    try {
+      const r = await adminJson<{ ok: boolean; error?: string }>(adminKey, "/api/admin/chefs", { body: { action: "set_outsourced", order_id: o.id, outsourced: false } })
+      if (!r.ok) throw new Error(r.error ?? "没改成")
+    } catch (e) {
+      void tell({ title: "没改回直营", message: e instanceof Error ? e.message : "出错了" })
+    } finally {
+      await load()
+      setOutBusy(null)
+    }
+  }
+  const copyInvoiceLink = async (o: OutStop) => {
+    if (!o.invoiceUrl) return
+    const said = `${o.time} ${o.name} 给合作方的 invoice 链接，打开就是订单现在的样子，不会过期：`
+    try {
+      await navigator.clipboard.writeText(o.invoiceUrl)
+      void tell({ title: "已复制 invoice 链接", message: `${said}\n${o.invoiceUrl}` })
+    } catch {
+      void tell({ title: "复制不了，手动复制下面这条", message: `${said}\n${o.invoiceUrl}` })
     }
   }
 
@@ -475,10 +561,46 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
     setSending(false)
   }
 
+  // 外包的单：排班线下面单独一块，"外包 · N 场"。
+  const outBlock = outs.length ? (
+    <div style={{ marginTop: 14, border: "2px dashed var(--color-text)", padding: 12 }}>
+      <div style={{ fontWeight: 800, fontSize: 15 }}>外包 · {outs.length} 场</div>
+      <div style={{ fontSize: 13, marginTop: 6, display: "flex", flexDirection: "column", gap: 6 }}>
+        {outs.map((o) => {
+          const left = Array.from(new Set([...o.chefIds, ...(o.helperIds ?? [])]))
+          return (
+            <div key={o.id} style={{ display: "flex", gap: 6, alignItems: "baseline", flexWrap: "wrap" }}>
+              <button type="button" className="btn btn-ghost" style={{ padding: 0, minHeight: 0, fontWeight: 700, fontSize: 14 }} onClick={() => onOpenOrder(o.id)}>
+                {o.time} · {o.name}
+              </button>
+              <span style={{ color: "var(--color-neutral-600)" }} title={`${o.headsNote ?? ""}（小孩按 0.5 人）`}>
+                · {headsText(o.guests)} 人 · {cityOf(o.address) || "地址未定"}
+                {o.note ? ` · ${o.note}` : ""}
+              </span>
+              {left.length ? <span style={{ color: "var(--color-accent-700)", fontWeight: 700 }}> · 名单上还有 {namesOf(left)}</span> : null}
+              {(o.pending?.remove.length ?? 0) > 0 ? <span style={{ color: "var(--color-accent-700)", fontWeight: 700 }}> · 待通知 −{namesOf(o.pending!.remove)}</span> : null}
+              <span style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
+                <button type="button" className="btn btn-secondary btn-sm" disabled={!o.invoiceUrl} title={o.invoiceUrl ?? "还没有链接：点改回直营再标一次外包会生成"} onClick={() => void copyInvoiceLink(o)}>
+                  复制 invoice 链接
+                </button>
+                <button type="button" className="btn btn-secondary btn-sm" disabled={outBusy !== null} onClick={() => void backToDirect(o)}>
+                  {outBusy === o.id ? "改回中…" : "改回直营"}
+                </button>
+              </span>
+            </div>
+          )
+        })}
+      </div>
+      <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 6 }}>
+        合作公司做：不派师傅、不发备料单、不进备货清单，也不算在上面的师傅数里。给合作方的是 invoice 链接，打开就是订单现在的样子，不会过期。客人那边看不到外包。
+      </div>
+    </div>
+  ) : null
+
   return (
     <Dialog onClose={onClose} width={720}>
       <DialogHead
-        title={d && plan ? `${date} · ${d.stops.length} 场 · ${plan.chefs} 个师傅` : `${date}`}
+        title={d ? dayMapTitle(date, d.stops.length, outs.length, plan ? plan.chefs : null) : `${date}`}
         lines={["实线 = 拖满也不迟到；虚线 = 拖满会迟到。点圆点看详情。"]}
         onClose={onClose}
       />
@@ -685,6 +807,19 @@ ${s.difficulty.note}` : ""}` : "还没打难度分，点一下打"}
                               改这一场的人
                             </button>
                           ) : null}
+                          {/* 外包（老板 2026-11-18）：一场一个按钮；两位以上师傅的单出现在好几行，只放在第一行 */}
+                          {rows.findIndex((r) => r.chain.includes(id)) === ci ? (
+                            <button
+                              type="button"
+                              className="wb-chip wb-chip-sm"
+                              style={{ marginLeft: 6 }}
+                              disabled={outBusy !== null || saving || assigning !== null}
+                              title="交给合作公司做：从路线、师傅数和备货清单里拿掉"
+                              onClick={() => void markOutsourced(s)}
+                            >
+                              {outBusy === id ? "外包中…" : "外包"}
+                            </button>
+                          ) : null}
                           {editStop === `${ci}:${id}` ? (
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, margin: "6px 0 2px", padding: 8, border: "1px dashed var(--color-divider)" }}>
                               <span style={{ fontSize: 12, color: "var(--color-neutral-600)", width: "100%" }}>只改 {s.time} {s.name} 这一场：</span>
@@ -746,6 +881,8 @@ ${s.difficulty.note}` : ""}` : "还没打难度分，点一下打"}
               </div>
               )
             })}
+
+            {outBlock}
 
             {pendingStops.length ? (
               <div style={{ marginTop: 14, border: "2px solid var(--color-accent)", padding: 12 }}>
@@ -864,6 +1001,8 @@ ${s.difficulty.note}` : ""}` : "还没打难度分，点一下打"}
             </div>
           </div>
         ) : null}
+        {/* 没有排班可显示（这天没有直营的单）时外包那块也要在 */}
+        {d && !plan ? outBlock : null}
       </div>
     </Dialog>
   )

@@ -269,6 +269,9 @@ export const ORDER_EVENT_LABELS: Record<string, string> = {
   payment_received_ingested: "收款入账",
   chef_assigned: "派单",
   helpers_assigned: "派帮手",
+  // 外包（老板 2026-11-18，lib/outsourced.ts）：合作公司做 / 改回我们自己做。
+  outsourced_set: "改成外包（合作公司做）",
+  outsourced_cleared: "改回直营",
   chef_removed_notified: "通知师傅不用去了",
   // 订单改了、师傅还没被告知（2026-11-13 起链接照样能打开，改动印在最上面）；之前叫 chef_sheet_voided（那版作废）。
   chef_sheet_changed: "订单改了，师傅还没收到改动通知",

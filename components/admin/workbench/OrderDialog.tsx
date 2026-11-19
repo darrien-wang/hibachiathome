@@ -48,6 +48,7 @@ import { cancelDoneLines, cancelPlanLines } from "@/lib/order-cancel-lines"
 import type { CancelOutcome } from "@/lib/order-cancel"
 import { orderPaidHeads } from "@/lib/dispatch-plan-order"
 import { headsText } from "@/lib/party-heads"
+import { outsourcedMark, partnerInvoiceUrl } from "@/lib/outsourced"
 
 // 尾款口径（决策日志 D-1006-05/06，2026-10-06）：10-06 起建的单一个标价两张账——现金 =
 // 标价含税；刷卡 = 标价 + 派对地址的销售税 + 刷卡手续费 3%。两张账全由
@@ -394,7 +395,10 @@ export function OrderDialog({
   const deposit = (detail?.payments ?? []).find((p) => p.type === "deposit")
   const otherPaid = Math.max(0, (o.amount_paid_total_cents ?? 0) - (o.deposit_paid_total_cents ?? 0))
   const guests = orderPaidHeads(o)
-  const chefLabel = assignments.length ? assignments.map((a) => a.name).join(" + ") : "未派"
+  // 外包（老板 2026-11-18，lib/outsourced.ts）：合作公司做，不派师傅；给合作方的是 invoice 链接。
+  const outMark = outsourcedMark(o.dispatch_plan)
+  const partnerLink = partnerInvoiceUrl(outMark?.invoice_token)
+  const chefLabel = outMark && !assignments.length ? "外包（合作公司做）" : assignments.length ? assignments.map((a) => a.name).join(" + ") : "未派"
   const chefNote = assignments.length > 1 ? `${assignments.length} 位师傅 · 人头平分 ${headsText(Math.round((guests / assignments.length) * 10) / 10)} 人/位` : ""
   const teamDirty = team !== null && (team.length !== assignments.length || team.some((id) => !assignments.find((a) => a.staffId === id)))
   const removedFromTeam = team === null ? [] : assignments.filter((a) => !team.includes(a.staffId)).map((a) => a.name)
@@ -737,11 +741,11 @@ export function OrderDialog({
                 </span>,
               ]
             : []),
-          <span style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 12, alignItems: "center" }}>
+          <span key="crew" style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 12, alignItems: "center" }}>
             <PlannerPill s={live} project={clarityProject} />
             <span style={{ fontWeight: 600, color: pstate.accent ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>{pstate.text}</span>
-            <span style={{ color: assignments.length ? "var(--color-neutral-600)" : "var(--color-accent-700)" }}>
-              师傅 {chefLabel}
+            <span style={{ color: assignments.length || outMark ? "var(--color-neutral-600)" : "var(--color-accent-700)" }}>
+              {outMark && !assignments.length ? chefLabel : `师傅 ${chefLabel}`}
               {chefNote ? ` · ${chefNote}` : ""}
             </span>
           </span>,
@@ -1004,7 +1008,7 @@ export function OrderDialog({
             <div style={{ fontSize: 13, borderTop: "2px solid var(--color-divider)", paddingTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <span>
-                  <strong style={{ color: assignments.length ? undefined : "var(--color-accent-700)" }}>{chefLabel}</strong>
+                  <strong style={{ color: assignments.length || outMark ? undefined : "var(--color-accent-700)" }}>{chefLabel}</strong>
                   {chefNote ? <span style={{ color: "var(--color-neutral-600)" }}> · {chefNote}</span> : null}
                 </span>
                 {assignments.length ? (
@@ -1017,6 +1021,34 @@ export function OrderDialog({
                   </span>
                 ) : null}
               </div>
+              {/* 外包（老板 2026-11-18）：合作公司做，不派师傅、不发备料单；合作方要的是 invoice。标外包、改回直营在当天的派单地图上。 */}
+              {outMark ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <Tag cls="tag-neutral">外包</Tag>
+                    <span style={{ color: "var(--color-neutral-600)" }}>
+                      {[outMark.at ? `${stamp(outMark.at)} 标的` : "", outMark.note ?? ""].filter(Boolean).join(" · ")}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={!partnerLink}
+                      title={partnerLink ?? "还没有链接：在派单地图上改回直营再标一次外包会生成"}
+                      onClick={() => {
+                        if (!partnerLink) return
+                        copyText(partnerLink)
+                        setMsg(`已复制给合作方的 invoice 链接（打开就是订单现在的样子，不会过期）：${partnerLink}`)
+                      }}
+                    >
+                      复制给合作方的 invoice 链接
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>合作公司做：不派师傅、不发备料单、不进备货清单。客人那边看不到外包。要自己做，去当天的派单地图点「改回直营」。</div>
+                  {assignments.length ? <div style={{ fontSize: 12, color: "var(--color-accent-700)" }}>标了外包，名单上却还有 {chefLabel}：在下面把人拿掉保存；要自己做，去当天的派单地图改回直营。</div> : null}
+                </div>
+              ) : null}
+              {outMark && !assignments.length ? null : (
+              <>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                 {chefs
                   .filter((c) => (c.status === "active" && c.role !== "logistics") || (team ?? []).includes(c.id))
@@ -1056,6 +1088,8 @@ export function OrderDialog({
               {/* 派工计划：几位师傅几台灶、站位、答应过客人什么，和派了几个人对不对得上。 */}
               <DispatchPlanPanel adminKey={adminKey} order={o} staffing={detail?.staffing} cooksFallback={assignments.length} viewerRole={viewerRole} onSaved={async () => { await Promise.all([load(), onChanged()]) }} />
               <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>多位师傅同场时人头平均分，每位按自己那份算工钱；改人数后自动重分。备料单按发票里存的份量生成，改了发票要再发一次。</div>
+              </>
+              )}
             </div>
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -1207,6 +1241,7 @@ export function OrderDialog({
                     <strong>{ORDER_EVENT_LABELS[e.action] ?? e.action}</strong>
                     {e.metadata && typeof e.metadata.title === "string" ? <span style={{ color: "var(--color-neutral-600)" }}> · {e.metadata.title}</span> : null}
                     {e.action === "chef_assigned" && Array.isArray(e.metadata?.names) ? <span style={{ color: "var(--color-neutral-600)" }}> · {(e.metadata!.names as string[]).join(" + ") || "清空"}</span> : null}
+                    {e.action === "outsourced_set" && Array.isArray(e.metadata?.names) && (e.metadata!.names as string[]).length ? <span style={{ color: "var(--color-neutral-600)" }}> · 撤下 {(e.metadata!.names as string[]).join(" + ")}</span> : null}
                     {e.action === "chef_removed_notified" && typeof e.metadata?.staff_name === "string" ? (
                       <span style={{ color: "var(--color-neutral-600)" }}>
                         {" "}
