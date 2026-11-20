@@ -477,7 +477,7 @@ function getSmsProviderPreference(): SmsProviderPreference {
 }
 
 const TIME_FOLLOW_UP = " Please reply with your start time and we'll add it."
-// Owner 2026-11-19 (D-1119-03): the booking text says plainly that the total has
+// Owner 2026-11-19 (D-1119-05): the booking text says plainly that the total has
 // no gratuity in it. Customers who only ever saw one number added a flat tip on
 // top of it (D-1031-04); 20% is the customary rate the invoice's table starts at.
 const GRATUITY_LINE = "Gratuity isn't included in your total; 20% is customary, and all of it goes to your chef."
