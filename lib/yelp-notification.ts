@@ -62,7 +62,10 @@ export function parseYelpNotification(fromEmail: string, subject: string, text: 
   let m = s.match(/^RE:\s*Message from (.+?) for /i)
   if (m && /cannot reply to your Yelp messages via email/i.test(body)) return { name: clean(m[1]), kind: "reply_failed", ...extras, replyTo: null }
 
-  m = s.match(/^New Lead: Reply to (.+?)['’]s\b.*\brequest\b/i)
+  // 2026-11-20: Yelp now sends these from messaging-reply@notify.yelp.com and the subject
+  // stops at the category ("New Lead: Reply to China Blu C.'s Personal chefs"), so the
+  // trailing "request" is no longer required; China Blu's 28-guest request was missed.
+  m = s.match(/^New Lead: Reply to (.+?)['’]s\b/i)
   if (m) return { name: clean(m[1]), kind: "request", ...extras }
 
   if (/^You received a new lead on Yelp/i.test(s)) {

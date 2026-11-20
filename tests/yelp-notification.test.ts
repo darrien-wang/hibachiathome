@@ -24,6 +24,14 @@ test("a Request a Quote becomes a named request with guests and ZIP", () => {
   )
 })
 
+test("the 2026-11-20 format: notify.yelp.com sender, no \"request\" at the end of the subject", () => {
+  const body = "China Blu C. requested a quote from Real Hibachi.\nAre there any other details you'd like to share?\nDecember 5, 28 people\n90605\n7 pm\nIn what location do you need the service?\n\n90605"
+  assert.deepEqual(
+    parseYelpNotification("messaging-reply@notify.yelp.com", "New Lead: Reply to China Blu C.'s Personal chefs", body),
+    { name: "China Blu C.", kind: "request", replyTo: null, guests: 28, zip: "90605" },
+  )
+})
+
 test("follow-up messages and reminders file on the customer, guests read from free text", () => {
   const body = "Hello can you please provide quote for 20 people for Saturday November 14. In what location do you need the service? 92649"
   assert.deepEqual(parseYelpNotification(REPLY, "Message from Jordan Q. for Real Hibachi", body), { name: "Jordan Q.", kind: "message", replyTo: REPLY, guests: 20, zip: "92649" })
