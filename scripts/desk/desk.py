@@ -3415,7 +3415,10 @@ def cmd_order(a):
         # tip on top of it. So the text quotes no number and sends them to the invoice,
         # whose gratuity table has the total at each percent, for cash and card.
         shows = "your total with gratuity" if prefill.get("selectedGratuityRate") else "your total at each gratuity level"
-        remind_text = lambda link: f"See you {when} at {at}. Your invoice shows {shows}. You can pick how you're paying at the top: {link} A PDF copy is in your email too."
+        # Owner 2026-11-19 (D-1119-03): say plainly that the total has no gratuity in it - unless
+        # the customer already picked one on the bill (then the invoice total carries it).
+        tip_line = "" if prefill.get("selectedGratuityRate") else " Gratuity isn't included in your total; 20% is customary, and all of it goes to your chef."
+        remind_text = lambda link: f"See you {when} at {at}.{tip_line} Your invoice shows {shows}. You can pick how you're paying at the top: {link} A PDF copy is in your email too."
         body = remind_text("<invoice link>")
         # The day-before text goes out only on an order that carries what the
         # customer is owed (D-1017-02) - the same check that holds the prep sheet.
