@@ -58,7 +58,8 @@ const lbs = (oz: number) => `${halfLb(oz)} 磅`
 
 // 切好的蔬菜每样写净重（老板 2026-10-22）：净重的四样比例和厨师备料单一致
 // （发票仓库 lib/pricing.ts VEGE_MIX：西葫芦/西兰花/洋葱各 30%、胡萝卜 10%，合计每人 5 盎司）。
-const ONION_DICE_OZ_PER_GUEST = 1
+// 洋葱碎每人 0.8 盎司 = 每 10 个人 0.5 磅（老板 2026-11-20「洋葱碎太多了」，原来每人 1 盎司再加一成）。
+const ONION_DICE_OZ_PER_GUEST = 0.8
 const VEGE_NET_SPLIT: Array<{ label: string; ratio: number }> = [
   { label: "西葫芦", ratio: 0.3 },
   { label: "西兰花", ratio: 0.3 },
@@ -94,13 +95,11 @@ export function workLines(parties: CoolerParty[]): { meat: Line[]; vege: Line[];
     const volcanoes = parties.filter((p) => (p.work?.mixed_vege ?? 0) > 0).length
     vege.push({ label: "洋葱火山", amount: `${volcanoes} 个`, note: "一场一个" })
   }
-  // 洋葱碎：每 10 个人 10 盎司，大人小孩都算一个人；多切一点，加一成再往上凑到整 10 盎司
-  // （老板 2026-10-22："86 个人大概切一个 100 盎司"），纸上折成磅。和上面"洋葱 切好"
-  // （蔬菜混合里的）是两样东西。
+  // 洋葱碎：每 10 个人 0.5 磅，大人小孩都算一个人，往上凑到半磅（老板 2026-11-20；
+  // 10-22 起原来是每 10 人 10 盎司再加一成，切多了）。和上面"洋葱 切好"（蔬菜混合里的）是两样东西。
   const heads = parties.reduce((n, p) => n + p.adults + p.kids, 0)
   if (heads > 0) {
-    const dice = Math.ceil((heads * ONION_DICE_OZ_PER_GUEST * 1.1) / 10) * 10
-    vege.push({ label: "洋葱碎", amount: lbs(dice), note: "每 10 个人大约 0.6 磅，多切一点" })
+    vege.push({ label: "洋葱碎", amount: lbs(heads * ONION_DICE_OZ_PER_GUEST), note: "每 10 个人 0.5 磅" })
   }
 
   const rice: Line[] = []

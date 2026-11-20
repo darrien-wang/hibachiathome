@@ -49,9 +49,9 @@ test("workLines: parties merged into one total; one onion volcano per party", ()
   assert.equal(by["洋葱"].amount, "4 磅")
   assert.equal(by["胡萝卜"].amount, "1.5 磅")
   assert.equal(by["洋葱火山"].amount, "2 个")
-  assert.equal(by["洋葱碎"].amount, "3.5 磅") // 40 guests × 1 oz + 10%, up to the next 10 oz = 50 oz
-  // owner's example: 86 adults + 3 kids -> about 100 oz
-  assert.equal(workLines([party({ adults: 86, kids: 3 })]).vege.find((l) => l.label === "洋葱碎")?.amount, "6.5 磅")
+  assert.equal(by["洋葱碎"].amount, "2 磅") // owner 2026-11-20: 0.5 lb per 10 guests -> 40 guests = 2 lb
+  // 89 guests -> 4.45 lb, up to the half pound
+  assert.equal(workLines([party({ adults: 86, kids: 3 })]).vege.find((l) => l.label === "洋葱碎")?.amount, "4.5 磅")
   assert.equal(by["熟米饭"].amount, "20 磅") // 40 × 8 oz cooked
   assert.equal(by["熟米饭"].note, "每人 0.5 磅")
   // rice: kids eat an adult's share
