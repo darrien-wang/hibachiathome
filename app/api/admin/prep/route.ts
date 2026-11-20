@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
         .join(" · "),
       outsourced: false,
       // 后勤备货单：这一单要提前处理的量（切肉、切菜、切豆腐、煮饭），打印时几场合成一张。
-      cooler: { time: zhTime(r.event_start as string), chef: null as string | null, owner: null as string | null, note: (r.prep_note ?? "").trim() || null, adults: prep.adults, kids: prep.kids, menuKnown: prep.menuKnown, work: coolerWork(prep.items, prep.menuKnown) },
+      cooler: { time: zhTime(r.event_start as string), customer: head.name, chef: null as string | null, owner: null as string | null, note: (r.prep_note ?? "").trim() || null, adults: prep.adults, kids: prep.kids, menuKnown: prep.menuKnown, work: coolerWork(prep.items, prep.menuKnown) },
     }
   })
   // 我们自己备的（外包的不备）：同一批对象，下面写的厨师和负责人就写在 orders 里。

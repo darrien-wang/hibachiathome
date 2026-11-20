@@ -25,6 +25,8 @@ const MEAT_IDS = new Set(["chicken", "steak", "ribeye", "filet_mignon", "tofu"])
 export type CoolerParty = {
   /** "下午 5:00" */
   time: string
+  /** 客人名字：工作台勾选时认哪一场用，纸上不印。 */
+  customer?: string
   chef: string | null
   /** 这一单谁负责备货（后勤，订单弹窗"备货负责人"）。 */
   owner?: string | null

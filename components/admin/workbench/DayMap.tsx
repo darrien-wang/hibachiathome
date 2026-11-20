@@ -129,8 +129,11 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
   // 后勤备货单：这一天所有单一次打出来，或者按备货负责人分开打（老板 2026-10-16：
   // "不要一个一个点进去打印"）。数据和订单弹窗那个按钮同一个接口。
   const [coolers, setCoolers] = useState<CoolerParty[] | null>(null)
+  // 勾选哪几场合成一张（老板 2026-11-20「希望可以勾选生成备货单 而不是只能全部的」）：存不要的那几场的序号，默认全勾。
+  const [coolerOff, setCoolerOff] = useState<Set<number>>(new Set())
   useEffect(() => {
     let dead = false
+    setCoolerOff(new Set())
     void adminJson<{ orders: Array<{ cooler?: CoolerParty }> }>(adminKey, `/api/admin/prep?date=${date}`)
       .then((r) => {
         if (!dead) setCoolers(r.orders.map((o) => o.cooler).filter((c): c is CoolerParty => !!c))
@@ -142,14 +145,15 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
       dead = true
     }
   }, [adminKey, date])
+  const coolersPicked = useMemo(() => (coolers ?? []).filter((_, i) => !coolerOff.has(i)), [coolers, coolerOff])
   const coolerGroups = useMemo(() => {
     const by = new Map<string, CoolerParty[]>()
-    for (const c of coolers ?? []) {
+    for (const c of coolersPicked) {
       const k = c.owner?.trim() || "还没定负责人"
       by.set(k, [...(by.get(k) ?? []), c])
     }
     return Array.from(by.entries())
-  }, [coolers])
+  }, [coolersPicked])
   const printCoolers = (parties: CoolerParty[], who?: string) => {
     const html = coolerSheetHtml(date, parties, who)
     const w = window.open("", "_blank")
@@ -909,11 +913,37 @@ ${s.difficulty.note}` : ""}` : "还没打难度分，点一下打"}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <div style={{ fontWeight: 800, fontSize: 15 }}>打印后勤备货单</div>
                 {coolers && coolers.length ? (
-                  <button type="button" className="btn btn-primary btn-sm" onClick={() => printCoolers(coolers)}>
-                    全部合成一张（{coolers.length} 场）
+                  <button type="button" className="btn btn-primary btn-sm" disabled={!coolersPicked.length} onClick={() => printCoolers(coolersPicked)}>
+                    {coolersPicked.length === coolers.length ? `全部合成一张（${coolers.length} 场）` : `勾的合成一张（${coolersPicked.length} 场）`}
                   </button>
                 ) : null}
               </div>
+              {coolers && coolers.length ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8, fontSize: 13 }}>
+                  {coolers.map((c, i) => (
+                    <label key={i} style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={!coolerOff.has(i)}
+                        onChange={() =>
+                          setCoolerOff((prev) => {
+                            const next = new Set(prev)
+                            if (next.has(i)) next.delete(i)
+                            else next.add(i)
+                            return next
+                          })
+                        }
+                      />
+                      <span>
+                        {c.time}{c.customer ? ` ${c.customer}` : ""} · {c.adults} 大{c.kids ? ` ${c.kids} 小` : ""} · {c.chef ?? "还没派师傅"}
+                        {c.owner ? <span style={{ color: "var(--color-neutral-600)" }}> · 备货 {c.owner}</span> : null}
+                        {!c.menuKnown ? <span style={{ color: "var(--color-accent)" }}> · 菜单未定</span> : null}
+                      </span>
+                    </label>
+                  ))}
+                  <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>外包的单不在这里。</div>
+                </div>
+              ) : null}
               {coolers === null ? <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 6 }}>读取中…</div> : null}
               {coolers && !coolers.length ? <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 6 }}>这天没有要备的单。</div> : null}
               {coolerGroups.length > 1 || (coolerGroups.length === 1 && coolerGroups[0][0] !== "还没定负责人") ? (
