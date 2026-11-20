@@ -368,7 +368,7 @@ async function sendDepositConfirmationEmail(params: {
     ? `Real Hibachi: your date is locked (booking ${bookingId})`
     : `Real Hibachi deposit confirmed for booking number ${bookingId}`
   const lead = params.cardOnFile
-    ? "Your date is locked with Real Hibachi. Your card is on file with Stripe and nothing was charged today. You pay on the day: cash to your chef, or the card on file after the party."
+    ? "Your date is locked with Real Hibachi. Your card is on file with Stripe and nothing was charged today. You pay on the day. Your total is the cash price; card, Venmo or Zelle add fees, and your invoice shows each total."
     : "Thanks for your deposit payment with Real Hibachi."
   const text = [
     lead,
@@ -481,6 +481,10 @@ const TIME_FOLLOW_UP = " Please reply with your start time and we'll add it."
 // no gratuity in it. Customers who only ever saw one number added a flat tip on
 // top of it (D-1031-04); 20% is the customary rate the invoice's table starts at.
 const GRATUITY_LINE = "Gratuity isn't included in your total; 20% is customary, and all of it goes to your chef."
+// Owner 2026-11-20 (D-1120-05): every booking says once that the total is the cash
+// price. Card adds sales tax and processing, Venmo or Zelle to the chef adds 4%, and
+// the invoice shows each total; Dorice's 11/20 party was told only "$718.80".
+const CASH_LINE = "That total is the cash price; card, Venmo or Zelle add fees, and your invoice shows each one."
 
 async function sendDepositConfirmationSmsViaSendly(params: {
   /** Locked with a card on file, nothing charged (D-1006-04): the copy says so. */
@@ -511,8 +515,8 @@ async function sendDepositConfirmationSmsViaSendly(params: {
       body: JSON.stringify({
         to: params.recipientPhone,
         text: params.cardOnFile
-          ? `Real Hibachi: your date is locked and booking ${params.bookingId} is confirmed - nothing was charged today. Please add your menu and party details here: ${params.selfServiceLink} ${GRATUITY_LINE}${params.timeUnknown ? TIME_FOLLOW_UP : ""}`
-          : `Real Hibachi: deposit confirmed for booking number ${params.bookingId}. You can update your invoice details here: ${params.selfServiceLink} ${GRATUITY_LINE}${params.timeUnknown ? TIME_FOLLOW_UP : ""}`,
+          ? `Real Hibachi: your date is locked and booking ${params.bookingId} is confirmed - nothing was charged today. Please add your menu and party details here: ${params.selfServiceLink} ${GRATUITY_LINE} ${CASH_LINE}${params.timeUnknown ? TIME_FOLLOW_UP : ""}`
+          : `Real Hibachi: deposit confirmed for booking number ${params.bookingId}. You can update your invoice details here: ${params.selfServiceLink} ${GRATUITY_LINE} ${CASH_LINE}${params.timeUnknown ? TIME_FOLLOW_UP : ""}`,
       }),
       cache: "no-store",
     })
@@ -572,8 +576,8 @@ async function sendDepositConfirmationSmsViaTwilio(params: {
   const body = new URLSearchParams({
     To: params.recipientPhone,
     Body: params.cardOnFile
-      ? `Real Hibachi: your date is locked and booking ${params.bookingId} is confirmed - nothing was charged today. Please add your menu and party details here: ${params.selfServiceLink} ${GRATUITY_LINE} You're welcome to reply to this text any time with questions.${params.timeUnknown ? TIME_FOLLOW_UP : ""}`
-      : `Real Hibachi: your deposit is confirmed and booking ${params.bookingId} is locked in. Please add your menu and party details here: ${params.selfServiceLink} ${GRATUITY_LINE} You're welcome to reply to this text any time with questions.${params.timeUnknown ? TIME_FOLLOW_UP : ""}`,
+      ? `Real Hibachi: your date is locked and booking ${params.bookingId} is confirmed - nothing was charged today. Please add your menu and party details here: ${params.selfServiceLink} ${GRATUITY_LINE} ${CASH_LINE} You're welcome to reply to this text any time with questions.${params.timeUnknown ? TIME_FOLLOW_UP : ""}`
+      : `Real Hibachi: your deposit is confirmed and booking ${params.bookingId} is locked in. Please add your menu and party details here: ${params.selfServiceLink} ${GRATUITY_LINE} ${CASH_LINE} You're welcome to reply to this text any time with questions.${params.timeUnknown ? TIME_FOLLOW_UP : ""}`,
   })
   if (messagingServiceSid) {
     body.set("MessagingServiceSid", messagingServiceSid)

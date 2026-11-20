@@ -417,7 +417,7 @@ export default function DepositSuccessClient({
       return (
         <>
           <p className="mt-2 text-base text-clay-700">
-            Your card is on file with Stripe and nothing was charged today. You pay on the day: cash to your chef, or the card on file after the party.
+            Your card is on file with Stripe and nothing was charged today. You pay on the day. Your total is the cash price; card, Venmo or Zelle add fees, and your invoice shows each total.
           </p>
           <div className="mt-6 rounded-[28px] bg-cream px-5 py-4 text-left text-sm text-ink">
             <p className="font-semibold">What happens next</p>
