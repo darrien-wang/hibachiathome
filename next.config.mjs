@@ -83,6 +83,17 @@ const nextConfig = {
         source: "/admin/:path*",
         headers: [permissionsPolicy("self")],
       },
+      // pre.realhibachi.com is the test deployment (the `pre` branch). Vercel
+      // only adds noindex to *.vercel.app preview URLs, not to a custom domain,
+      // and the canonical tag alone did not keep it out: on 2026-11-20 Search
+      // Console showed 14 pre. URLs with impressions as duplicates of the www
+      // pages. The host must stay reachable for testing, so noindex rather
+      // than a redirect; robots.txt stays open so the crawler can see this.
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "pre.realhibachi.com" }],
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
       {
         source: "/chef-handbook",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
