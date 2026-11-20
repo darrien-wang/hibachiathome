@@ -9,6 +9,7 @@ import { getStripeServerClient } from "@/lib/stripe-server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { isPlaceholderName } from "@/lib/leads"
 import { findDepositLock } from "@/lib/deposit-lock"
+import { closedDateMessage, isDateClosed } from "@/lib/closed-dates"
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit"
 import { escapeHtml } from "@/lib/escape-html"
 
@@ -895,6 +896,14 @@ export async function POST(request: NextRequest) {
       { status: 409, headers: { "Cache-Control": "no-store" } },
     )
   }
+  // A day the owner closed takes no new bookings (lib/closed-dates.ts). Checked
+  // after the lock: a party already booked that day still opens as locked.
+  if (await isDateClosed(createServerSupabaseClient(), payload.eventDate)) {
+    return NextResponse.json(
+      { success: false, error: closedDateMessage(payload.eventDate!), closedDate: true },
+      { status: 409, headers: { "Cache-Control": "no-store" } },
+    )
+  }
   const attribution = buildResolvedAttribution(request, payload)
 
   try {
@@ -944,6 +953,11 @@ export async function GET(request: NextRequest) {
     const q = new URLSearchParams(request.nextUrl.searchParams)
     const prefilledEmail = q.get("prefilled_email")
     if (!q.get("customer_email") && prefilledEmail) q.set("customer_email", prefilledEmail)
+    return NextResponse.redirect(`${resolveOrigin(request)}/deposit/pay?${q.toString()}`, 302)
+  }
+  if (await isDateClosed(createServerSupabaseClient(), payload.eventDate)) {
+    // A closed day: the deposit page asks the server again and shows why.
+    const q = new URLSearchParams(request.nextUrl.searchParams)
     return NextResponse.redirect(`${resolveOrigin(request)}/deposit/pay?${q.toString()}`, 302)
   }
   const attribution = buildResolvedAttribution(request, payload)

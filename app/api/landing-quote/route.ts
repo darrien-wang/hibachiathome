@@ -13,6 +13,7 @@ import { getCityTravel } from "@/config/city-travel"
 import { placeName } from "@/lib/first-response"
 import { cityForZip } from "@/lib/zip-city"
 import { minimumNote, partyLine } from "@/lib/landing-quote-text"
+import { isDateClosed } from "@/lib/closed-dates"
 import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, TRAVEL_FREE_RADIUS_MILES, calcSimpleEstimate, checkWeekdayEligibility } from "@/config/pricing-rules"
 
 // Rentals, said up front (2026-09-27 audit): tables/chairs/plates was the
@@ -412,6 +413,10 @@ export async function POST(request: NextRequest) {
     : travelPending
       ? `Travel: first ${TRAVEL_FREE_RADIUS_MILES} mi free, then $1/mile - we confirm it from your address.`
       : "No travel fee for your area."
+  // A day the owner closed (lib/closed-dates.ts): the price goes out, the lock
+  // link does not - the page would refuse the day anyway. A person takes the
+  // lead from here (the lead watch hands it over instead of texting "open").
+  const dayClosed = await isDateClosed(supabase, eventDate || null)
   const smsBody = (
     updated
       ? [
@@ -419,7 +424,7 @@ export async function POST(request: NextRequest) {
           ...whyLines,
           // The travel line is only repeated when it did not just get explained.
           previous && previous.travelFee !== travelFee ? null : travelLine,
-          `Same deposit link locks your date: ${depositUrl}`,
+          dayClosed ? null : `Same deposit link locks your date: ${depositUrl}`,
           "Please reply here with any questions, we answer fast. Reply STOP to opt out.",
         ]
       : [
@@ -430,7 +435,7 @@ export async function POST(request: NextRequest) {
           // first "N adults" in our texts as the party size.
           `Real Hibachi: your ${cityLabel} hibachi price is ${money(total)} for ${guestsLine} (${planLabel}${eventDate ? `, ${dateLine}` : ""})${minimum ? ` - ${minimum}` : ""}.`,
           travelLine,
-          `You can lock your date here, with a card on file and nothing charged today: ${depositUrl}`,
+          dayClosed ? null : `You can lock your date here, with a card on file and nothing charged today: ${depositUrl}`,
           // The single most-asked question in the 09-13..09-27 audit (10+ threads),
           // and the one that cost a corporate customer his plates on the day: say it
           // before they have to ask. Numbers come from config/pricing-rules.
@@ -464,8 +469,7 @@ export async function POST(request: NextRequest) {
           ? `Travel: first ${TRAVEL_FREE_RADIUS_MILES} miles free, then $1 per mile - we confirm it from your address.`
           : "No travel fee for your area.",
       "",
-      `You can lock your date here, with a card on file and nothing charged today: ${depositUrl}`,
-      "",
+      ...(dayClosed ? [] : [`You can lock your date here, with a card on file and nothing charged today: ${depositUrl}`, ""]),
       "Included: chef, mobile teppanyaki grill, 2 proteins per guest, fried rice, vegetables, salad and the live show.",
       RENTALS_LINE,
       "If you have any questions, please reply to this email or text (213) 770-7788.",

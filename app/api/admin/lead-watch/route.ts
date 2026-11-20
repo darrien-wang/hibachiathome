@@ -34,6 +34,7 @@ import { lastOutboundByPeer, smsWaiting } from "@/lib/sms-waiting"
 import { isStaffNumber, loadStaffDigits } from "@/lib/staff-phones"
 import { cityForZip } from "@/lib/zip-city"
 import { MISSED_CALL_TEXT, callWasMissed, missedCallTouchpointId } from "@/lib/missed-call"
+import { isDateClosed } from "@/lib/closed-dates"
 import { leadOnNumber } from "@/lib/merged-leads"
 import { isBlockedNumber, loadBlockedDigits } from "@/lib/blocked-callers"
 import { sendCustomerEmail } from "@/lib/ops-notifications"
@@ -558,6 +559,12 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
         continue
       }
       const payload = (quoteTp?.raw_payload_json ?? {}) as { adults?: number; kids?: number; eventDate?: string; cityName?: string }
+      // A day the owner closed (lib/closed-dates.ts): template B would say "<day>
+      // is open". A person answers: another day, or a party that chains (owner's call).
+      if (payload.eventDate && (await isDateClosed(supabase, payload.eventDate))) {
+        human(`day closed ${payload.eventDate}: offer another day, or ask the owner if it chains`)
+        continue
+      }
       const plan = quoteFollowUpPlan({
         adults: Number(payload.adults ?? lead.adult_count ?? 0) || 0,
         kids: Number(payload.kids ?? lead.child_count ?? 0) || 0,
