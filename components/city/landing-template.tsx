@@ -44,6 +44,8 @@ export type LandingTemplateProps = {
   ctaBody?: string
   nearby: LandingLink[]
   nearbyLabel?: string
+  /** Region-grouped links to the sibling pages, under the nearby row (city pages). */
+  moreLinks?: { label: string; links: LandingLink[] }[]
   /** Extra SEO copy (e.g. cross-links) rendered under the nearby row. */
   footnote?: ReactNode
   /**
@@ -108,6 +110,7 @@ export default function LandingTemplate(props: LandingTemplateProps) {
     ctaBody,
     nearby,
     nearbyLabel,
+    moreLinks,
     footnote,
     chips,
     includedHeading,
@@ -268,6 +271,24 @@ export default function LandingTemplate(props: LandingTemplateProps) {
               </Link>
             </div>
           </div>
+          {moreLinks?.length ? (
+            <div className="pt-3 text-xs leading-[1.8] text-clay-600 lg:text-[13px]">
+              {moreLinks.map((group) => (
+                <p key={group.label}>
+                  <span className="font-semibold text-ink">{group.label}:</span>{" "}
+                  {group.links.map((link, i) => (
+                    <span key={link.href}>
+                      {i > 0 ? " · " : ""}
+                      {/* No prefetch: fifty route fetches for a footer block is the wrong trade on a phone. */}
+                      <Link href={link.href} prefetch={false} className="hover:text-flame-700">
+                        {link.label}
+                      </Link>
+                    </span>
+                  ))}
+                </p>
+              ))}
+            </div>
+          ) : null}
           {footnote ? <div className="pt-2 text-xs leading-relaxed text-clay-600 lg:text-[13px]">{footnote}</div> : null}
         </FinalCta>
       </div>

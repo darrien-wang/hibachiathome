@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { cityPages, getCityPage, getNearbyCityPages } from "@/config/city-pages"
+import { cityPages, getCityLinkGroups, getCityPage, getNearbyCityPages } from "@/config/city-pages"
 import { getCityClimate } from "@/config/city-climate"
 import { getCityTravel } from "@/config/city-travel"
 import { pickReviews } from "@/config/reviews"
@@ -364,6 +364,10 @@ export default async function CityPage({ params }: { params: Promise<{ city: str
         ctaHeading={`Ready to book hibachi at home in ${page.city}?`}
         nearby={nearby.map((n) => ({ label: n.city, href: `/hibachi-at-home/${n.slug}` }))}
         nearbyLabel="Hibachi at home nearby"
+        moreLinks={getCityLinkGroups(page).map((group) => ({
+          label: group.label,
+          links: group.cities.map((c) => ({ label: c.city, href: `/hibachi-at-home/${c.slug}` })),
+        }))}
         footnote={
           hasCateringPage(page.slug) ? (
             <>

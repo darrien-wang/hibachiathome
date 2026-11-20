@@ -63,7 +63,7 @@ export type CityPage = {
 // The date the whole city-page set was last revised together. Bump this when a
 // change lands across all of them (a template edit, a pricing change); use a
 // per-city `lastUpdated` when only one page moves.
-export const CITY_PAGES_LAST_UPDATED = "2026-08-27T00:00:00.000Z"
+export const CITY_PAGES_LAST_UPDATED = "2026-11-20T00:00:00.000Z"
 
 export const cityPages: CityPage[] = [
   {
@@ -4663,4 +4663,28 @@ export function getNearbyCityPages(page: CityPage): CityPage[] {
   return page.nearby
     .map((slug) => getCityPage(slug))
     .filter((nearby): nearby is CityPage => Boolean(nearby))
+}
+
+// Every other city page, grouped by region, for the link block at the foot of
+// each city page. On 2026-11-20 most city pages had 2-7 internal links pointing
+// at them (the two hubs plus three hand-picked neighbours), against 26 city
+// links on every page of the competitor that outranks us on city terms. The
+// page's own region comes first so the nearest cities lead.
+const CITY_REGIONS: { label: string; counties: string[] }[] = [
+  { label: "Los Angeles County", counties: ["Los Angeles County"] },
+  { label: "Orange County", counties: ["Orange County"] },
+  { label: "Inland Empire & desert", counties: ["Riverside County", "San Bernardino County"] },
+  { label: "San Diego County", counties: ["San Diego County"] },
+  { label: "Ventura & Santa Barbara", counties: ["Ventura County", "Santa Barbara County"] },
+]
+
+export function getCityLinkGroups(page: CityPage): { label: string; cities: CityPage[] }[] {
+  const groups = CITY_REGIONS.map((region) => ({
+    label: region.label,
+    own: region.counties.includes(page.county),
+    cities: cityPages
+      .filter((other) => other.slug !== page.slug && region.counties.includes(other.county))
+      .sort((a, b) => a.city.localeCompare(b.city)),
+  })).filter((group) => group.cities.length > 0)
+  return [...groups.filter((g) => g.own), ...groups.filter((g) => !g.own)].map(({ label, cities }) => ({ label, cities }))
 }
