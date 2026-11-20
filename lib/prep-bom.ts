@@ -73,8 +73,10 @@ const SALAD = { adult: 1, child: 0.5 } // 份
 // 2026-10-11 老板：上桌的菜还是每人 5 oz，这里算的是"要买/要取的生菜"——蔬菜要去皮、
 // 去头尾，买的得比上桌的多。实测西葫芦 10 个人要 3.3 根（一根 ≈ 11 oz，即每人取
 // ≈ 3.6 oz 生的，原来按净重 1.5 oz 算所以一直买少）。西兰花、洋葱、胡萝卜的损耗还
-// 没量，先照净重（1.5 / 1.5 / 0.5 oz）；后勤报回实际用量再逐样加。合计 7.1 oz 是毛重。
-const VEGE_OZ = { adult: 7.1, child: 3.55 }
+// 没量，先照净重；后勤报回实际用量再逐样加。
+// 2026-11-20 老板把净重配比改成 4:4:1:1（西葫芦/西兰花/洋葱/胡萝卜，原来 3:3:3:1）：净重 2 / 2 / 0.5 / 0.5 oz，
+// 西葫芦照实测损耗 ×2.4（3.6 生 ÷ 1.5 净）= 4.8 oz 生的，合计毛重 7.8 oz。
+const VEGE_OZ = { adult: 7.8, child: 3.9 }
 /** 上桌的净重：每人 5 oz（小孩一半）。毛重 × 这个系数 = 切好后的净重。 */
 export const VEGE_NET_PER_RAW = 5 / VEGE_OZ.adult
 const NOODLE_PORTION = { adult: 4, child: 2 } // oz，熟面（和厨师备料单一致）
@@ -485,16 +487,16 @@ const MERGE_INTO_PROTEIN: Record<string, { id: string; fromOz: (oz: number) => n
 
 /**
  * 蔬菜合计拆成四样（老板 2026-09-30："我需要你告诉我 broccoli zucchini carrot onion 各要多少"）。
- * 2026-10-11 起西葫芦按实测加量（10 人 3.3 根），配比不再和厨师备料单一样：
- * 每人 7.1 oz = 西葫芦 3.6 + 西兰花 1.5 + 洋葱 1.5 + 胡萝卜 0.5。
+ * 2026-10-11 起西葫芦按实测加量（10 人 3.3 根），配比不再和厨师备料单一样。
+ * 2026-11-20 起净重 4:4:1:1，每人毛重 7.8 oz = 西葫芦 4.8 + 西兰花 2 + 洋葱 0.5 + 胡萝卜 0.5。
  * 厨师备料单（发票仓库 lib/pricing.ts）10-17 起改回净重每人 5 oz（菜由后勤切好装箱，师傅看到的是净重），
  * 不再跟这里的毛重走；这里的毛重只给采购用。
  */
 export const VEGE_MIX: Array<{ id: string; label: string; ratio: number }> = [
-  { id: "zucchini", label: "Zucchini 西葫芦", ratio: 0.51 },
-  { id: "broccoli", label: "Broccoli 西兰花", ratio: 0.21 },
-  { id: "onion", label: "Onion 洋葱", ratio: 0.21 },
-  { id: "carrots", label: "Carrots 胡萝卜", ratio: 0.07 },
+  { id: "zucchini", label: "Zucchini 西葫芦", ratio: 4.8 / 7.8 },
+  { id: "broccoli", label: "Broccoli 西兰花", ratio: 2 / 7.8 },
+  { id: "onion", label: "Onion 洋葱", ratio: 0.5 / 7.8 },
+  { id: "carrots", label: "Carrots 胡萝卜", ratio: 0.5 / 7.8 },
 ]
 
 /** 蔬菜合计的提示：总磅数 + 四样各买几（和备货页拆出来的四行同一个算法）。 */

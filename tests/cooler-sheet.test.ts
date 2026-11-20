@@ -43,10 +43,10 @@ test("workLines: parties merged into one total; one onion volcano per party", ()
   assert.equal(by["牛排 切块"].amount, "6 磅") // 90 oz = 5.6 lb, up to the half pound
   assert.equal(by["豆腐 切块"].amount, "7 盒") // 20 portions, three a box
   assert.equal(by["豆腐 切块"].note, "20 份 · 一盒三个人")
-  // 40 guests × 5 oz net = 200, split like the chef sheet: 30 / 30 / 30 / 10 %, in pounds up to the half
-  assert.equal(by["西葫芦"].amount, "4 磅")
-  assert.equal(by["西兰花"].amount, "4 磅")
-  assert.equal(by["洋葱"].amount, "4 磅")
+  // 40 guests × 5 oz net = 200, split like the chef sheet: 40 / 40 / 10 / 10 % (owner 2026-11-20), in pounds up to the half
+  assert.equal(by["西葫芦"].amount, "5 磅")
+  assert.equal(by["西兰花"].amount, "5 磅")
+  assert.equal(by["洋葱"].amount, "1.5 磅")
   assert.equal(by["胡萝卜"].amount, "1.5 磅")
   assert.equal(by["洋葱火山"].amount, "2 个")
   assert.equal(by["洋葱碎"].amount, "2 磅") // owner 2026-11-20: 0.5 lb per 10 guests -> 40 guests = 2 lb
@@ -67,7 +67,7 @@ test("coolerSheetHtml: one merged page, owner on it, no customer or price fields
   assert.match(html, /共 2 场 · 32 位大人、2 位小孩/)
   assert.match(html, /备货负责人<\/small>张阿姨/)
   assert.match(html, /有 1 场菜还没定/)
-  assert.match(html, /合计 13.5 磅/) // both fixture parties carry the 20-guest work
+  assert.match(html, /合计 13 磅/) // both fixture parties carry the 20-guest work
   // pounds only on the paper (owner 2026-11-05)
   assert.doesNotMatch(html, /盎司/)
   // no party list, no notes

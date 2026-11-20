@@ -57,13 +57,13 @@ const halfLb = (oz: number) => (oz <= 0 ? 0 : Math.max(0.5, Math.ceil((oz / 16) 
 const lbs = (oz: number) => `${halfLb(oz)} 磅`
 
 // 切好的蔬菜每样写净重（老板 2026-10-22）：净重的四样比例和厨师备料单一致
-// （发票仓库 lib/pricing.ts VEGE_MIX：西葫芦/西兰花/洋葱各 30%、胡萝卜 10%，合计每人 5 盎司）。
+// （发票仓库 lib/pricing.ts VEGE_MIX：2026-11-20 起西葫芦/西兰花各 40%、洋葱/胡萝卜各 10%，合计每人 5 盎司；原来 3:3:3:1）。
 // 洋葱碎每人 0.8 盎司 = 每 10 个人 0.5 磅（老板 2026-11-20「洋葱碎太多了」，原来每人 1 盎司再加一成）。
 const ONION_DICE_OZ_PER_GUEST = 0.8
 const VEGE_NET_SPLIT: Array<{ label: string; ratio: number }> = [
-  { label: "西葫芦", ratio: 0.3 },
-  { label: "西兰花", ratio: 0.3 },
-  { label: "洋葱", ratio: 0.3 },
+  { label: "西葫芦", ratio: 0.4 },
+  { label: "西兰花", ratio: 0.4 },
+  { label: "洋葱", ratio: 0.1 },
   { label: "胡萝卜", ratio: 0.1 },
 ]
 
