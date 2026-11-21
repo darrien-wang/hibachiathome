@@ -19,7 +19,11 @@ async function isAuthorized(request: NextRequest): Promise<boolean> {
 }
 
 // "venmo" / "zelle": legacy rows only - not customer rails since 2026-10-06 (D-1006-06).
-const CHANNELS = ["venmo", "zelle", "cash", "other"] as const
+// "none": the owner books the date with no card and no deposit (2026-11-21, a same-day party:
+// 「就不用他留卡了」). It goes in as a $0 card_on_file lock without a card - the order system takes
+// that as "no deposit required" and puts nothing in the payments ledger - so the order exists, nothing
+// pretends to be paid, and the customer pays on the day.
+const CHANNELS = ["venmo", "zelle", "cash", "other", "none"] as const
 type Channel = (typeof CHANNELS)[number]
 
 function asTrimmed(value: unknown): string | undefined {
@@ -82,11 +86,12 @@ export async function POST(request: NextRequest) {
   if (!CHANNELS.includes(channel)) {
     return NextResponse.json({ error: `channel must be one of ${CHANNELS.join("/")}` }, { status: 400 })
   }
-  if (!Number.isFinite(amount) || amount <= 0 || amount > 20000) {
-    return NextResponse.json({ error: "amount must be between 0 and 20000" }, { status: 400 })
+  const noCard = channel === "none"
+  if (noCard ? amount !== 0 && Number.isFinite(amount) : !Number.isFinite(amount) || amount <= 0 || amount > 20000) {
+    return NextResponse.json({ error: noCard ? "a no-card booking takes amount 0" : "amount must be between 0 and 20000" }, { status: 400 })
   }
 
-  const amountCents = Math.round(amount * 100)
+  const amountCents = noCard ? 0 : Math.round(amount * 100)
   // Wall-clock-as-UTC, the convention the rest of the pipeline already uses
   // (explicit Z so a dev server in another timezone can't shift the time).
   const eventStart = new Date(`${eventDate}T${eventTime}:00Z`)
@@ -117,17 +122,19 @@ export async function POST(request: NextRequest) {
       event_address: asTrimmed(body.eventAddress),
       guest_adult_count: Number.isFinite(body.adults) ? Math.max(0, Math.trunc(body.adults as number)) : undefined,
       guest_child_count: Number.isFinite(body.kids) ? Math.max(0, Math.trunc(body.kids as number)) : undefined,
-      notes: `Deposit confirmed manually via ${channel} in the order workbench.`,
+      notes: noCard
+        ? "Booked without a card (owner-approved); the customer pays on the day."
+        : `Deposit confirmed manually via ${channel} in the order workbench.`,
     },
     payment: {
       external_payment_id: externalPaymentId,
-      type: "deposit",
+      type: noCard ? "card_on_file" : "deposit",
       status: "paid",
       amount_cents: amountCents,
       currency: "USD",
       provider: "other",
       paid_at: nowIso,
-      transaction_ref: `manual:${channel}`,
+      transaction_ref: noCard ? "manual:no_card" : `manual:${channel}`,
     },
     metadata: {
       manual_entry: true,
