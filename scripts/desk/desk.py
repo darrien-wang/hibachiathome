@@ -54,6 +54,8 @@
   python scripts/desk/desk.py order send  <orderNo>   email the PDF AND text the invoice link, no reply needed (the normal way)
   python scripts/desk/desk.py order remind <orderNo> [--dry]   day before / morning of: email the invoice and text its link, no amounts in the text
   python scripts/desk/desk.py order set  <orderNo> --prep-note-file F [--dry]   the 备货备注 (prep list / cooler sheet line, 300 chars)
+  python scripts/desk/desk.py order set  <orderNo> --prep-guests 20 [--dry]   base food (rice, veg, salad) for 20 when fewer are booked
+                                   ("we'll bring extra in case more people come"); proteins and price unchanged; 0 takes it off
   python scripts/desk/desk.py order check <YYYY-MM-DD> [--json]   派对当天核对 (D-1112-01; 07:00 on the day since 11-17 for early parties): per party, what the prep
                                    list and the order carry, the chef's sheet, and every requirement found elsewhere that they do not
                                    (!! = fix first). Reads only.
@@ -114,6 +116,30 @@ CANOPY_PRICE = 20.0
 PIECE_PRICES = {"folding_chairs": 5.0, "folding_tables": 10.0, "canopy": CANOPY_PRICE}  # invoice lib/pricing.ts PARTY_EXTRAS
 PIECE_LABELS = {"folding_chairs": "chairs on their own", "folding_tables": "6-ft tables on their own (no cloth)", "canopy": "10x10 canopies"}
 RICE_ADDIN_PRICES = {"diy_rice_chicken": 10.0, "diy_rice_shrimp": 10.0}  # same list; one order is enough for about 10 guests (owner 2026-11-01)
+# 答应多带饭菜 (owner 2026-11-20): "we'll bring extra fried rice and veggies in case more people come" - food
+# for 20 when 15 are booked. RH-20261119-1164's sheet said Fried Rice 120 oz / Mixed Vegetables 75 oz for 15
+# and the note had to spell out 160 / 100. invoiceData.prepGuests = N (order set --prep-guests N): above the
+# headcount, the invoice's calcBom sizes the base food - rice, vegetables, salad, their eggs and sauces - for
+# N, the extra guests as adults (lib/pricing.ts basePrepOf), and the chef's sheet and the prep list say
+# "备餐按 20 人（订单 15 人）". The proteins and the price never read it (food we bring on us).
+PREP_GUESTS_MAX = 500  # invoice PREP_GUESTS_MAX
+
+
+def prep_guests_of(data: dict) -> int | None:
+    """The order's prepGuests as the invoice reads it (sanitizePrepGuests): a whole number 1-500, else None."""
+    n = (data or {}).get("prepGuests")
+    return n if isinstance(n, int) and not isinstance(n, bool) and 1 <= n <= PREP_GUESTS_MAX else None
+
+
+def prep_guests_line(data: dict) -> str:
+    """The line order show prints for it: what the sheet says, or that it rests while the booking is bigger."""
+    n = prep_guests_of(data)
+    if n is None:
+        return ""
+    booked = int((data or {}).get("adultCount") or 0) + int((data or {}).get("childCount") or 0)
+    if n > booked:
+        return f"备餐按 {n} 人（订单 {booked} 人）：炒饭、蔬菜、沙拉和配的蛋、酱按 {n} 人备；蛋白和价格不变"
+    return f"备餐人数 {n}（订单已有 {booked} 人，不比它多：现在按订单人数备）"
 ADULT_PRICE, CHILD_PRICE = 59.90, 29.90  # invoice ADULT_BASE_PRICE / CHILD_BASE_PRICE, what a deal's rate is cut from
 WEEKDAY_ADULT_OFF, WEEKDAY_CHILD_OFF = 5.0, 2.45  # invoice WEEKDAY_SPECIAL adultOff / childOff, the official_weekday line's per-head part
 DEAL_PROMO_IDS = ("deal_rate", "deal_free_extras", "deal_extra_rates", "deal_flat")  # invoice isCustomDealPromoId, in its order
@@ -1815,7 +1841,7 @@ def _invoice_drift(before: dict, after: dict) -> list[str]:
     for key in ("clientName", "email", "phone", "eventDate", "eventTime", "eventAddress", "specialNotes"):
         if (was.get(key) or "") != (now.get(key) or ""):
             lines.append(f"{key}: {was.get(key)!r} -> {now.get(key)!r}")
-    for key in ("adultCount", "childCount", "mode", "paymentMethod", "depositAmount"):
+    for key in ("adultCount", "childCount", "mode", "paymentMethod", "depositAmount", "prepGuests"):
         if before.get(key) != after.get(key):
             lines.append(f"{key}: {before.get(key)!r} -> {after.get(key)!r}")
     rows = lambda d: f"{len(d.get('guests') or [])} rows, {sum(1 for g in (d.get('guests') or []) if g.get('proteins'))} with picks"
@@ -2330,6 +2356,10 @@ def _print_invoice(order_no: str, data: dict) -> None:
         print(f"   - promo {p.get('label') or p.get('id') or p}: {money(p.get('amount'))}")
     if data.get("customDeal"):
         print(f"   custom deal: {json.dumps(data['customDeal'], ensure_ascii=False)[:200]}")
+    # 答应多带饭菜 (owner 2026-11-20, --prep-guests): the prep sheet and the prep list size the base food for it.
+    line = prep_guests_line(data)
+    if line:
+        print(f"   {line}")
     notes = (c.get("specialNotes") or "").strip()
     print(f"   NOTES(客户会看到): {notes or '(空)'}")
     # What the customer wrote to us on the party page (invoice_data.customerNotes, 2026-11-11): the
@@ -2703,7 +2733,7 @@ def cmd_order(a):
     invoice_flags = (a.date, a.time, a.address, a.name, a.email, a.phone, a.notes_file, a.travel_miles, a.travel_fee, a.proteins,
                      a.headcount, a.retier, a.guests_file, a.deal_free, a.deal_rate, a.drop_deal or None, a.free_item, a.add_extra, a.set_extra, a.add_promo, a.remove_promo,
                      a.free_appetizer, a.free_appetizer_trays, a.add_adult, a.add_child, a.remove_guest, a.promo, a.reconcile or None,
-                     a.deal_note)
+                     a.deal_note, True if a.prep_guests is not None else None)  # --prep-guests 0 (clear) is a change too
     no_invoice_change = all(v in (None, False, []) for v in invoice_flags)
     plan_change = a.chefs is not None or a.grills is not None or a.stations is not None or a.plan_rule
     if a.op == "set" and a.prep_note_file is not None:
@@ -3267,12 +3297,34 @@ def cmd_order(a):
                     raise SystemExit(f"--promo {pid}: this invoice has no such promotion ({[x.get('id') for x in promos]})")
                 changes.append(f"promo {pid}: {money(hit.get('amount'))} -> {money(amount)}")
                 hit["amount"] = amount
+        if a.prep_guests is not None:
+            # 答应多带饭菜 (owner 2026-11-20, PREP_GUESTS_MAX above): the base food for N guests. After every
+            # headcount flag in this command, so "more than are booked" is against the headcount being saved.
+            n = int(a.prep_guests)
+            was = prep_guests_of(data)
+            booked = int(data.get("adultCount") or 0) + int(data.get("childCount") or 0)
+            if n == 0:
+                if "prepGuests" not in data:
+                    raise SystemExit("--prep-guests 0: this order has no prep count to take off")
+                data.pop("prepGuests", None)
+                changes.append(f"prepGuests: {was} -> none (the base food goes back to the booked {booked})")
+            elif not 1 <= n <= PREP_GUESTS_MAX:
+                raise SystemExit(f"--prep-guests {n}: a number of guests, 1-{PREP_GUESTS_MAX} (0 takes it off)")
+            elif n <= booked:
+                raise SystemExit(f"--prep-guests {n}: the order already counts {booked} guests and the base food is prepped for them - "
+                                 f"N has to be more than that (0 takes it off)")
+            elif was == n:
+                print(f"   · prepGuests is already {n}")
+            else:
+                data["prepGuests"] = n
+                changes.append(f"prepGuests: {was if was is not None else 'none'} -> {n} (备餐按 {n} 人（订单 {booked} 人）: rice, vegetables, "
+                               f"salad, their eggs and sauces for {n}; proteins and the price unchanged)")
         if not changes and a.reconcile:
             # Save the order as it stands: the invoice engine puts on what the
             # rules owe the party (D-1017-02) and the answer lists it.
             changes.append("reconcile: saved as it is, for the invoice engine to put on what the rules owe")
         if not changes:
-            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--travel-fee/--headcount/--retier/--proteins/--guests-file/--deal-free/--deal-rate/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer/--free-appetizer-trays/--add-adult/--add-child/--remove-guest/--promo/--reconcile")
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--travel-fee/--headcount/--retier/--proteins/--guests-file/--deal-free/--deal-rate/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer/--free-appetizer-trays/--add-adult/--add-child/--remove-guest/--promo/--prep-guests/--reconcile")
         if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
@@ -3348,6 +3400,21 @@ def cmd_order(a):
             # (--add-adult, --free-item, --add-extra) may already be on the order.
             raise SystemExit(f"nothing was saved. Read it again (order show {order_no}), then re-run this command if it still applies.")
         print(f"OK    saved {res.get('orderNo')}  planner_synced={res.get('plannerSynced')}")
+        if a.prep_guests is not None:
+            # The invoice app keeps prepGuests only from the 2026-11-20 release on (lib/invoice-validate.ts): an
+            # older one saves the order and drops it without a word, so read it back.
+            try:
+                kept = prep_guests_of(_lookup(order)[1])
+            except (ApiError, SystemExit) as e:
+                print(f"WARN  prepGuests not read back ({e}) - check with order show {order_no}")
+            else:
+                want = prep_guests_of(data)
+                if kept == want:
+                    print(f"OK    prepGuests on the order: {kept if kept is not None else 'none'}"
+                          + (f" - the chef's sheet and the prep list size the base food for {kept}" if kept else ""))
+                else:
+                    print(f"WARN  the order has prepGuests {kept!r}, not {want!r}: the invoice app did not keep it (not deployed yet?) - "
+                          f"nothing on the prep sheet changed; run this again once it is")
         # 审查者 (owner 2026-11-12): inside 72 hours the system texts the chef what changed about ten
         # minutes after a change (card A; since 2026-11-13 on the link he already has, updated in place).
         # The review runs in that window, so that text is right too.
@@ -3640,6 +3707,10 @@ def main(argv=None):
     p.add_argument("--notes-file"); p.add_argument("--notes-reviewed", action="store_true"); p.add_argument("--json", action="store_true")
     p.add_argument("--prep-note-file", metavar="F", help="set: the 备货备注 (orders.prep_note, 300 characters, an empty file clears it) - "
                    "printed under this party on the prep list; with --dry it is only shown next to the current one")
+    p.add_argument("--prep-guests", type=int, metavar="N", help="set: prep the base food - fried rice, vegetables, salad, their eggs and "
+                   "sauces - for N guests, more than are booked (the owner's 'we'll bring extra in case more people come'; owner 2026-11-20). "
+                   "The chef's sheet and the prep list size it for N and say 备餐按 N 人（订单 M 人）; proteins and the price do not change. "
+                   "0 takes it off. Close to the party the chef is texted the change, like any other change he acts on.")
     p.add_argument("--lead", help="lead id for order send when the order does not carry one")
     p.add_argument("--chefs", type=int, metavar="N", help="dispatch plan: chefs on this party (owner override; the prep sheet and day map read it)")
     p.add_argument("--grills", type=int, metavar="N", help="dispatch plan: grills (defaults to --chefs)")

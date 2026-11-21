@@ -178,6 +178,27 @@ export type InvoiceLite = {
   quickCountItems?: QuickItem[]
   partyExtras?: Extra[]
   contactInfo?: { eventDate?: string }
+  /** 饭菜按几个人备（答应多带，老板 2026-11-20）：见下面 prepGuestsOf。 */
+  prepGuests?: number
+}
+
+/**
+ * 答应多带饭菜（老板 2026-11-20）：「多带点炒饭和蔬菜，怕多来人」——订 15 人、按 20 人带。
+ * RH-20261119-1164 当天备料单按 15 人算出炒饭 120 oz、蔬菜 75 oz，答应的是 20 人，只能在备注里
+ * 手写 160 oz / 100 oz。现在订单上记一个数（invoice_data.prepGuests，desk order set --prep-guests N）：
+ * 比订的人数多时，饭、蔬菜、沙拉，还有配它们的鸡蛋和每人份的酱料调料，都按这个人数备，多出来的
+ * 按大人算。蛋白照客人点的、青柠照海鲜和订的人数、价格一分不动（送的）。
+ * 镜像发票仓库 lib/pricing.ts 的 sanitizePrepGuests / basePrepOf（同一天改）。
+ */
+export const PREP_GUESTS_MAX = 500
+export function prepGuestsOf(inv: InvoiceLite | null | undefined): number | null {
+  const n = inv?.prepGuests
+  return typeof n === "number" && Number.isInteger(n) && n >= 1 && n <= PREP_GUESTS_MAX ? n : null
+}
+
+/** 备料单 / 备货页上的那一行：「备餐按 20 人（订单 15 人）」；没有答应多带就是空串。 */
+export function prepForLine(prepFor: { guests: number; booked: number } | null | undefined): string {
+  return prepFor ? `备餐按 ${prepFor.guests} 人（订单 ${prepFor.booked} 人）` : ""
 }
 
 /**
@@ -193,6 +214,10 @@ export function littlesGetNoProtein(inv: InvoiceLite | null | undefined): boolea
 export type OrderPrep = {
   adults: number
   kids: number
+  /** 饭、蔬菜、沙拉、蛋、酱料按几个人备：平时就是 adults / kids；答应多带的（prepGuests），多出来的人按大人算。 */
+  base: { adults: number; kids: number }
+  /** 答应多带饭菜（老板 2026-11-20）：备餐按 guests 人，订单 booked 人。没答应就没有这个字段。 */
+  prepFor?: { guests: number; booked: number }
   /** 蛋白质选择是否已知（false = 只按人头算了主食蔬菜蛋，蛋白缺口要人工问）。 */
   menuKnown: boolean
   /** 每种蛋白的份数（人份，不是重量），给"按单"一行用。 */
@@ -252,6 +277,12 @@ export function orderPrep(
   const adults = Number.isFinite(data.adultCount) && (data.adultCount as number) > 0 ? (data.adultCount as number) : fallbackAdults
   const kids = Number.isFinite(data.childCount) ? (data.childCount as number) : fallbackKids
   const total = adults + kids
+  // 饭菜按几个人备（prepGuestsOf）：答应的人数比订的多，多出来的按大人算；否则就是订的人数。
+  const promised = prepGuestsOf(data)
+  const extra = promised !== null && promised > total ? promised - total : 0
+  const baseA = adults + extra
+  const baseK = kids
+  const baseTotal = total + extra
   const items: PrepItem[] = []
   const policy = createdAt && Date.parse(createdAt) < PORTION_POLICY_CUTOFF_MS ? LEGACY_PORTION_POLICY : PORTION_POLICY
 
@@ -298,12 +329,12 @@ export function orderPrep(
   }
   const menuKnown = proteinServings.length > 0
 
-  // 主食、蔬菜、蛋：纯按人头，菜单没定也能算。
-  const rice = r1(adults * FRIED_RICE.adult + kids * FRIED_RICE.child)
+  // 主食、蔬菜、蛋：纯按人头，菜单没定也能算。答应多带的按备餐人数（baseA / baseK）。
+  const rice = r1(baseA * FRIED_RICE.adult + baseK * FRIED_RICE.child)
   if (rice > 0) items.push({ id: "fried_rice", label: "Fried Rice 熟饭", qty: rice, unit: "oz", alt: alt("fried_rice", rice, "oz"), group: "pantry" })
-  const salad = r1(adults * SALAD.adult + kids * SALAD.child)
+  const salad = r1(baseA * SALAD.adult + baseK * SALAD.child)
   if (salad > 0) items.push({ id: "salad", label: "Salad 沙拉菜", qty: salad, unit: "份", group: "produce" })
-  const vege = adults * VEGE_OZ.adult + kids * VEGE_OZ.child
+  const vege = baseA * VEGE_OZ.adult + baseK * VEGE_OZ.child
   if (vege > 0) {
     items.push({
       id: "mixed_vege",
@@ -315,7 +346,7 @@ export function orderPrep(
     })
   }
   // 青柠只配海鲜，没海鲜不带；有海鲜每 10 人半个，按半个往上取（2026-10-03 用户定，原来每场 1 个）。
-  // 菜单未定的场按有算（宁多勿少，几个青柠而已）。
+  // 菜单未定的场按有算（宁多勿少，几个青柠而已）。跟着订的人数走：多备的饭菜不带海鲜。
   const LIME_SEAFOOD = new Set(["shrimp", "salmon", "scallops", "lobster_tail"])
   for (const grp of MISC_PER_GROUP) {
     if (grp.id === "lime") {
@@ -323,11 +354,13 @@ export function orderPrep(
       if (total > 0 && (hasSeafood || !menuKnown)) items.push({ id: "lime", label: grp.label, qty: Math.ceil(total / 10) * 0.5, unit: grp.unit, group: "produce" })
       continue
     }
-    const qty = Math.ceil(total / grp.perNGuests)
+    // 炒饭的蛋：饭按几个人备，蛋就按几个人带。
+    const qty = Math.ceil(baseTotal / grp.perNGuests)
     if (qty > 0) items.push({ id: grp.id, label: grp.label, qty, unit: grp.unit, alt: alt(grp.id, qty, grp.unit), group: "produce" })
   }
+  // 酱料调料配饭菜，跟着备餐人数走。
   for (const m of MISC_PER_PERSON) {
-    const qty = r1(m.amount * total)
+    const qty = r1(m.amount * baseTotal)
     if (qty > 0) items.push({ id: m.id, label: m.label, qty, unit: m.unit, group: "pantry" })
   }
 
@@ -415,7 +448,7 @@ export function orderPrep(
     })
   }
 
-  return { adults, kids, menuKnown, proteinServings, items }
+  return { adults, kids, base: { adults: baseA, kids: baseK }, ...(extra > 0 ? { prepFor: { guests: baseTotal, booked: total } } : {}), menuKnown, proteinServings, items }
 }
 
 /** 多张订单的用料行 → 按品项合计（同 id 同单位相加）。 */

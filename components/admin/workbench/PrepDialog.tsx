@@ -21,6 +21,8 @@ type PrepOrder = {
   adults: number
   kids: number
   menuKnown: boolean
+  /** 答应多带饭菜（老板 2026-11-20）：「备餐按 20 人（订单 15 人）」；没有是空串。饭、菜、沙拉按它算。 */
+  prepLine?: string
   proteinLine: string
   extrasLine: string
   cooler?: CoolerParty
@@ -123,7 +125,7 @@ export function PrepDialog({ adminKey, owner, onClose, onOpenOrder }: { adminKey
       lines.push(
         o.outsourced
           ? `${o.timeLabel} ${o.name} ${o.adults + o.kids}人${o.city ? ` · ${o.city}` : ""}：外包 · 不备货`
-          : `${o.timeLabel} ${o.name} ${o.adults + o.kids}人${o.city ? ` · ${o.city}` : ""}：${o.menuKnown ? o.proteinLine : "菜单未定"}${o.extrasLine ? ` · ${o.extrasLine}` : ""}`,
+          : `${o.timeLabel} ${o.name} ${o.adults + o.kids}人${o.prepLine ? `（${o.prepLine}）` : ""}${o.city ? ` · ${o.city}` : ""}：${o.menuKnown ? o.proteinLine : "菜单未定"}${o.extrasLine ? ` · ${o.extrasLine}` : ""}`,
       )
     lines.push(``, `冰箱里已有的自己扣掉。`)
     return lines.join("\n")
@@ -198,6 +200,7 @@ export function PrepDialog({ adminKey, owner, onClose, onOpenOrder }: { adminKey
                   <strong style={{ whiteSpace: "nowrap" }}>{o.timeLabel}</strong>
                   <span style={{ minWidth: 0, flex: 1 }}>
                     {o.name} · {o.adults + o.kids} 人{o.kids ? `（小孩 ${o.kids}）` : ""}
+                    {!o.outsourced && o.prepLine ? <strong style={{ color: "var(--color-accent-700)" }}> · {o.prepLine}</strong> : null}
                     {o.outsourced ? null : <span style={{ color: "var(--color-neutral-700)" }}>{o.menuKnown ? ` · ${o.proteinLine}` : ""}{o.extrasLine ? ` · ${o.extrasLine}` : ""}</span>}
                   </span>
                   {o.outsourced ? <Tag cls="tag-neutral">外包 · 不备货</Tag> : !o.menuKnown ? <Tag cls="tag-accent">菜单未定</Tag> : null}

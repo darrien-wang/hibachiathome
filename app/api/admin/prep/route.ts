@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
-import { aggregatePrep, BUY_UNITS, orderPrep, splitVeg, VEGE_MIX, type InvoiceLite, type PrepItem } from "@/lib/prep-bom"
+import { aggregatePrep, BUY_UNITS, orderPrep, prepForLine, splitVeg, VEGE_MIX, type InvoiceLite, type PrepItem } from "@/lib/prep-bom"
 import { isBulkItem, stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
 import { setVegTotal, vegTotal } from "@/lib/prep-reservations"
 import type { SetupSelection } from "@/config/table-themes"
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
 
   const allItems: PrepItem[] = []
   // 每一行是多少份（老板 2026-10-29「单项这里需要展示多少份」）：蛋白按点了的份数，
-  // 饭、菜、沙拉、酱、蛋按人头。大人小孩分开，小孩是半份。
+  // 饭、菜、沙拉、酱、蛋按人头（答应多带的单按备餐人数，2026-11-20）。大人小孩分开，小孩是半份。
   const servings: Record<string, { adults: number; kids: number }> = {}
   const addServ = (id: string, a: number, k: number) => {
     const cur = servings[id] ?? (servings[id] = { adults: 0, kids: 0 })
@@ -97,15 +97,18 @@ export async function GET(request: NextRequest) {
       kids: prep.kids,
     }
     // 外包：人数照写（看得出是哪一场），料一样不算。
-    if (isOutsourced(r)) return { ...head, menuKnown: true, proteinLine: "", extrasLine: "", outsourced: true, cooler: undefined }
+    if (isOutsourced(r)) return { ...head, menuKnown: true, prepLine: "", proteinLine: "", extrasLine: "", outsourced: true, cooler: undefined }
     const mine = prep.menuKnown ? prep.items : prep.items.filter((i) => i.group !== "protein")
     if (prep.menuKnown) allItems.push(...prep.items)
     else allItems.push(...prep.items.filter((i) => i.group !== "protein"))
     if (prep.menuKnown) for (const ps of prep.proteinServings) addServ(ps.id, ps.adults, ps.kids)
-    for (const id of PER_HEAD) addServ(id, prep.adults, prep.kids)
+    // 饭菜酱蛋按备餐人数（答应多带的单多出来的按大人，老板 2026-11-20）；平时就是订的人数。
+    for (const id of PER_HEAD) addServ(id, prep.base.adults, prep.base.kids)
     return {
       ...head,
       menuKnown: prep.menuKnown,
+      // 答应多带饭菜：「备餐按 20 人（订单 15 人）」，没有就是空串（lib/prep-bom.ts prepForLine）。
+      prepLine: prepForLine(prep.prepFor),
       proteinLine: prep.proteinServings.map((p) => `${p.label.split(" ")[0]} ×${p.servings}`).join(" · "),
       extrasLine: prep.items
         .filter((i) => i.group === "frozen" || i.group === "setup")
@@ -113,7 +116,7 @@ export async function GET(request: NextRequest) {
         .join(" · "),
       outsourced: false,
       // 后勤备货单：这一单要提前处理的量（切肉、切菜、切豆腐、煮饭），打印时几场合成一张。
-      cooler: { time: zhTime(r.event_start as string), customer: head.name, chef: null as string | null, owner: null as string | null, note: (r.prep_note ?? "").trim() || null, adults: prep.adults, kids: prep.kids, menuKnown: prep.menuKnown, work: coolerWork(prep.items, prep.menuKnown) },
+      cooler: { time: zhTime(r.event_start as string), customer: head.name, chef: null as string | null, owner: null as string | null, note: (r.prep_note ?? "").trim() || null, adults: prep.adults, kids: prep.kids, ...(prep.prepFor ? { baseHeads: prep.prepFor.guests } : {}), menuKnown: prep.menuKnown, work: coolerWork(prep.items, prep.menuKnown) },
     }
   })
   // 我们自己备的（外包的不备）：同一批对象，下面写的厨师和负责人就写在 orders 里。

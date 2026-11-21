@@ -938,7 +938,8 @@ type Occupant = { orderId: string; name: string; date: string; time: string; qty
 type PlanRow = { id: string; label: string; qty: number; unit: string; alt?: string; group: string; pack?: BuyPack | null }
 type PlanResp = {
   /** outsourced: 外包（合作公司做），不备货，不在合计里（lib/outsourced.ts）。 */
-  orders: Array<{ id: string; dateLabel: string; orderNo: string; name: string; timeLabel: string; adults: number; kids: number; menuKnown: boolean; outsourced?: boolean }>
+  /** prepLine: 答应多带饭菜的单「备餐按 20 人（订单 15 人）」，饭菜份数按它算（老板 2026-11-20）；没有是空串。 */
+  orders: Array<{ id: string; dateLabel: string; orderNo: string; name: string; timeLabel: string; adults: number; kids: number; menuKnown: boolean; prepLine?: string; outsourced?: boolean }>
   totals: PlanRow[]
   pantry: Record<string, number>
   /** 别的单还占着的量。可用 = 在库 − 这个（老板 2026-09-29）。 */
@@ -1156,7 +1157,7 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
               const outs = resp.orders.filter((o) => o.outsourced)
               return (
                 <>
-                  共 {ours.length} 单 · {heads(ours.reduce((n, o) => n + o.adults, 0), ours.reduce((n, o) => n + o.kids, 0))}：{ours.map((o) => `${o.dateLabel} ${o.name}（${heads(o.adults, o.kids)}）`).join(" · ")}
+                  共 {ours.length} 单 · {heads(ours.reduce((n, o) => n + o.adults, 0), ours.reduce((n, o) => n + o.kids, 0))}：{ours.map((o) => `${o.dateLabel} ${o.name}（${heads(o.adults, o.kids)}${o.prepLine ? `，${o.prepLine}` : ""}）`).join(" · ")}
                   {outs.length ? ` · 外包不备货：${outs.map((o) => `${o.dateLabel} ${o.name}`).join("、")}` : ""}
                 </>
               )

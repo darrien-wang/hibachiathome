@@ -166,8 +166,11 @@ class Run:
     `created_at` is the order row's (None: the search has no time, as an order booked after the ladder closed reads)."""
 
     def __init__(self, prefill: dict, *args: str, op: str = "set", reply: dict | None = None, lint: dict | None = None,
-                 created_at: str | None = None, db=None, review: tuple | None = None):
+                 created_at: str | None = None, db=None, review: tuple | None = None, echo: bool = False):
         self.prefill, self.saved, self.priced = prefill, None, []
+        # echo: a lookup after the save answers with what was saved (an invoice app that keeps every field sent);
+        # without it the lookup keeps answering the order as it was loaded.
+        self.echo = echo
         # 审查者 gate (2026-11-12): the remind / send-sheet cases below are about the text, so the order reads as
         # reviewed unless a case passes `review` - its own (fresh, why) - to test the gate itself.
         self.review = review or (True, "selfcheck: reviewed")
@@ -211,8 +214,9 @@ class Run:
 
     def invoice_post(self, path, payload, timeout=120):
         if path == "/api/self-service/orders/lookup":
+            prefill = (self.saved or {}).get("invoiceData") if self.echo and self.saved else self.prefill
             return {"found": True, "order": {"orderNo": ORDER_NO, "updatedAt": "2030-01-01T00:00:00Z", "version": "v-selfcheck"},
-                    "prefill": copy.deepcopy(self.prefill)}
+                    "prefill": copy.deepcopy(prefill)}
         if path == "/api/invoice":
             # remind sends the card bill only off an address-rated invoice
             return {"invoice": {**fake_invoice(payload), **({"salesTaxRateSource": "address"} if self.lint is not None else {})}}
@@ -1630,6 +1634,63 @@ def order_flow_checks() -> None:
     check("  a site that does not send the list yet (old deploy): the gaps as before", r.has("→ 缺：菜单空") and "派对页和发票不一致" not in r.out, r)
 
 
+def rice_party(prep_guests=None) -> dict:  # the 11-20 case (RH-20261119-1164): food for 20 promised, 15 booked
+    p = pc_party("RH-20301120-0001", "2030-11-21T17:00:00+00:00", name="Rice Test", mode="quick",
+                 internal="11-19 老板答应：多带点炒饭和蔬菜，怕多来人，按 20 人带。", address="1 Test Way, Walnut, CA 91789")
+    p["order"]["invoice_data"].update({"adultCount": 15, "childCount": 0, **({"prepGuests": prep_guests} if prep_guests is not None else {})})
+    return p
+
+
+def prep_guests_checks() -> None:
+    """Base food for more guests than are booked (owner 2026-11-20): --prep-guests N, order show, the day check."""
+    fifteen = invoice(adults=15, proteins=prot(steak=(15, 0), chicken=(15, 0)))
+    r = Run(fifteen, "--prep-guests", "20", "--dry")
+    check("--prep-guests 20 on 15 booked: base food for 20 (备餐按 20 人（订单 15 人）), the TOTAL unchanged, --dry saves nothing",
+          r.exit is None and r.saved is None and r.has("prepGuests: none -> 20 (备餐按 20 人（订单 15 人）", "✓ total check: TOTAL $898.50", "DRY   not saved"), r)
+    r = Run(fifteen, "--prep-guests", "20", echo=True)
+    check("  saved: prepGuests 20 and nothing else on the invoice moved; read back from the order",
+          r.data.get("prepGuests") == 20 and {k: v for k, v in r.data.items() if k != "prepGuests"} == fifteen
+          and r.has("OK    prepGuests on the order: 20 - the chef's sheet and the prep list size the base food for 20"), r)
+    r = Run(fifteen, "--prep-guests", "20")
+    check("  an invoice app that dropped it (not deployed yet): the save says so instead of OK",
+          r.saved is not None and r.has("WARN  the order has prepGuests None, not 20") and "OK    prepGuests" not in r.out, r)
+    r = Run(fifteen, "--prep-guests", "15", "--dry")
+    check("  --prep-guests 15 on 15 booked is refused: the base food is already for them",
+          "has to be more than that" in str(r.exit) and r.saved is None, r)
+    r = Run(fifteen, "--prep-guests", "0", "--dry")
+    check("  --prep-guests 0 on an order without one: nothing to take off", "no prep count to take off" in str(r.exit), r)
+    promised = {**copy.deepcopy(fifteen), "prepGuests": 20}
+    r = Run(promised, "--prep-guests", "0", echo=True)
+    check("  --prep-guests 0 takes it off: the key is gone, read back as none",
+          r.saved is not None and "prepGuests" not in r.data and r.has("prepGuests: 20 -> none", "OK    prepGuests on the order: none"), r)
+    r = Run(promised, "--prep-guests", "20", "--dry")
+    check("  the same number again: nothing to change", r.has("· prepGuests is already 20") and "nothing to change" in str(r.exit), r)
+    r = Run(fifteen, "--headcount", "18/0", "--proteins", "steak=18", "chicken=18", "--prep-guests", "20", "--dry")
+    check("  with --headcount in the same command it is held against the new headcount: 20 on 18",
+          r.exit is None and r.has("备餐按 20 人（订单 18 人）"), r)
+    r = Run(fifteen, "--headcount", "20/0", "--proteins", "steak=20", "chicken=20", "--prep-guests", "20", "--dry")
+    check("  ... and refused when the new headcount reaches it", "already counts 20 guests" in str(r.exit), r)
+    r = Run(promised, "--time", "18:30")
+    check("  any other order set keeps it (the lookup carries it back) and does not read it back",
+          r.data.get("prepGuests") == 20 and "prepGuests" not in r.out.split("OK    saved")[-1], r)
+    r = Run(promised, op="show", lint={"ok": True, "blocking": [], "warnings": []})
+    check("order show prints it: 备餐按 20 人（订单 15 人）, proteins and price unchanged",
+          r.has("备餐按 20 人（订单 15 人）：炒饭、蔬菜、沙拉和配的蛋、酱按 20 人备；蛋白和价格不变"), r)
+    r = Run({**copy.deepcopy(fifteen), "adultCount": 22, "prepGuests": 20}, op="show", lint={"ok": True, "blocking": [], "warnings": []})
+    check("  an order that has grown past it says it rests", r.has("备餐人数 20（订单已有 22 人，不比它多：现在按订单人数备）"), r)
+    r = Run(fifteen, op="show", lint={"ok": True, "blocking": [], "warnings": []})
+    check("  an order without it prints no such line", "备餐" not in r.out, r)
+
+    check("party check · extra rice promised (11-19) and not on the order: the bring gap warns",
+          ("warn", "bring:rice") in pc_kinds(rice_party()))
+    p = rice_party(20)
+    check("  the order's prep count (--prep-guests 20 on 15) carries it: no bring gap, and the day check prints the line",
+          ("warn", "bring:rice") not in pc_kinds(p) and "   备餐按 20 人（订单 15 人）：炒饭、蔬菜、沙拉按这个人数备" in party_check.render(p, party_check.gaps_of(p), "2030-11-20"))
+    check("  the prep list's own line wins when it is there; a count not above the booking carries nothing",
+          party_check.prep_line({**rice_party(), "prep": {"prepLine": "备餐按 24 人（订单 15 人）"}}) == "备餐按 24 人（订单 15 人）"
+          and ("warn", "bring:rice") in pc_kinds(rice_party(15)) and party_check.prep_line(rice_party(15)) == "")
+
+
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     rules_match_the_ts_export()
@@ -1692,6 +1753,7 @@ def main() -> int:
     r = Run(quick_8_2, "--add-extra", "canopy=6", "--dry")
     check("--add-extra canopy=6: six 10x10 canopies at $20 each, by count",
           r.exit is None and r.has("10x10 canopies: 0 -> 6 at $20.00 each"), r)
+    prep_guests_checks()
     r = Run(invoice(mode="detailed", adults=5, guests=rows(5)), "--headcount", "6/0", "--dry")
     check("--headcount refuses an order with guest rows", "guest rows" in str(r.exit), r)
     r = Run(invoice(mode="detailed", adults=5), "--headcount", "6/0")

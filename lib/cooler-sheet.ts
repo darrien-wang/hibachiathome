@@ -34,9 +34,17 @@ export type CoolerParty = {
   note?: string | null
   adults: number
   kids: number
+  /**
+   * 答应多带饭菜的单（老板 2026-11-20，prep-bom.ts prepGuestsOf）：饭和洋葱碎按这个人数做。
+   * 没有就是 adults + kids。蔬菜已经在 work 里按备餐人数算好了。
+   */
+  baseHeads?: number
   menuKnown: boolean
   work: CoolerWork
 }
+
+/** 饭和洋葱碎按几个人做：答应多带的按备餐人数，否则按订的人数。 */
+const baseHeadsOf = (p: CoolerParty) => (typeof p.baseHeads === "number" && p.baseHeads > p.adults + p.kids ? p.baseHeads : p.adults + p.kids)
 
 /** 一单的用料行 → 要提前处理的量。菜单没定时肉和豆腐不算（纸上会提示）。 */
 export function coolerWork(items: PrepItem[], menuKnown: boolean): CoolerWork {
@@ -97,14 +105,15 @@ export function workLines(parties: CoolerParty[]): { meat: Line[]; vege: Line[];
   }
   // 洋葱碎：每 10 个人 0.5 磅，大人小孩都算一个人，往上凑到半磅（老板 2026-11-20；
   // 10-22 起原来是每 10 人 10 盎司再加一成，切多了）。和上面"洋葱 切好"（蔬菜混合里的）是两样东西。
-  const heads = parties.reduce((n, p) => n + p.adults + p.kids, 0)
+  // 答应多带饭菜的单按备餐人数（baseHeadsOf）。
+  const heads = parties.reduce((n, p) => n + baseHeadsOf(p), 0)
   if (heads > 0) {
     vege.push({ label: "洋葱碎", amount: lbs(heads * ONION_DICE_OZ_PER_GUEST), note: "每 10 个人 0.5 磅" })
   }
 
   const rice: Line[] = []
   // 写煮好的熟饭，每人多少写出来；米饭小孩按大人的量算（老板 2026-10-22）。
-  const riceOz = parties.filter((p) => (p.work?.fried_rice ?? 0) > 0).reduce((n, p) => n + (p.adults + p.kids) * FRIED_RICE.adult, 0)
+  const riceOz = parties.filter((p) => (p.work?.fried_rice ?? 0) > 0).reduce((n, p) => n + baseHeadsOf(p) * FRIED_RICE.adult, 0)
   if (riceOz > 0) rice.push({ label: "熟米饭", amount: lbs(riceOz), note: `每人 ${FRIED_RICE.adult / 16} 磅` })
   const vegeShown = vegeNet > 0 ? VEGE_NET_SPLIT.reduce((n, v) => n + halfLb(vegeNet * v.ratio), 0) : 0
   return { meat, vege, vegeNet: vegeShown, rice }

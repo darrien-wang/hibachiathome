@@ -297,6 +297,20 @@ def invoice_of(order: dict) -> dict:
     return inv if isinstance(inv, dict) else {}
 
 
+def prep_line(party: dict) -> str:
+    """答应多带饭菜 (owner 2026-11-20, invoice_data.prepGuests): the prep list's 「备餐按 20 人（订单 15 人）」 - its own line
+    (app/api/admin/prep prepLine), else worked out from the invoice the way lib/prep-bom.ts does. "" when there is none."""
+    prep = party.get("prep") or {}
+    if prep.get("prepLine"):
+        return str(prep["prepLine"])
+    inv = invoice_of(party.get("order") or {})
+    n = inv.get("prepGuests")
+    booked = int(inv.get("adultCount") or 0) + int(inv.get("childCount") or 0)
+    if isinstance(n, int) and not isinstance(n, bool) and booked < n <= 500:
+        return f"备餐按 {n} 人（订单 {booked} 人）"
+    return ""
+
+
 def setup_units(inv: dict) -> dict[str, int]:
     """Setup the prep list will load, from the invoice - lib/prep-bom.ts setupCountsOf."""
     extras = inv.get("partyExtras") if isinstance(inv.get("partyExtras"), list) else []
@@ -707,6 +721,9 @@ def warn_gaps(party: dict, srcs: list[dict], carr: list[dict], everything: list[
     for key, (label, pat) in BRING.items():
         if has(pat, prep_text):
             continue
+        # Extra rice is on the order as a number since 2026-11-20 (--prep-guests): the prep list sizes the rice for it.
+        if key == "rice" and prep_line(party):
+            continue
         hits = [s for s in srcs if s["src"] not in ("sms_in", "sms_out") and has(pat, s["text"]) and not has(BRING_NEG, s["text"]) and not asking(s["text"])]
         if hits:
             gaps.append(_gap("warn", f"bring:{key}", f"答应带的（{label}）：备货清单和备货备注里没有", "写进备货备注（desk order set --prep-note-file F）", hits))
@@ -929,6 +946,8 @@ def render(party: dict, gaps: list[dict], today: str | None = None) -> list[str]
     else:
         protein = prep.get("proteinLine") if prep.get("menuKnown") else "菜单未定"
         lines.append(f"   备货：{protein or '-'}" + (f" | {prep['extrasLine']}" if prep.get("extrasLine") else ""))
+        if prep_line(party):
+            lines.append(f"   {prep_line(party)}：炒饭、蔬菜、沙拉按这个人数备")
     cooler = prep.get("cooler") if isinstance(prep.get("cooler"), dict) else {}
     lines.append(f"   备货备注：{(cooler.get('note') if cooler else None) or order.get('prep_note') or '(空)'}")
     lines.append(f"   订单备注（客人看得到）：{str(c.get('specialNotes') or '').strip() or '(空)'}")
