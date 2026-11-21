@@ -2606,8 +2606,7 @@ def _order_review_ops(a) -> None:
 # 「当天上午发就行，不需要让他们确认，反正发过去留个证据避免后续扯皮」: on the morning of the party (9:00
 # Pacific) each customer gets one text that says what we bring, what to have ready and the cash total - a
 # record in writing, not a question: it asks nothing and needs no reply. Four lines, from the order alone:
-#   - when the chef gets there (an arrival the notes the customer sees promise, else an hour early when we
-#     bring tables or chairs, else about 30 minutes early) and when the party starts;
+#   - when the chef gets there (always about 30 minutes before the start, owner 2026-11-20) and when the party starts;
 #   - what we bring: the proteins counted as the prep list and the chef's sheet count them (lib/prep-bom.ts
 #     orderPrep: the picks, the whole-table sides, no protein for a free 3-4 year old on a party from 11-13),
 #     the base food (more of it on an order with --prep-guests), the appetizers, noodles and add-ins, the
@@ -2633,15 +2632,6 @@ BLACK_CLOTHS_FROM = "2026-11-03"  # white_linen is the black $5 cloth on orders 
 SUMMARY_PROTEINS = (("chicken", "chicken"), ("steak", "steak"), ("shrimp", "shrimp"), ("salmon", "salmon"), ("tofu", "tofu"),
                     ("ribeye", "ribeye"), ("filet_mignon", "filet mignon"), ("scallops", "scallop"), ("lobster_tail", "lobster tail"))
 SUMMARY_APPETIZERS = (("gyoza", "gyoza"), ("spring_rolls", "spring rolls"), ("edamame", "edamame"))
-# An arrival the customer was told in the notes they see ("Chef arrives around 4 PM to set up", "arrive around 4", "arriving
-# at 3:30"): the clock time right after the word. Not "30 minutes early", and not the guests' ("guests arrive at 5").
-SUMMARY_ARRIVE = re.compile(r"\barriv(?:e|es|ing)\b", re.I)
-SUMMARY_ARRIVE_AT = re.compile(r"[ \t]*(?:(around|about|at|by|~)[ \t]*)?(?:(noon)\b|(\d{1,2})(?::(\d{2}))?[ \t]*(?:([ap])\.?[ \t]?m\b\.?)?)"
-                               r"(?![ \t]*(?:min|hour|hr)|[\d:])", re.I)
-# Whose arrival: the clause up to the word names the chef or us ("Your chef arrives", "we arrive"), or nobody ("arrive around
-# 4", "Please arrive around 4"); never the guests or anyone else ("the birthday girl arrives at 6:30" is the surprise).
-SUMMARY_BY_CHEF = re.compile(r"^\s*(?:please\s*)?$|\b(?:chefs?|we|team)\b", re.I)
-SUMMARY_NOT_CHEF = re.compile(r"\b(?:guests?|everyone|everybody|people|friends|family|kids|they)\b", re.I)
 # A party booked and paid on Airbnb (D-1117-01, leads SKILL §7: the order notes say "Airbnb Services · … · 已在 Airbnb 付清",
 # the prep note "Airbnb 单：…"), or one whose lead came in through Airbnb. Only those words: "our Airbnb" is a rental house.
 AIRBNB_PAID = re.compile(r"airbnb services|airbnb ?单|在 ?airbnb ?上?付清|paid (?:in full )?(?:on|through|via|in) airbnb", re.I)
@@ -2671,39 +2661,6 @@ def _count(n) -> str:
 def _pieces(n, one: str, many: str) -> str:
     """1 chair / 30 chairs; `one` may carry its own article ("a 6-ft table")."""
     return one if float(n) == 1 else f"{_count(n)} {many}"
-
-
-def summary_arrival(notes: str, start: tuple[int, int]) -> str | None:
-    """"around 4" from the first arrival the notes give that falls in the 4 hours before the start (an hour with no
-    AM/PM is the one that does); None when they give none."""
-    at = start[0] * 60 + start[1]
-    text = notes or ""
-    for m in SUMMARY_ARRIVE.finditer(text):
-        head = re.split(r"[.!?;:|,\n]", text[:m.start()])[-1]
-        if not SUMMARY_BY_CHEF.search(head) or SUMMARY_NOT_CHEF.search(head):
-            continue
-        t = SUMMARY_ARRIVE_AT.match(text, m.end())
-        if not t or not (t.group(2) or t.group(3)):
-            continue
-        if t.group(2):
-            times = [12 * 60]
-        else:
-            h, mins, ap = int(t.group(3)), int(t.group(4) or 0), (t.group(5) or "").lower()
-            if mins > 59:
-                continue
-            if ap and 1 <= h <= 12:
-                times = [(h % 12 + (12 if ap == "p" else 0)) * 60 + mins]
-            elif not ap and 13 <= h <= 23:
-                times = [h * 60 + mins]
-            elif not ap and 1 <= h <= 12:
-                times = [h % 12 * 60 + mins, (h % 12 + 12) * 60 + mins]
-            else:
-                continue
-        fits = [x for x in times if 0 < at - x <= 240]
-        if fits:
-            word = (t.group(1) or "around").lower().replace("~", "around")
-            return f"{word} {_say_clock(max(fits) // 60, max(fits) % 60)}"
-    return None
 
 
 def summary_servings(data: dict) -> dict[str, float]:
@@ -2898,16 +2855,16 @@ def day_summary(data: dict, *, start: str, due: float, gratuity_rate=None, chefs
     if not ut:
         host.append("plates and utensils")
 
-    notes = str(c.get("specialNotes") or "")
-    arrival = summary_arrival(notes, (hh, mm))
-    if not arrival and (tc or chairs or tables):
-        early = (hh * 60 + mm - 60) % 1440
-        arrival = f"around {_say_clock(early // 60, early % 60)}"
+    # The text always says about 30 minutes before the start (owner 2026-11-20: 「提前半小时吧，不要太早，万一迟到了
+    # 就不好了」): the record promises the later time, so a chef who is there an hour early to set tables is early,
+    # never late. The chef's own arrival stays on the order notes and the prep sheet.
+    early = (hh * 60 + mm - 30) % 1440
+    arrival = f"around {_say_clock(early // 60, early % 60)}"
     meal = "lunch" if 5 <= hh < 15 else "dinner"
     lines = [
         DAY_SUMMARY_HEAD,
         # Plain "-" bullets: a "•" turns the whole text into UCS-2, about twice the SMS segments (2026-11-20).
-        f"- {'Your chefs arrive' if chefs > 1 else 'Your chef arrives'} {arrival or 'about 30 minutes early to set up'}, "
+        f"- {'Your chefs arrive' if chefs > 1 else 'Your chef arrives'} {arrival}, "
         f"and {meal} starts at {_say_clock(hh, mm)}.",
         "- We bring: " + ", ".join(brought) + ".",
         "- Please have ready: " + ("a flat outdoor spot for each grill" if grills > 1 else "a flat outdoor spot for the grill")
