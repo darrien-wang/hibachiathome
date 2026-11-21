@@ -1146,6 +1146,30 @@ def party_check_checks() -> None:
                  "notices": notice_no_1}, "2030-11-12")[0]
           == ("! ", "Blu：最新版，改单前打开过，改单通知 11-12 08:00 之后没回复也没再打开（报老板打电话）"))
 
+    # Owner 2026-11-21 「好的」: the prep list and the chef's sheet are two programs on one order - compare them.
+    pv_link = link(id="L1", sent_at="2030-11-11T23:00:00Z", first_opened_at="2030-11-11T23:10:00Z")
+    pv_prep = {"menuKnown": True, "parts": {
+        "proteins": [{"id": "chicken", "servings": 11}, {"id": "steak", "servings": 7}],
+        "items": [{"id": "noodles", "qty": 2, "unit": "oz"}, {"id": "gyoza", "qty": 14, "unit": "pcs"}, {"id": "tables", "qty": 3, "unit": "张"}, {"id": "chairs", "qty": 9, "unit": "把"}],
+        "custom": [{"id": "custom_abc", "name": "白米饭", "qty": 2}]}}
+    pv_snap = {"id": "L1", "order_id": base["order"].get("id"), "proteins": [{"id": "chicken", "servings": 11}, {"id": "steak", "servings": 7}],
+               "food": [{"id": "noodles", "amount": "6 oz"}, {"id": "gyoza", "amount": "14 pcs"}],
+               "setup": [{"id": "tables", "qty": 3}, {"id": "tablecloths", "qty": 3}, {"id": "chairs", "qty": 9}],
+               "custom": [{"id": "custom_abc", "zh": "白米饭", "qty": 2}]}
+    pv = lambda prep=pv_prep, snap=pv_snap, lk=pv_link: party_check.prep_vs_sheet({**base, "prep": prep, "links": [lk], "sheet_snaps": {"L1": snap}})
+    check("party check · prep list vs the chef's sheet: alike once the units are (noodles dry x3 = cooked, a cloth per table) -> nothing",
+          pv() == [] and party_check.prep_sheet_gaps({**base, "prep": pv_prep, "links": [pv_link], "sheet_snaps": {"L1": pv_snap}}) == [])
+    check("  a protein, the noodles, a chair count, the cloths, a custom item that differ: one line each, both numbers",
+          pv(snap={**pv_snap, "proteins": [{"id": "chicken", "servings": 10}, {"id": "steak", "servings": 7}, {"id": "lobster_tail", "servings": 2}],
+                   "food": [{"id": "noodles", "amount": "4 oz"}, {"id": "gyoza", "amount": "14 pcs"}],
+                   "setup": [{"id": "tables", "qty": 3}, {"id": "tablecloths", "qty": 2}, {"id": "chairs", "qty": 10}],
+                   "custom": [{"id": "custom_abc", "zh": "白米饭", "qty": 1}]})
+          == ["鸡 备货清单 11 份 / 备料单 10 份", "龙虾尾 备货清单 0 份 / 备料单 2 份", "面条 备货清单 2 oz 干面（≈6 oz 熟面）/ 备料单 4 oz 熟面",
+              "椅子 备货清单 9 / 备料单 10", "桌布 备货清单 3（一张桌子一条）/ 备料单 2", "白米饭 备货清单 2 / 备料单 1"])
+    check("  nothing fair to compare: his sheet stale or a change pending, no itemized prep list, no snapshot -> no line",
+          pv(lk={**pv_link, "stale": True}) == [] and pv(lk={**pv_link, "change_pending_since": "2030-11-12T16:00:00Z"}) == []
+          and pv(prep={"menuKnown": True}) == [] and party_check.prep_vs_sheet({**base, "prep": pv_prep, "links": [pv_link], "sheet_snaps": {}}) == [])
+
     # desk order check: the day's parties, read-only; desk order show: the blocking ones in its 缺项 block.
     p = andrea(False)
     o = {**p["order"], "id": "00000000-0000-4000-8000-0000000000e1", "event_start": "2030-11-12T18:30:00+00:00"}

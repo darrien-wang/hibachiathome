@@ -808,13 +808,95 @@ def crew_gaps(party: dict) -> list[dict]:
     return out
 
 
+# The prep list (what the owner buys and loads: marketing lib/prep-bom.ts, /api/admin/prep parts) and the chef's
+# sheet (what he cooks from: the invoice's calcBom, frozen into chef_sheet_links.sheet_snapshot when he is told) are
+# two programs reading the same order. On 11-12 they disagreed about the 3-4 year-olds' protein. The owner 2026-11-21
+# 「好的」: compare them, every party. Units differ on purpose in two places, so they are turned alike first: the prep
+# list's noodles are dry oz (cooked / 3, NOODLE_COOKED_PER_DRY) and its "tables" carry one cloth each.
+NOODLE_COOKED_PER_DRY = 3
+PREP_SHEET_FOOD = (("noodles", "面条"), ("gyoza", "饺子"), ("spring_rolls", "春卷"))
+PREP_SHEET_SETUP = (("tables", "桌子"), ("chairs", "椅子"), ("utensils", "餐具"))
+PROTEIN_ZH = {"chicken": "鸡", "steak": "牛", "shrimp": "虾", "salmon": "三文鱼", "tofu": "豆腐", "ribeye": "肋眼", "filet_mignon": "菲力",
+              "scallops": "扇贝", "lobster_tail": "龙虾尾"}
+
+
+def _amount(v) -> float:
+    """The number at the front of a sheet amount ("6 oz", "14 pcs", "1 bottle"), 0 when there is none."""
+    m = re.match(r"\s*(-?\d+(?:\.\d+)?)", str(v if v is not None else ""))
+    return float(m.group(1)) if m else 0.0
+
+
+def prep_vs_sheet(party: dict) -> list[str]:
+    """Where the prep list and the sheet the lead chef holds disagree, one line each; [] when they agree, or when
+    there is nothing fair to compare: no itemized prep list (an older deploy), an outsourced party, no lead chef,
+    or his sheet is not the order as it stands (stale or a change pending - the sheet line says so already)."""
+    prep = party.get("prep") or {}
+    parts = prep.get("parts")
+    if not isinstance(parts, dict) or outsourced_mark(party["order"]) or prep.get("outsourced"):
+        return []
+    lead = next((t for t in party.get("team") or [] if t.get("role") != "assistant_chef"), None)
+    link = lead and next((l for l in party.get("links") or [] if l.get("staff_member_id") == lead["id"] and not l.get("revoked_at")), None)
+    if not link or link.get("stale") or link.get("change_pending_since"):
+        return []
+    snap = (party.get("sheet_snaps") or {}).get(link.get("id"))
+    if not isinstance(snap, dict):
+        return []
+    out = []
+    num = lambda v: _num(v)
+    fmt = lambda v: f"{v:g}"
+    if prep.get("menuKnown"):
+        pp = {p.get("id"): num(p.get("servings")) for p in parts.get("proteins") or [] if isinstance(p, dict)}
+        sp = {p.get("id"): num(p.get("servings")) for p in snap.get("proteins") or [] if isinstance(p, dict)}
+        for pid in sorted(set(pp) | set(sp), key=str):
+            if abs(pp.get(pid, 0) - sp.get(pid, 0)) > 0.01:
+                out.append(f"{PROTEIN_ZH.get(pid, pid)} 备货清单 {fmt(pp.get(pid, 0))} 份 / 备料单 {fmt(sp.get(pid, 0))} 份")
+    items = {i.get("id"): i for i in parts.get("items") or [] if isinstance(i, dict)}
+    food = {f.get("id"): f for f in snap.get("food") or [] if isinstance(f, dict)}
+    setup = {s.get("id"): s for s in snap.get("setup") or [] if isinstance(s, dict)}
+    for fid, zh in PREP_SHEET_FOOD:
+        if fid not in items and fid not in food:
+            continue
+        a = num((items.get(fid) or {}).get("qty"))
+        b = _amount((food.get(fid) or {}).get("amount"))
+        if fid == "noodles":
+            if abs(a * NOODLE_COOKED_PER_DRY - b) > 0.6:
+                out.append(f"{zh} 备货清单 {fmt(a)} oz 干面（≈{fmt(round(a * NOODLE_COOKED_PER_DRY, 1))} oz 熟面）/ 备料单 {fmt(b)} oz 熟面")
+        elif abs(a - b) > 0.5:
+            out.append(f"{zh} 备货清单 {fmt(a)} 个 / 备料单 {fmt(b)} 个")
+    for sid, zh in PREP_SHEET_SETUP:
+        if sid not in items and sid not in setup:
+            continue
+        a, b = num((items.get(sid) or {}).get("qty")), num((setup.get(sid) or {}).get("qty"))
+        if abs(a - b) > 0.01:
+            out.append(f"{zh} 备货清单 {fmt(a)} / 备料单 {fmt(b)}")
+    if "tablecloths" in setup and abs(num(setup["tablecloths"].get("qty")) - num((items.get("tables") or {}).get("qty"))) > 0.01:
+        out.append(f"桌布 备货清单 {fmt(num((items.get('tables') or {}).get('qty')))}（一张桌子一条）/ 备料单 {fmt(num(setup['tablecloths'].get('qty')))}")
+    pc = {c.get("id"): c for c in parts.get("custom") or [] if isinstance(c, dict)}
+    sc = {c.get("id"): c for c in snap.get("custom") or [] if isinstance(c, dict)}
+    for cid in sorted(set(pc) | set(sc), key=str):
+        a, b = num((pc.get(cid) or {}).get("qty")), num((sc.get(cid) or {}).get("qty"))
+        if abs(a - b) > 0.01:
+            name = (pc.get(cid) or {}).get("name") or (sc.get(cid) or {}).get("zh") or (sc.get(cid) or {}).get("name") or cid
+            out.append(f"{name} 备货清单 {fmt(a)} / 备料单 {fmt(b)}")
+    return out
+
+
+def prep_sheet_gaps(party: dict) -> list[dict]:
+    diffs = prep_vs_sheet(party)
+    if not diffs:
+        return []
+    return [_gap("block", "prep_vs_sheet", "备货清单和师傅的备料单对不上：" + "；".join(diffs),
+                 "先别照任何一张装车：两张是两个程序按同一张订单算的，对不上就是有一边算错了。订单本身对的话报老板、交给开发查是哪一边；订单错了先改订单",
+                 [])]
+
+
 def gaps_of(party: dict, *, blocking_only: bool = False) -> list[dict]:
     """Every gap for one party, blocking first. blocking_only: the two the owner made blocking, from the order's
     own notes, the lead's and the deal (what `desk order show` reads)."""
     carr = carriers(party)
     srcs = sources(party)
     everything = srcs + [{"src": "carrier", "label": "", "at": None, "text": cl} for c in carr for cl in clauses(c["text"])]
-    out = setup_gaps(party, srcs, carr) + allergy_gaps(srcs, carr, everything)
+    out = setup_gaps(party, srcs, carr) + allergy_gaps(srcs, carr, everything) + prep_sheet_gaps(party)
     if blocking_only:
         return [g for g in out if g["severity"] == "block"]
     out += warn_gaps(party, srcs, carr, everything) + crew_gaps(party)
@@ -1159,6 +1241,9 @@ def load_parties(order_ids: list[str], db_get, site_get, date: str | None, prep_
             tokens_of.setdefault(str(l.get("order_id")), set()).add(str(l["token"]))
     links = [{k: v for k, v in l.items() if k != "token"} for l in links if isinstance(l, dict)]
     notices = _safe(lambda: db_get(f"/rest/v1/chef_change_notices?select=id,order_id,staff_member_id,summary,sent_at,acked_at,sms_sid&order_id=in.({ids})&order=sent_at.desc"), [])
+    # What each live link told its chef, item by item (prep_vs_sheet): the sheet's proteins, food, setup and custom rows.
+    snaps = _safe(lambda: db_get("/rest/v1/chef_sheet_links?select=id,order_id,proteins:sheet_snapshot->proteins,food:sheet_snapshot->food,"
+                                 f"setup:sheet_snapshot->setup,custom:sheet_snapshot->custom&order_id=in.({ids})&revoked_at=is.null"), [])
     events = _safe(lambda: db_get(f"/rest/v1/order_events?select=order_id,action,created_at,metadata&order_id=in.({ids})"
                                   "&action=in.(lead_linked,chef_sheet_sent)&order=created_at.asc"), [])
     requests = _safe(lambda: db_get(f"/rest/v1/invoice_update_requests?select=order_id,created_at,customer_message&order_id=in.({ids})&order=created_at.asc"), [])
@@ -1204,6 +1289,7 @@ def load_parties(order_ids: list[str], db_get, site_get, date: str | None, prep_
             # When each chef on the party texted us (any text): the owner 11-21 - a reply of any kind, or at
             # least opening the sheet, is what a sent sheet or change text needs (sheet_lines).
             "chef_in": {},
+            "sheet_snaps": {str(x.get("id")): x for x in snaps if isinstance(x, dict) and x.get("order_id") == oid},
         }
         if texts:
             if o.get("customer_phone"):
