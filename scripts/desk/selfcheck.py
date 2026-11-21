@@ -24,6 +24,12 @@ call that gets past them fails the run instead of reaching production.
     replies of 10-21..24, replayed on fake threads at the second they went
     out), --seen lets it through, --force does not, staff numbers and our own
     texts never stop it
+  - desk order summary (owner 2026-11-20): the party-day text from orders shaped
+    like 11/21's (host has everything, full rental + free gyoza, kids under 5,
+    an arrival in the notes, nothing owed), clean by the voice check; --send
+    texts it, emails a number that cannot take a text, notes [SOP:day_summary],
+    and does not send 00:00-07:00, on another day, twice, to an Airbnb party,
+    or over a question of theirs
 """
 from __future__ import annotations
 
@@ -1691,6 +1697,325 @@ def prep_guests_checks() -> None:
           and ("warn", "bring:rice") in pc_kinds(rice_party(15)) and party_check.prep_line(rice_party(15)) == "")
 
 
+# ---------------------------------------------------------------- 当天上午小结 (owner 2026-11-20) --
+# desk order summary: the party-day text (what we bring, what to have ready, the cash total; no question), built from
+# fake orders shaped like the real ones of 11/21, then the command against a fake site: what it posts, and when it
+# does not (00:00-07:00, another day, sent already, Airbnb, a question of theirs waiting, a brake) and the email for a
+# number that cannot take a text.
+SUM_PHONE, SUM_LEAD, SUM_ID = "+15555550142", "00000000-0000-4000-8000-0000000000b1", "00000000-0000-4000-8000-0000000000a1"
+SUM_TOTAL_LINE = "• Total {} cash. Card, Venmo or Zelle add fees, and gratuity isn't included."
+SUM_NOW = datetime.datetime(2030, 6, 15, 16, 0, tzinfo=datetime.timezone.utc)  # 09:00 Pacific on the party day
+
+
+def sum_guest(name: str, *proteins: str, child: bool = False, little: bool = False, tc: bool = False, ut: bool = False, noodles: bool = False) -> dict:
+    return {"id": f"g-{name}", "name": name, "isChild": child or little, "proteins": list(proteins), "noodles": noodles, "tablesChairs": tc,
+            "utensils": ut, "foodAllergy": "", "note": "", **({"isLittle": True} if little else {})}
+
+
+def sum_text(*lines: str) -> str:
+    return "\n".join(["Here's the plan for today:", *lines])
+
+
+def sum_row(data: dict, *, order_no: str = ORDER_NO, oid: str = SUM_ID, start: str = "2030-06-15T17:00:00+00:00", lead: str | None = SUM_LEAD,
+            phone: str = SUM_PHONE, status: str = "active", paid_cents: int = 0, ledger_cents: int | None = None, prep_note=None, internal=None) -> dict:
+    """An orders row as the summary reads it; the ledger agrees with the fake engine unless told otherwise."""
+    cents = round(fake_invoice(data)["cashBalanceDue"] * 100)
+    return {"id": oid, "order_no": order_no, "customer_name": "Sam Host", "customer_phone": phone, "customer_email": "host@example.com",
+            "event_start": start, "event_address": "1 Test St, Long Beach, CA 90802", "order_status": status, "internal_notes": internal,
+            "prep_note": prep_note, "setup_selection": None, "source_metadata": {"lead_id": lead} if lead else {}, "invoice_data": data,
+            "dispatch_plan": None, "deposit_status": "paid_verified", "quoted_total_cents": cents, "amount_paid_total_cents": paid_cents,
+            "balance_due_cents": max(0, cents - paid_cents) if ledger_cents is None else ledger_cents, "created_at": "2030-06-01T18:00:00+00:00"}
+
+
+def sum_lead(lid: str = SUM_LEAD, phone: str = SUM_PHONE, **over) -> dict:
+    return {"id": lid, "normalized_phone": phone[-10:], "merged_into": None, "lead_source": "landing_quote", "lead_channel": None,
+            "sms_blocked_at": None, "sms_blocked_reason": None, "created_at": "2030-05-20T18:00:00+00:00", **over}
+
+
+class SummaryRun:
+    """One `desk order summary` against fakes: the database rows, the leads, what was already logged, the Twilio thread,
+    the engine (fake_invoice). `sms` = an ApiError the send route answers with (None: it sends). Records every write."""
+
+    def __init__(self, argv: list[str], rows: list[dict], *, at: datetime.datetime = SUM_NOW, leads=None, touches=(), thread=(), sms=None):
+        self.rows, self.leads, self.touches, self.thread, self.sms = rows, [sum_lead()] if leads is None else leads, list(touches), list(thread), sms
+        self.posted: list[tuple[str, dict, str]] = []
+        kept = desk.site_get, desk.site_post, desk._supabase, desk.invoice_post, desk._now
+        desk.site_get, desk.site_post, desk._supabase, desk.invoice_post, desk._now = self.site_get, self.site_post, self.db, self.invoice_post, lambda: at
+        buf, self.exit = io.StringIO(), None
+        try:
+            with contextlib.redirect_stdout(buf):
+                try:
+                    desk.main(["order", "summary", *argv])
+                except SystemExit as e:
+                    self.exit = e.code
+        finally:
+            desk.site_get, desk.site_post, desk._supabase, desk.invoice_post, desk._now = kept
+        self.out = buf.getvalue()
+
+    def db(self, method, path, data, content_type):
+        if method != "GET":
+            raise RuntimeError(f"selfcheck: a database write ({method} {path})")
+        q = urllib_unquote(path)
+        if path.startswith("/rest/v1/orders?"):
+            m = re.search(r"order_no=eq\.([^&]+)", q)
+            if m:
+                return copy.deepcopy([r for r in self.rows if r["order_no"] == m.group(1)])
+            m = re.search(r"event_start=gte\.(\d{4}-\d{2}-\d{2})", q)
+            if m:
+                return copy.deepcopy([r for r in self.rows if r["event_start"][:10] == m.group(1)])
+        if path.startswith(("/rest/v1/order_staff_assignments?", "/rest/v1/order_events?")):
+            return []
+        if path.startswith("/rest/v1/leads?"):
+            m = re.search(r"normalized_phone=in\.\(([^)]*)\)", q) or re.search(r"[?&]id=in\.\(([^)]*)\)", q)
+            want = set(m.group(1).split(",")) if m else set()
+            key = "normalized_phone" if "normalized_phone=in." in q else "id"
+            return copy.deepcopy([l for l in self.leads if l[key] in want])
+        if path.startswith("/rest/v1/lead_touchpoints?"):
+            return copy.deepcopy(self.touches)
+        raise RuntimeError(f"selfcheck: unexpected database read {path}")
+
+    def invoice_post(self, path, payload, timeout=120):
+        if path == "/api/invoice":
+            return {"invoice": fake_invoice(payload)}
+        raise RuntimeError(f"selfcheck: unexpected invoice call {path}")
+
+    def site_get(self, path, params=None, admin=True, timeout=90):
+        if path == "/api/admin/sms-thread" and list(params or {}) == ["phone"]:
+            return {"ok": True, "messages": copy.deepcopy(self.thread)}
+        raise RuntimeError(f"selfcheck: unexpected site read {path} {params}")
+
+    def site_post(self, path, payload, method="POST", timeout=90):
+        self.posted.append((path, copy.deepcopy(payload), method))
+        if path == "/api/admin/sms-thread":
+            if self.sms is not None:
+                raise self.sms
+            return {"ok": True, "sid": "SMsummary", "status": "queued"}
+        if path in ("/api/admin/send-followup", "/api/admin/leads"):
+            return {"ok": True}
+        raise RuntimeError(f"selfcheck: unexpected site write {path}")
+
+    def to(self, path: str) -> list[dict]:
+        return [p for x, p, _ in self.posted if x == path]
+
+    def has(self, *parts: str) -> bool:
+        return all(p in self.out for p in parts)
+
+
+def urllib_unquote(s: str) -> str:
+    import urllib.parse
+    return urllib.parse.unquote(s)
+
+
+def day_summary_checks() -> None:
+    kept = desk.VOICE_LOG
+    with tempfile.TemporaryDirectory() as tmp:
+        desk.VOICE_LOG = pathlib.Path(tmp) / "desk-voice.jsonl"  # a send is logged; never in the real ~/.realhibachi log
+        try:
+            _day_summary_checks()
+        finally:
+            desk.VOICE_LOG = kept
+
+
+def _day_summary_checks() -> None:
+    texts: list[tuple[str, str]] = []
+
+    def summary(label: str, data: dict, **kw) -> dict:
+        s = desk.day_summary(data, **{"start": "17:00", "due": 0.0, **kw})
+        texts.append((label, s["text"]))
+        return s
+
+    # Host provides everything (RH-20261118-5862, 11/21 4 PM): quick mode, no rentals.
+    host = invoice(adults=10, proteins=prot(chicken=(10, 0), steak=(10, 0)))
+    host["contactInfo"]["specialNotes"] = "Birthday. Host has own tables, chairs and place settings."
+    s = summary("host", host, start="16:00", due=615.90)
+    check("summary · host has everything: our part, theirs (tables and chairs, plates and utensils, cups and drinks), the cash total",
+          s["text"] == sum_text("• Your chef arrives about 30 minutes early to set up, and dinner starts at 4.",
+                                "• We bring: the grill and propane, 10 chicken and 10 steak portions, fried rice, veggies, salad and sauces.",
+                                "• Please have ready: a flat outdoor spot for the grill, about the size of a king-size bed, your own tables and chairs, "
+                                "plates and utensils, and your own cups and drinks.",
+                                SUM_TOTAL_LINE.format("$615.90")) and s["warn"] == [] and s["hold"] == [], detail=s["text"])
+
+    # The full setup with its free appetizer (RH-20261116-6021, 11/21 5 PM): the notes promise a 4 PM arrival.
+    jon = invoice(mode="detailed", adults=14, guests=[sum_guest("Guest 1", "tofu", "tofu", tc=True, ut=True)]
+                  + [sum_guest(f"Guest {i}", "chicken", "steak", "shrimp", tc=True, ut=True) for i in range(2, 15)],
+                  extras=[{"id": "gyoza", "qty": 1.4}], promos=[{"id": "official_fullsetup_app", "auto": True, "label": "FREE appetizer (full setup): Gyoza", "amount": 21}])
+    jon["contactInfo"]["specialNotes"] = "Chef arrives around 4 PM to set up the tables and chairs before the 5 PM start."
+    s = summary("full setup", jon, due=1178.60)
+    check("summary · full rental + the free gyoza + the arrival the notes promise, word for word as the owner's template",
+          s["text"] == sum_text("• Your chef arrives around 4, and dinner starts at 5.",
+                                "• We bring: the grill and propane, 13 chicken, 13 steak, 13 shrimp and 2 tofu portions, fried rice, veggies, salad and sauces, "
+                                "gyoza on us, tables and chairs with linens for 14, plates and utensils for 14.",
+                                "• Please have ready: a flat outdoor spot for the grill, about the size of a king-size bed, and your own cups and drinks.",
+                                SUM_TOTAL_LINE.format("$1,178.60")), detail=s["text"])
+    bought = copy.deepcopy(jon)
+    bought["partyExtras"] = [{"id": "gyoza", "qty": 2.4}, {"id": "edamame", "qty": 1}, {"id": "spring_rolls", "qty": 2}]
+    s = summary("appetizers", bought)
+    check("  a tray bought on top of the free one is counted (24 gyoza with 14 on us); bought ones by name and count",
+          "gyoza on us" not in s["text"] and "24 gyoza with 14 on us, 20 spring rolls, an order of edamame," in s["text"], detail=s["text"])
+
+    # Kids under 5 (RH-20261116-9219, 11/21 5 PM): no protein for them, butter noodles; nothing rented.
+    tai = invoice(mode="detailed", adults=7, kids=2, guests=[sum_guest(f"Guest {i}", "chicken", "steak", "lobster_tail") for i in range(1, 8)]
+                  + [sum_guest("Guest 8", little=True, noodles=True), sum_guest("Guest 9", little=True, noodles=True)],
+                  promos=[{"id": "under5_auto", "label": "Little kids (3-4) @ $0 ×2", "amount": 59.8}])
+    s = summary("littles", tai, due=599.0)
+    check("summary · two free 3-4 year olds: rice and veggies for the little ones, their butter noodles, the upgrade by name",
+          "• We bring: the grill and propane, 7 chicken, 7 steak and 7 lobster tail portions, fried rice, veggies, salad and sauces, "
+          "rice and veggies for the little ones, 2 butter noodles.\n" in s["text"], detail=s["text"])
+    picked = copy.deepcopy(tai)
+    picked["guests"] = picked["guests"][:8]
+    picked["guests"][7]["proteins"] = ["steak", "chicken"]
+    s = summary("little with picks", picked)
+    check("  a 3-4 year old's picks are not portions (the prep list leaves them out from 11-13): 7 steak, the little one",
+          "7 chicken, 7 steak and 7 lobster tail portions" in s["text"] and "rice and veggies for the little one," in s["text"], detail=s["text"])
+    before = copy.deepcopy(picked)
+    before["contactInfo"]["eventDate"] = "2026-11-10"
+    s = summary("little before 11-13", before)
+    check("  ... and on a party before 11-13 they were cooked, so counted, and no little-ones line",
+          "8 chicken, 8 steak and 7 lobster tail portions" in s["text"] and "little one" not in s["text"], detail=s["text"])
+    quick_littles = invoice(adults=8, kids=3, proteins=prot(chicken=(8, 1), steak=(8, 1)), promos=[{"id": "under5_auto", "label": "Little kids (3-4) @ $0 ×2", "amount": 59.8}])
+    s = summary("quick littles", quick_littles)
+    check("  quick mode: the Little kids ×2 line is the little ones", "9 chicken and 9 steak portions" in s["text"]
+          and "rice and veggies for the little ones" in s["text"] and s["warn"] == [], detail=s["text"] + str(s["warn"]))
+
+    # Arrivals the notes give, and the ones they do not.
+    told = copy.deepcopy(host)
+    told["contactInfo"]["specialNotes"] = "Guests arrive at 5:30. Your chef will arrive around 6 PM to set up."
+    s = summary("arrival", told, start="19:00")
+    check("summary · an arrival the notes promise (\"arrive around 6 PM\"), not the guests' 5:30",
+          s["text"].splitlines()[1] == "• Your chef arrives around 6, and dinner starts at 7.", detail=s["text"])
+    told["contactInfo"]["specialNotes"] = "Chef will arrive around 4 to set up."
+    s = summary("arrival no pm", told)
+    check("  an hour with no AM/PM is the one before the start", s["text"].splitlines()[1] == "• Your chef arrives around 4, and dinner starts at 5.", detail=s["text"])
+    told["contactInfo"]["specialNotes"] = "Chef arrives at 10:30 to set up."
+    s = summary("lunch", told, start="11:30")
+    check("  a morning party: AM said, lunch not dinner", s["text"].splitlines()[1] == "• Your chef arrives at 10:30 AM, and lunch starts at 11:30 AM.", detail=s["text"])
+    told["contactInfo"]["specialNotes"] = "Chef arrives 30 minutes early."
+    s = summary("no clock", told)
+    check("  \"30 minutes early\" is no clock time: the usual line", "arrives about 30 minutes early to set up, and dinner starts at 5." in s["text"], detail=s["text"])
+    told["contactInfo"]["specialNotes"] = "Surprise party: the birthday girl arrives at 6:30, so the chef has to be set up before."
+    s = summary("someone else arrives", told, start="19:00")
+    check("  someone else's arrival is not the chef's (the birthday girl at 6:30)", "arrives about 30 minutes early to set up, and dinner starts at 7." in s["text"], detail=s["text"])
+    told["contactInfo"]["specialNotes"] = "Please arrive around 4 PM."
+    s = summary("bare arrive", told)
+    check("  a bare \"Please arrive around 4 PM\" is ours", s["text"].splitlines()[1] == "• Your chef arrives around 4, and dinner starts at 5.", detail=s["text"])
+    chairs = invoice(adults=30, proteins=prot(chicken=(30, 0), steak=(30, 0)), extras=[{"id": "folding_chairs", "qty": 30}])
+    s = summary("chairs only", chairs, start="12:00")
+    check("summary · chairs on their own: an hour early (\"around 11 AM\", lunch at noon), 30 chairs, their own tables",
+          s["text"].splitlines()[1] == "• Your chef arrives around 11 AM, and lunch starts at noon." and ", 30 chairs." in s["text"]
+          and "bed, your own tables, plates and utensils, and your own cups" in s["text"], detail=s["text"])
+    cloths = invoice(adults=12, proteins=prot(chicken=(12, 0), shrimp=(12, 0)), extras=[{"id": "white_linen", "qty": 4}])
+    s = summary("cloths", cloths)
+    check("summary · tablecloths only: 4 black tablecloths, their own tables and chairs, no early arrival for them",
+          ", 4 black tablecloths." in s["text"] and "your own tables and chairs, plates and utensils" in s["text"]
+          and "about 30 minutes early" in s["text"], detail=s["text"])
+
+    # A deal: tables free, or at $5 a guest (not free); utensils not rented.
+    blanca = invoice(mode="detailed", adults=9, guests=[sum_guest(f"G{i}", "steak", "chicken", tc=True, noodles=(i == 1)) for i in range(1, 10)],
+                     extras=[{"id": "side_steak", "qty": 1}], promos=[{"id": "deal_free_extras", "label": "Tables & Chairs on us", "amount": 90}])
+    blanca["customDeal"] = {"note": "Tables on us if locked 10/2", "freeExtraIds": ["tables_chairs"]}
+    s = summary("deal free", blanca, start="19:30")
+    check("summary · tables on us by the deal, a side counted in, an adult's noodles, an hour early at 6:30",
+          "• Your chef arrives around 6:30, and dinner starts at 7:30." in s["text"]
+          and "9 chicken and 10 steak portions" in s["text"] and "an order of hibachi noodles, tables and chairs with linens for 9 on us." in s["text"]
+          and "bed, plates and utensils, and your own cups" in s["text"], detail=s["text"])
+    rate = copy.deepcopy(blanca)
+    rate["customDeal"] = {"extraRates": {"tables_chairs": 5}}
+    rate["promotions"] = [{"id": "deal_extra_rates", "label": "Tables & Chairs at $5/guest", "amount": 45}]
+    s = summary("deal rate", rate)
+    check("  at $5 a guest they are not on us", "tables and chairs with linens for 9." in s["text"] and "on us" not in s["text"], detail=s["text"])
+
+    # The cash line: none once nothing is owed; with a gratuity they picked, that it is in.
+    s = summary("paid", host, due=0.0)
+    check("summary · nothing owed: no Total line (four lines, no amount)", len(s["text"].splitlines()) == 4 and "$" not in s["text"]
+          and "Total" not in s["text"], detail=s["text"])
+    s = summary("gratuity", host, due=739.08, gratuity_rate=0.2)
+    check("  a gratuity picked on the bill: the total says it is in it",
+          s["text"].splitlines()[-1] == "• Total $739.08 cash, including the 20% gratuity you picked. Card, Venmo or Zelle add fees.", detail=s["text"])
+
+    # More food promised (--prep-guests), a crew of two, the menu.
+    more = {**copy.deepcopy(host), "prepGuests": 15}
+    s = summary("prep guests", more)
+    check("summary · --prep-guests above the headcount: with extra fried rice and veggies",
+          "fried rice, veggies, salad and sauces, with extra fried rice and veggies." in s["text"], detail=s["text"])
+    big = invoice(adults=40, proteins=prot(chicken=(40, 0), steak=(40, 0)))
+    s = summary("two grills", big, chefs=2, grills=2)
+    check("  two chefs and grills: chefs arrive, the grills, a spot for each - and no count, so the send's promise capture reads none",
+          s["text"].startswith(sum_text("• Your chefs arrive about 30 minutes early to set up")) and "the grills and propane" in s["text"]
+          and "a flat outdoor spot for each grill" in s["text"] and not re.search(r"\b(?:\d|one|two|three)[\s-]*(?:chefs?|grills?)\b", s["text"], re.I), detail=s["text"])
+    empty = invoice(mode="detailed", adults=8, kids=2)
+    s = summary("no menu", empty)
+    check("summary · no menu yet: 2 proteins for each of the 10 guests, and desk says to get the menu",
+          "the grill and propane, 2 proteins for each of the 10 guests, fried rice" in s["text"] and any("菜单未定" in w for w in s["warn"]) and s["hold"] == [],
+          detail=s["text"] + str(s["warn"]))
+    part = invoice(mode="detailed", adults=3, guests=[sum_guest("Ann", "steak", "chicken"), sum_guest("Bo"), sum_guest("Cy")])
+    s = summary("half menu", part)
+    check("  half a menu: held (2 of 3 have not picked, by name)", any("2 位还没选蛋白（Bo、Cy）" in h for h in s["hold"]), detail=str(s["hold"]))
+
+    now = datetime.datetime(2030, 6, 15, 16, 0, tzinfo=datetime.timezone.utc)
+    for label, text in texts:
+        check(f"summary · voice check: clean, no question, plain characters ({label})",
+              desk.voice_check(text, [], now, []) == [] and "?" not in text and "—" not in text and text.count("!") <= 1
+              and not re.search(r"[‘’“”–]", text) and "balance" not in text.lower(), detail=text)
+
+    # ---- the command against a fake site ----
+    rows = [sum_row(jon)]
+    r = SummaryRun([ORDER_NO], rows)
+    check("order summary <RH-…>: prints the text and sends nothing", r.exit is None and r.posted == [] and r.has("Here's the plan for today:", "DRY   没发"), r)
+    r = SummaryRun([ORDER_NO, "--send"], rows)
+    sent, notes = r.to("/api/admin/sms-thread"), r.to("/api/admin/leads")
+    text = desk.day_summary(jon, start="17:00", due=fake_invoice(jon)["cashBalanceDue"])["text"]
+    check("  --send at 9:00 on the party day: one text through the workbench send (phone, body, lead, session, no force), then the [SOP:day_summary] note",
+          r.exit is None and len(sent) == 1 and sent[0]["phone"] == SUM_PHONE and sent[0]["body"] == text and sent[0]["leadId"] == SUM_LEAD
+          and sent[0].get("session") and "force" not in sent[0] and len(notes) == 1 and notes[0]["action"] == "add_note"
+          and notes[0]["note"].startswith(f"[SOP:day_summary] {ORDER_NO} sms SMsummary: Here's the plan for today:") and r.has("OK    texted"), r)
+    r = SummaryRun([ORDER_NO, "--send"], rows, at=datetime.datetime(2030, 6, 15, 13, 30, tzinfo=datetime.timezone.utc))
+    check("  --send at 06:30 Pacific: refused, nothing read or sent", r.posted == [] and "00:00–07:00" in str(r.exit), r)
+    r = SummaryRun([ORDER_NO, "--send"], rows, at=datetime.datetime(2030, 6, 14, 17, 0, tzinfo=datetime.timezone.utc))
+    check("  --send the day before: refused (only on the party day); without --send it prints", r.posted == [] and "只在派对当天发" in str(r.exit), r)
+    r = SummaryRun([ORDER_NO, "--send"], rows, at=datetime.datetime(2030, 6, 16, 1, 0, tzinfo=datetime.timezone.utc))
+    check("  --send after the start: skipped", r.posted == [] and r.has("SKIP", "已经开始了"), r)
+    blocked = [sum_lead(sms_blocked_at="2030-06-01T00:00:00Z", sms_blocked_reason="lookup: landline")]
+    r = SummaryRun([ORDER_NO, "--send"], rows, leads=blocked)
+    mail = r.to("/api/admin/send-followup")
+    check("  a number that cannot take a text (landline): the same text by email from support@, no text tried, noted as email",
+          r.to("/api/admin/sms-thread") == [] and len(mail) == 1 and mail[0]["to"] == "host@example.com" and mail[0]["text"] == text
+          and mail[0]["leadId"] == SUM_LEAD and r.to("/api/admin/leads")[0]["note"].startswith(f"[SOP:day_summary] {ORDER_NO} email host@example.com"), r)
+    r = SummaryRun([ORDER_NO, "--send"], rows, sms=_api.ApiError(409, {"error": "这个号码收不到短信（twilio 30006），已停发，改用邮件", "brake": "sms_blocked"}))
+    check("  the send refusing the number (sms_blocked): falls back to the email", len(r.to("/api/admin/send-followup")) == 1 and r.has("OK    emailed"), r)
+    r = SummaryRun([ORDER_NO, "--send"], rows, sms=_api.ApiError(409, {"error": "2 分钟前已经有人回过这位客人", "brake": "just_answered"}))
+    check("  another brake (just_answered): nothing sent, no note, exit 2", r.to("/api/admin/send-followup") == [] and r.to("/api/admin/leads") == []
+          and r.exit == 2 and r.has("BRAKE"), r)
+    done = [{"lead_id": SUM_LEAD, "occurred_at": "2030-06-15T16:00:30Z", "touchpoint_type": "agent_note", "note": f"[SOP:day_summary] {ORDER_NO} sms SM1: …"}]
+    r = SummaryRun([ORDER_NO, "--send"], rows, touches=done)
+    check("  already summarized today ([SOP:day_summary] note): skipped", r.posted == [] and r.has("SKIP", "今天已经发过"), r)
+    r = SummaryRun([ORDER_NO, "--send", "--force"], rows, touches=done)
+    check("  ... --force sends it again (the order changed)", len(r.to("/api/admin/sms-thread")) == 1, r)
+    asked = [sms(SUM_PHONE, "outbound", "2030-06-14 10:00:00", "Hi Sam, it's Rowling from Real Hibachi. Your party is tomorrow at 5 PM."),
+             sms(SUM_PHONE, "inbound", "2030-06-15 08:10:00", "Can we add 2 more people?")]
+    r = SummaryRun([ORDER_NO, "--send"], rows, thread=asked)
+    check("  a question of theirs not answered yet: held (answer first)", r.posted == [] and r.exit == 2 and r.has("HOLD", "Can we add 2 more people?"), r)
+    r = SummaryRun([ORDER_NO, "--send"], [sum_row(jon, ledger_cents=50000)])
+    check("  the order's balance and the engine's do not agree: held, nothing sent", r.posted == [] and r.has("HOLD", "对不上"), r)
+    paid = sum_row(jon, paid_cents=round(fake_invoice(jon)["cashBalanceDue"] * 100))
+    r = SummaryRun([ORDER_NO, "--send"], [paid])
+    check("  paid in full on the ledger: sent with no Total line", len(r.to("/api/admin/sms-thread")) == 1 and "Total" not in r.to("/api/admin/sms-thread")[0]["body"], r)
+
+    # --date: the day's orders; an Airbnb party paid there is skipped, a cancelled one is not on it.
+    air = sum_row(host, order_no="RH-20300601-0002", oid="00000000-0000-4000-8000-0000000000a2", lead="00000000-0000-4000-8000-0000000000b2",
+                  phone="+15555550143", paid_cents=round(fake_invoice(host)["cashBalanceDue"] * 100), prep_note="Airbnb 单：客人已在 Airbnb 付清，现场不收钱")
+    gone = sum_row(host, order_no="RH-20300601-0003", oid="00000000-0000-4000-8000-0000000000a3", lead=None, phone="+15555550144", status="cancelled")
+    day_leads = [sum_lead(), sum_lead("00000000-0000-4000-8000-0000000000b2", "+15555550143", lead_source="manual_airbnb", lead_channel="airbnb")]
+    r = SummaryRun(["--date", SATURDAY], [rows[0], air, gone], leads=day_leads)
+    check("order summary --date: every order of the day not cancelled, the Airbnb one skipped, nothing sent without --send",
+          r.posted == [] and r.has(f"当天小结 {SATURDAY} · 2 场", "Airbnb 单，已在 Airbnb 付清", "合计 DRY 1 · SKIP 1") and "RH-20300601-0003" not in r.out, r)
+    r = SummaryRun(["--date", "today", "--send"], [rows[0], air, gone], leads=day_leads)
+    check("  --date today --send: the one text, nothing to the Airbnb party", [p["phone"] for p in r.to("/api/admin/sms-thread")] == [SUM_PHONE]
+          and r.exit is None and r.has("合计 OK 1 · SKIP 1"), r)
+    unpaid = {**air, "amount_paid_total_cents": 0, "balance_due_cents": air["quoted_total_cents"]}
+    r = SummaryRun(["--date", SATURDAY], [unpaid], leads=day_leads)
+    check("  an Airbnb party still owing on the order: held (it has to be marked paid), no text", r.posted == [] and r.has("HOLD", "Airbnb 单还挂着"), r)
+
+
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     rules_match_the_ts_export()
@@ -1754,6 +2079,7 @@ def main() -> int:
     check("--add-extra canopy=6: six 10x10 canopies at $20 each, by count",
           r.exit is None and r.has("10x10 canopies: 0 -> 6 at $20.00 each"), r)
     prep_guests_checks()
+    day_summary_checks()
     r = Run(invoice(mode="detailed", adults=5, guests=rows(5)), "--headcount", "6/0", "--dry")
     check("--headcount refuses an order with guest rows", "guest rows" in str(r.exit), r)
     r = Run(invoice(mode="detailed", adults=5), "--headcount", "6/0")

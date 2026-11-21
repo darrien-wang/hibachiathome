@@ -92,6 +92,8 @@ python scripts/desk/desk.py order redate <单号> --date 2026-11-14 [--time 18:0
 python scripts/desk/desk.py order cancel <单号> --why "客人 11/11 短信说不办了" --dry   # 取消订单，先 --dry：订单标取消、派的师傅收到中文短信并撤下、备料单作废、线索标流失
 python scripts/desk/desk.py order preview <单号>
 python scripts/desk/desk.py order remind <单号> --dry              # 前一天提醒，先 --dry；有 !! 缺项不发，核过才 --force
+python scripts/desk/desk.py order summary <单号> [--send] [--force]   # 派对当天上午小结（老板 11-20）：我们带什么、客人备什么、现金总价，留个凭证，不问客人；默认只打印
+python scripts/desk/desk.py order summary --date today [--send]       # 当天所有没取消的单，一单一段（日期也可以写 2026-11-21）
 python scripts/desk/desk.py order send <单号>                      # 发票：邮件 PDF + 短信发链接，不用客人回（先自查、老板看过）
 python scripts/desk/desk.py order email <单号> [--notes-reviewed]
 ```
@@ -106,6 +108,12 @@ python scripts/desk/desk.py order email <单号> [--notes-reviewed]
 - 名单只在派对页（`lp_` 计划）、订单 0 行时，师傅备料单是空的，扫描还报 `菜单空`：**催菜单前先 `desk order plan <单号>` 看派对页**，客人填好了就别催（11-01 Jere：`I filled it out online`）。`desk order plan <单号> --rows-out rows.json`，再 `order set <单号> --guests-file rows.json` 灌进去。订单上有桌椅、餐具的，行里没带会被拦下，补上 `"utensils": true` / `"tables": true`。
 - 存完多出 `WARN  Planner has …, the invoice counts …. Kept …: <名字>`（10-24 起）：客人派对页上有人填过名字或点过菜，这张发票的人数没算他们；存的时候留下了，没删（只删空位）。人真来就补进发票（比如 5 岁以下的照上面加 `under5_auto` 那行），不来就请客人在派对页删掉。
 - 订单 NOTES 会原样印在客人发票上：过程记录写 `orders.internal_notes`，不写 NOTES。
+
+**派对当天上午小结（老板 2026-11-20）**：派对当天 9:00 给每位客人发一条，写清我们带什么、客人备什么、现金总价。老板原话「当天上午发就行，不需要让他们确认，反正发过去留个证据避免后续扯皮」：不打招呼、不署名、不问问题、不要客人回。
+- 四行，全从订单来：①师傅几点到、几点开场（客人看得到的订单备注里写了到达时间就用它；租了桌椅提前 1 小时；都没有写 about 30 minutes early）；②We bring：蛋白份数和备货清单、备料单同一个算法（3–4 岁免费小孩不算蛋白，写 rice and veggies for the little ones），送的前菜、送的桌椅写 on us，`--prep-guests` 多备的写 with extra fried rice and veggies；③Please have ready：放灶的平地，订单上没租的桌椅、盘子餐具，自己的杯子和饮料（不提音箱、音乐、sake）；④Total：发票现算的现金尾款，付清了就没有这行，不写 balance。
+- 默认只打印。`--send` 才发：走工作台发短信那条路（服务器刹车、记时间线），先过文风检查和「客人 90 秒内刚发来」；00:00–07:00 不发，只在派对当天、开场之前发。号码收不到短信（座机、打不通、退订）改从 support@ 发同样内容的邮件。发出去在线索上记 `[SOP:day_summary]` 备注。
+- `--date`：当天所有没取消的单；今天已经发过的跳过；Airbnb 单（已在 Airbnb 付清）跳过，Airbnb 单订单上还挂着尾款的拦下；外包单照常以 Real Hibachi 的名义发。
+- 拦下（HOLD，处理完单发这一单）：客人 24 小时内问的话我们还没回、有人还没选蛋白、订单尾款和发票现算的对不上、开场时间待定。菜单完全没定的照发（写 2 proteins for each of the N guests），desk 提醒去要菜单。单发加 `--force`：今天发过、订单改了要重发，或客人的问题在别处回过了。有拦下、刹车或没发出去的，`--send` 退出码是 2。
 
 **电话预定的手工建单**（客人电话里定了、不留卡）：往发票系统 `https://invoice.realhibachi.com/api/integrations/v1/events` 投一个签名的 `order.deposit_paid`（HMAC-SHA256，`X-Partner-Id: official_website`，payment `card_on_file` $0）。建完要补四样：`deposit_status → paid_verified`、`source_metadata.lead_id`、`desk order set --date --time`（时区）、`--travel-miles`；人数变了用 `--headcount`（老单的人数折扣自动换档，看 `--dry` 的 total check）。11/05 上线前来的线索，event 的 `order.invoice_details` 带 `"quoted_ladder": true`（11/02 前的再带 `"quoted_closed_tier": true`），新单才会按老阶梯开出来（D-1105-01）。先例 RH-20261020-4480。
 

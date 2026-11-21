@@ -53,6 +53,11 @@
   python scripts/desk/desk.py order email <orderNo> [--notes-reviewed]   customer invoice email (+PDF, archived)
   python scripts/desk/desk.py order send  <orderNo>   email the PDF AND text the invoice link, no reply needed (the normal way)
   python scripts/desk/desk.py order remind <orderNo> [--dry]   day before / morning of: email the invoice and text its link, no amounts in the text
+  python scripts/desk/desk.py order summary <orderNo> [--send] [--force]   party day, 9:00 (owner 2026-11-20): what we bring, what to have
+                                   ready, the cash total - a record, no reply asked. Printed only; --send texts it (email when the number
+                                   cannot take a text) and notes [SOP:day_summary] on the lead. Party day only, never 00:00-07:00 Pacific
+  python scripts/desk/desk.py order summary --date YYYY-MM-DD|today [--send]   every order of the day not cancelled; skips one already
+                                   summarized that day and a party paid in full on Airbnb, holds one with a question of theirs unanswered
   python scripts/desk/desk.py order set  <orderNo> --prep-note-file F [--dry]   the 备货备注 (prep list / cooler sheet line, 300 chars)
   python scripts/desk/desk.py order set  <orderNo> --prep-guests 20 [--dry]   base food (rice, veg, salad) for 20 when fewer are booked
                                    ("we'll bring extra in case more people come"); proteins and price unchanged; 0 takes it off
@@ -2597,7 +2602,592 @@ def _order_review_ops(a) -> None:
               + ("" if sms.get("delivered", True) else f" · 短信没发出：{sms.get('error')}"))
 
 
+# ---------------------------------------------------------------- 当天上午小结 (owner 2026-11-20) --
+# 「当天上午发就行，不需要让他们确认，反正发过去留个证据避免后续扯皮」: on the morning of the party (9:00
+# Pacific) each customer gets one text that says what we bring, what to have ready and the cash total - a
+# record in writing, not a question: it asks nothing and needs no reply. Four lines, from the order alone:
+#   - when the chef gets there (an arrival the notes the customer sees promise, else an hour early when we
+#     bring tables or chairs, else about 30 minutes early) and when the party starts;
+#   - what we bring: the proteins counted as the prep list and the chef's sheet count them (lib/prep-bom.ts
+#     orderPrep: the picks, the whole-table sides, no protein for a free 3-4 year old on a party from 11-13),
+#     the base food (more of it on an order with --prep-guests), the appetizers, noodles and add-ins, the
+#     rentals; "on us" where a promotion or the deal makes them free;
+#   - what the host has ready: a flat spot for the grill, the tables, chairs and plates the order does not
+#     rent, their own cups and drinks - nothing else (no speakers, music, sake);
+#   - the cash still owed on the invoice (the engine's figure, as `order show`); none once it is 0.
+# `desk order summary <RH-…>` prints it. --send texts it through the workbench send (/api/admin/sms-thread:
+# its brakes, the timeline) after the checks desk send makes (the voice check, a text of theirs from the
+# last 90 s), never 00:00-07:00 Pacific and only on the party day; a number that cannot take a text
+# (landline, dead, opted out) gets it by email from support@. Each one sent leaves a [SOP:day_summary] note
+# on the lead. `--date` does every order of a day that is not cancelled; one already summarized that day is
+# skipped, and so is a party paid in full on Airbnb (D-1117-01: everything about it stays on Airbnb).
+DAY_SUMMARY_TAG = "[SOP:day_summary]"
+DAY_SUMMARY_HEAD = "Here's the plan for today:"
+DAY_SUMMARY_SUBJECT = "Your Real Hibachi party today"
+DAY_SUMMARY_QUIET_UNTIL = 7  # 00:00-07:00 Pacific nothing goes to a customer (leads SKILL §1 rule 11)
+DAY_SUMMARY_ASKED_H = 24  # a question of theirs this recent, after our last text, holds the summary
+LITTLES_NO_PROTEIN_FROM = "2026-11-13"  # lib/prep-bom.ts littlesGetNoProtein (the invoice's calcBom the same)
+TRAYS_OF_TEN_FROM = "2026-09-02"  # lib/prep-bom.ts PORTION_POLICY_CUTOFF_MS: 10 gyoza / spring rolls a tray since, 12 before
+BLACK_CLOTHS_FROM = "2026-11-03"  # white_linen is the black $5 cloth on orders from 11-03 (before, the notes say the color)
+# The summary's order and names; the upgrades read as what they are ("3 scallop portions", "7 lobster tail portions").
+SUMMARY_PROTEINS = (("chicken", "chicken"), ("steak", "steak"), ("shrimp", "shrimp"), ("salmon", "salmon"), ("tofu", "tofu"),
+                    ("ribeye", "ribeye"), ("filet_mignon", "filet mignon"), ("scallops", "scallop"), ("lobster_tail", "lobster tail"))
+SUMMARY_APPETIZERS = (("gyoza", "gyoza"), ("spring_rolls", "spring rolls"), ("edamame", "edamame"))
+# An arrival the customer was told in the notes they see ("Chef arrives around 4 PM to set up", "arrive around 4", "arriving
+# at 3:30"): the clock time right after the word. Not "30 minutes early", and not the guests' ("guests arrive at 5").
+SUMMARY_ARRIVE = re.compile(r"\barriv(?:e|es|ing)\b", re.I)
+SUMMARY_ARRIVE_AT = re.compile(r"[ \t]*(?:(around|about|at|by|~)[ \t]*)?(?:(noon)\b|(\d{1,2})(?::(\d{2}))?[ \t]*(?:([ap])\.?[ \t]?m\b\.?)?)"
+                               r"(?![ \t]*(?:min|hour|hr)|[\d:])", re.I)
+# Whose arrival: the clause up to the word names the chef or us ("Your chef arrives", "we arrive"), or nobody ("arrive around
+# 4", "Please arrive around 4"); never the guests or anyone else ("the birthday girl arrives at 6:30" is the surprise).
+SUMMARY_BY_CHEF = re.compile(r"^\s*(?:please\s*)?$|\b(?:chefs?|we|team)\b", re.I)
+SUMMARY_NOT_CHEF = re.compile(r"\b(?:guests?|everyone|everybody|people|friends|family|kids|they)\b", re.I)
+# A party booked and paid on Airbnb (D-1117-01, leads SKILL §7: the order notes say "Airbnb Services · … · 已在 Airbnb 付清",
+# the prep note "Airbnb 单：…"), or one whose lead came in through Airbnb. Only those words: "our Airbnb" is a rental house.
+AIRBNB_PAID = re.compile(r"airbnb services|airbnb ?单|在 ?airbnb ?上?付清|paid (?:in full )?(?:on|through|via|in) airbnb", re.I)
+SUMMARY_COLUMNS = party_check.ORDER_COLUMNS + ",customer_email,deposit_status,balance_due_cents,quoted_total_cents,amount_paid_total_cents,created_at"
+
+
+def _say_clock(hh: int, mm: int) -> str:
+    """The time as the summary says it: 5, 7:30, noon, 11 AM, 12:30 AM (from noon on PM is understood)."""
+    hh %= 24
+    if (hh, mm) == (12, 0):
+        return "noon"
+    if (hh, mm) == (0, 0):
+        return "midnight"
+    return f"{(hh + 11) % 12 + 1}" + (f":{mm:02d}" if mm else "") + (" AM" if hh < 12 else "")
+
+
+def _and(items: list[str]) -> str:
+    """a / a and b / a, b and c."""
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
+
+
+def _count(n) -> str:
+    n = float(n)
+    return f"{int(n)}" if n.is_integer() else f"{n:g}"
+
+
+def _pieces(n, one: str, many: str) -> str:
+    """1 chair / 30 chairs; `one` may carry its own article ("a 6-ft table")."""
+    return one if float(n) == 1 else f"{_count(n)} {many}"
+
+
+def summary_arrival(notes: str, start: tuple[int, int]) -> str | None:
+    """"around 4" from the first arrival the notes give that falls in the 4 hours before the start (an hour with no
+    AM/PM is the one that does); None when they give none."""
+    at = start[0] * 60 + start[1]
+    text = notes or ""
+    for m in SUMMARY_ARRIVE.finditer(text):
+        head = re.split(r"[.!?;:|,\n]", text[:m.start()])[-1]
+        if not SUMMARY_BY_CHEF.search(head) or SUMMARY_NOT_CHEF.search(head):
+            continue
+        t = SUMMARY_ARRIVE_AT.match(text, m.end())
+        if not t or not (t.group(2) or t.group(3)):
+            continue
+        if t.group(2):
+            times = [12 * 60]
+        else:
+            h, mins, ap = int(t.group(3)), int(t.group(4) or 0), (t.group(5) or "").lower()
+            if mins > 59:
+                continue
+            if ap and 1 <= h <= 12:
+                times = [(h % 12 + (12 if ap == "p" else 0)) * 60 + mins]
+            elif not ap and 13 <= h <= 23:
+                times = [h * 60 + mins]
+            elif not ap and 1 <= h <= 12:
+                times = [h % 12 * 60 + mins, (h % 12 + 12) * 60 + mins]
+            else:
+                continue
+        fits = [x for x in times if 0 < at - x <= 240]
+        if fits:
+            word = (t.group(1) or "around").lower().replace("~", "around")
+            return f"{word} {_say_clock(max(fits) // 60, max(fits) % 60)}"
+    return None
+
+
+def summary_servings(data: dict) -> dict[str, float]:
+    """Protein portions as the prep list and the chef's sheet count them (lib/prep-bom.ts orderPrep, the invoice's
+    calcBom): the guest rows' picks (a free 3-4 year old's left out on a party from 11-13), else the quick-mode
+    counts; then the whole-table sides (side_*), an adult portion each."""
+    serv: dict[str, float] = {}
+    rows = [g for g in data.get("guests") or [] if isinstance(g, dict)]
+    if data.get("mode") == "detailed" and rows:
+        no_little = str((data.get("contactInfo") or {}).get("eventDate") or "")[:10] >= LITTLES_NO_PROTEIN_FROM
+        for g in rows:
+            if no_little and g.get("isChild") and g.get("isLittle"):
+                continue
+            for pid in g.get("proteins") or []:
+                if isinstance(pid, str):
+                    serv[pid] = serv.get(pid, 0) + 1
+    else:
+        for q in data.get("quickCountItems") or []:
+            if isinstance(q, dict) and q.get("category") == "protein" and isinstance(q.get("itemId"), str):
+                serv[q["itemId"]] = serv.get(q["itemId"], 0) + float(q.get("qty") or 0) + float(q.get("childQty") or 0)
+    for e in data.get("partyExtras") or []:
+        pid = str(e.get("id") or "")[5:] if str(e.get("id") or "").startswith("side_") else ""
+        if pid in PROTEIN_IDS and float(e.get("qty") or 0) > 0:
+            serv[pid] = serv.get(pid, 0) + float(e["qty"])
+    return {k: v for k, v in serv.items() if k in PROTEIN_IDS and v > 0}
+
+
+def summary_free_trays(data: dict) -> dict[str, float]:
+    """Appetizer trays the promotions give, by appetizer (invoice lib/pricing.ts freeTraysOf + the "FREE:" gifts):
+    a Weekday Special / 20+ guests / full-setup line gives as many as its amount less its per-head part pays for
+    (2.6 by the head), one when that is no such count; an old platter line one of each; a gift its "xN"."""
+    out: dict[str, float] = {}
+    add = lambda k, n: out.__setitem__(k, tray_qty(out.get(k, 0) + n))  # noqa: E731
+    for p in data.get("promotions") or []:
+        label = str(p.get("label") or "")
+        gift = GIFT_APPETIZER.fullmatch(label)
+        if gift:
+            add(GIFT_LABELS[gift.group(1)], int(gift.group(2)))
+            continue
+        if p.get("id") not in FREE_APPETIZER_PROMO_IDS:
+            continue
+        if re.search(r"appetizer platter", label, re.I):
+            for k in APPETIZER_PRICES:
+                add(k, 1)
+            continue
+        m = OFFICIAL_APPETIZER.search(label)
+        if not m:
+            continue
+        app = m.group(1).lower().replace(" ", "_")
+        per_head = (WEEKDAY_ADULT_OFF * int(data.get("adultCount") or 0) + WEEKDAY_CHILD_OFF * _paid_children(data)
+                    if p.get("id") == "official_weekday" else 0.0)
+        n = (float(p.get("amount") or 0) - per_head) / APPETIZER_PRICES[app]
+        add(app, tray_qty(n) if tray_qty(n) > 0 and abs(n - tray_qty(n)) < 0.01 else 1)
+    return out
+
+
+def summary_free_ids(data: dict) -> set[str]:
+    """Extras the deal gives free (customDeal freeExtraIds, a rate of $0), and setup a line calls "on us"
+    ("Tables & Chairs on us", "Tables & Chairs at $5/guest + Utensils & Tableware on us")."""
+    deal = data.get("customDeal") if isinstance(data.get("customDeal"), dict) else {}
+    free = {str(x) for x in deal.get("freeExtraIds") or []}
+    free |= {str(x) for x, r in (deal.get("extraRates") or {}).items() if isinstance(r, (int, float)) and not isinstance(r, bool) and r == 0}
+    for p in data.get("promotions") or []:
+        label = str(p.get("label") or "")
+        if not re.search(r"\bon us\b", label, re.I):
+            continue
+        for part in re.split(r"\s\+\s", label):
+            if re.search(r"\bat \$", part):
+                continue
+            if re.search(r"tables?\s*(?:&|and)\s*chairs?", part, re.I):
+                free.add("tables_chairs")
+            if re.search(r"utensils|tableware|plates", part, re.I):
+                free.add("utensils")
+    return free
+
+
+def day_summary(data: dict, *, start: str, due: float, gratuity_rate=None, chefs: int = 1, grills: int = 1, created_at=None) -> dict:
+    """The party-day text for one order, and what desk says about it: {"text", "warn": [...], "hold": [...]} (warn and
+    hold in Chinese, for the desk; a hold keeps it from being sent). start = the party's wall clock 'HH:MM'; due = the
+    cash still owed (0 leaves the Total line off); gratuity_rate = the gratuity they picked on the bill (due then
+    carries it); chefs / grills = the party's crew; created_at = the order's (it says which tray size and cloth color
+    the order's lines mean)."""
+    warn: list[str] = []
+    hold: list[str] = []
+    hh, mm = (int(x) for x in start.split(":"))
+    c = data.get("contactInfo") if isinstance(data.get("contactInfo"), dict) else {}
+    when = str(c.get("eventDate") or "")[:10]  # the invoice's date, as the prep list reads it for the 3-4 year olds
+    created = str(created_at or "")[:10]
+    rows = [g for g in data.get("guests") or [] if isinstance(g, dict)]
+    detailed = data.get("mode") == "detailed" and bool(rows)
+    extras = [e for e in data.get("partyExtras") or [] if isinstance(e, dict)]
+    line = lambda i: tray_qty(sum(float(e.get("qty") or 0) for e in extras if e.get("id") == i))  # noqa: E731
+    free_ids = summary_free_ids(data)
+    on_us = lambda i: " on us" if i in free_ids else ""  # noqa: E731
+
+    # Who eats a protein: everyone but the free 3-4 year olds (no protein for them from 11-13, D-1112-03).
+    no_little = when >= LITTLES_NO_PROTEIN_FROM
+    if detailed:
+        littles = sum(1 for g in rows if g.get("isChild") and g.get("isLittle")) if no_little else 0
+        eaters = [g for g in rows if not (no_little and g.get("isChild") and g.get("isLittle"))]
+        picked = [g for g in eaters if any(isinstance(x, str) for x in g.get("proteins") or [])]
+        if picked and len(picked) < len(eaters):
+            names = "、".join(str(g.get("name") or "?") for g in eaters if g not in picked)
+            hold.append(f"菜单不全：{len(eaters) - len(picked)} 位还没选蛋白（{names}）——补齐（order set --guests-file）再发")
+        heads = len(eaters)
+        known = bool(picked)
+    else:
+        littles = _little_kids(data)
+        heads = max(0, int(data.get("adultCount") or 0) + int(data.get("childCount") or 0) - littles)
+        quick = sum(float(q.get("qty") or 0) + float(q.get("childQty") or 0) for q in data.get("quickCountItems") or []
+                    if isinstance(q, dict) and q.get("category") == "protein")
+        known = quick > 0
+        if known and quick < 2 * heads:
+            warn.append(f"快速模式蛋白一共 {_count(quick)} 份，{heads} 位每人 2 份该是 {2 * heads}：短信照订单写，先核一下")
+    serv = summary_servings(data)
+    items = [(serv[pid], name) for pid, name in SUMMARY_PROTEINS if serv.get(pid)]
+    if known and items:
+        food = _and([f"{_count(n)} {name}" for n, name in items]) + (" portion" if len(items) == 1 and items[0][0] == 1 else " portions")
+    else:
+        food = f"2 proteins for each of the {heads} guests" if heads != 1 else "2 proteins for 1 guest"
+        sides = [(serv[pid], name) for pid, name in SUMMARY_PROTEINS if serv.get(pid)]
+        if sides:
+            food += " plus " + _and([f"{_count(n)} {name}" for n, name in sides]) + " portions"
+        warn.append(f"菜单未定：蛋白写成「{food}」——派对前把菜单问回来（先 desk order plan 看派对页）")
+
+    brought = ["the grills and propane" if grills > 1 else "the grill and propane", food, "fried rice, veggies, salad and sauces"]
+    booked = int(data.get("adultCount") or 0) + int(data.get("childCount") or 0)
+    if (prep_guests_of(data) or 0) > booked:
+        brought.append("with extra fried rice and veggies")
+    if littles:
+        brought.append("rice and veggies for the little " + ("one" if littles == 1 else "ones"))
+
+    # Appetizers: "gyoza on us" when the promotions give all of it, the count when they bought it ("20 gyoza",
+    # "2 orders of edamame"), both when it is some of each ("24 gyoza with 14 on us").
+    free = summary_free_trays(data)
+    per_tray = 10 if not created or created >= TRAYS_OF_TEN_FROM else 12
+    for app, name in SUMMARY_APPETIZERS:
+        have = line(app)
+        if have <= 0:
+            continue
+        gift = have if app in free_ids else min(have, free.get(app, 0))
+        many = (lambda n: _count(n)) if app == "edamame" else (lambda n: f"{round(n * per_tray)}")  # noqa: E731 - servings / pieces
+        whole = _pieces(have, "an order of edamame", "orders of edamame") if app == "edamame" else f"{many(have)} {name}"
+        if gift >= have - 0.05:
+            brought.append(f"{name} on us")
+        elif gift > 0:
+            brought.append(f"{whole} with {many(gift)} on us")
+        else:
+            brought.append(whole)
+    # Noodles: butter noodles for a kid's row, hibachi noodles for an adult's and the party-wide count.
+    kid_noodles = sum(1 for g in rows if g.get("noodles") and g.get("isChild")) if detailed else 0
+    adult_noodles = (sum(1 for g in rows if g.get("noodles") and not g.get("isChild")) if detailed else 0) + int(line("noodles_party"))
+    if kid_noodles:
+        brought.append(_pieces(kid_noodles, "an order of butter noodles", "butter noodles"))
+    if "noodles" in (data.get("partyWideAddons") or []):
+        brought.append("hibachi noodles for everyone")
+    elif adult_noodles:
+        brought.append(_pieces(adult_noodles, "an order of hibachi noodles", "hibachi noodles"))
+    for x, what in (("diy_rice_shrimp", "shrimp"), ("diy_rice_chicken", "chicken")):
+        if line(x) > 0:
+            brought.append(_pieces(line(x), f"a {what} add-in for the fried rice", f"{what} add-ins for the fried rice") + on_us(x))
+    if line("extra_egg") > 0:
+        brought.append(_pieces(line("extra_egg"), "an extra egg for the fried rice", "extra eggs for the fried rice"))
+
+    # Rentals, the way the load list counts them (lib/prep-bom.ts setupCountsOf).
+    tc, ut = _setup_units(data, "tables_chairs"), _setup_units(data, "utensils")
+    chairs, tables, black, white, canopies = (line(x) for x in ("folding_chairs", "folding_tables", "white_linen", "white_tablecloth", "canopy"))
+    if tc:
+        brought.append(f"tables and chairs with linens for {tc}{on_us('tables_chairs')}")
+    if ut:
+        brought.append(f"plates and utensils for {ut}{on_us('utensils')}")
+    if chairs:
+        brought.append(_pieces(chairs, "1 chair", "chairs") + on_us("folding_chairs"))
+    if tables:
+        brought.append(_pieces(tables, "a 6-ft table", "6-ft tables") + on_us("folding_tables"))
+    color = "black " if not created or created >= BLACK_CLOTHS_FROM else ""
+    if black:
+        brought.append(_pieces(black, f"1 {color}tablecloth", f"{color}tablecloths") + on_us("white_linen"))
+    if white:
+        brought.append(_pieces(white, "1 white tablecloth", "white tablecloths") + on_us("white_tablecloth"))
+    if canopies:
+        brought.append(_pieces(canopies, "a 10x10 canopy", "10x10 canopies") + on_us("canopy"))
+
+    host = []
+    has_tables, has_chairs = bool(tc or tables), bool(tc or chairs)
+    if not (has_tables or has_chairs):
+        host.append("your own tables and chairs")
+    elif not has_tables:
+        host.append("your own tables")
+    elif not has_chairs:
+        host.append("your own chairs")
+    if not ut:
+        host.append("plates and utensils")
+
+    notes = str(c.get("specialNotes") or "")
+    arrival = summary_arrival(notes, (hh, mm))
+    if not arrival and (tc or chairs or tables):
+        early = (hh * 60 + mm - 60) % 1440
+        arrival = f"around {_say_clock(early // 60, early % 60)}"
+    meal = "lunch" if 5 <= hh < 15 else "dinner"
+    lines = [
+        DAY_SUMMARY_HEAD,
+        f"• {'Your chefs arrive' if chefs > 1 else 'Your chef arrives'} {arrival or 'about 30 minutes early to set up'}, "
+        f"and {meal} starts at {_say_clock(hh, mm)}.",
+        "• We bring: " + ", ".join(brought) + ".",
+        "• Please have ready: " + ("a flat outdoor spot for each grill" if grills > 1 else "a flat outdoor spot for the grill")
+        + ", about the size of a king-size bed" + "".join(", " + h for h in host) + ", and your own cups and drinks.",
+    ]
+    if due >= 0.005:
+        if gratuity_rate:
+            lines.append(f"• Total {money(due)} cash, including the {float(gratuity_rate) * 100:g}% gratuity you picked. Card, Venmo or Zelle add fees.")
+        else:
+            lines.append(f"• Total {money(due)} cash. Card, Venmo or Zelle add fees, and gratuity isn't included.")
+    return {"text": "\n".join(lines), "warn": warn, "hold": hold}
+
+
+def _summary_rows(a, today: str) -> tuple[str | None, list[dict]]:
+    """(the day for --date, else None; the order rows): the one order, or every order that day not cancelled
+    (the prep list's rule), by its wall-clock start."""
+    if a.ident and a.date:
+        raise SystemExit("order summary：单号和 --date 只能给一个")
+    if a.ident:
+        rows = _db_read(f"/rest/v1/orders?select={SUMMARY_COLUMNS}&order_no=eq.{urllib.parse.quote(a.ident.strip())}")
+        if not rows and is_uuid(a.ident):
+            rows = _db_read(f"/rest/v1/orders?select={SUMMARY_COLUMNS}&id=eq.{a.ident}")
+        if not rows:
+            raise SystemExit(f"no order {a.ident}")
+        return None, rows
+    if not a.date:
+        raise SystemExit("order summary <RH-…>，或 order summary --date YYYY-MM-DD（today = 今天）")
+    day = today if a.date == "today" else a.date
+    try:
+        after = (_dt.date.fromisoformat(day) + _dt.timedelta(days=1)).isoformat()
+    except ValueError:
+        raise SystemExit(f"--date {a.date!r}: YYYY-MM-DD（太平洋时间的那一天）或 today")
+    rows = _db_read(f"/rest/v1/orders?select={SUMMARY_COLUMNS}&event_start=gte.{day}T00:00:00Z&event_start=lt.{after}T00:00:00Z"
+                    "&order=event_start.asc") or []
+    # event_start is the wall clock stored as UTC: its date is the party's day, never converted.
+    return day, [r for r in rows if str(r.get("event_start") or "")[:10] == day and r.get("order_no")
+                 and not re.search(r"cancel|void|refund", str(r.get("order_status") or ""), re.I)]
+
+
+def _summary_context(rows: list[dict], since: str) -> list[dict]:
+    """What the summary needs around each order, read in one go: its cooks, its lead (the order's own, else the
+    newest live one on the number - where the send files the text), whether the number takes texts (any lead on
+    it blocked, as the send refuses it), whether it came through Airbnb, and what of ours went out since `since`
+    (a [SOP:day_summary] note naming the order, the summary text or email)."""
+    ids = party_check._q(r["id"] for r in rows)
+    asg = _db_read(f"/rest/v1/order_staff_assignments?select=order_id,assignment_role&order_id=in.({ids})"
+                   "&assignment_status=in.(tentative,confirmed,completed)") or []
+    links = _db_read(f"/rest/v1/order_events?select=order_id,metadata&order_id=in.({ids})&action=eq.lead_linked") or []
+    named: dict[str, list[str]] = {}
+    for r in rows:
+        meta = r.get("source_metadata") if isinstance(r.get("source_metadata"), dict) else {}
+        named[r["id"]] = [str(meta["lead_id"])] if is_uuid(str(meta.get("lead_id") or "")) else []
+    for e in links:
+        lid = str((e.get("metadata") if isinstance(e.get("metadata"), dict) else {}).get("lead_id") or "")
+        if is_uuid(lid) and lid not in named.setdefault(e.get("order_id"), []):
+            named[e["order_id"]].append(lid)
+    digits = {r["id"]: re.sub(r"\D", "", str(r.get("customer_phone") or ""))[-10:] for r in rows}
+    cols = "id,normalized_phone,merged_into,lead_source,lead_channel,sms_blocked_at,sms_blocked_reason,created_at"
+    phones = party_check._q(d for d in digits.values() if len(d) == 10)
+    on_phone = (_db_read(f"/rest/v1/leads?select={cols}&normalized_phone=in.({phones})&order=created_at.desc") or []) if phones else []
+    want = party_check._q(l for ls in named.values() for l in ls)
+    leads = {l["id"]: l for l in ((_db_read(f"/rest/v1/leads?select={cols}&id=in.({want})") or []) if want else [])}
+    for l in on_phone:
+        leads.setdefault(l["id"], l)
+    every = party_check._q([*leads, *(l.get("merged_into") for l in leads.values())])
+    touch = (_db_read("/rest/v1/lead_touchpoints?select=lead_id,occurred_at,touchpoint_type,note:raw_payload_json->>note,"
+                      f"body:raw_payload_json->>body,subject:raw_payload_json->>subject&lead_id=in.({every})"
+                      f"&touchpoint_type=in.(agent_note,sms_outbound,email_outbound)&occurred_at=gte.{since}&order=occurred_at.asc")
+             or []) if every else []
+    out = []
+    for r in rows:
+        d = digits[r["id"]]
+        mine = [leads[l] for l in named.get(r["id"], []) if l in leads]
+        theirs = [l for l in on_phone if l.get("normalized_phone") == d] if len(d) == 10 else []
+        lead = mine[0] if mine else next((l for l in theirs if not l.get("merged_into")), theirs[0] if theirs else None)
+        lead_id = (lead.get("merged_into") or lead.get("id")) if lead else (named.get(r["id"]) or [None])[0]
+        known = {x for l in (*mine, *theirs) for x in (l.get("id"), l.get("merged_into")) if x} | set(named.get(r["id"], []))
+        blocked = next((l for l in theirs if l.get("sms_blocked_at")), None)
+        # The note names its order; the text and the email do not, so they count only for a number with one party that day.
+        shared = len(d) == 10 and sum(1 for x in rows if digits[x["id"]] == d) > 1
+        sent = [t for t in touch if t.get("lead_id") in known and (
+            (t.get("touchpoint_type") == "agent_note" and str(t.get("note") or "").startswith(DAY_SUMMARY_TAG) and str(r.get("order_no")) in str(t.get("note")))
+            or (not shared and t.get("touchpoint_type") == "sms_outbound" and str(t.get("body") or "").startswith(DAY_SUMMARY_HEAD))
+            or (not shared and t.get("touchpoint_type") == "email_outbound" and str(t.get("subject") or "") == DAY_SUMMARY_SUBJECT))]
+        try:
+            phone = e164(str(r.get("customer_phone") or ""))
+        except SystemExit:
+            phone = None
+        inv = party_check.invoice_of(r)
+        email = str(r.get("customer_email") or (inv.get("contactInfo") or {}).get("email") or "").strip()
+        out.append({"row": r, "lead_id": lead_id, "phone": phone, "email": email if re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email) else "",
+                    "cooks": sum(1 for x in asg if x.get("order_id") == r["id"] and x.get("assignment_role") != "assistant_chef"),
+                    "blocked": (str(blocked.get("sms_blocked_reason") or "unreachable")) if blocked else None,
+                    "airbnb": any(l.get("lead_source") == "manual_airbnb" or l.get("lead_channel") == "airbnb" for l in (*mine, *theirs)),
+                    "sent": sent, "shared": shared})
+    return out
+
+
+def _summary_waiting(msgs: list[dict], now: _dt.datetime) -> dict | None:
+    """Their newest question since our last text, from the last DAY_SUMMARY_ASKED_H hours (the voice check's
+    reading of a question; a tapback is none): a summary on top of it would leave it unanswered."""
+    msgs = sorted((m for m in msgs if _at(m.get("at"))), key=lambda m: _at(m["at"]))
+    last = max((i for i, m in enumerate(msgs) if m.get("direction") == "outbound"), default=-1)
+    asked = [m for m in msgs[last + 1:] if m.get("direction") == "inbound" and not is_tapback(m.get("body") or "")
+             and not VOICE_TAPBACK.match((m.get("body") or "").strip()) and VOICE_ASKED.search(VOICE_URL.sub(" ", m.get("body") or ""))
+             and (now - _at(m["at"])).total_seconds() < DAY_SUMMARY_ASKED_H * 3600]
+    return asked[-1] if asked else None
+
+
+def _summary_deliver(p: dict, text: str, hits) -> tuple[str, str]:
+    """Send one summary: the text through the workbench send, or by email when the number cannot take it (a lead
+    on it blocked, the send refused it as such, or Twilio refused it). Then the [SOP:day_summary] note.
+    (tag, line): OK / BRAKE (another brake: nothing sent, a later run tries again) / FAIL."""
+    row, phone, lead = p["row"], p["phone"], p["lead_id"]
+    via = ref = why = ""
+    if not phone:
+        why = "订单上没有能发短信的号码"
+    elif p["blocked"]:
+        why = f"这个号码收不到短信（{p['blocked']}）"
+    else:
+        try:
+            out = site_post("/api/admin/sms-thread", {"phone": phone, "body": text, "session": desk_session(), **({"leadId": lead} if lead else {})})
+            via, ref = "sms", str(out.get("sid") or "")
+        except ApiError as e:
+            body = e.payload if isinstance(e.payload, dict) else {}
+            brake = body.get("brake")
+            said = str(body.get("error") or e.payload)[:300]
+            if e.status == 409 and brake not in ("sms_blocked", "sms_opted_out"):
+                return "BRAKE", f"{phone} {e.status} {brake or ''}：{said}（没发，没记备注；处理完再跑一次）"
+            why = f"短信没发出去（{e.status} {brake or said[:120]}）"
+    if not via:
+        if not p["email"]:
+            return "FAIL", f"{why}，订单上也没有邮箱：打电话或换个渠道告诉客人"
+        try:
+            site_post("/api/admin/send-followup", {"to": p["email"], "subject": DAY_SUMMARY_SUBJECT, "text": text, **({"leadId": lead} if lead else {})})
+        except ApiError as e:
+            return "FAIL", f"{why}；邮件也没发出去（{e.status} {str(e.payload)[:200]}）"
+        via, ref = "email", p["email"]
+    else:
+        voice_log("sent", phone, text, hits)
+    done = f"texted {phone}  {ref}" if via == "sms" else f"emailed {ref}（{why}）"
+    if not lead:
+        return "OK", done + " · ⚠ 订单和号码上都没有线索：[SOP:day_summary] 备注没记，今天别再对这单跑 --send"
+    note = f"{DAY_SUMMARY_TAG} {row.get('order_no')} {via} {ref}" + (f"（{why}）" if why else "") + f": {text}"
+    try:
+        site_post("/api/admin/leads", {"action": "add_note", "leadId": lead, "note": note[:1900]}, method="PATCH")
+    except ApiError as e:
+        return "OK", done + f" · ⚠ 备注没记上（{e.status}）：今天别再对这单跑 --send"
+    return "OK", done
+
+
+def _summary_one(p: dict, now: _dt.datetime, *, send: bool, single: bool, force: bool) -> str:
+    """One order: print its summary and what happens to it, send it with --send. Returns the tag: DRY / OK / SKIP /
+    HOLD (fix it first) / VOICE / BRAKE / FAIL."""
+    row = p["row"]
+    data = party_check.invoice_of(row)
+    order_no = row.get("order_no")
+    day, start = str(row.get("event_start") or "")[:10], str(row.get("event_start") or "")[11:16]
+    meta = row.get("source_metadata") if isinstance(row.get("source_metadata"), dict) else {}
+    tbd = bool(meta.get("event_time_tbd")) or not re.fullmatch(r"\d{2}:\d{2}", start)
+    clock = "时间待定" if tbd else f"{(int(start[:2]) + 11) % 12 + 1}:{start[3:]} {'AM' if int(start[:2]) < 12 else 'PM'}"
+    who = " ".join(str(row.get("customer_name") or "").split()) or "-"
+    where = (p["phone"] or "没有手机号") + (f" → 邮件 {p['email'] or '（也没有邮箱）'}（{p['blocked']}）" if p["blocked"] else "")
+    print("━" * 78)
+    print(f"{order_no} · {day[5:].replace('-', '/')} {clock} · {who} · {where}")
+
+    def out(tag: str, why: str) -> str:
+        print(f"{tag:<5} {why}")
+        return tag
+
+    if tbd:
+        return out("HOLD", "开场时间待定：时间定了（order redate / order set --time）再发")
+    try:
+        inv = _totals(data)
+    except (ApiError, SystemExit) as e:
+        return out("HOLD", f"发票引擎没算出总价（{getattr(e, 'status', e)}）：desk order show {order_no} 看一下")
+    gratuity = float(inv.get("selectedGratuity") or 0) if data.get("selectedGratuityRate") else 0.0
+    cash = inv.get("cashBalanceDue")
+    cash = float(cash) if isinstance(cash, (int, float)) else float(inv.get("balanceDue") or 0) - float(inv.get("creditCardFee") or 0)
+    quoted, paid, ledger = row.get("quoted_total_cents"), row.get("amount_paid_total_cents"), row.get("balance_due_cents")
+    num = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)  # noqa: E731
+    settled = num(quoted) and num(paid) and quoted > 0 and paid > 0 and paid >= quoted  # lib/pay-balance.ts: the ledger says paid
+    due = 0.0 if settled else max(0.0, round(cash, 2))
+    if p["airbnb"] or AIRBNB_PAID.search(" ".join(str(x or "") for x in ((data.get("contactInfo") or {}).get("specialNotes"), row.get("internal_notes"), row.get("prep_note")))):
+        if due < 0.005:
+            return out("SKIP", "Airbnb 单，已在 Airbnb 付清：钱和沟通都在 Airbnb（D-1117-01），不发")
+        return out("HOLD", f"Airbnb 单还挂着 {money(due)} 尾款：照 SKILL §7 记成付清（派对时系统会自动给客人发付款链接），这条不发")
+    if not settled and num(ledger) and abs(int(ledger) - round(max(0.0, cash - gratuity) * 100)) > 100:
+        return out("HOLD", f"订单上的尾款 ${int(ledger) / 100:,.2f} 和发票现算的 {money(cash - gratuity)} 对不上：desk order show {order_no} 核清楚再发")
+    # The crew: the cooks on the order (a helper brings no grill), else the plan's; the grills the sheet loads.
+    plan = party_check.effective_plan(row)
+    s = day_summary(data, start=start, due=due, gratuity_rate=data.get("selectedGratuityRate") if gratuity else None,
+                    chefs=p["cooks"] or plan.get("chefs") or 1, grills=plan.get("grills") or 1, created_at=row.get("created_at"))
+    print(s["text"])
+    for w in s["warn"]:
+        print(f"   ! {w}")
+    if party_check.outsourced_mark(row):
+        print("   · 外包单：照常以 Real Hibachi 的名义发（不提合作方）")
+    if p["sent"] and not (single and force):
+        t = p["sent"][-1]
+        return out("SKIP", f"今天已经发过（{pt(t.get('occurred_at'))} {t.get('touchpoint_type')}）" + ("：要重发（订单改过）加 --force" if single else ""))
+    local = now.astimezone(PACIFIC)
+    if send and (local.date().isoformat(), f"{local:%H:%M}") >= (day, start):
+        return out("SKIP", f"派对 {start} 已经开始了，不发")
+    msgs: list[dict] = []
+    if p["phone"]:
+        try:
+            msgs = site_get("/api/admin/sms-thread", {"phone": p["phone"]}).get("messages") or []
+        except ApiError as e:
+            if send:
+                return out("HOLD", f"读不到 Twilio 对话（{e.status}）：没发")
+            print(f"   ! 读不到 Twilio 对话（{e.status}）")
+    mine = [m for m in msgs if m.get("direction") == "outbound" and str(m.get("body") or "").startswith(DAY_SUMMARY_HEAD)
+            and _at(m.get("at")) and _at(m["at"]).astimezone(PACIFIC).date().isoformat() == day]
+    if mine and not p["shared"] and not (single and force):
+        return out("SKIP", f"今天已经发过（短信 {pt(mine[-1].get('at'))}）" + ("：要重发加 --force" if single else ""))
+    _, fresh = unread_inbound(msgs, None, now)
+    if fresh:
+        return out("HOLD", f"客人 {pt(fresh[-1].get('at'), True)} 刚发来：「{(fresh[-1].get('body') or '')[:80]}」——读完、回了再发这单")
+    asked = _summary_waiting(msgs, now)
+    if asked and not (single and force):
+        return out("HOLD", f"客人 {pt(asked.get('at'))} 问的还没回：「{(asked.get('body') or '')[:80]}」——先回他，再单发这单"
+                   + ("（回过了加 --force）" if single else f"（desk order summary {order_no} --send）"))
+    # The voice check on the text alone: it is the same template for everyone, so the notes about this one
+    # conversation (his good news, the opening of our last text) are not about it; the sure tells are.
+    hits = voice_check(s["text"], [], now, ())
+    for level, line in hits:
+        print(f"   {'✗' if level == 'stop' else '·'} 文风：{line}")
+    if any(level == "stop" for level, _ in hits):
+        return out("VOICE", "文风检查拦下（✗ 那几条）：不发，看是哪一行订单数据带出来的")
+    if s["hold"]:
+        return out("HOLD", "；".join(s["hold"]))
+    how = (f"短信 {p['phone']}" if p["phone"] and not p["blocked"] else f"邮件 {p['email'] or '（没有邮箱，发不出去）'}")
+    if not send:
+        return out("DRY", f"没发（加 --send 才发）：会走{how}")
+    tag, line = _summary_deliver(p, s["text"], hits)
+    return out(tag, line)
+
+
+def _order_summary_ops(a) -> None:
+    """order summary <RH-…> | --date YYYY-MM-DD|today [--send] [--force]: the party-day text (owner 2026-11-20)."""
+    now = _now()
+    local = now.astimezone(PACIFIC)
+    today = local.date().isoformat()
+    send = bool(a.send) and not a.dry
+    if send and local.hour < DAY_SUMMARY_QUIET_UNTIL:
+        raise SystemExit(f"现在太平洋时间 {local:%H:%M}：00:00–07:00 不给客人发短信（SKILL §1 第 11 条）。7 点以后再发；只看稿子去掉 --send")
+    day, rows = _summary_rows(a, today)
+    party_day = day or str(rows[0].get("event_start") or "")[:10]
+    if send and party_day != today:
+        raise SystemExit(f"当天小结只在派对当天发：{rows[0].get('order_no') if day is None else '--date ' + day} 是 {party_day or '日期待定'}，今天是 {today}。只看稿子去掉 --send")
+    if day is not None and not rows:
+        print(f"当天小结 {day} · 这天没有派对")
+        return
+    if day is None and re.search(r"cancel|void|refund", str(rows[0].get("order_status") or ""), re.I):
+        raise SystemExit(f"{rows[0].get('order_no')} 是取消的单（{rows[0].get('order_status')}）：不发")
+    try:
+        midnight = _dt.datetime.fromisoformat(party_day).replace(tzinfo=PACIFIC)
+    except ValueError:
+        raise SystemExit(f"{rows[0].get('order_no')} 没有派对日期（日期待定）：不发")
+    since = midnight.astimezone(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if day is not None:
+        print(f"当天小结 {day} · {len(rows)} 场" + ("" if send else "（只打印，没发；加 --send 才发）"))
+    tally: dict[str, int] = {}
+    for p in _summary_context(rows, since):
+        tag = _summary_one(p, now, send=send, single=day is None, force=bool(a.force))
+        tally[tag] = tally.get(tag, 0) + 1
+    if day is not None:
+        print("━" * 78)
+        print("合计 " + " · ".join(f"{k} {v}" for k, v in sorted(tally.items())) + ("" if send else "（没发）"))
+    if send and any(k in tally for k in ("HOLD", "VOICE", "BRAKE", "FAIL")):
+        sys.exit(2)
+
+
 def cmd_order(a):
+    if a.op == "summary":
+        # 当天上午小结 (owner 2026-11-20): an order number, or --date for the whole day.
+        _order_summary_ops(a)
+        return
+    if not a.ident:
+        raise SystemExit(f"order {a.op} needs an order number (or, for order check, the date)")
     if a.op == "check":
         # 派对当天核对 (owner 2026-11-12, D-1112-01): 07:00 on the party day since 2026-11-17 (owner: 早台 run before
         # 10:00), every party that day. Chefs work
@@ -3689,7 +4279,10 @@ def main(argv=None):
     p = sp.add_parser("report"); p.add_argument("kind", choices=["day", "week"])
     p.add_argument("--date", help="YYYY-MM-DD (Pacific). day: default today; week: any day in the week, default the last full Sun-Sat week")
     p.set_defaults(fn=_report)
-    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "plan", "set", "preview", "email", "send", "remind", "hold", "redate", "cancel", "check", "review", "send-sheet", "difficulty"]); p.add_argument("ident")
+    p = sp.add_parser("order"); p.add_argument("op", choices=["find", "show", "plan", "set", "preview", "email", "send", "remind", "hold", "redate", "cancel", "check", "review", "send-sheet", "difficulty", "summary"])
+    p.add_argument("ident", nargs="?", help="the order number (order check: the date; order summary --date: none)")
+    p.add_argument("--send", action="store_true", help="summary: text it (by email when the number cannot take a text) and note it on the lead; "
+                   "without it the text is only printed. Only on the party day, never 00:00-07:00 Pacific")
     p.add_argument("--score", type=int, metavar="N", help="difficulty: 1 (easiest) to 5 (most work); leave out to print the current one")
     p.add_argument("--pass", dest="pass_", action="store_true", help="review: record that the review passed (needs --summary; refused while the machine check has blocking gaps)")
     p.add_argument("--fail", action="store_true", help="review: record that the review failed (needs --summary: what is missing and the fix)")
@@ -3701,7 +4294,8 @@ def main(argv=None):
     p.add_argument("--why", help="hold: why the date is off, kept on the order (e.g. birthday boy out of town, picking a new date). "
                                  "cancel: why the party is off (required; kept on the order and the lead)")
     p.add_argument("--dry", action="store_true", help="remind: print the text, do not send. cancel: print everything it would do, write and send nothing")
-    p.add_argument("--force", action="store_true", help="remind: send even though the order lint lists what the order is missing (checked by a person)")
+    p.add_argument("--force", action="store_true", help="remind: send even though the order lint lists what the order is missing (checked by a person). "
+                   "summary <RH-…>: send again though it went out today (the order changed), or over a question of theirs answered elsewhere")
     p.add_argument("--reconcile", action="store_true", help="set: save the order as it stands, so the invoice engine puts on what the rules owe (D-1017-02)")
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--address"); p.add_argument("--name"); p.add_argument("--email"); p.add_argument("--phone")
     p.add_argument("--notes-file"); p.add_argument("--notes-reviewed", action="store_true"); p.add_argument("--json", action="store_true")
