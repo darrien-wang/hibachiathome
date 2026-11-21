@@ -680,6 +680,10 @@ export async function PATCH(request: NextRequest) {
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: "no editable fields" }, { status: 400 })
     }
+    // The inbox and the inbound-text dedupe find a lead by normalized_phone, not phone. A number typed in here
+    // (a Yelp lead's, a correction) without it left the lead unmatched: Heidi's first text back on 2026-11-20
+    // opened a second lead for her booked Yelp one.
+    if ("phone" in updates) updates.normalized_phone = phoneDigits10(updates.phone as string | null) || null
     const { data: before } = await supabase
       .from("leads")
       .select(EDITABLE_FIELDS.join(", "))
