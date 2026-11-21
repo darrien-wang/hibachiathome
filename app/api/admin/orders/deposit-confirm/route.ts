@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
       guest_adult_count: Number.isFinite(body.adults) ? Math.max(0, Math.trunc(body.adults as number)) : undefined,
       guest_child_count: Number.isFinite(body.kids) ? Math.max(0, Math.trunc(body.kids as number)) : undefined,
       notes: noCard
-        ? "Booked without a card (owner-approved); the customer pays on the day."
+        ? "No card needed to hold the date; the total is paid at the party." // the customer reads the notes
         : `Deposit confirmed manually via ${channel} in the order workbench.`,
     },
     payment: {
