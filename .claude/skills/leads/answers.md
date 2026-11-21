@@ -78,7 +78,8 @@
 - **牛肉**：标准牛排是 Costco 的 USDA Choice top sirloin，不冷冻、前一天买；问产地答 `Costco's beef in California comes mostly from Harris Ranch in the Central Valley.` 虾是冷冻袋装的（问了照实说）。
 - **鸡肉**（老板 11-06，D-1106-01）：鸡胸和鸡腿混着买，看价格和货源。对客不说 chicken breast；客人问是什么鸡肉就答 `Boneless, skinless chicken, breast and thigh.` 鸡腿是不是美国产还没确认，问产地先别说 USA，问老板。
 - **同一种选两次**可以（只吃鸡就两份鸡）；只选豆腐的默认双份豆腐。
-- **白米饭**：客人要可以带，替代炒饭（老板 10-22）；写进订单备注让师傅知道。
+- **白米饭**：客人要就带，送的（老板 11-21「白米饭不收钱」；10-22 起可以替代炒饭）。用 `desk order set <单号> --custom-item "Plain rice|白米饭|N|serving|0|生米每份约 3 oz"` 进订单（N = 几份）：账单上一行写 On us，师傅备料单和备货清单各一行。对客说 on us：`We'll bring plain rice for them, on us.`
+- **菜单上没有的东西**（老板 11-21「订单这里加个自定义项，以后可能还有很多新的需求，到时候就从这个地方走」）：答应了就用 `--custom-item "英文名|中文名|数量|单位|单价|备注"` 记进订单——单价 0 = 送的（账单写 On us），英文名客人在账单上看，中文名和备注只给师傅和备货看。新东西的价格、送不送超出现有口径，先问老板再记。
 - **12–14 岁**：一般按大人订 `Kids that age usually eat like adults. Our kids' plates have half the protein, so I'd book them as adults.`
 - **5–12 岁有的单要问大概几岁**（10-05）：`Quick one on the kids: roughly how old are they? Kids' plates are half portions. That's plenty for little ones, but if any are big eaters I'd count them as adults so nobody leaves hungry.`
 - **素/纯素**：豆腐 + 蔬菜，同价。

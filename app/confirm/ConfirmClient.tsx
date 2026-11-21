@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { customQtyText } from "@/lib/custom-items"
 
 // 手机优先（客户从短信点进来）。一屏事实 + 一个大按钮。
 // 有问题的出口是"text us what to change"——sms: 协议要给桌面留降级
@@ -25,6 +26,8 @@ type Summary = {
   blackCloths?: number
   whiteCloths?: number
   utensilHeads?: number
+  /** What staff put on the order beyond the menu (custom items, 2026-11-21): free ones read "on us". */
+  customItems?: Array<{ name: string; qty: number; unit: string; free: boolean }>
   allergies?: string[]
   totalCents?: number | null
   state?: "pending" | "confirmed" | "stale"
@@ -97,6 +100,7 @@ export default function ConfirmClient() {
   const cloths = [data.blackCloths ? `${data.blackCloths} black` : "", data.whiteCloths ? `${data.whiteCloths} white` : ""].filter(Boolean)
   if (cloths.length) rows.push(["Tablecloths", cloths.join(" · ")])
   if (data.utensilHeads) rows.push(["Utensils & tableware", `for ${data.utensilHeads}`])
+  for (const it of data.customItems ?? []) rows.push([it.name, `${customQtyText(it.qty, it.unit)}${it.free ? " · on us" : ""}`])
   if (data.allergies?.length) rows.push(["Allergies", data.allergies.join(" · ")])
   if (data.totalCents) rows.push(["Party total", usd(data.totalCents)])
 

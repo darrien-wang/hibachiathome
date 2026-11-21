@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { aggregatePrep, BUY_UNITS, orderPrep, prepForLine, splitVeg, VEGE_MIX, type InvoiceLite, type PrepItem } from "@/lib/prep-bom"
+import { customItemsOf, customUnitZh } from "@/lib/custom-items"
 import { isBulkItem, stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
 import { setVegTotal, vegTotal } from "@/lib/prep-reservations"
 import type { SetupSelection } from "@/config/table-themes"
@@ -110,10 +111,13 @@ export async function GET(request: NextRequest) {
       // 答应多带饭菜：「备餐按 20 人（订单 15 人）」，没有就是空串（lib/prep-bom.ts prepForLine）。
       prepLine: prepForLine(prep.prepFor),
       proteinLine: prep.proteinServings.map((p) => `${p.label.split(" ")[0]} ×${p.servings}`).join(" · "),
-      extrasLine: prep.items
-        .filter((i) => i.group === "frozen" || i.group === "setup")
-        .map((i) => `${i.label.split(" ")[0]}${i.unit === "份" ? ` ${i.qty}份` : ` ${i.qty}${i.unit}`}`)
-        .join(" · "),
+      extrasLine: [
+        ...prep.items
+          .filter((i) => i.group === "frozen" || i.group === "setup")
+          .map((i) => `${i.label.split(" ")[0]}${i.unit === "份" ? ` ${i.qty}份` : ` ${i.qty}${i.unit}`}`),
+        // 订单另加（自定义项，老板 2026-11-21）：中文名（没有就英文名）、数量单位、备注，照单备。
+        ...customItemsOf(r.invoice_data).map((it) => `${it.nameZh || it.name} ${it.qty}${customUnitZh(it.unit)}${it.note ? `（${it.note}）` : ""}`),
+      ].join(" · "),
       outsourced: false,
       // 后勤备货单：这一单要提前处理的量（切肉、切菜、切豆腐、煮饭），打印时几场合成一张。
       cooler: { time: zhTime(r.event_start as string), customer: head.name, chef: null as string | null, owner: null as string | null, note: (r.prep_note ?? "").trim() || null, adults: prep.adults, kids: prep.kids, ...(prep.prepFor ? { baseHeads: prep.prepFor.guests } : {}), menuKnown: prep.menuKnown, work: coolerWork(prep.items, prep.menuKnown) },

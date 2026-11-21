@@ -85,7 +85,8 @@ def fake_invoice(d: dict) -> dict:
         qty = sum((q.get("qty") or 0) + (q.get("childQty") or 0) for q in d.get("quickCountItems") or [] if q.get("category") == "protein")
         upgrades = max(0, qty - guests * 2) * EXTRA_PROTEIN
     extras = sum(EXTRA_PRICES[e["id"]] * e["qty"] for e in d.get("partyExtras") or [])
-    subtotal = base + upgrades + addons + extras
+    custom = r2(sum(r2(float(i["price"]) * float(i["qty"])) for i in desk.custom_items_of(d)))  # invoice customItemsCost
+    subtotal = base + upgrades + addons + extras + custom
     promos = sum(float(p["amount"]) for p in d.get("promotions") or [])
     adjusted = max(max(0.0, subtotal - promos), desk.MINIMUM_SPEND)
     tf = d.get("travelFee") or {}
@@ -93,7 +94,7 @@ def fake_invoice(d: dict) -> dict:
     travel = tf["manualOverride"] if tf.get("manualOverride") is not None else (r2(max(0, miles - 50)) if miles else 0.0)
     cash = r2(adjusted + travel)
     tax = r2(cash * 0.1025)
-    return {"baseCost": r2(base), "proteinUpgrades": r2(upgrades), "addonsCost": r2(addons), "partyExtrasCost": r2(extras),
+    return {"baseCost": r2(base), "proteinUpgrades": r2(upgrades), "addonsCost": r2(addons), "partyExtrasCost": r2(extras), "customItemsCost": custom,
             "subtotal": r2(subtotal), "promotionsTotal": r2(promos), "travelFee": travel, "adjustedTotal": r2(adjusted),
             "creditCardFee": 0, "finalTotal": cash, "deposit": 0, "balanceDue": cash, "pricingTerms": "v2_by_method",
             "cashTotal": cash, "cashBalanceDue": cash, "salesTax": tax, "salesTaxRate": 0.1025, "salesTaxRateSource": "default",
@@ -1697,6 +1698,77 @@ def prep_guests_checks() -> None:
           and ("warn", "bring:rice") in pc_kinds(rice_party(15)) and party_check.prep_line(rice_party(15)) == "")
 
 
+# ---------------------------------------------------------------- 订单另加 (owner 2026-11-21) --
+# Custom items: what no menu has, on the order as invoiceData.customItems - plain rice for a guest of RH-20261117-3312
+# first, free. order set --custom-item / --custom-items-file / --remove-custom-item, order show, the day check, the
+# review packet and the party-day text.
+RICE_ITEM = {"name": "Plain rice", "nameZh": "白米饭", "qty": 2, "unit": "serving", "price": 0, "note": "生米每份约 3 oz"}
+RICE_SPEC = "Plain rice|白米饭|2|serving|0|生米每份约 3 oz"
+RICE_LINE = "Plain rice（白米饭）×2 serving · on us · note: 生米每份约 3 oz"
+
+
+def custom_items_checks() -> None:
+    import order_review
+
+    fifteen = invoice(adults=15, proteins=prot(steak=(15, 0), chicken=(15, 0)))
+    with_rice = {**copy.deepcopy(fifteen), "customItems": [dict(RICE_ITEM)]}
+    r = Run(fifteen, "--custom-item", RICE_SPEC, "--dry")
+    check("--custom-item plain rice, free: one line, the TOTAL unchanged ($898.50), --dry saves nothing",
+          r.exit is None and r.saved is None and r.has(f"custom item added: {RICE_LINE}", "✓ total check: TOTAL $898.50", "DRY   not saved"), r)
+    r = Run(fifteen, "--custom-item", RICE_SPEC, echo=True)
+    check("  saved: customItems is the one item, nothing else on the invoice moved; read back from the order",
+          r.data.get("customItems") == [RICE_ITEM] and {k: v for k, v in r.data.items() if k != "customItems"} == fifteen
+          and r.has("OK    custom items on the order: 1", f"      {RICE_LINE}", "the bill, the chef's sheet and the prep list carry them"), r)
+    r = Run(fifteen, "--custom-item", RICE_SPEC)
+    check("  an invoice app that dropped them (not deployed yet): the save says so instead of OK",
+          r.saved is not None and r.has("WARN  the order has 0 custom item(s), not the 1 saved") and "OK    custom items" not in r.out, r)
+    r = Run(with_rice, "--custom-item", "PLAIN  rice|白米饭|3|serving|0|生米每份约 3 oz", "--dry")
+    check("  the same name again (case and spacing aside) replaces it: 2 -> 3 servings",
+          r.exit is None and r.has(f"custom item: {RICE_LINE} -> PLAIN rice（白米饭）×3 serving · on us · note: 生米每份约 3 oz"), r)
+    r = Run(with_rice, "--custom-item", RICE_SPEC, "--dry")
+    check("  ... and the very same item is nothing to change", r.has("· custom item 'Plain rice' is already") and "nothing to change" in str(r.exit), r)
+    r = Run(fifteen, "--custom-item", "Bag of ice||2|bag|5|", "--dry")
+    check("--custom-item priced: billed like any extra, $5 x 2 on the TOTAL ($908.50) and held against desk price",
+          r.exit is None and r.has("custom item added: Bag of ice ×2 bag · $5.00 each", "| custom $10.00", "✓ total check: TOTAL $908.50"), r)
+    r = Run(with_rice, "--remove-custom-item", "plain RICE", echo=True)
+    check("--remove-custom-item takes it off by name: the key is gone, read back as none",
+          r.saved is not None and "customItems" not in r.data and r.has(f"custom item off: {RICE_LINE}", "OK    custom items on the order: 0"), r)
+    r = Run(with_rice, "--remove-custom-item", "Fried rice", "--dry")
+    check("  a name the order does not have is refused, with the ones it has", "no custom item of that name ('Plain rice')" in str(r.exit) and r.saved is None, r)
+    for spec, why in (("Plain rice|白米饭|0|serving|0", "QTY has to be above 0"), ("Plain rice|白米饭|2|serving|", "PRICE is dollars a unit"),
+                      ("Plain rice|白米饭|2", "use \"NAME|中文名|QTY|UNIT|PRICE|NOTE\""), ("|白米饭|2|serving|0", "the NAME (English"),
+                      ("Plain rice|白\ufffd饭|2|serving|0", "a broken character"), ("Plain rice|白米饭|two|serving|0", "QTY 'two' is not a number")):
+        r = Run(fifteen, "--custom-item", spec, "--dry")
+        check(f"  refused, never guessed: {spec!r} -> {why}", why in str(r.exit) and r.saved is None, r)
+    items_file = pathlib.Path(tempfile.mkdtemp()) / "custom-items.txt"
+    items_file.write_bytes(f"# Ashley 11/22\n{RICE_SPEC}\n\nBag of ice||2|bag|5|\n".encode("utf-8"))
+    r = Run(fifteen, "--custom-items-file", str(items_file), echo=True)
+    check("--custom-items-file: one a line from UTF-8 (the safe road for Chinese), comments and blank lines skipped",
+          [x["name"] for x in r.data.get("customItems") or []] == ["Plain rice", "Bag of ice"] and r.data["customItems"][0] == RICE_ITEM, r)
+    r = Run(with_rice, "--time", "18:30")
+    check("  any other order set keeps them (the lookup carries them back) and does not read them back",
+          r.data.get("customItems") == [RICE_ITEM] and "custom items on the order" not in r.out, r)
+    r = Run(with_rice, op="show", lint={"ok": True, "blocking": [], "warnings": []})
+    check("order show prints each: + 订单另加 Plain rice（白米饭）×2 serving · on us · note: …", r.has(f"   + 订单另加 {RICE_LINE}"), r)
+    r = Run(fifteen, op="show", lint={"ok": True, "blocking": [], "warnings": []})
+    check("  an order without any prints no such line", "订单另加" not in r.out, r)
+
+    p = pc_party("RH-20261117-3312", "2030-11-22T19:00:00+00:00", name="Ashley", mode="quick", address="1 Test Way, Indio, CA 92201")
+    p["order"]["invoice_data"].update({"adultCount": 12, "childCount": 0, "customItems": [dict(RICE_ITEM), {"name": "Bag of ice", "qty": 2, "unit": "bag", "price": 5}]})
+    check("order check (the day check) prints them on one line: the Chinese name first, free or priced, the note",
+          "   订单另加：白米饭 Plain rice ×2 serving（送的）· 生米每份约 3 oz；Bag of ice ×2 bag（$5.00 一bag）" in party_check.render(p, party_check.gaps_of(p), "2030-11-21"))
+    p["order"]["invoice_data"]["customItems"] = [{"name": "", "qty": 2, "price": 0}, {"name": "Rice", "qty": 0, "price": 0}]
+    check("  an item the invoice would drop (no name, no quantity) is not printed", "订单另加" not in "\n".join(party_check.render(p, party_check.gaps_of(p), "2030-11-21")))
+    snap = {"food": [], "custom": [{"id": "custom_x", "name": "Plain rice", "zh": "白米饭", "qty": 2, "unit": "serving", "note": "生米每份约 3 oz"}]}
+    check("review packet: the chef's snapshot lists them; the order block prints customItems",
+          "      订单另加 白米饭 2 serving（生米每份约 3 oz）" in order_review._snapshot_lines(snap))
+    s = desk.day_summary({**copy.deepcopy(fifteen), "customItems": [dict(RICE_ITEM), {"name": "Candles", "qty": 3, "unit": "each", "price": 1.5}]}, start="17:00", due=0.0)
+    check("summary · the party-day text says what we bring by the bill's name: plain rice (2 servings) on us, 3 candles",
+          "fried rice, veggies, salad and sauces, plain rice (2 servings) on us, 3 candles.\n" in s["text"], detail=s["text"])
+    check("  units read as English: 2 servings, 1 bag, 3 boxes, 2 oz, 4 trays", [desk.custom_qty_text(q, u) for q, u in ((2, "serving"), (1, "bag"), (3, "box"), (2, "oz"), (4, "tray"))]
+          == ["2 servings", "1 bag", "3 boxes", "2 oz", "4 trays"])
+
+
 # ---------------------------------------------------------------- 当天上午小结 (owner 2026-11-20) --
 # desk order summary: the party-day text (what we bring, what to have ready, the cash total; no question), built from
 # fake orders shaped like the real ones of 11/21, then the command against a fake site: what it posts, and when it
@@ -2078,6 +2150,7 @@ def main() -> int:
     check("--add-extra canopy=6: six 10x10 canopies at $20 each, by count",
           r.exit is None and r.has("10x10 canopies: 0 -> 6 at $20.00 each"), r)
     prep_guests_checks()
+    custom_items_checks()
     day_summary_checks()
     r = Run(invoice(mode="detailed", adults=5, guests=rows(5)), "--headcount", "6/0", "--dry")
     check("--headcount refuses an order with guest rows", "guest rows" in str(r.exit), r)
@@ -2455,6 +2528,9 @@ def main() -> int:
           (lambda s: s[0] is False and "没过" in s[1])(order_review.review_state(pk(reviews=[stamp("fail"), stamp("pass")]))))
     changed = copy.deepcopy(base_order); changed["invoice_data"]["guests"].append({"name": "Shin", "proteins": ["filet_mignon", "chicken"]})
     check("review gate: a guest added after the pass -> stale, re-review", order_review.review_state(pk(order=changed, reviews=[stamp("pass")]))[0] is False)
+    rice = copy.deepcopy(base_order); rice["invoice_data"]["customItems"] = [dict(RICE_ITEM)]
+    check("review gate: a custom item (订单另加, 2026-11-21) put on after the pass -> stale, re-review",
+          order_review.review_state(pk(order=rice, reviews=[stamp("pass")]))[0] is False and pk(order=rice)["fingerprint"] != fp)
     texted = copy.deepcopy(base_party); texted["customer_sms"].append({"direction": "inbound", "at": "2030-11-12T21:00:00.000Z", "body": "Can we add tables?"})
     check("review gate: the customer texted after the pass -> stale", order_review.review_state(pk(party=texted, reviews=[stamp("pass")]))[0] is False)
     ours = copy.deepcopy(base_party); ours["customer_sms"].append({"direction": "outbound", "at": "2030-11-12T21:00:00.000Z", "body": "See you Saturday."})

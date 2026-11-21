@@ -13,6 +13,7 @@
 // 鸡蛋 36 盒、Tai Pei 煎饺春卷、毛豆 12oz）。换算系数是估算，帮助下单，不是精确值。
 
 import { TABLECLOTHS, findTheme, findVariant, type SetupSelection } from "@/config/table-themes"
+import { customItemLabel, customItemRowId, customItemsOf, customUnitZh } from "@/lib/custom-items"
 
 export type PrepItem = {
   id: string
@@ -28,13 +29,14 @@ export type PrepItem = {
    */
   art?: { photo?: string; swatch?: { charger: string; plate: string; accent: string } }
 }
-export type PrepGroup = "protein" | "produce" | "frozen" | "pantry" | "setup"
+export type PrepGroup = "protein" | "produce" | "frozen" | "pantry" | "custom" | "setup"
 
 export const PREP_GROUP_TITLES: Record<PrepGroup, string> = {
   protein: "蛋白质（按磅买）",
   produce: "生鲜·鸡蛋",
   frozen: "冻品·前菜·面",
   pantry: "调料与大宗（没有就补，不按量算）",
+  custom: "订单另加（自定义项，照单备）",
   setup: "桌椅·餐具（装车）",
 }
 
@@ -180,6 +182,8 @@ export type InvoiceLite = {
   contactInfo?: { eventDate?: string }
   /** 饭菜按几个人备（答应多带，老板 2026-11-20）：见下面 prepGuestsOf。 */
   prepGuests?: number
+  /** 订单另加的东西（自定义项，老板 2026-11-21）：见 lib/custom-items.ts customItemsOf。 */
+  customItems?: unknown
 }
 
 /**
@@ -448,6 +452,12 @@ export function orderPrep(
     })
   }
 
+  // 订单另加（自定义项，老板 2026-11-21）：一项一行，中文名在前，备注（"生米每份约 3 oz"）写在提示里，
+  // 照单备。镜像发票 calcBom 的 custom 行（同天改）。
+  for (const it of customItemsOf(data)) {
+    items.push({ id: customItemRowId(it.name), label: customItemLabel(it), qty: it.qty, unit: customUnitZh(it.unit), ...(it.note ? { alt: it.note } : {}), group: "custom" })
+  }
+
   return { adults, kids, base: { adults: baseA, kids: baseK }, ...(extra > 0 ? { prepFor: { guests: baseTotal, booked: total } } : {}), menuKnown, proteinServings, items }
 }
 
@@ -584,15 +594,19 @@ export function aggregatePrep(all: PrepItem[]): PrepItem[] {
     // 合成一行会让师傅只装一箱。食材行照旧按 id 合并。
     const key = it.group === "setup" ? `${it.id}|${it.unit}|${it.label}` : `${it.id}|${it.unit}`
     const cur = by.get(key)
-    if (cur) cur.qty = r1(cur.qty + it.qty)
-    else by.set(key, { ...it })
+    if (cur) {
+      cur.qty = r1(cur.qty + it.qty)
+      // 订单另加的同名项（两张单都要白米饭）：数量相加，各单不一样的备注都留着。
+      if (cur.group === "custom" && it.alt && !(cur.alt ?? "").split("；").includes(it.alt)) cur.alt = cur.alt ? `${cur.alt}；${it.alt}` : it.alt
+    } else by.set(key, { ...it })
   }
   const out = [...by.values()]
   for (const it of out) {
+    if (it.group === "custom") continue // 提示就是办公室写的备注，不换算
     if (it.id === "mixed_vege") it.alt = vegeAlt(it.qty)
     else it.alt = alt(it.id, it.qty, it.unit) ?? it.alt
   }
-  const order: PrepGroup[] = ["protein", "produce", "frozen", "pantry", "setup"]
+  const order: PrepGroup[] = ["protein", "produce", "frozen", "pantry", "custom", "setup"]
   out.sort((a, b) => order.indexOf(a.group) - order.indexOf(b.group) || b.qty - a.qty)
   return out
 }

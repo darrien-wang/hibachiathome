@@ -78,6 +78,7 @@ python scripts/desk/desk.py order set  <单号> --retier --dry                  
 python scripts/desk/desk.py order set  <单号> --guests-file rows.json [--replace-guests]   # 逐人名单 [{name, child?, little?, proteins:[...], allergy?, note?}]，每人 ≥2 种（little 的 3–4 岁可以不写）
 python scripts/desk/desk.py order set  <单号> --add-extra tables_chairs=27 | edamame=1 | side_shrimp=15   # 买的加购 / 桌椅按人头 / 整桌蛋白份
 python scripts/desk/desk.py order set  <单号> --add-extra canopy=6                    # 替客人租的 10×10 帐篷，$20 一顶，按顶（老板 11-19）；装车清单列出来，告诉老板去订
+python scripts/desk/desk.py order set  <单号> --custom-item "Plain rice|白米饭|2|serving|0|生米每份约 3 oz"   # 订单另加（自定义项，老板 11-21）：英文名|中文名|数量|单位|单价|备注；单价 0 = 送的（账单写 On us），中文名和备注只印在备料单和备货清单上；同名再加 = 改数量/备注；--remove-custom-item "Plain rice" 去掉；中文多的用 --custom-items-file F（UTF-8，一行一项）。存完读回来核对；工作台订单弹窗「金额 · 收款」→「订单另加」也能改（老板）
 关满的日子（老板 11-19 起，表 closed_dates）：`insert into closed_dates(day, note, created_by) values ('2026-12-05', '原因', 'desk')` 关；`delete from closed_dates where day = '…'` 开。关了以后：锁单页拒这一天（已锁的客人照常显示已锁）、网站自动报价短信不带锁单链接、机器不发「X 号还有档」那条，线索交给人。对客：`Saturday, Dec 5 is fully booked. Would Friday the 4th or Sunday the 6th work?`（不说别的档期空）。老板说能连台的例外：先删那一行、发链接、客人锁了再插回去。11-19 关过 12/5，一小时后老板又放开（找到新的外包公司能接），现在没有关着的日子。
 python scripts/desk/desk.py order set  <单号> --free-item edamame=2                    # 送的前菜
 python scripts/desk/desk.py order set  <单号> --free-appetizer spring_rolls --dry      # 客人挑的免费前菜（押金页默认 gyoza）

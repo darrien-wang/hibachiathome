@@ -311,6 +311,27 @@ def prep_line(party: dict) -> str:
     return ""
 
 
+def custom_items_line(inv: dict) -> str:
+    """订单另加 (custom items, owner 2026-11-21, invoice_data.customItems): what the prep list and the chef's sheet carry
+    beyond the menu, read the way the invoice reads them (a name, a quantity above 0, a price of 0 or more; the same name
+    twice is the first): 「白米饭 Plain rice ×2 serving（送的）· 生米每份约 3 oz」. "" when there are none."""
+    out, seen = [], set()
+    for r in inv.get("customItems") or []:
+        if not isinstance(r, dict):
+            continue
+        name = " ".join(str(r.get("name") or "").split())
+        qty, price = r.get("qty"), r.get("price")
+        if not name or name.lower() in seen or any(isinstance(x, bool) or not isinstance(x, (int, float)) for x in (qty, price)) or qty <= 0 or price < 0:
+            continue
+        seen.add(name.lower())
+        zh = " ".join(str(r.get("nameZh") or "").split())
+        unit = " ".join(str(r.get("unit") or "").split()) or "each"
+        note = " ".join(str(r.get("note") or "").split())
+        q = int(qty) if float(qty).is_integer() else round(float(qty), 2)
+        out.append(f"{zh + ' ' if zh else ''}{name} ×{q} {unit}" + ("（送的）" if price == 0 else f"（${float(price):.2f} 一{unit}）") + (f"· {note}" if note else ""))
+    return "；".join(out)
+
+
 def setup_units(inv: dict) -> dict[str, int]:
     """Setup the prep list will load, from the invoice - lib/prep-bom.ts setupCountsOf."""
     extras = inv.get("partyExtras") if isinstance(inv.get("partyExtras"), list) else []
@@ -948,6 +969,9 @@ def render(party: dict, gaps: list[dict], today: str | None = None) -> list[str]
         lines.append(f"   备货：{protein or '-'}" + (f" | {prep['extrasLine']}" if prep.get("extrasLine") else ""))
         if prep_line(party):
             lines.append(f"   {prep_line(party)}：炒饭、蔬菜、沙拉按这个人数备")
+    # 订单另加 (custom items, owner 2026-11-21): on the prep list and the chef's sheet, one line each.
+    if custom_items_line(inv):
+        lines.append(f"   订单另加：{custom_items_line(inv)}")
     cooler = prep.get("cooler") if isinstance(prep.get("cooler"), dict) else {}
     lines.append(f"   备货备注：{(cooler.get('note') if cooler else None) or order.get('prep_note') or '(空)'}")
     lines.append(f"   订单备注（客人看得到）：{str(c.get('specialNotes') or '').strip() or '(空)'}")

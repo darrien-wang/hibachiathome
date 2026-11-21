@@ -45,7 +45,7 @@ type PrepData = {
   warnings: string[]
 }
 
-const GROUP_ORDER: PrepGroup[] = ["protein", "produce", "frozen", "pantry", "setup"]
+const GROUP_ORDER: PrepGroup[] = ["protein", "produce", "frozen", "pantry", "custom", "setup"]
 
 // 装车行的图（用户 2026-09-23 定：备料单除了文字还要图）。盘具按主题分箱，
 // 光写"餐具套装"装不对箱；有实拍就用实拍，没有就画色块——停车场里色块反而
@@ -265,7 +265,8 @@ function ConsumeRow({ adminKey, owner, date, consumed, totals, onDone }: { admin
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   if (!owner) return null
-  const items = totals.filter((t) => t.group !== "setup" && t.id !== "mixed_vege").map((t) => ({ item_key: t.id, qty: t.qty }))
+  // 订单另加的（自定义项）不在食材库存里记，不扣。
+  const items = totals.filter((t) => t.group !== "setup" && t.group !== "custom" && t.id !== "mixed_vege").map((t) => ({ item_key: t.id, qty: t.qty }))
   const run = async () => {
     setBusy(true)
     setMsg(null)

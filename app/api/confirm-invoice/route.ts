@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { orderPrep, setupCountsOf } from "@/lib/prep-bom"
+import { customItemsOf } from "@/lib/custom-items"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -71,6 +72,8 @@ function summarize(o: OrderRow) {
     blackCloths: setup.linen,
     whiteCloths: setup.whiteCloths,
     utensilHeads,
+    // 订单另加（自定义项，老板 2026-11-21）：客人看英文名、数量、送的写 on us；中文名和备注是给备货的，不给客人。
+    customItems: customItemsOf(inv).map((it) => ({ name: it.name, qty: it.qty, unit: it.unit, free: it.price === 0 })),
     allergies,
     totalCents: o.quoted_total_cents ?? null,
     state: o.invoice_confirmed_at ? (o.invoice_confirmed_revision === o.invoice_revision ? ("confirmed" as const) : ("stale" as const)) : ("pending" as const),

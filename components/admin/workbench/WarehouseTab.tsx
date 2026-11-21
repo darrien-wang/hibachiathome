@@ -1061,12 +1061,18 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
     const buy: Record<string, Line[]> = {}
     const byGroup: Record<string, Line[]> = {}
     const setup: PlanRow[] = []
+    // 订单另加（自定义项，老板 2026-11-21）：不在库存里记，照单备，单列一块。
+    const custom: PlanRow[] = []
     const countedAt = new Map(resp.pantryDetail?.map((r) => [r.item_key, r.counted_at]) ?? [])
     const staleBefore = Date.now() - STALE_DAYS * 86400_000
     const bulk: string[] = []
     for (const row of resp.totals) {
       if (row.group === "setup") {
         setup.push(row)
+        continue
+      }
+      if (row.group === "custom") {
+        custom.push(row)
         continue
       }
       // 米、油、酱油是大宗，一次买很多、缺了直接买，不进备货清单（老板 2026-09-30）
@@ -1099,7 +1105,7 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
     const storeKeys = Object.keys(buy).sort((a, b) => (order.indexOf(a) + 99) - (order.indexOf(b) + 99) || a.localeCompare(b))
     const GROUP_ORDER: PrepGroup[] = ["protein", "produce", "frozen", "pantry"]
     const all = GROUP_ORDER.flatMap((g) => byGroup[g] ?? [])
-    return { buy, storeKeys, setup, bulk, ask: all.filter((l) => l.ask), trusted: all.filter((l) => !l.ask) }
+    return { buy, storeKeys, setup, custom, bulk, ask: all.filter((l) => l.ask), trusted: all.filter((l) => !l.ask) }
   })()
 
   // 全选 / 反选（老板 2026-09-30）
@@ -1201,6 +1207,21 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
                 <div key={r.id + r.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--color-divider)", fontSize: 14 }}>
                   <span style={{ fontWeight: 600 }}>{r.label}</span>
                   <span>{Math.round(r.qty * 10) / 10} {r.unit}</span>
+                </div>
+              ))}
+            </section>
+          ) : null}
+
+          {groups.custom.length ? (
+            <section>
+              <div style={{ borderBottom: `2px solid ${INK}`, paddingBottom: 8, fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 19 }}>订单另加（自定义项，照单备，不在库存里记）</div>
+              {groups.custom.map((r) => (
+                <div key={r.id + r.unit} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderBottom: "1px solid var(--color-divider)", fontSize: 14 }}>
+                  <span style={{ fontWeight: 600 }}>
+                    {r.label}
+                    {r.alt ? <span style={{ fontWeight: 400, color: MUTED }}>（{r.alt}）</span> : null}
+                  </span>
+                  <span style={{ whiteSpace: "nowrap" }}>{Math.round(r.qty * 10) / 10} {r.unit}</span>
                 </div>
               ))}
             </section>

@@ -177,6 +177,10 @@ def _snapshot_lines(snap: dict) -> list[str]:
     out.append("      蛋白 " + " · ".join(f"{p.get('label')} {p.get('servings')} 份（{p.get('sub')}）" for p in snap.get("proteins") or []))
     out.append("      装备 " + " · ".join(f"{s.get('label')} ×{s.get('qty')}" for s in snap.get("setup") or []))
     out.append("      食材 " + " · ".join(f"{f.get('label')} {f.get('amount')}".strip() for f in snap.get("food") or [] if f.get("group") != "sauce"))
+    # 订单另加 (custom items, 2026-11-21): the sheet's own block, on sheets that have one.
+    customs = [f"{c.get('zh') or c.get('name')} {c.get('qty')} {c.get('unit')}" + (f"（{c['note']}）" if c.get("note") else "") for c in snap.get("custom") or []]
+    if customs:
+        out.append("      订单另加 " + " · ".join(customs))
     # The load list's sauce and misc rows too (Jeffrey 11-12: "Butter 6 oz" printed on a no-butter party, and
     # the reviewer could not see it from here).
     sauces = [f"{f.get('label')} {f.get('amount')}".strip() for f in snap.get("food") or [] if f.get("group") == "sauce"]
@@ -237,7 +241,7 @@ def render(packet: dict) -> list[str]:
         out.append(f"   {kind:>5} {g.get('name') or '-'}: {', '.join(g.get('proteins') or []) or '（没选）'}"
                    + (f" · {'/'.join(flags)}" if flags else "") + (f" · 过敏 {g.get('foodAllergy') or g.get('allergies')}" if (g.get("foodAllergy") or g.get("allergies")) else "")
                    + (f" · 备注 {g.get('note')}" if str(g.get("note") or "").strip() else ""))
-    for key in ("partyExtras", "partyWideAddons", "quickCountItems", "promotions", "customDeal"):
+    for key in ("partyExtras", "customItems", "partyWideAddons", "quickCountItems", "promotions", "customDeal"):
         if inv.get(key) not in (None, [], {}):
             out.append(f"   {key}: {json.dumps(inv.get(key), ensure_ascii=False)}")
     if o.get("setup_selection"):

@@ -61,6 +61,10 @@
   python scripts/desk/desk.py order set  <orderNo> --prep-note-file F [--dry]   the 备货备注 (prep list / cooler sheet line, 300 chars)
   python scripts/desk/desk.py order set  <orderNo> --prep-guests 20 [--dry]   base food (rice, veg, salad) for 20 when fewer are booked
                                    ("we'll bring extra in case more people come"); proteins and price unchanged; 0 takes it off
+  python scripts/desk/desk.py order set  <orderNo> --custom-item "Plain rice|白米饭|2|serving|0|生米每份约 3 oz" [--dry]   订单另加 (owner
+                                   2026-11-21): what no menu has - NAME|中文名|QTY|UNIT|PRICE|NOTE, PRICE 0 = on us; a bill row, a line on the
+                                   chef's sheet and the prep list; the same NAME again replaces it; --remove-custom-item NAME takes it off;
+                                   --custom-items-file F for Chinese from a file
   python scripts/desk/desk.py order check <YYYY-MM-DD> [--json]   派对当天核对 (D-1112-01; 07:00 on the day since 11-17 for early parties): per party, what the prep
                                    list and the order carry, the chef's sheet, and every requirement found elsewhere that they do not
                                    (!! = fix first). Reads only.
@@ -145,6 +149,111 @@ def prep_guests_line(data: dict) -> str:
     if n > booked:
         return f"备餐按 {n} 人（订单 {booked} 人）：炒饭、蔬菜、沙拉和配的蛋、酱按 {n} 人备；蛋白和价格不变"
     return f"备餐人数 {n}（订单已有 {booked} 人，不比它多：现在按订单人数备）"
+
+
+# 订单另加 (custom items, owner 2026-11-21: 「那就订单这里加个自定义项，以后可能还有很多新的需求，到时候就从这个地方走」):
+# what no menu has goes on the order as invoiceData.customItems, [{name, nameZh?, qty, unit, price, note?}]. The first:
+# plain rice for a guest of RH-20261117-3312, free (「白米饭不收钱」). The invoice bills each as a row of its own (price x
+# qty on the total like any extra; a free one reads "On us"), and the chef's sheet and the prep list carry it by its
+# Chinese name with the note (invoice lib/pricing.ts sanitizeCustomItems, marketing lib/custom-items.ts). The order
+# changes like any other save: the chef is told inside 72 hours, a review has to be redone.
+#   order set <no> --custom-item "NAME|中文名|QTY|UNIT|PRICE|NOTE"   adds one, or replaces the one of that name (case
+#       and spacing aside); 中文名, UNIT and NOTE may be empty, PRICE is dollars a unit and 0 is on us.
+#   order set <no> --remove-custom-item NAME                          takes it off.
+#   --custom-items-file F: the same lines from a UTF-8 file, one a line - the safe road for Chinese on Windows.
+CUSTOM_ITEMS_MAX = 20  # invoice CUSTOM_ITEMS_MAX
+CUSTOM_ITEM_LIMITS = {"name": 60, "nameZh": 30, "unit": 20, "note": 120, "qty": 999, "price": 5000}  # invoice CUSTOM_ITEM_LIMITS
+CUSTOM_ITEM_FORM = '"NAME|中文名|QTY|UNIT|PRICE|NOTE", e.g. "Plain rice|白米饭|2|serving|0|生米每份约 3 oz" (中文名, UNIT and NOTE may be empty; PRICE 0 = on us)'
+
+
+def _one_line(v, n: int) -> str:
+    return re.sub(r"\s+", " ", v).strip()[:n].strip() if isinstance(v, str) else ""
+
+
+def _num(v):
+    """2.0 -> 2, 2.5 -> 2.5: the number as the invoice's JSON writes it."""
+    v = round(float(v), 2)
+    return int(v) if v.is_integer() else v
+
+
+def _custom_item(name, zh, qty, unit, price, note) -> dict:
+    item = {"name": _one_line(name, CUSTOM_ITEM_LIMITS["name"])}
+    if _one_line(zh, CUSTOM_ITEM_LIMITS["nameZh"]):
+        item["nameZh"] = _one_line(zh, CUSTOM_ITEM_LIMITS["nameZh"])
+    item.update({"qty": _num(qty), "unit": _one_line(unit, CUSTOM_ITEM_LIMITS["unit"]) or "each", "price": _num(price)})
+    if _one_line(note, CUSTOM_ITEM_LIMITS["note"]):
+        item["note"] = _one_line(note, CUSTOM_ITEM_LIMITS["note"])
+    return item
+
+
+def custom_items_of(data: dict) -> list[dict]:
+    """The order's customItems as the invoice reads them (sanitizeCustomItems): a name, a quantity above 0 and a price of 0
+    or more, the same name twice is the first, at most 20."""
+    out, seen = [], set()
+    for r in (data or {}).get("customItems") or []:
+        if len(out) >= CUSTOM_ITEMS_MAX:
+            break
+        if not isinstance(r, dict):
+            continue
+        name, qty, price = _one_line(r.get("name"), CUSTOM_ITEM_LIMITS["name"]), r.get("qty"), r.get("price")
+        if not name or name.lower() in seen or any(isinstance(x, bool) or not isinstance(x, (int, float)) for x in (qty, price)):
+            continue
+        if not (0 < round(float(qty), 2) <= CUSTOM_ITEM_LIMITS["qty"] and 0 <= round(float(price), 2) <= CUSTOM_ITEM_LIMITS["price"]):
+            continue
+        seen.add(name.lower())
+        out.append(_custom_item(name, r.get("nameZh"), qty, r.get("unit"), price, r.get("note")))
+    return out
+
+
+def parse_custom_item(spec: str) -> dict:
+    """--custom-item "Plain rice|白米饭|2|serving|0|生米每份约 3 oz" -> the item; refused, never guessed, when a part is off."""
+    if "\ufffd" in spec:
+        raise SystemExit(f"--custom-item {spec!r}: a broken character (the text was mangled on the way in) - put the line in a UTF-8 file: --custom-items-file F")
+    parts = [p.strip() for p in spec.split("|", 5)]
+    if len(parts) < 5:
+        raise SystemExit(f"--custom-item {spec!r}: use {CUSTOM_ITEM_FORM}")
+    name, zh, qty_s, unit, price_s = parts[:5]
+    note = parts[5] if len(parts) > 5 else ""
+    lim = CUSTOM_ITEM_LIMITS
+    if not name:
+        raise SystemExit(f"--custom-item {spec!r}: the NAME (English, the customer reads it on the bill) is required")
+    for what, text, n in (("NAME", name, lim["name"]), ("中文名", zh, lim["nameZh"]), ("UNIT", unit, lim["unit"]), ("NOTE", note, lim["note"])):
+        if len(_one_line(text, 10000)) > n:
+            raise SystemExit(f"--custom-item {spec!r}: {what} is {len(_one_line(text, 10000))} characters, at most {n}")
+    try:
+        qty = float(qty_s)
+    except ValueError:
+        raise SystemExit(f"--custom-item {spec!r}: QTY {qty_s!r} is not a number") from None
+    if not 0 < round(qty, 2) <= lim["qty"]:
+        raise SystemExit(f"--custom-item {spec!r}: QTY has to be above 0 (at most {lim['qty']})")
+    try:
+        price = float(price_s.lstrip("$")) if price_s else None
+    except ValueError:
+        price = None
+    if price is None or not 0 <= price <= lim["price"]:
+        raise SystemExit(f"--custom-item {spec!r}: PRICE is dollars a unit, 0 for on us (at most {lim['price']}) - it was {price_s!r}")
+    return _custom_item(name, zh, qty, unit, price, note)
+
+
+def custom_item_line(it: dict) -> str:
+    """One item as desk prints it: Plain rice（白米饭）×2 serving · on us · note: 生米每份约 3 oz."""
+    price = float(it.get("price") or 0)
+    head = f"{it['name']}" + (f"（{it['nameZh']}）" if it.get("nameZh") else " ") + f"×{_num(it['qty'])} {it.get('unit') or 'each'}"
+    return " · ".join([head, f"{money(price)} each" if price > 0 else "on us", *([f"note: {it['note']}"] if it.get("note") else [])])
+
+
+def custom_qty_text(qty, unit: str) -> str:
+    """The quantity in English as the customer reads it (lib/custom-items.ts customQtyText): 2 servings, 1 bag, 3 boxes."""
+    q, u = _num(qty), (unit or "").strip()
+    if not u or u.lower() == "each":
+        return f"{q}"
+    if q == 1 or len(u) <= 2 or not re.fullmatch(r"[A-Za-z]+", u) or u.lower().endswith("s"):
+        return f"{q} {u}"
+    if re.search(r"(x|z|ch|sh)$", u, re.I):
+        return f"{q} {u}es"
+    if re.search(r"[^aeiou]y$", u, re.I):
+        return f"{q} {u[:-1]}ies"
+    return f"{q} {u}s"
 ADULT_PRICE, CHILD_PRICE = 59.90, 29.90  # invoice ADULT_BASE_PRICE / CHILD_BASE_PRICE, what a deal's rate is cut from
 WEEKDAY_ADULT_OFF, WEEKDAY_CHILD_OFF = 5.0, 2.45  # invoice WEEKDAY_SPECIAL adultOff / childOff, the official_weekday line's per-head part
 DEAL_PROMO_IDS = ("deal_rate", "deal_free_extras", "deal_extra_rates", "deal_flat")  # invoice isCustomDealPromoId, in its order
@@ -1852,7 +1961,7 @@ def _invoice_drift(before: dict, after: dict) -> list[str]:
     rows = lambda d: f"{len(d.get('guests') or [])} rows, {sum(1 for g in (d.get('guests') or []) if g.get('proteins'))} with picks"
     if json.dumps(before.get("guests"), sort_keys=True) != json.dumps(after.get("guests"), sort_keys=True):
         lines.append(f"guests: {rows(before)} -> {rows(after)}")
-    for key in ("quickCountItems", "partyExtras", "promotions", "customDeal", "travelFee"):
+    for key in ("quickCountItems", "partyExtras", "customItems", "promotions", "customDeal", "travelFee"):
         if json.dumps(before.get(key), sort_keys=True) != json.dumps(after.get(key), sort_keys=True):
             lines.append(f"{key}: changed")
     return lines
@@ -2283,8 +2392,10 @@ def _swap_free_appetizer(data: dict, new: str) -> list[str]:
 
 
 def _print_totals(inv: dict) -> None:
+    custom = float(inv.get("customItemsCost") or 0)  # 订单另加 (2026-11-21): only when one of them is priced
     print(f"   base {money(inv.get('baseCost'))} | promos -{money(inv.get('promotionsTotal'))} | extras {money(inv.get('partyExtrasCost'))}"
-          f" | travel {money(inv.get('travelFee'))} | TOTAL {money(inv.get('finalTotal'))} | deposit {money(inv.get('deposit'))} | BALANCE {money(inv.get('balanceDue'))}")
+          + (f" | custom {money(custom)}" if custom > 0 else "")
+          + f" | travel {money(inv.get('travelFee'))} | TOTAL {money(inv.get('finalTotal'))} | deposit {money(inv.get('deposit'))} | BALANCE {money(inv.get('balanceDue'))}")
     # v2 "by method" (orders from 2026-10-06, D-1006-05/06): one listed price, two
     # bills. TOTAL / BALANCE above follow the invoice's payment method; the engine
     # gives both plus the party's own sales-tax rate (gratuity untaxed).
@@ -2357,6 +2468,9 @@ def _print_invoice(order_no: str, data: dict) -> None:
               + (f" + {child} child" if child else ""))
     for x in data.get("partyExtras") or []:
         print(f"   + extra {x}")
+    # 订单另加 (custom items, owner 2026-11-21): a bill row each, and a line on the chef's sheet and the prep list.
+    for it in custom_items_of(data):
+        print(f"   + 订单另加 {custom_item_line(it)}")
     for p in data.get("promotions") or []:
         print(f"   - promo {p.get('label') or p.get('id') or p}: {money(p.get('amount'))}")
     if data.get("customDeal"):
@@ -2843,6 +2957,14 @@ def day_summary(data: dict, *, start: str, due: float, gratuity_rate=None, chefs
         brought.append(_pieces(white, "1 white tablecloth", "white tablecloths") + on_us("white_tablecloth"))
     if canopies:
         brought.append(_pieces(canopies, "a 10x10 canopy", "10x10 canopies") + on_us("canopy"))
+    # 订单另加 (custom items, owner 2026-11-21): by the name on the bill, "on us" when free (plain rice, the first).
+    for it in custom_items_of(data):
+        name = it["name"]
+        if len(name) > 1 and name[0].isupper() and name[1].islower():
+            name = name[0].lower() + name[1:]  # "Plain rice" reads "plain rice" inside the sentence; "BBQ sauce" stays
+        unit = (it.get("unit") or "each").strip().lower()
+        said = f"{_count(it['qty'])} {name}" if unit == "each" else f"{name} ({custom_qty_text(it['qty'], it.get('unit') or '')})"
+        brought.append(said + ("" if float(it.get("price") or 0) > 0 else " on us"))
 
     host = []
     has_tables, has_chairs = bool(tc or tables), bool(tc or chairs)
@@ -3281,7 +3403,8 @@ def cmd_order(a):
     invoice_flags = (a.date, a.time, a.address, a.name, a.email, a.phone, a.notes_file, a.travel_miles, a.travel_fee, a.proteins,
                      a.headcount, a.retier, a.guests_file, a.deal_free, a.deal_rate, a.drop_deal or None, a.free_item, a.add_extra, a.set_extra, a.add_promo, a.remove_promo,
                      a.free_appetizer, a.free_appetizer_trays, a.add_adult, a.add_child, a.remove_guest, a.promo, a.reconcile or None,
-                     a.deal_note, True if a.prep_guests is not None else None)  # --prep-guests 0 (clear) is a change too
+                     a.deal_note, True if a.prep_guests is not None else None,  # --prep-guests 0 (clear) is a change too
+                     a.custom_item, a.custom_items_file, a.remove_custom_item)
     no_invoice_change = all(v in (None, False, []) for v in invoice_flags)
     plan_change = a.chefs is not None or a.grills is not None or a.stations is not None or a.plan_rule
     if a.op == "set" and a.prep_note_file is not None:
@@ -3867,12 +3990,45 @@ def cmd_order(a):
                 data["prepGuests"] = n
                 changes.append(f"prepGuests: {was if was is not None else 'none'} -> {n} (备餐按 {n} 人（订单 {booked} 人）: rice, vegetables, "
                                f"salad, their eggs and sauces for {n}; proteins and the price unchanged)")
+        custom_asked = bool(a.custom_item or a.custom_items_file or a.remove_custom_item)
+        if custom_asked:
+            # 订单另加 (owner 2026-11-21, CUSTOM_ITEM_FORM above): taken off first, then added or replaced by name, in the order given.
+            items = custom_items_of(data)
+            specs = list(a.custom_item or [])
+            if a.custom_items_file:
+                text = pathlib.Path(a.custom_items_file).read_bytes().decode("utf-8-sig")
+                specs += [ln.strip() for ln in text.splitlines() if ln.strip() and not ln.strip().startswith("#")]
+            for name in a.remove_custom_item or []:
+                key = _one_line(name, CUSTOM_ITEM_LIMITS["name"]).lower()
+                hit = next((x for x in items if x["name"].lower() == key), None)
+                if hit is None:
+                    raise SystemExit(f"--remove-custom-item {name!r}: the order has no custom item of that name "
+                                     f"({', '.join(repr(x['name']) for x in items) or 'it has none'})")
+                items.remove(hit)
+                changes.append(f"custom item off: {custom_item_line(hit)}")
+            for spec in specs:
+                new = parse_custom_item(spec)
+                at = next((i for i, x in enumerate(items) if x["name"].lower() == new["name"].lower()), None)
+                if at is None:
+                    if len(items) >= CUSTOM_ITEMS_MAX:
+                        raise SystemExit(f"--custom-item {new['name']!r}: an order carries at most {CUSTOM_ITEMS_MAX} custom items")
+                    items.append(new)
+                    changes.append(f"custom item added: {custom_item_line(new)}")
+                elif items[at] == new:
+                    print(f"   · custom item {new['name']!r} is already {custom_item_line(new)}")
+                else:
+                    changes.append(f"custom item: {custom_item_line(items[at])} -> {custom_item_line(new)}")
+                    items[at] = new
+            if items:
+                data["customItems"] = items
+            else:
+                data.pop("customItems", None)
         if not changes and a.reconcile:
             # Save the order as it stands: the invoice engine puts on what the
             # rules owe the party (D-1017-02) and the answer lists it.
             changes.append("reconcile: saved as it is, for the invoice engine to put on what the rules owe")
         if not changes:
-            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--travel-fee/--headcount/--retier/--proteins/--guests-file/--deal-free/--deal-rate/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer/--free-appetizer-trays/--add-adult/--add-child/--remove-guest/--promo/--prep-guests/--reconcile")
+            raise SystemExit("nothing to change - pass --date/--time/--address/--name/--email/--phone/--notes-file/--travel-miles/--travel-fee/--headcount/--retier/--proteins/--guests-file/--deal-free/--deal-rate/--drop-deal/--free-item/--add-extra/--add-promo/--remove-promo/--free-appetizer/--free-appetizer-trays/--add-adult/--add-child/--remove-guest/--promo/--prep-guests/--custom-item/--remove-custom-item/--reconcile")
         if a.date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", a.date):
             raise SystemExit("--date must be YYYY-MM-DD")
         if a.time and not re.fullmatch(r"\d{2}:\d{2}", a.time):
@@ -3963,6 +4119,21 @@ def cmd_order(a):
                 else:
                     print(f"WARN  the order has prepGuests {kept!r}, not {want!r}: the invoice app did not keep it (not deployed yet?) - "
                           f"nothing on the prep sheet changed; run this again once it is")
+        if custom_asked:
+            # The invoice app keeps customItems from the 2026-11-21 release on (lib/invoice-validate.ts): an older one
+            # saves the order and drops them without a word, so read them back.
+            try:
+                kept_items = custom_items_of(_lookup(order)[1])
+            except (ApiError, SystemExit) as e:
+                print(f"WARN  custom items not read back ({e}) - check with order show {order_no}")
+            else:
+                want_items = custom_items_of(data)
+                if kept_items == want_items:
+                    print(f"OK    custom items on the order: {len(kept_items)}" + "".join(f"\n      {custom_item_line(x)}" for x in kept_items)
+                          + ("\n      the bill, the chef's sheet and the prep list carry them" if kept_items else ""))
+                else:
+                    print(f"WARN  the order has {len(kept_items)} custom item(s), not the {len(want_items)} saved: the invoice app did not keep them "
+                          f"(not deployed yet?) - nothing on the bill or the prep sheet changed; run this again once it is")
         # 审查者 (owner 2026-11-12): inside 72 hours the system texts the chef what changed about ten
         # minutes after a change (card A; since 2026-11-13 on the link he already has, updated in place).
         # The review runs in that window, so that text is right too.
@@ -4309,6 +4480,11 @@ def main(argv=None):
     p.add_argument("--free-item", nargs="+", action="extend", metavar="ID=N", help="appetizer trays promised free: gyoza=2 adds 2 trays and a fixed 'FREE: Gyoza (10 pcs) x2' line")
     p.add_argument("--add-extra", nargs="+", action="extend", metavar="ID=N", help="appetizer trays the customer buys (billed at menu price): gyoza=1; a setup item for N guests before the rows exist: utensils=18; or tablecloths for their own tables by count: white_linen=3 ($5, black), white_tablecloth=3 ($8, white); or chairs / 6-ft tables on their own by count: folding_chairs=30, folding_tables=2 (bare, no cloth)")
     p.add_argument("--set-extra", nargs="+", action="extend", metavar="ID=N", help="the whole count of a party-wide appetizer (trays) or protein side (servings), the free appetizer's tray included; 0 takes the line off. For a tray the customer took off on the party page: gyoza=1 leaves just the free one")
+    p.add_argument("--custom-item", nargs="+", action="extend", metavar="SPEC",
+                   help=f"something no menu has (订单另加, owner 2026-11-21), {CUSTOM_ITEM_FORM}: a bill row (a free one reads On us), a line on "
+                        "the chef's sheet and the prep list by its Chinese name with the note. The same NAME again replaces it")
+    p.add_argument("--custom-items-file", metavar="F", help="--custom-item lines from a UTF-8 file, one a line (# starts a comment) - the safe road for Chinese")
+    p.add_argument("--remove-custom-item", nargs="+", action="extend", metavar="NAME", help="take a custom item off the order, by its NAME (case and spacing aside)")
     p.add_argument("--remove-promo", nargs="+", action="extend", metavar="ID", help="drop stored promotion lines by id")
     p.add_argument("--add-promo", metavar="ID=AMOUNT", help="add a promotion line, e.g. appreciation_teacher=50 (with --promo-label)")
     p.add_argument("--promo-label", help="label for --add-promo, as the customer reads it")

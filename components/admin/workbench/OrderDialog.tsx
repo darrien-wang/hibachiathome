@@ -35,6 +35,7 @@ import {
 import type { ChefSummary, OrderAssignment } from "./chef-types"
 import { PlannerPill, stepLabel, type PlannerSession } from "./planner-live"
 import { DispatchPlanPanel } from "./DispatchPlanPanel"
+import { CustomItemsPanel } from "./CustomItemsPanel"
 import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
 import { InvoiceArchivePanel } from "@/components/admin/invoice-archive-panel"
 import { OrderPhotosPanel } from "@/components/admin/order-photos-panel"
@@ -870,6 +871,17 @@ export function OrderDialog({
               />
               {prepNote.trim() !== prepNoteSaved.trim() ? <span style={{ color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>没保存</span> : prepNoteSaved ? <span style={{ color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>已保存</span> : null}
             </label>
+            {/* 订单另加（自定义项，老板 2026-11-21）：菜单上没有的东西（白米饭是第一个），账单、备料单、备货清单各一行。 */}
+            <CustomItemsPanel
+              adminKey={adminKey}
+              orderId={o.id}
+              invoiceData={o.invoice_data}
+              canEdit={viewerRole === "owner"}
+              onSaved={async () => {
+                await load()
+                await onChanged()
+              }}
+            />
           </div>
           <div className="dialog-col dialog-side" style={{ gap: 14 }}>
             <div>
