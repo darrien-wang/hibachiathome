@@ -52,7 +52,7 @@ export default function LandingHero({
   return (
     <>
       <section className="relative isolate overflow-hidden bg-cocoa text-white">
-        <Image src={image} alt={imageAlt} fill priority quality={90} sizes="100vw" className={`object-cover ${imageClassName}`} />
+        <Image src={image} alt={imageAlt} fill priority fetchPriority="high" quality={90} sizes="100vw" className={`object-cover ${imageClassName}`} />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(42,26,16,.6)_0%,rgba(42,26,16,.2)_30%,rgba(42,26,16,.5)_60%,#2a1a10_100%)] lg:bg-[linear-gradient(90deg,rgba(42,26,16,.9)_0%,rgba(42,26,16,.65)_50%,rgba(42,26,16,.25)_100%),linear-gradient(180deg,rgba(42,26,16,.3),transparent_30%,#2a1a10_100%)]" />
         <div className="relative mx-auto max-w-7xl px-5 pb-9 pt-[calc(var(--header-height,60px)+84px)] lg:grid lg:grid-cols-[1fr_400px] lg:items-center lg:gap-14 lg:px-8 lg:pb-[70px] lg:pt-[calc(var(--header-height,72px)+48px)]">
           <div className="flex flex-col gap-3 lg:gap-5">

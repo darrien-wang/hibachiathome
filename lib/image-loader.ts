@@ -10,12 +10,18 @@
  * plan; a static ladder costs nothing at runtime and never 404s.
  *
  * Mapping is total for the three directories below: every jpg/jpeg/png in
- * them has all four rungs (see scratch gen-opt.py; regenerate with PIL,
- * quality 80, method 4). Anything else - video posters, brand marks, the
- * OG image - passes through untouched.
+ * them has every rung (scripts/gen-opt-images.py writes the missing ones;
+ * Pillow, quality 80, method 4; tests/image-loader.test.ts fails if a file
+ * is absent). Anything else - video posters, brand marks, the OG image -
+ * passes through untouched.
+ *
+ * 160/320/480 were added 2026-11-21: the smallest rung used to be 640, so
+ * the 48px review avatar and the ~100px menu thumbnails on the ad landing
+ * pages each downloaded a 640px file (PageSpeed: 209 KiB wasted on mobile).
  */
 const OPTIMIZED = /^\/(gallery|images\/hero|images\/menu)\/([^/]+)\.(?:jpe?g|png)$/i
-const LADDER = [640, 960, 1280, 1920] as const
+export const LADDER = [160, 320, 480, 640, 960, 1280, 1920] as const
+export const OPTIMIZED_DIRS = ["gallery", "images/hero", "images/menu"] as const
 
 export default function imageLoader({ src, width }: { src: string; width: number; quality?: number }): string {
   const match = OPTIMIZED.exec(src)

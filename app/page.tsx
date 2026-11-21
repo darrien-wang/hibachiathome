@@ -126,6 +126,7 @@ export default function Home() {
           alt="Live hibachi fire show at a backyard party in Orange County"
           fill
           priority
+          fetchPriority="high"
           quality={90}
           sizes="100vw"
           className="object-cover object-[60%_40%] saturate-[1.15] contrast-[1.06]"

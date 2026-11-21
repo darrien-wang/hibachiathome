@@ -26,7 +26,8 @@ const nextConfig = {
     loader: "custom",
     loaderFile: "./lib/image-loader.ts",
     deviceSizes: [640, 960, 1280, 1920],
-    imageSizes: [256, 384],
+    // 128 lets 48px avatars pick the 160 rung instead of 320 (rungs 160/320/480 added 2026-11-21).
+    imageSizes: [128, 256, 384],
   },
   // Internal chef handbook. Served as a standalone static file so its own
   // stylesheet does not collide with the site chrome. Deliberately NOT in
