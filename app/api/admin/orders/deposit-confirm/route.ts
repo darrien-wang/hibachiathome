@@ -23,8 +23,20 @@ async function isAuthorized(request: NextRequest): Promise<boolean> {
 // 「就不用他留卡了」). It goes in as a $0 card_on_file lock without a card - the order system takes
 // that as "no deposit required" and puts nothing in the payments ledger - so the order exists, nothing
 // pretends to be paid, and the customer pays on the day.
-const CHANNELS = ["venmo", "zelle", "cash", "other", "none"] as const
+// "airbnb": a party booked and paid in full on Airbnb Services (D-1117-01, leads SKILL §7). Airbnb keeps
+// the guest's phone and email to itself, so neither is needed - the Airbnb confirmation code stands in as
+// the contact key. The amount is the Airbnb booking total (what the guest paid, before Airbnb's 15%), so the
+// order goes in paid in full; the notes and the prep note say so, which is what keeps the pay link, the
+// chef's "collect at the end" and our emails away from an Airbnb guest (2026-11-21, the first booking).
+const CHANNELS = ["venmo", "zelle", "cash", "other", "none", "airbnb"] as const
 type Channel = (typeof CHANNELS)[number]
+
+const AIRBNB_CODE = /^[A-Z0-9]{6,12}$/
+const AIRBNB_PREP_NOTE = "Airbnb 单：客人已在 Airbnb 付清，现场不收钱，不发付款链接，不主动提小费；客人自己给可以收。"
+
+function dollars(amount: number): string {
+  return Number.isInteger(amount) ? String(amount) : amount.toFixed(2)
+}
 
 function asTrimmed(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined
@@ -56,6 +68,7 @@ export async function POST(request: NextRequest) {
     kids?: number
     amount?: number
     channel?: string
+    airbnbCode?: string
     proofUrl?: string
     operator?: string
   }
@@ -74,9 +87,14 @@ export async function POST(request: NextRequest) {
   const amount = Number(body.amount)
   const operator = asTrimmed(body.operator) ?? "staff"
   const proofUrl = asTrimmed(body.proofUrl)
+  const airbnb = channel === "airbnb"
+  const airbnbCode = asTrimmed(body.airbnbCode)?.toUpperCase()
 
   if (!customerName) return NextResponse.json({ error: "customerName is required" }, { status: 400 })
-  if (!email && !phone) return NextResponse.json({ error: "email or phone is required" }, { status: 400 })
+  if (airbnb && (!airbnbCode || !AIRBNB_CODE.test(airbnbCode))) {
+    return NextResponse.json({ error: "airbnbCode (the Airbnb confirmation code) is required for an Airbnb booking" }, { status: 400 })
+  }
+  if (!email && !phone && !airbnb) return NextResponse.json({ error: "email or phone is required" }, { status: 400 })
   if (!eventDate || !/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
     return NextResponse.json({ error: "eventDate must be YYYY-MM-DD" }, { status: 400 })
   }
@@ -104,7 +122,7 @@ export async function POST(request: NextRequest) {
   const nowIso = new Date().toISOString()
   // Deterministic payment id: an accidental double submit upserts the same
   // payment row on the invoice side instead of double-counting the deposit.
-  const contactKey = phoneDigits(phone) ?? email ?? "unknown"
+  const contactKey = phoneDigits(phone) ?? email ?? (airbnb ? `airbnb_${airbnbCode}` : "unknown")
   const externalPaymentId = `manual_${channel}_${contactKey}_${eventDate}_${amountCents}`.slice(0, 80)
 
   const envelope = {
@@ -124,7 +142,9 @@ export async function POST(request: NextRequest) {
       guest_child_count: Number.isFinite(body.kids) ? Math.max(0, Math.trunc(body.kids as number)) : undefined,
       notes: noCard
         ? "No card needed to hold the date; the total is paid at the party." // the customer reads the notes
-        : `Deposit confirmed manually via ${channel} in the order workbench.`,
+        : airbnb
+          ? `Airbnb Services · ${airbnbCode} · 已在 Airbnb 付清 $${dollars(amount)}` // desk's AIRBNB_PAID reads this
+          : `Deposit confirmed manually via ${channel} in the order workbench.`,
     },
     payment: {
       external_payment_id: externalPaymentId,
@@ -134,7 +154,7 @@ export async function POST(request: NextRequest) {
       currency: "USD",
       provider: "other",
       paid_at: nowIso,
-      transaction_ref: noCard ? "manual:no_card" : `manual:${channel}`,
+      transaction_ref: noCard ? "manual:no_card" : airbnb ? `airbnb:${airbnbCode}` : `manual:${channel}`,
     },
     metadata: {
       manual_entry: true,
@@ -143,6 +163,7 @@ export async function POST(request: NextRequest) {
       operator,
       proof_url: proofUrl,
       lead_id: leadId,
+      ...(airbnb ? { airbnb_code: airbnbCode } : {}),
     },
   }
 
@@ -159,16 +180,19 @@ export async function POST(request: NextRequest) {
   // Best-effort linkage + audit; the order itself is already created above.
   const supabase = createServerSupabaseClient()
   if (supabase && orderId) {
-    const { data: existing } = await supabase.from("orders").select("source_metadata").eq("id", orderId).maybeSingle()
+    const { data: existing } = await supabase.from("orders").select("source_metadata, prep_note").eq("id", orderId).maybeSingle()
     const mergedMetadata = {
       ...((existing?.source_metadata as Record<string, unknown>) ?? {}),
       manual_deposit: true,
       deposit_channel: channel,
       operator,
       ...(proofUrl ? { deposit_proof_url: proofUrl } : {}),
+      ...(airbnb ? { airbnb_code: airbnbCode } : {}),
       ...(leadId ? { lead_id: leadId, lead_link_method: "manual_deposit_confirm", lead_linked_at: nowIso } : {}),
     }
-    await supabase.from("orders").update({ source_metadata: mergedMetadata }).eq("id", orderId)
+    // An Airbnb party's prep note starts with the paid-on-Airbnb line (SKILL §7); a note already there stays.
+    const prepNote = airbnb && !String(existing?.prep_note ?? "").trim() ? { prep_note: AIRBNB_PREP_NOTE } : {}
+    await supabase.from("orders").update({ source_metadata: mergedMetadata, ...prepNote }).eq("id", orderId)
     await supabase.from("order_events").insert({
       order_id: orderId,
       actor: `admin:${operator}`,
@@ -179,6 +203,7 @@ export async function POST(request: NextRequest) {
         proof_url: proofUrl ?? null,
         lead_id: leadId ?? null,
         external_payment_id: externalPaymentId,
+        ...(airbnb ? { airbnb_code: airbnbCode } : {}),
       },
     })
     if (leadId) {

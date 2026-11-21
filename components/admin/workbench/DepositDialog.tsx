@@ -13,10 +13,13 @@ import { digits10, displayName, isPlaceholderName, type LeadRow } from "./helper
 
 // "venmo" / "zelle" = paid to the chef directly (D-1006-07, 2026-10-06) or an old order;
 // the business accounts themselves are internal payout rails and are never given to a customer.
+// "airbnb" = booked and paid in full on Airbnb Services (D-1117-01): no phone or email (Airbnb keeps them),
+// the confirmation code instead; the amount is the Airbnb booking total, so the order goes in paid in full.
 const CHANNELS = [
   ["cash", "现金"],
   ["venmo", "Venmo（给师傅）"],
   ["zelle", "Zelle（给师傅）"],
+  ["airbnb", "Airbnb（平台已收全款）"],
   ["other", "其他"],
 ] as const
 
@@ -40,8 +43,10 @@ export function DepositDialog({
   const [adults, setAdults] = useState(String(lead?.guest_count ?? ""))
   const [kids, setKids] = useState("0")
   const [amount, setAmount] = useState("")
-  const [channel, setChannel] = useState<(typeof CHANNELS)[number][0]>("cash")
+  const [channel, setChannel] = useState<(typeof CHANNELS)[number][0]>(lead?.lead_source === "manual_airbnb" ? "airbnb" : "cash")
+  const [airbnbCode, setAirbnbCode] = useState("")
   const [proof, setProof] = useState("")
+  const isAirbnb = channel === "airbnb"
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
 
@@ -50,12 +55,16 @@ export function DepositDialog({
       setMsg("客户姓名和活动日期必填")
       return
     }
-    if (!digits10(phone) && !email.trim()) {
+    if (isAirbnb && !/^[A-Za-z0-9]{6,12}$/.test(airbnbCode.trim())) {
+      setMsg("填 Airbnb 订单号（确认信里的 Confirmation code，比如 TAXH5NX2）")
+      return
+    }
+    if (!isAirbnb && !digits10(phone) && !email.trim()) {
       setMsg("电话或邮箱至少填一个（布置工具和查单都靠它）")
       return
     }
     if (!(Number(amount) > 0)) {
-      setMsg("填实际收到的金额（发票系统不收 $0 的押金流水）")
+      setMsg(isAirbnb ? "填 Airbnb 订单总额（客人付的数，Airbnb 扣 15% 之前）" : "填实际收到的金额（发票系统不收 $0 的押金流水）")
       return
     }
     setBusy(true)
@@ -74,6 +83,7 @@ export function DepositDialog({
           kids: Number(kids) || 0,
           amount: Number(amount),
           channel,
+          airbnbCode: isAirbnb ? airbnbCode.trim().toUpperCase() : undefined,
           proofUrl: proof.trim() || undefined,
           operator: localStorage.getItem("rh_operator_name") ?? "staff",
         },
@@ -120,7 +130,7 @@ export function DepositDialog({
           <Field label="小孩">
             <input className="input" type="number" min={0} value={kids} onChange={(e) => setKids(e.target.value)} />
           </Field>
-          <Field label="押金金额 $">
+          <Field label={isAirbnb ? "Airbnb 订单总额 $（扣 15% 之前）" : "押金金额 $"}>
             <input className="input" type="number" step="0.01" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
           </Field>
           <Field label="收款方式">
@@ -132,7 +142,17 @@ export function DepositDialog({
               ))}
             </select>
           </Field>
+          {isAirbnb ? (
+            <Field label="Airbnb 订单号 *">
+              <input className="input" value={airbnbCode} onChange={(e) => setAirbnbCode(e.target.value)} placeholder="TAXH5NX2" />
+            </Field>
+          ) : null}
         </div>
+        {isAirbnb ? (
+          <div className="notice">
+            Airbnb 不给客人电话邮箱，这两栏可以空着。订单会记成已在 Airbnb 付清，订单备注和备货备注自动写好；建完把路费设 0，订单总价对上 Airbnb 总额（差额用价格行调平），不能有欠款。
+          </div>
+        ) : null}
         <Field label="凭证链接（截图 URL，可选）">
           <input className="input" value={proof} onChange={(e) => setProof(e.target.value)} placeholder="https://…" />
         </Field>
