@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { aggregatePrep, BUY_UNITS, orderPrep, prepForLine, splitVeg, VEGE_MIX, type InvoiceLite, type PrepItem } from "@/lib/prep-bom"
-import { customItemsOf, customUnitZh } from "@/lib/custom-items"
+import { customItemRowId, customItemsOf, customUnitZh } from "@/lib/custom-items"
 import { isBulkItem, stockLabel, stockUnit, VEG_IDS } from "@/lib/pantry"
 import { setVegTotal, vegTotal } from "@/lib/prep-reservations"
 import type { SetupSelection } from "@/config/table-themes"
@@ -119,6 +119,13 @@ export async function GET(request: NextRequest) {
         ...customItemsOf(r.invoice_data).map((it) => `${it.nameZh || it.name} ${it.qty}${customUnitZh(it.unit)}${it.note ? `（${it.note}）` : ""}`),
       ].join(" · "),
       outsourced: false,
+      // 分项（2026-11-21）：desk 拿它和师傅备料单逐项比对（老板「好的」：两边是两套程序算的，11-12 小小孩的蛋白就对不上过）。
+      // 蛋白 id → 份数；料和装备 id → 数量（面条是干面 oz，熟面 ÷ 3；tables 是一张桌子配一条桌布）；订单另加按行 id。
+      parts: {
+        proteins: prep.menuKnown ? prep.proteinServings.map((p) => ({ id: p.id, servings: p.servings })) : [],
+        items: prep.items.map((i) => ({ id: i.id, qty: i.qty, unit: i.unit, group: i.group })),
+        custom: customItemsOf(r.invoice_data).map((it) => ({ id: customItemRowId(it.name), name: it.nameZh || it.name, qty: it.qty })),
+      },
       // 后勤备货单：这一单要提前处理的量（切肉、切菜、切豆腐、煮饭），打印时几场合成一张。
       cooler: { time: zhTime(r.event_start as string), customer: head.name, chef: null as string | null, owner: null as string | null, note: (r.prep_note ?? "").trim() || null, adults: prep.adults, kids: prep.kids, ...(prep.prepFor ? { baseHeads: prep.prepFor.guests } : {}), menuKnown: prep.menuKnown, work: coolerWork(prep.items, prep.menuKnown) },
     }
