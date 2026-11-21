@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase"
 import { can, resolveAdminActor } from "@/lib/admin-auth"
 import { CRON_PURPOSE_AD_SPEND, isCronCall } from "@/lib/cron-key"
 import { fetchGoogleCampaignDays, googleAdsAuthMode, googleAdsCustomerId } from "@/lib/google-ads-rest"
-import { fetchMetaAccountStatus, fetchMetaCampaignDays, metaAdAccountId, metaConfigured } from "@/lib/meta-ads-rest"
+import { fetchMetaAccountStatus, fetchMetaAdDays, fetchMetaCampaignDays, metaAdAccountId, metaConfigured, reconcileMetaAdSpend } from "@/lib/meta-ads-rest"
 import { PAID_CHANNELS, isPaidChannel } from "@/lib/channels"
 
 export const runtime = "nodejs"
@@ -11,9 +11,12 @@ export const dynamic = "force-dynamic"
 
 // ad_spend_daily is the one place paid spend lives, whatever the channel.
 //   GET  ?from&to[&channel]          rows in the window
+//   GET  ?level=meta_ad&from&to      Meta below the campaign: ad × day rows (meta_ad_spend_daily)
 //   POST {rows:[...]}                upsert manual / CSV / api rows (any channel)
 //   POST ?action=sync_google&days=N  pull campaign×day from the Google Ads API
-//   POST ?action=sync_meta&days=N    pull campaign×day from the Meta Marketing API
+//   POST ?action=sync_meta&days=N    pull campaign×day from the Meta Marketing API, and ad × day
+//                                    into meta_ad_spend_daily (2026-11-21; a detail table, so the
+//                                    campaign rows here are never counted twice)
 //   POST ?action=meta_status         is the ad account restricted, or is it our token? (read-only)
 //   POST ?action=sync_*&consumer=cron  pg_cron every hour with the derived key
 //                                      "ad-spend" (2026-11-04); only the two syncs
@@ -66,6 +69,17 @@ export async function GET(request: NextRequest) {
   const p = request.nextUrl.searchParams
   const from = DATE_RE.test(p.get("from") ?? "") ? (p.get("from") as string) : daysAgo(30)
   const to = DATE_RE.test(p.get("to") ?? "") ? (p.get("to") as string) : ptToday()
+  if (p.get("level") === "meta_ad") {
+    const { data, error } = await supabase
+      .from("meta_ad_spend_daily")
+      .select("date, account_id, campaign_id, campaign_name, adset_id, adset_name, ad_id, ad_name, impressions, clicks, all_clicks, cost_cents, platform_leads, updated_at")
+      .gte("date", from)
+      .lte("date", to)
+      .order("date", { ascending: false })
+      .limit(5000)
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true, level: "meta_ad", from, to, rows: data ?? [] })
+  }
   const channel = p.get("channel")
   let q = supabase
     .from("ad_spend_daily")
@@ -175,7 +189,40 @@ export async function POST(request: NextRequest) {
         if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
       }
       const cost = upserts.reduce((a, r) => a + r.cost_cents, 0)
-      return NextResponse.json({ ok: true, channel: "meta_ads", from, to, rows: upserts.length, costCents: cost })
+
+      // Below the campaign. Its own try: the scorecard only needs the campaign
+      // rows above, so a refused ad-level pull is reported, not allowed to
+      // turn a good campaign sync into a failed one.
+      let adLevel: Record<string, unknown>
+      try {
+        const adRows = await fetchMetaAdDays(from, to)
+        const adUpserts = adRows.map((r) => ({
+          account_id: accountId,
+          date: r.date,
+          campaign_id: r.campaignId,
+          campaign_name: r.campaignName || null,
+          adset_id: r.adsetId,
+          adset_name: r.adsetName || null,
+          ad_id: r.adId,
+          ad_name: r.adName || null,
+          impressions: r.impressions,
+          clicks: r.linkClicks,
+          all_clicks: r.clicks,
+          cost_cents: r.costCents,
+          platform_leads: r.leads,
+          synced_by: `sync:${alias}`,
+          updated_at: now,
+        }))
+        for (let i = 0; i < adUpserts.length; i += 500) {
+          const { error } = await supabase.from("meta_ad_spend_daily").upsert(adUpserts.slice(i, i + 500), { onConflict: "account_id,ad_id,date" })
+          if (error) throw new Error(error.message)
+        }
+        const check = reconcileMetaAdSpend(rows, adRows)
+        adLevel = { ok: true, rows: adUpserts.length, costCents: check.adCents, matchesCampaigns: check.ok, diffCents: check.diffCents, ...(check.ok ? {} : { worst: check.worst }) }
+      } catch (error) {
+        adLevel = { ok: false, error: String(error) }
+      }
+      return NextResponse.json({ ok: true, channel: "meta_ads", from, to, rows: upserts.length, costCents: cost, adLevel })
     } catch (error) {
       return NextResponse.json({ ok: false, error: String(error) }, { status: 200 })
     }
