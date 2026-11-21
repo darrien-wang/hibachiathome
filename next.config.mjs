@@ -94,6 +94,13 @@ const nextConfig = {
         has: [{ type: "host", value: "pre.realhibachi.com" }],
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
+      // Self-hosted fonts (app/globals.css @font-face, preloaded in app/layout.tsx). Files under
+      // /public are served with must-revalidate by default; the version is in the file name
+      // (-v9), so they can be cached for a year like /_next/static assets.
+      {
+        source: "/fonts/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
       {
         source: "/chef-handbook",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],

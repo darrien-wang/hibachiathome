@@ -89,12 +89,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&family=Permanent+Marker&display=swap"
-          rel="stylesheet"
-        />
+        {/* Fonts ship with the site (2026-11-21). The Google Fonts stylesheet blocked first paint
+            (~750 ms on slow 4G in PageSpeed) and its late swap pushed the mobile quote card down
+            (CLS 0.207), which Google Ads rated as below-average landing page experience. The two
+            files are the latin subsets Google served for that stylesheet; @font-face and the
+            metric-matched fallbacks live at the top of globals.css. Permanent Marker was loaded
+            there too but nothing used it. */}
+        <link rel="preload" href="/fonts/figtree-latin-v9.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/bricolage-grotesque-latin-v9.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         {/* No tag manager on the /admin workbench: the owner's own sessions
             were landing in Clarity (26-minute recordings, LCP 6.8 s) and in
             GA4/Ads as visitors, skewing every customer metric. HideOnAdmin
