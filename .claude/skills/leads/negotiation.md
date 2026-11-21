@@ -60,6 +60,8 @@
 
 ## 4. 别家报价更低
 
+**在比价、还没报别家价的（老板 11-21，Candace 说在问几家、今天定）**：先讲包含什么、我们的料（下面第 2 条），再递 planner 让她自己布置着看：`If it helps while you compare, you can also try our party planner: party.realhibachi.com. You can set up your N guests there, pick everyone's proteins and see the total as you go.` 对外链接只写 party.realhibachi.com，不带 /order。不先让价。
+
 1. **先问对方含什么**：`Sure, I can look at it. Does that price include 2 proteins per person, travel, and tables?` 常见：单蛋白、路费另算、桌椅另算、押金不退、无保险。
 2. **先讲差异，不先降价**：只讲具体事实，不说"我们最好"，不点名说别家怎样。老板 10-21 定的两条：
    - **肉**：牛肉是 Costco 的 USDA Choice，前一天买、不冷冻，真黄油做；$45 一位的价位一般用冷冻牛肉，一吃就吃得出来。所以我们的食材成本就是高。
