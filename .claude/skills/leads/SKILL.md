@@ -213,7 +213,8 @@ A、B 由机器发（§3 表）。人要手发的首条：机器让出来的（�
   - **订了以后**（钱全在 Airbnb，我们只记账、派师傅）：
     - 建单用工作台线索里的「押金已付 → 转入订单」：收款方式选「Airbnb（平台已收全款）」（Airbnb 来的线索默认就是它），填 Airbnb 订单号（确认信里的 Confirmation code），金额记 Airbnb 订单总额（客人付的数，Airbnb 扣 15% 之前）。电话、邮箱空着（Airbnb 不给，11-21 起不用填占位邮箱）。订单备注 `Airbnb Services · <订单号> · 已在 Airbnb 付清 $<总额>` 和备货备注第一句系统自动写。不开工作台时用接口：POST `/api/admin/orders/deposit-confirm`，`channel: "airbnb"`、`airbnbCode`、`amount`、`leadId`、日期时间地址人数（第一单 Sijie RH-20261121-3048 那时还没这个，填的是占位邮箱 airbnb-taxh5nx2@guest.invalid）。
     - **订单上必须是付清的**：路费设 0（`--travel-fee 0`），订单总价跟记的这笔钱对上，差额用订单上的价格行调平。建完 `desk order show` 不能有欠款，备料单要显示「已付清」。还欠着的话，派对开始后系统会自动给客人发 /pay 付款链接，备料单的「结束收款」也会让师傅收钱。第一张 Airbnb 单建完自己这样核一遍。
-    - 备货备注第一句是「Airbnb 单：客人已在 Airbnb 付清，现场不收钱，不发付款链接，不主动提小费；客人自己给可以收」（系统建单时写好），后面接着补人数、菜、场地；`--prep-note-file` 是整段覆盖，先读再写，这一句要留着。小费这条照 Airbnb 写给客人的说明：小费不必要，好评或小费都欢迎。
+    - 备货备注开头是「Airbnb 单：客人已在 Airbnb 付清，现场不收钱，不发付款链接。小费不含在 Airbnb 价里，我们在 Airbnb 消息里跟客人说过（建议 20%，客人自愿），现场不用再提，客人给就收。」（系统建单时写好），后面接着补人数、菜、场地；`--prep-note-file` 是整段覆盖，先读再写，开头这段要留着。
+    - **小费在 Airbnb 消息里说一次**（老板 11-21「小费需要提一下 这个不包括师傅的小费 一般建议20%」，改了 11-17 的"不主动提"）：建完单、客人的问题答完后发 `One more thing, <名字>: the Airbnb price doesn't include a tip for your chef. Tipping is up to you, and 20% is what we usually suggest.` **一定写成客人自愿**：Airbnb 规定客人必须付的费用都要算进 Airbnb 价里、不能在站外收（帮助文章 2799），客人自愿付的可以在站外给；对客人 Airbnb 也说小费和好评都欢迎（帮助文章 1590）。不写 expected、required、customary 这类词，不在派对前再催。
     - 不给客人发我们的发票邮件、派对页和付款链接。选蛋白、改人数、加东西都在 Airbnb 消息里谈，钱走 Airbnb。系统 72 小时前的确认短信没有链接，照发没关系；客人在短信里提改动，回到 Airbnb 消息里接着谈。
     - 沙漠出租房、沙滩、清酒这些规矩照 `answers.md`。
 - **西语**：客人写西语才切，数字口径一样，句式见 `templates.md`。

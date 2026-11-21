@@ -32,7 +32,9 @@ const CHANNELS = ["venmo", "zelle", "cash", "other", "none", "airbnb"] as const
 type Channel = (typeof CHANNELS)[number]
 
 const AIRBNB_CODE = /^[A-Z0-9]{6,12}$/
-const AIRBNB_PREP_NOTE = "Airbnb 单：客人已在 Airbnb 付清，现场不收钱，不发付款链接，不主动提小费；客人自己给可以收。"
+// Tips (owner 2026-11-21 「小费需要提一下 这个不包括师傅的小费 一般建议20%」): the desk tells the guest once in
+// Airbnb messages, as the guest's choice - a mandatory fee would have to be in the Airbnb price (help 2799).
+const AIRBNB_PREP_NOTE = "Airbnb 单：客人已在 Airbnb 付清，现场不收钱，不发付款链接。小费不含在 Airbnb 价里，我们在 Airbnb 消息里跟客人说过（建议 20%，客人自愿），现场不用再提，客人给就收。"
 
 function dollars(amount: number): string {
   return Number.isInteger(amount) ? String(amount) : amount.toFixed(2)
