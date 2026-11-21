@@ -20,6 +20,9 @@ import {
   ptDate,
   textSignerFor,
   quoteFollowUpPlan,
+  DATE_ASK_CHANNELS,
+  DATE_ASK_TEST,
+  dateAskArm,
   shortDate,
   contactFormMisfit,
   templateAMessage,
@@ -565,6 +568,15 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
         human(`day closed ${payload.eventDate}: offer another day, or ask the owner if it chains`)
         continue
       }
+      // D-1121-04: an undated quote from a Google or Meta ad is in the split test (lib/first-response.ts
+      // dateAskArm); the date arm is filed as template "B_date", and both arms carry test/arm for the count.
+      let arm: "date" | "occasion" | null = null
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(payload.eventDate ?? ""))) {
+        const { data: attr } = await supabase.from("lead_attribution").select("channel").eq("id", lead.id).maybeSingle()
+        if (DATE_ASK_CHANNELS.includes(String((attr as { channel?: string | null } | null)?.channel ?? ""))) arm = dateAskArm(phone)
+      }
+      const template = arm === "date" ? "B_date" : "B"
+      const inTest = arm ? { test: DATE_ASK_TEST, arm } : {}
       const plan = quoteFollowUpPlan({
         adults: Number(payload.adults ?? lead.adult_count ?? 0) || 0,
         kids: Number(payload.kids ?? lead.child_count ?? 0) || 0,
@@ -572,6 +584,7 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
         city: cityForZip(payload.cityName) || payload.cityName || null,
         todayPt: ptDate(now),
         numberUnknown: defaultLeave,
+        askDate: arm === "date",
       })
       if (!plan.send) {
         human(plan.reason)
@@ -606,10 +619,10 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
         continue
       }
       if (dryRun) {
-        autoSent.push({ leadId: lead.id, phone, template: "B", minutesWaiting: ageMin, dryRun: true, sms: plan.text })
+        autoSent.push({ leadId: lead.id, phone, template, ...inTest, minutesWaiting: ageMin, dryRun: true, sms: plan.text })
         continue
       }
-      const claimB = await claimFirstResponse(supabase, lead.id, { via: "sms", auto: true, template: "B" })
+      const claimB = await claimFirstResponse(supabase, lead.id, { via: "sms", auto: true, template, ...inTest })
       if (claimB == null) continue
       const sms = await sendSms(phone, plan.text)
       if (!sms.ok) {
@@ -620,7 +633,7 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
         const at = new Date().toISOString()
         await supabase
           .from("lead_touchpoints")
-          .update({ raw_payload_json: { via: "sms", auto: true, template: "B", sms_sid: sms.sid, claimed: true } })
+          .update({ raw_payload_json: { via: "sms", auto: true, template, ...inTest, sms_sid: sms.sid, claimed: true } })
           .eq("id", claimB)
         // Every row carries the same keys: a bulk insert fills a key one row
         // lacks with NULL, not the column default, and occurred_at is NOT
@@ -632,7 +645,7 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
             touchpoint_type: "sms_outbound",
             touchpoint_source: "lead_watch",
             external_touchpoint_id: sms.sid,
-            raw_payload_json: { to: phone, body: plan.text, status: sms.status, sid: sms.sid, auto: true, via: "lead_watch", template: "B" },
+            raw_payload_json: { to: phone, body: plan.text, status: sms.status, sid: sms.sid, auto: true, via: "lead_watch", template, ...inTest },
             occurred_at: at,
           },
           {
@@ -640,14 +653,14 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
             touchpoint_type: "agent_note",
             touchpoint_source: "lead_watch",
             external_touchpoint_id: null,
-            raw_payload_json: { note: `[SOP:first_response] AUTO template B (lead-watch, ${ageMin} min after the quote): ${plan.text}`.slice(0, 1900) },
+            raw_payload_json: { note: `[SOP:first_response] AUTO template ${template}${arm ? ` (${DATE_ASK_TEST} ${arm})` : ""} (lead-watch, ${ageMin} min after the quote): ${plan.text}`.slice(0, 1900) },
             occurred_at: at,
           },
         ])
         if (logError) console.error("[lead-watch] template B log insert failed", { leadId: lead.id, error: logError.message })
         await supabase.from("leads").update({ status: "qualified", updated_at: at }).eq("id", lead.id).eq("status", "new")
       }
-      autoSent.push({ leadId: lead.id, phone, template: "B", dated: plan.dated, minutesWaiting: ageMin, sms: sms.ok ? "sent" : sms.error, reached: sms.ok })
+      autoSent.push({ leadId: lead.id, phone, template, ...inTest, dated: plan.dated, minutesWaiting: ageMin, sms: sms.ok ? "sent" : sms.error, reached: sms.ok })
       continue
     }
 

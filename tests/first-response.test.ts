@@ -3,6 +3,8 @@ import { test } from "node:test"
 
 import {
   contactFormMisfit,
+  DATE_ASK,
+  dateAskArm,
   instantToWallIso,
   partyContactFirstText,
   partyContactSecondText,
@@ -93,6 +95,37 @@ test("template B on the page's default leave-quote: no count (10-10 the real 13 
   assert.ok(plan.send)
   assert.equal(plan.text, "Hi, it's Rowling from Real Hibachi. Saw your quote. What's the celebration?")
   assert.doesNotMatch(plan.text, /15/)
+})
+
+test("D-1121-04 date arm: an undated quote asks for the day, same opening as the occasion arm, one segment", () => {
+  const plan = quoteFollowUpPlan({ adults: 12, kids: 0, eventDate: null, city: "Palm Springs", todayPt: today, askDate: true })
+  assert.ok(plan.send)
+  assert.equal(plan.text, `Hi, it's Rowling from Real Hibachi. Saw your quote for 12 in Palm Springs. ${DATE_ASK}`)
+  assert.equal(DATE_ASK, "Do you have a date in mind, or are you still choosing between a couple of weekends?")
+  assert.ok(plan.text.length <= 160, `${plan.text.length} chars`)
+  assert.equal(plan.dated, false)
+  const occasion = quoteFollowUpPlan({ adults: 12, kids: 0, eventDate: null, city: "Palm Springs", todayPt: today })
+  assert.ok(occasion.send)
+  assert.equal(occasion.text.replace("What's the celebration?", DATE_ASK), plan.text)
+  const unknown = quoteFollowUpPlan({ adults: 15, kids: 0, city: "Palm Springs", todayPt: today, numberUnknown: true, askDate: true })
+  assert.ok(unknown.send)
+  assert.equal(unknown.text, `Hi, it's Rowling from Real Hibachi. Saw your quote. ${DATE_ASK}`)
+})
+
+test("D-1121-04 date arm never touches a dated quote: the date is open + the occasion", () => {
+  const plan = quoteFollowUpPlan({ adults: 12, kids: 3, eventDate: "2026-10-18", city: "Palm Springs", todayPt: today, askDate: true })
+  assert.ok(plan.send)
+  assert.match(plan.text, /What's the celebration\?$/)
+  assert.doesNotMatch(plan.text, /date in mind/)
+})
+
+test("dateAskArm: the second-to-last digit decides, whatever the last one (D-1030-09 splits on the last)", () => {
+  assert.equal(dateAskArm("+17576330217"), "date") // ...1 7
+  assert.equal(dateAskArm("+16269566507"), "occasion") // ...0 7
+  assert.equal(dateAskArm("(626) 956-6516"), "date") // ...1 6
+  assert.equal(dateAskArm("6269566506"), "occasion") // ...0 6
+  assert.equal(dateAskArm("555-1234"), null)
+  assert.equal(dateAskArm(null), null)
 })
 
 test("template B: ZIPs, region labels and missing cities fall back to the plain line", () => {

@@ -99,6 +99,8 @@ export type QuoteFollowUpInput = {
    *  the page's, not the customer's, so the text must not repeat it (10-10 310-480-5898 got "your
    *  quote for 15" the same minute their real 13 + 4 for Dec 26 arrived). */
   numberUnknown?: boolean
+  /** D-1121-04 test arm (dateAskArm): an undated quote asks for the day instead of the occasion. */
+  askDate?: boolean
 }
 
 export type QuoteFollowUpPlan = { send: true; text: string; dated: boolean } | { send: false; reason: string }
@@ -107,6 +109,24 @@ export type QuoteFollowUpPlan = { send: true; text: string; dated: boolean } | {
 export const LARGE_PARTY_ADULTS = 61
 /** Inside this many days "that date's open on our end" needs a person to check the calendar first. */
 export const QUOTE_FOLLOW_UP_MIN_DAYS = 2
+
+// D-1121-04 (owner 2026-11-21, 「同意试」): paid leads that left no date answer 35% and book 7%, against 54% and
+// 19% for those with one, so a split test asks half of the undated ones for the day instead of the occasion.
+// Same opening line, only the question differs. Only Google and Meta ads leads are in it; a dated quote is not.
+// The split is the phone's second-to-last digit: the last digit already splits D-1030-09 (to 11/27) and the
+// two tests must not overlap. Odd -> the date ("B_date"), even -> the occasion (plain "B").
+// History (D-1008-02): the machine's "which date are you looking at?" got 20% inside 24 h on 10-01..07 against
+// 52% the week before - a before/after, not a split. This one settles it.
+export const DATE_ASK_TEST = "D-1121-04"
+export const DATE_ASK = "Do you have a date in mind, or are you still choosing between a couple of weekends?"
+export const DATE_ASK_CHANNELS: readonly string[] = ["google_ads", "meta_ads"]
+
+/** The D-1121-04 arm for an undated paid lead: "date" on an odd second-to-last digit, else "occasion". */
+export function dateAskArm(phone: string | null | undefined): "date" | "occasion" | null {
+  const d = String(phone ?? "").replace(/\D/g, "")
+  if (d.length < 10) return null
+  return Number(d[d.length - 2]) % 2 === 1 ? "date" : "occasion"
+}
 
 const daysBetween = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400_000)
 
@@ -126,7 +146,7 @@ export function quoteFollowUpPlan(i: QuoteFollowUpInput): QuoteFollowUpPlan {
   // Owner 2026-10-29 (leads voice.md): no em dash, no 👋, no "your 15" for a
   // headcount, the date the way a person says it. Full stops, one question.
   const head = "Hi, it's Rowling from Real Hibachi."
-  const ask = "What's the celebration?"
+  const ask = !date && i.askDate ? DATE_ASK : "What's the celebration?"
   if (i.numberUnknown) return { send: true, text: `${head} Saw your quote. ${ask}`, dated: false }
   const text = date
     ? `${head} ${spokenDate(date, i.todayPt)} is open for the ${guests} of you${place ? ` in ${place}` : ""}. ${ask}`
