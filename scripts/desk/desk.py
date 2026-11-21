@@ -2906,17 +2906,18 @@ def day_summary(data: dict, *, start: str, due: float, gratuity_rate=None, chefs
     meal = "lunch" if 5 <= hh < 15 else "dinner"
     lines = [
         DAY_SUMMARY_HEAD,
-        f"• {'Your chefs arrive' if chefs > 1 else 'Your chef arrives'} {arrival or 'about 30 minutes early to set up'}, "
+        # Plain "-" bullets: a "•" turns the whole text into UCS-2, about twice the SMS segments (2026-11-20).
+        f"- {'Your chefs arrive' if chefs > 1 else 'Your chef arrives'} {arrival or 'about 30 minutes early to set up'}, "
         f"and {meal} starts at {_say_clock(hh, mm)}.",
-        "• We bring: " + ", ".join(brought) + ".",
-        "• Please have ready: " + ("a flat outdoor spot for each grill" if grills > 1 else "a flat outdoor spot for the grill")
+        "- We bring: " + ", ".join(brought) + ".",
+        "- Please have ready: " + ("a flat outdoor spot for each grill" if grills > 1 else "a flat outdoor spot for the grill")
         + ", about the size of a king-size bed" + "".join(", " + h for h in host) + ", and your own cups and drinks.",
     ]
     if due >= 0.005:
         if gratuity_rate:
-            lines.append(f"• Total {money(due)} cash, including the {float(gratuity_rate) * 100:g}% gratuity you picked. Card, Venmo or Zelle add fees.")
+            lines.append(f"- Total {money(due)} cash, including the {float(gratuity_rate) * 100:g}% gratuity you picked. Card, Venmo or Zelle add fees.")
         else:
-            lines.append(f"• Total {money(due)} cash. Card, Venmo or Zelle add fees, and gratuity isn't included.")
+            lines.append(f"- Total {money(due)} cash. Card, Venmo or Zelle add fees, and gratuity isn't included.")
     return {"text": "\n".join(lines), "warn": warn, "hold": hold}
 
 

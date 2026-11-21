@@ -1703,7 +1703,7 @@ def prep_guests_checks() -> None:
 # does not (00:00-07:00, another day, sent already, Airbnb, a question of theirs waiting, a brake) and the email for a
 # number that cannot take a text.
 SUM_PHONE, SUM_LEAD, SUM_ID = "+15555550142", "00000000-0000-4000-8000-0000000000b1", "00000000-0000-4000-8000-0000000000a1"
-SUM_TOTAL_LINE = "• Total {} cash. Card, Venmo or Zelle add fees, and gratuity isn't included."
+SUM_TOTAL_LINE = "- Total {} cash. Card, Venmo or Zelle add fees, and gratuity isn't included."
 SUM_NOW = datetime.datetime(2030, 6, 15, 16, 0, tzinfo=datetime.timezone.utc)  # 09:00 Pacific on the party day
 
 
@@ -1829,9 +1829,9 @@ def _day_summary_checks() -> None:
     host["contactInfo"]["specialNotes"] = "Birthday. Host has own tables, chairs and place settings."
     s = summary("host", host, start="16:00", due=615.90)
     check("summary · host has everything: our part, theirs (tables and chairs, plates and utensils, cups and drinks), the cash total",
-          s["text"] == sum_text("• Your chef arrives about 30 minutes early to set up, and dinner starts at 4.",
-                                "• We bring: the grill and propane, 10 chicken and 10 steak portions, fried rice, veggies, salad and sauces.",
-                                "• Please have ready: a flat outdoor spot for the grill, about the size of a king-size bed, your own tables and chairs, "
+          s["text"] == sum_text("- Your chef arrives about 30 minutes early to set up, and dinner starts at 4.",
+                                "- We bring: the grill and propane, 10 chicken and 10 steak portions, fried rice, veggies, salad and sauces.",
+                                "- Please have ready: a flat outdoor spot for the grill, about the size of a king-size bed, your own tables and chairs, "
                                 "plates and utensils, and your own cups and drinks.",
                                 SUM_TOTAL_LINE.format("$615.90")) and s["warn"] == [] and s["hold"] == [], detail=s["text"])
 
@@ -1842,10 +1842,10 @@ def _day_summary_checks() -> None:
     jon["contactInfo"]["specialNotes"] = "Chef arrives around 4 PM to set up the tables and chairs before the 5 PM start."
     s = summary("full setup", jon, due=1178.60)
     check("summary · full rental + the free gyoza + the arrival the notes promise, word for word as the owner's template",
-          s["text"] == sum_text("• Your chef arrives around 4, and dinner starts at 5.",
-                                "• We bring: the grill and propane, 13 chicken, 13 steak, 13 shrimp and 2 tofu portions, fried rice, veggies, salad and sauces, "
+          s["text"] == sum_text("- Your chef arrives around 4, and dinner starts at 5.",
+                                "- We bring: the grill and propane, 13 chicken, 13 steak, 13 shrimp and 2 tofu portions, fried rice, veggies, salad and sauces, "
                                 "gyoza on us, tables and chairs with linens for 14, plates and utensils for 14.",
-                                "• Please have ready: a flat outdoor spot for the grill, about the size of a king-size bed, and your own cups and drinks.",
+                                "- Please have ready: a flat outdoor spot for the grill, about the size of a king-size bed, and your own cups and drinks.",
                                 SUM_TOTAL_LINE.format("$1,178.60")), detail=s["text"])
     bought = copy.deepcopy(jon)
     bought["partyExtras"] = [{"id": "gyoza", "qty": 2.4}, {"id": "edamame", "qty": 1}, {"id": "spring_rolls", "qty": 2}]
@@ -1859,7 +1859,7 @@ def _day_summary_checks() -> None:
                   promos=[{"id": "under5_auto", "label": "Little kids (3-4) @ $0 ×2", "amount": 59.8}])
     s = summary("littles", tai, due=599.0)
     check("summary · two free 3-4 year olds: rice and veggies for the little ones, their butter noodles, the upgrade by name",
-          "• We bring: the grill and propane, 7 chicken, 7 steak and 7 lobster tail portions, fried rice, veggies, salad and sauces, "
+          "- We bring: the grill and propane, 7 chicken, 7 steak and 7 lobster tail portions, fried rice, veggies, salad and sauces, "
           "rice and veggies for the little ones, 2 butter noodles.\n" in s["text"], detail=s["text"])
     picked = copy.deepcopy(tai)
     picked["guests"] = picked["guests"][:8]
@@ -1882,13 +1882,13 @@ def _day_summary_checks() -> None:
     told["contactInfo"]["specialNotes"] = "Guests arrive at 5:30. Your chef will arrive around 6 PM to set up."
     s = summary("arrival", told, start="19:00")
     check("summary · an arrival the notes promise (\"arrive around 6 PM\"), not the guests' 5:30",
-          s["text"].splitlines()[1] == "• Your chef arrives around 6, and dinner starts at 7.", detail=s["text"])
+          s["text"].splitlines()[1] == "- Your chef arrives around 6, and dinner starts at 7.", detail=s["text"])
     told["contactInfo"]["specialNotes"] = "Chef will arrive around 4 to set up."
     s = summary("arrival no pm", told)
-    check("  an hour with no AM/PM is the one before the start", s["text"].splitlines()[1] == "• Your chef arrives around 4, and dinner starts at 5.", detail=s["text"])
+    check("  an hour with no AM/PM is the one before the start", s["text"].splitlines()[1] == "- Your chef arrives around 4, and dinner starts at 5.", detail=s["text"])
     told["contactInfo"]["specialNotes"] = "Chef arrives at 10:30 to set up."
     s = summary("lunch", told, start="11:30")
-    check("  a morning party: AM said, lunch not dinner", s["text"].splitlines()[1] == "• Your chef arrives at 10:30 AM, and lunch starts at 11:30 AM.", detail=s["text"])
+    check("  a morning party: AM said, lunch not dinner", s["text"].splitlines()[1] == "- Your chef arrives at 10:30 AM, and lunch starts at 11:30 AM.", detail=s["text"])
     told["contactInfo"]["specialNotes"] = "Chef arrives 30 minutes early."
     s = summary("no clock", told)
     check("  \"30 minutes early\" is no clock time: the usual line", "arrives about 30 minutes early to set up, and dinner starts at 5." in s["text"], detail=s["text"])
@@ -1897,11 +1897,11 @@ def _day_summary_checks() -> None:
     check("  someone else's arrival is not the chef's (the birthday girl at 6:30)", "arrives about 30 minutes early to set up, and dinner starts at 7." in s["text"], detail=s["text"])
     told["contactInfo"]["specialNotes"] = "Please arrive around 4 PM."
     s = summary("bare arrive", told)
-    check("  a bare \"Please arrive around 4 PM\" is ours", s["text"].splitlines()[1] == "• Your chef arrives around 4, and dinner starts at 5.", detail=s["text"])
+    check("  a bare \"Please arrive around 4 PM\" is ours", s["text"].splitlines()[1] == "- Your chef arrives around 4, and dinner starts at 5.", detail=s["text"])
     chairs = invoice(adults=30, proteins=prot(chicken=(30, 0), steak=(30, 0)), extras=[{"id": "folding_chairs", "qty": 30}])
     s = summary("chairs only", chairs, start="12:00")
     check("summary · chairs on their own: an hour early (\"around 11 AM\", lunch at noon), 30 chairs, their own tables",
-          s["text"].splitlines()[1] == "• Your chef arrives around 11 AM, and lunch starts at noon." and ", 30 chairs." in s["text"]
+          s["text"].splitlines()[1] == "- Your chef arrives around 11 AM, and lunch starts at noon." and ", 30 chairs." in s["text"]
           and "bed, your own tables, plates and utensils, and your own cups" in s["text"], detail=s["text"])
     cloths = invoice(adults=12, proteins=prot(chicken=(12, 0), shrimp=(12, 0)), extras=[{"id": "white_linen", "qty": 4}])
     s = summary("cloths", cloths)
@@ -1915,7 +1915,7 @@ def _day_summary_checks() -> None:
     blanca["customDeal"] = {"note": "Tables on us if locked 10/2", "freeExtraIds": ["tables_chairs"]}
     s = summary("deal free", blanca, start="19:30")
     check("summary · tables on us by the deal, a side counted in, an adult's noodles, an hour early at 6:30",
-          "• Your chef arrives around 6:30, and dinner starts at 7:30." in s["text"]
+          "- Your chef arrives around 6:30, and dinner starts at 7:30." in s["text"]
           and "9 chicken and 10 steak portions" in s["text"] and "an order of hibachi noodles, tables and chairs with linens for 9 on us." in s["text"]
           and "bed, plates and utensils, and your own cups" in s["text"], detail=s["text"])
     rate = copy.deepcopy(blanca)
@@ -1930,7 +1930,7 @@ def _day_summary_checks() -> None:
           and "Total" not in s["text"], detail=s["text"])
     s = summary("gratuity", host, due=739.08, gratuity_rate=0.2)
     check("  a gratuity picked on the bill: the total says it is in it",
-          s["text"].splitlines()[-1] == "• Total $739.08 cash, including the 20% gratuity you picked. Card, Venmo or Zelle add fees.", detail=s["text"])
+          s["text"].splitlines()[-1] == "- Total $739.08 cash, including the 20% gratuity you picked. Card, Venmo or Zelle add fees.", detail=s["text"])
 
     # More food promised (--prep-guests), a crew of two, the menu.
     more = {**copy.deepcopy(host), "prepGuests": 15}
@@ -1940,7 +1940,7 @@ def _day_summary_checks() -> None:
     big = invoice(adults=40, proteins=prot(chicken=(40, 0), steak=(40, 0)))
     s = summary("two grills", big, chefs=2, grills=2)
     check("  two chefs and grills: chefs arrive, the grills, a spot for each - and no count, so the send's promise capture reads none",
-          s["text"].startswith(sum_text("• Your chefs arrive about 30 minutes early to set up")) and "the grills and propane" in s["text"]
+          s["text"].startswith(sum_text("- Your chefs arrive about 30 minutes early to set up")) and "the grills and propane" in s["text"]
           and "a flat outdoor spot for each grill" in s["text"] and not re.search(r"\b(?:\d|one|two|three)[\s-]*(?:chefs?|grills?)\b", s["text"], re.I), detail=s["text"])
     empty = invoice(mode="detailed", adults=8, kids=2)
     s = summary("no menu", empty)
