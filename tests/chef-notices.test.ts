@@ -34,6 +34,7 @@ import {
   noticeState,
   noticeSummary,
   onStaffText,
+  openedSinceNotice,
   ringUnackedNotices,
   sheetReachedSince,
   sheetlessAlarmText,
@@ -464,6 +465,21 @@ test("board · the failed send and the texts waiting for a 1 are read apart; a c
   const off = [{ id: "as1", order_id: ORDER_ID, staff_member_id: GARY, assignment_status: "cancelled" }, { id: "as2", order_id: ORDER_ID, staff_member_id: BLU, assignment_status: "confirmed" }]
   const after = await loadNoticeBoard(world(rows, { assignments: off }) as never)
   assert.deepEqual([after.waiting.map((g) => g.staffId), after.failed], [[BLU], []])
+})
+
+test("board · a change he opened after it was texted is seen: off the list, a \"1\" or not (owner 11-21)", async () => {
+  const t = START - 20 * H
+  const rows = [notice("n1", t - H), notice("n2", t, { staff_member_id: BLU })]
+  const g = { orderId: ORDER_ID, staffId: GARY, newestSentAt: at(t - H) }
+  // Opened before the text, or a revoked link opened after it: not seen.
+  assert.equal(openedSinceNotice(g, [link("L1", { sent_at: at(t - 30 * H), first_opened_at: at(t - 29 * H), last_opened_at: at(t - 2 * H) })]), false)
+  assert.equal(openedSinceNotice(g, [link("L1", { last_opened_at: at(t), revoked_at: at(t) })]), false)
+  // Opened at or after the newest change text: seen.
+  const opened = link("L1", { sent_at: at(t - 30 * H), first_opened_at: at(t - 29 * H), last_opened_at: at(t - H + 60_000) })
+  assert.equal(openedSinceNotice(g, [opened]), true)
+  assert.equal(openedSinceNotice({ ...g, newestSentAt: "not a time" }, [opened]), false)
+  const board = await loadNoticeBoard(world(rows, { links: [opened] }) as never)
+  assert.deepEqual(board.waiting.map((g2) => g2.staffId), [BLU], "Gary opened his sheet after the text; Blu did not")
 })
 
 test("board · a failed change text says whether his link still opens: in place since 11-13 yes, replaced before that no, unknown when unreadable", async () => {

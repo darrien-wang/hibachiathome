@@ -877,6 +877,11 @@ def sheet_lines(party: dict, today: str | None = None) -> list[tuple[str, str]]:
             continue
         link = reached[0]
         bits, mark = [], "✓"
+        texted = [x for x in (_pt(a) for a in (party.get("chef_in") or {}).get(sid) or []) if x]
+
+        def replied_since(iso, texted=texted):
+            since = _pt(iso)
+            return any(since is None or x >= since for x in texted)
         if link.get("stale"):
             mark = warn
             bits.append("订单改过，还没通知到他（链接不变，改动在最上面）" + (f"（{_mdhm(link['change_pending_since'])} 起在等）" if link.get("change_pending_since") else ""))
@@ -885,17 +890,39 @@ def sheet_lines(party: dict, today: str | None = None) -> list[tuple[str, str]]:
             if link.get("change_pending_since"):
                 mark = warn
                 bits.append("刚有改动，10 分钟后系统核对，要通知的会发短信（链接不变）")
-        bits.append("已打开" if opened_since_sent(link) else "还没打开")
+        # Owner 2026-11-21: 「回不回1 没关系，一定要有回复」「没回也至少要打开看过」 - a sheet that went to him needs a
+        # reply of any kind or at least an open; neither is a call for the owner to make (the 20:00 check the
+        # night before, and 07:00 on the day).
+        # A change text moves sent_at on in place (one link per party since 11-13): an open from before it still
+        # means he read the sheet - whether he has seen the change is the notice's line below.
+        told_at = _pt(last.get("sent_at")) if last else None
+        sent_at = _pt(link.get("sent_at"))
+        moved_by_change = bool(told_at and sent_at and abs((sent_at - told_at).total_seconds()) <= 120)
+        if opened_since_sent(link):
+            bits.append("已打开")
+        elif moved_by_change and (link.get("last_opened_at") or link.get("first_opened_at")):
+            bits.append("改单前打开过")
+        elif replied_since(link.get("sent_at")):
+            bits.append("没打开，但发来后回过短信")
+        else:
+            mark = bad
+            bits.append("没回复也没打开（报老板打电话）")
         if last:
             when = _mdhm(last.get("sent_at"))
+            seen = _pt(link.get("last_opened_at") or link.get("first_opened_at"))
+            told = _pt(last.get("sent_at"))
             if not str(last.get("sms_sid") or "").strip():
                 mark = bad
                 bits.append(f"改单短信 {when} 没发出去")
             elif last.get("acked_at"):
                 bits.append(f"改单通知 {when} 已回 1")
+            elif seen and told and seen >= told:
+                bits.append(f"改单通知 {when} 没回 1，之后打开看过")
+            elif replied_since(last.get("sent_at")):
+                bits.append(f"改单通知 {when} 没回 1，之后回过短信")
             else:
                 mark = mark if mark.strip() in ("!!", "·") else "! "
-                bits.append(f"改单通知 {when} 还没回 1")
+                bits.append(f"改单通知 {when} 之后没回复也没再打开（报老板打电话）")
         out.append((mark, f"{chef['name']}{helper}：" + "，".join(bits)))
     if not party.get("team"):
         out.append(("· " if early else "!!", "还没派师傅"))
@@ -1174,6 +1201,9 @@ def load_parties(order_ids: list[str], db_get, site_get, date: str | None, prep_
                             for e in events if e.get("order_id") == oid and e.get("action") == "chef_sheet_sent" and str((e.get("metadata") or {}).get("note") or "").strip()],
             "customer_sms": [],
             "chef_sms": [],
+            # When each chef on the party texted us (any text): the owner 11-21 - a reply of any kind, or at
+            # least opening the sheet, is what a sent sheet or change text needs (sheet_lines).
+            "chef_in": {},
         }
         if texts:
             if o.get("customer_phone"):
@@ -1185,6 +1215,7 @@ def load_parties(order_ids: list[str], db_get, site_get, date: str | None, prep_
             for t in team:
                 if not t.get("phone"):
                     continue
+                party["chef_in"][t["id"]] = [m.get("at") for m in thread(t["phone"]) if isinstance(m, dict) and m.get("direction") == "inbound"]
                 for m in thread(t["phone"]):
                     if not isinstance(m, dict) or m.get("direction") != "outbound":
                         continue

@@ -207,6 +207,22 @@ export function sheetReachedSince(group: Pick<FailedGroup, "orderId" | "staffId"
   })
 }
 
+/**
+ * He has seen the change: his live link of this party was opened at or after the newest change text in the
+ * group. The owner 2026-11-21: 「回不回1 没关系，一定要有回复」「没回也至少要打开看过」 - a "1" is not required;
+ * any reply, or at least opening the sheet, will do. A reply other than "1" is his own [chef] card (answered,
+ * desk chef-confirm marks the notice); an open is read here.
+ */
+export function openedSinceNotice(group: Pick<NoticeGroup, "orderId" | "staffId" | "newestSentAt">, links: SentLink[]): boolean {
+  const told = Date.parse(group.newestSentAt)
+  if (!Number.isFinite(told)) return false
+  return links.some((l) => {
+    if (l.order_id !== group.orderId || l.staff_member_id !== group.staffId || l.revoked_at) return false
+    const opened = l.last_opened_at || l.first_opened_at
+    return validTime(opened) && Date.parse(opened) >= told
+  })
+}
+
 /** He holds a live link of this party that reached him (lib/chef-notify.ts sheetReachedChef): it opens, whatever changed since. */
 function holdsLiveSheet(g: Pick<FailedGroup, "orderId" | "staffId">, links: SentLink[]): boolean {
   return links.some((l) => l.order_id === g.orderId && l.staff_member_id === g.staffId && !l.revoked_at && sheetReachedChef(l))
@@ -370,16 +386,19 @@ export async function loadNoticeBoard(supabase: SupabaseClient, now = Date.now()
   } catch {
     // keep them all
   }
-  if (failed.length) {
+  if (failed.length || waiting.length) {
     try {
+      const both = [...failed, ...waiting]
       const { data, error } = await supabase
         .from("chef_sheet_links")
         .select("order_id, staff_member_id, sent_via, sent_at, first_opened_at, last_opened_at, revoked_at")
-        .in("order_id", [...new Set(failed.map((g) => g.orderId))])
-        .in("staff_member_id", [...new Set(failed.map((g) => g.staffId))])
+        .in("order_id", [...new Set(both.map((g) => g.orderId))])
+        .in("staff_member_id", [...new Set(both.map((g) => g.staffId))])
       if (!error) {
         const links = (data ?? []) as SentLink[]
         failed = failed.filter((g) => !sheetReachedSince(g, links)).map((g) => ({ ...g, holdsSheet: holdsLiveSheet(g, links) }))
+        // Opened his sheet after the newest change text: he has seen it, a "1" or not (openedSinceNotice).
+        waiting = waiting.filter((g) => !openedSinceNotice(g, links))
       }
     } catch {
       // keep them all

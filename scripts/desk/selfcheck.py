@@ -1113,19 +1113,38 @@ def party_check_checks() -> None:
     # One link per chef per party since 2026-11-13: a change no longer voids it. stale = he has not been told yet.
     check("  a change he has not been told about (stale): the link still opens with it on top - a ! to watch, not a missing sheet; a helper's is ·",
           lines({**base, "links": [link(stale=True, change_pending_since="2030-11-12T16:00:00Z")]}, "2030-11-12")[0]
-          == ("! ", "Blu：订单改过，还没通知到他（链接不变，改动在最上面）（11-12 08:00 起在等），还没打开")
+          == ("!!", "Blu：订单改过，还没通知到他（链接不变，改动在最上面）（11-12 08:00 起在等），没回复也没打开（报老板打电话）")
           and lines({**base, "team": team[1:], "links": [link(staff_member_id="s2", stale=True)]}, "2030-11-12")
-          == [("· ", "易非 (帮手)：订单改过，还没通知到他（链接不变，改动在最上面），还没打开")])
+          == [("· ", "易非 (帮手)：订单改过，还没通知到他（链接不变，改动在最上面），没回复也没打开（报老板打电话）")])
     check("  a save the system has not looked at yet: !, and the text it may send keeps the same link",
           lines({**opened, "links": [link(first_opened_at="2030-11-11T20:00:00Z", change_pending_since="2030-11-12T16:00:00Z")]}, "2030-11-12")[0]
           == ("! ", "Blu：最新版，刚有改动，10 分钟后系统核对，要通知的会发短信（链接不变），已打开"))
     resent = link(sent_at="2030-11-12T15:00:00Z", first_opened_at="2030-11-11T20:00:00Z", last_opened_at="2030-11-11T21:00:00Z")
     check("  已打开 = opened since it last went to him: an open from before a re-send in place does not count, a newer open does",
-          lines({**base, "links": [resent]}, "2030-11-12")[0] == ("✓", "Blu：最新版，还没打开")
+          lines({**base, "links": [resent]}, "2030-11-12")[0] == ("!!", "Blu：最新版，没回复也没打开（报老板打电话）")
           and lines({**base, "links": [{**resent, "last_opened_at": "2030-11-12T15:30:00Z"}]}, "2030-11-12")[0] == ("✓", "Blu：最新版，已打开")
           and lines({**base, "links": [link(sent_at="2030-11-12T15:00:00Z", first_opened_at="2030-11-12T15:10:00Z")]}, "2030-11-12")[0] == ("✓", "Blu：最新版，已打开")
           and party_check.opened_since_sent(link(first_opened_at="2030-11-11T20:00:00Z")) is True
           and party_check.opened_since_sent(link(sent_at="2030-11-12T15:00:00Z")) is False)
+    # Owner 2026-11-21: 「回不回1 没关系，一定要有回复」「没回也至少要打开看过」 - a reply of any kind or an open.
+    texted = lambda *ats: {"s1": list(ats)}
+    sent = link(sent_at="2030-11-12T15:00:00Z")
+    notice_no_1 = [{"staff_member_id": "s1", "sent_at": "2030-11-12T16:00:00Z", "acked_at": None, "sms_sid": "SM1"}]
+    check("  reply or open (owner 11-21): a text from him after the sheet went is enough; a text from before it is not",
+          lines({**base, "links": [sent], "chef_in": texted("2030-11-12T15:20:00Z")}, "2030-11-12")[0] == ("✓", "Blu：最新版，没打开，但发来后回过短信")
+          and lines({**base, "links": [sent], "chef_in": texted("2030-11-12T14:00:00Z")}, "2030-11-12")[0] == ("!!", "Blu：最新版，没回复也没打开（报老板打电话）"))
+    check("  a change text with no 1: opened after it, or a text after it, is seen; neither is a call for the owner",
+          lines({**base, "links": [link(sent_at="2030-11-12T15:00:00Z", last_opened_at="2030-11-12T16:30:00Z")], "notices": notice_no_1}, "2030-11-12")[0]
+          == ("✓", "Blu：最新版，已打开，改单通知 11-12 08:00 没回 1，之后打开看过")
+          and lines({**base, "links": [link(sent_at="2030-11-12T15:00:00Z", last_opened_at="2030-11-12T15:30:00Z")], "notices": notice_no_1,
+                     "chef_in": texted("2030-11-12T16:10:00Z")}, "2030-11-12")[0]
+          == ("✓", "Blu：最新版，已打开，改单通知 11-12 08:00 没回 1，之后回过短信")
+          and lines({**base, "links": [link(sent_at="2030-11-12T15:00:00Z", last_opened_at="2030-11-12T15:30:00Z")], "notices": notice_no_1}, "2030-11-12")[0]
+          == ("! ", "Blu：最新版，已打开，改单通知 11-12 08:00 之后没回复也没再打开（报老板打电话）"))
+    check("  the change text moved sent_at on in place: an open from before it is the sheet read - the change is the notice's line",
+          lines({**base, "links": [link(sent_at="2030-11-12T16:00:00Z", first_opened_at="2030-11-11T20:00:00Z", last_opened_at="2030-11-11T21:00:00Z")],
+                 "notices": notice_no_1}, "2030-11-12")[0]
+          == ("! ", "Blu：最新版，改单前打开过，改单通知 11-12 08:00 之后没回复也没再打开（报老板打电话）"))
 
     # desk order check: the day's parties, read-only; desk order show: the blocking ones in its 缺项 block.
     p = andrea(False)
