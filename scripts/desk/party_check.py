@@ -815,7 +815,6 @@ def crew_gaps(party: dict) -> list[dict]:
 # list's noodles are dry oz (cooked / 3, NOODLE_COOKED_PER_DRY) and its "tables" carry one cloth each.
 NOODLE_COOKED_PER_DRY = 3
 PREP_SHEET_FOOD = (("noodles", "面条"), ("gyoza", "饺子"), ("spring_rolls", "春卷"))
-PREP_SHEET_SETUP = (("tables", "桌子"), ("chairs", "椅子"), ("utensils", "餐具"))
 PROTEIN_ZH = {"chicken": "鸡", "steak": "牛", "shrimp": "虾", "salmon": "三文鱼", "tofu": "豆腐", "ribeye": "肋眼", "filet_mignon": "菲力",
               "scallops": "扇贝", "lobster_tail": "龙虾尾"}
 
@@ -863,14 +862,22 @@ def prep_vs_sheet(party: dict) -> list[str]:
                 out.append(f"{zh} 备货清单 {fmt(a)} oz 干面（≈{fmt(round(a * NOODLE_COOKED_PER_DRY, 1))} oz 熟面）/ 备料单 {fmt(b)} oz 熟面")
         elif abs(a - b) > 0.5:
             out.append(f"{zh} 备货清单 {fmt(a)} 个 / 备料单 {fmt(b)} 个")
-    for sid, zh in PREP_SHEET_SETUP:
-        if sid not in items and sid not in setup:
+    # The prep list splits what the sheet sums (lib/prep-bom.ts, 2026-11-21 Ashley's 4 bare tables read as 0):
+    # tables = package tables, each with its cloth; tables_bare = tables rented alone, no cloth; tablecloths =
+    # cloths rented alone (the black $5 ones); white_tablecloths the white. The sheet counts all tables as
+    # "tables" and every black cloth as "tablecloths".
+    q = lambda *ids: sum(num((items.get(i) or {}).get("qty")) for i in ids)
+    sq = lambda i: num((setup.get(i) or {}).get("qty"))
+    pairs = (("桌子", q("tables", "tables_bare"), sq("tables"), ("tables", "tables_bare"), ("tables",)),
+             ("椅子", q("chairs"), sq("chairs"), ("chairs",), ("chairs",)),
+             ("餐具", q("utensils"), sq("utensils"), ("utensils",), ("utensils",)),
+             ("桌布", q("tables", "tablecloths"), sq("tablecloths"), ("tables", "tablecloths"), ("tablecloths",)),
+             ("白桌布", q("white_tablecloths"), sq("white_tablecloths"), ("white_tablecloths",), ("white_tablecloths",)))
+    for zh, a, b, pids, sids in pairs:
+        if not any(i in items for i in pids) and not any(i in setup for i in sids):
             continue
-        a, b = num((items.get(sid) or {}).get("qty")), num((setup.get(sid) or {}).get("qty"))
         if abs(a - b) > 0.01:
             out.append(f"{zh} 备货清单 {fmt(a)} / 备料单 {fmt(b)}")
-    if "tablecloths" in setup and abs(num(setup["tablecloths"].get("qty")) - num((items.get("tables") or {}).get("qty"))) > 0.01:
-        out.append(f"桌布 备货清单 {fmt(num((items.get('tables') or {}).get('qty')))}（一张桌子一条）/ 备料单 {fmt(num(setup['tablecloths'].get('qty')))}")
     pc = {c.get("id"): c for c in parts.get("custom") or [] if isinstance(c, dict)}
     sc = {c.get("id"): c for c in snap.get("custom") or [] if isinstance(c, dict)}
     for cid in sorted(set(pc) | set(sc), key=str):

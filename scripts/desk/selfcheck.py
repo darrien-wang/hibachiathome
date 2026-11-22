@@ -1165,7 +1165,12 @@ def party_check_checks() -> None:
                    "setup": [{"id": "tables", "qty": 3}, {"id": "tablecloths", "qty": 2}, {"id": "chairs", "qty": 10}],
                    "custom": [{"id": "custom_abc", "zh": "白米饭", "qty": 1}]})
           == ["鸡 备货清单 11 份 / 备料单 10 份", "龙虾尾 备货清单 0 份 / 备料单 2 份", "面条 备货清单 2 oz 干面（≈6 oz 熟面）/ 备料单 4 oz 熟面",
-              "椅子 备货清单 9 / 备料单 10", "桌布 备货清单 3（一张桌子一条）/ 备料单 2", "白米饭 备货清单 2 / 备料单 1"])
+              "椅子 备货清单 9 / 备料单 10", "桌布 备货清单 3 / 备料单 2", "白米饭 备货清单 2 / 备料单 1"])
+    check("  tables rented alone and cloths rented alone (Ashley 11-22: 4 + 4) count with the package ones -> nothing",
+          pv(prep={"menuKnown": True, "parts": {"proteins": [], "items": [{"id": "tables_bare", "qty": 4}, {"id": "tablecloths", "qty": 4}], "custom": []}},
+             snap={**pv_snap, "proteins": [], "food": [], "setup": [{"id": "tables", "qty": 4}, {"id": "tablecloths", "qty": 4}], "custom": []}) == []
+          and pv(prep={"menuKnown": True, "parts": {"proteins": [], "items": [{"id": "tables", "qty": 3}, {"id": "tables_bare", "qty": 2}, {"id": "tablecloths", "qty": 1}], "custom": []}},
+                 snap={**pv_snap, "proteins": [], "food": [], "setup": [{"id": "tables", "qty": 5}, {"id": "tablecloths", "qty": 4}], "custom": []}) == [])
     check("  nothing fair to compare: his sheet stale or a change pending, no itemized prep list, no snapshot -> no line",
           pv(lk={**pv_link, "stale": True}) == [] and pv(lk={**pv_link, "change_pending_since": "2030-11-12T16:00:00Z"}) == []
           and pv(prep={"menuKnown": True}) == [] and party_check.prep_vs_sheet({**base, "prep": pv_prep, "links": [pv_link], "sheet_snaps": {}}) == [])
