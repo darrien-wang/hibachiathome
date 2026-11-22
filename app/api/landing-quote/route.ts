@@ -408,11 +408,15 @@ export async function POST(request: NextRequest) {
   // to the long one if the shortener is unavailable - the quote must still go.
   const depositUrl = (await createShortLink(longDepositUrl, { leadId, createdBy: "landing-quote" }))?.shortUrl ?? longDepositUrl
 
+  // Travel goes by the party's address, counted from our West Covina location (owner 2026-11-21: 「以后口径都确认一下
+  // 以实际的地址为准，然后和他们说我们的location 在 west covina」). A city page prices the page's city until we have an
+  // address, so no line may read as final: Christy's "No travel fee for your area" from the Riverside page was for a
+  // party in Rancho Mirage ($54.10 of travel), and the order follows the address.
   const travelLine = travelFee
-    ? `Includes ~$${travelFee} travel (first ${TRAVEL_FREE_RADIUS_MILES} mi free).`
+    ? `Includes ~$${travelFee} travel from our West Covina location (first ${TRAVEL_FREE_RADIUS_MILES} mi free), confirmed from your address.`
     : travelPending
-      ? `Travel: first ${TRAVEL_FREE_RADIUS_MILES} mi free, then $1/mile - we confirm it from your address.`
-      : "No travel fee for your area."
+      ? `Travel: first ${TRAVEL_FREE_RADIUS_MILES} mi from our West Covina location are free, then $1/mile, confirmed from your address.`
+      : `Travel is free within ${TRAVEL_FREE_RADIUS_MILES} miles of our West Covina location, confirmed from your address.`
   // A day the owner closed (lib/closed-dates.ts): the price goes out, the lock
   // link does not - the page would refuse the day anyway. A person takes the
   // lead from here (the lead watch hands it over instead of texting "open").
@@ -464,10 +468,10 @@ export async function POST(request: NextRequest) {
       `${guestsLine} · ${planLabel}${eventDate ? ` · ${dateLine}` : ""}`,
       ...(minimum ? [`That's ${minimum}.`] : []),
       travelFee
-        ? `Includes about $${travelFee} travel.`
+        ? `Includes about $${travelFee} travel from our West Covina location, confirmed from your address.`
         : travelPending
-          ? `Travel: first ${TRAVEL_FREE_RADIUS_MILES} miles free, then $1 per mile - we confirm it from your address.`
-          : "No travel fee for your area.",
+          ? `Travel: the first ${TRAVEL_FREE_RADIUS_MILES} miles from our West Covina location are free, then $1 per mile, confirmed from your address.`
+          : `Travel is free within ${TRAVEL_FREE_RADIUS_MILES} miles of our West Covina location, confirmed from your address.`,
       "",
       ...(dayClosed ? [] : [`You can lock your date here, with a card on file and nothing charged today: ${depositUrl}`, ""]),
       "Included: chef, mobile teppanyaki grill, 2 proteins per guest, fried rice, vegetables, salad and the live show.",
