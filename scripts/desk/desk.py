@@ -3404,7 +3404,7 @@ def cmd_order(a):
                      a.headcount, a.retier, a.guests_file, a.deal_free, a.deal_rate, a.drop_deal or None, a.free_item, a.add_extra, a.set_extra, a.add_promo, a.remove_promo,
                      a.free_appetizer, a.free_appetizer_trays, a.add_adult, a.add_child, a.remove_guest, a.promo, a.reconcile or None,
                      a.deal_note, True if a.prep_guests is not None else None,  # --prep-guests 0 (clear) is a change too
-                     a.custom_item, a.custom_items_file, a.remove_custom_item)
+                     a.custom_item, a.custom_items_file, a.remove_custom_item, a.pay)
     no_invoice_change = all(v in (None, False, []) for v in invoice_flags)
     plan_change = a.chefs is not None or a.grills is not None or a.stations is not None or a.plan_rule
     if a.op == "set" and a.prep_note_file is not None:
@@ -3460,6 +3460,15 @@ def cmd_order(a):
             if val is not None:
                 changes.append(f"{key}: {c.get(key)!r} -> {val!r}")
                 c[key] = val
+        if a.pay:
+            # How the host says they will pay on the day (2026-11-22 Rayna:
+            # "I will be paying with a credit card", order still said cash).
+            # The chef sheet's collect block carries it next to the cash and
+            # card figures; nothing else in the price moves.
+            method = {"cash": "cash", "card": "credit_card"}[a.pay]
+            if data.get("paymentMethod") != method:
+                changes.append(f"paymentMethod: {data.get('paymentMethod')!r} -> {method!r}")
+                data["paymentMethod"] = method
         if a.notes_file:
             new_notes = pathlib.Path(a.notes_file).read_bytes().decode("utf-8").strip()
             changes.append(f"specialNotes: {c.get('specialNotes')!r} -> {new_notes!r}")
@@ -4427,6 +4436,7 @@ def main(argv=None):
                    "summary <RH-…>: send again though it went out today (the order changed), or over a question of theirs answered elsewhere")
     p.add_argument("--reconcile", action="store_true", help="set: save the order as it stands, so the invoice engine puts on what the rules owe (D-1017-02)")
     p.add_argument("--date"); p.add_argument("--time"); p.add_argument("--address"); p.add_argument("--name"); p.add_argument("--email"); p.add_argument("--phone")
+    p.add_argument("--pay", choices=["cash", "card"], help="set: how the host will pay on the day (the chef sheet's collect block); card = credit_card")
     p.add_argument("--notes-file"); p.add_argument("--notes-reviewed", action="store_true"); p.add_argument("--json", action="store_true")
     p.add_argument("--prep-note-file", metavar="F", help="set: the 备货备注 (orders.prep_note, 300 characters, an empty file clears it) - "
                    "printed under this party on the prep list; with --dry it is only shown next to the current one")
