@@ -144,22 +144,24 @@ test("template A says one price when both nights hit the minimum, and no travel 
   const daisy = templateAWording({ weekend: "$599.00", weekday: "$599.00", travel: 0, city: "Southern California" })
   assert.equal(daisy.price, "$599.00 any day of the week")
   assert.equal(daisy.where, "")
-  assert.equal(daisy.travelSms, ", first 50 miles of travel free")
-  assert.match(daisy.travelEmail, /first 50 miles free/)
+  assert.equal(daisy.travelSms, ", and travel is free within 50 miles of our West Covina location")
+  assert.match(daisy.travelEmail, /free within 50 miles of our West Covina location, then \$1 a mile - we confirm it from your address/)
   const ps = templateAWording({ weekend: "$898.50", weekday: "$823.50", travel: 42, city: "palm springs" })
   assert.equal(ps.price, "$898.50 Fri-Sun or $823.50 Mon-Thu")
   assert.equal(ps.where, " in Palm Springs")
-  assert.equal(ps.travelSms, ", plus about $42 travel")
-  assert.equal(ps.travelEmail, "- Travel to Palm Springs: about $42")
+  assert.equal(ps.travelSms, ", plus about $42 travel from our West Covina location")
+  assert.equal(ps.travelEmail, "- Travel to Palm Springs: about $42 from our West Covina location, confirmed from your address.")
+  // A town is not the address (owner 2026-11-21, Christy): it never reads "no travel fee".
   const near = templateAWording({ weekend: "$898.50", weekday: "$823.50", travel: 0, city: "Irvine" })
-  assert.equal(near.travelSms, ", no travel fee")
+  assert.equal(near.travelSms, ", and travel is free within 50 miles of our West Covina location")
+  assert.doesNotMatch(near.travelEmail, /no travel fee/i)
 })
 
 test("template A says '1 adult' / '1 kid', and that $599 is the 10-guest minimum, not a price a head (2026-10-22)", () => {
   const one = templateAMessage({ adults: 1, kids: 0, cityName: "La Puente", travelFee: 0 })
   assert.equal(
     one.sms,
-    "Hi, it's Rowling from Real Hibachi. Our system was supposed to text you a price and didn't, sorry. For 1 adult in La Puente it's $599.00 any day of the week, no travel fee. Each guest gets 2 proteins, fried rice, veggies, salad and the chef show. That's our 10-guest minimum, so it covers up to 10 guests. What date are you thinking?",
+    "Hi, it's Rowling from Real Hibachi. Our system was supposed to text you a price and didn't, sorry. For 1 adult in La Puente it's $599.00 any day of the week, and travel is free within 50 miles of our West Covina location. Each guest gets 2 proteins, fried rice, veggies, salad and the chef show. That's our 10-guest minimum, so it covers up to 10 guests. What date are you thinking?",
   )
   assert.match(one.emailText, /^- 1 adult, Fri-Sun: \$599\.00 total$/m)
   assert.match(one.emailText, /^- That's our 10-guest minimum, so it covers up to 10 guests\.$/m)
@@ -171,14 +173,14 @@ test("template A says '1 adult' / '1 kid', and that $599 is the 10-guest minimum
 
 test("template A: travel stays its own phrase, and more than 10 on the minimum are all covered", () => {
   const bigBear = templateAMessage({ adults: 4, cityName: "Big Bear Lake", travelFee: 33 })
-  assert.match(bigBear.sms, /it's \$599\.00 any day of the week, plus about \$33 travel\. Each guest gets .*\. That's our 10-guest minimum, so it covers up to 10 guests\. What date/)
+  assert.match(bigBear.sms, /it's \$599\.00 any day of the week, plus about \$33 travel from our West Covina location\. Each guest gets .*\. That's our 10-guest minimum, so it covers up to 10 guests\. What date/)
   assert.match(templateAMessage({ adults: 2, kids: 9, cityName: "Downey" }).sms, /That's our \$599 minimum, which covers all 11 guests\./)
 })
 
 test("template A: no note once Fri-Sun clears the minimum (wording per leads voice.md 2026-10-29)", () => {
   assert.equal(
     templateAMessage({ adults: 15, cityName: "Anaheim" }).sms,
-    "Hi, it's Rowling from Real Hibachi. Our system was supposed to text you a price and didn't, sorry. For 15 adults in Anaheim it's $898.50 Fri-Sun or $823.50 Mon-Thu, no travel fee. Each guest gets 2 proteins, fried rice, veggies, salad and the chef show. What date are you thinking?",
+    "Hi, it's Rowling from Real Hibachi. Our system was supposed to text you a price and didn't, sorry. For 15 adults in Anaheim it's $898.50 Fri-Sun or $823.50 Mon-Thu, and travel is free within 50 miles of our West Covina location. Each guest gets 2 proteins, fried rice, veggies, salad and the chef show. What date are you thinking?",
   )
   assert.doesNotMatch(templateAMessage({ adults: 10, kids: 1, cityName: "Torrance" }).sms, /minimum/, "$628.90 Fri-Sun or $599.00 Mon-Thu")
 })

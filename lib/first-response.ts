@@ -7,7 +7,7 @@
 // rules are unit-tested in tests/first-response.test.ts and every change to
 // the wording or the thresholds is a visible diff.
 
-import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, calcSimpleEstimate } from "@/config/pricing-rules"
+import { FULL_SETUP_PER_GUEST, TABLES_CHAIRS_PER_GUEST, TRAVEL_FREE_RADIUS_MILES, calcSimpleEstimate } from "@/config/pricing-rules"
 import { minimumNote, partyLine } from "@/lib/landing-quote-text"
 import { cityForZip } from "@/lib/zip-city"
 
@@ -198,13 +198,17 @@ export function templateAWording(i: { weekend: string; weekday: string; travel: 
 } {
   const town = placeName(i.city)
   const price = i.weekend === i.weekday ? `${i.weekend} any day of the week` : `${i.weekend} Fri-Sun or ${i.weekday} Mon-Thu`
-  const travelSms = i.travel > 0 ? `, plus about $${i.travel} travel` : town ? ", no travel fee" : ", first 50 miles of travel free"
+  // Travel goes by the party's address, counted from our West Covina location
+  // (owner 2026-11-21, same wording as the landing quote): the town the card
+  // priced is not the address, so it never promises "no travel fee".
+  const travelSms =
+    i.travel > 0
+      ? `, plus about $${i.travel} travel from our West Covina location`
+      : `, and travel is free within ${TRAVEL_FREE_RADIUS_MILES} miles of our West Covina location`
   const travelEmail =
     i.travel > 0
-      ? `- Travel${town ? ` to ${town}` : ""}: about $${i.travel}`
-      : town
-        ? `- ${town}: no travel fee`
-        : "- Travel: first 50 miles free, then $1 a mile - we confirm it from your address."
+      ? `- Travel${town ? ` to ${town}` : ""}: about $${i.travel} from our West Covina location, confirmed from your address.`
+      : `- Travel: free within ${TRAVEL_FREE_RADIUS_MILES} miles of our West Covina location, then $1 a mile - we confirm it from your address.`
   return { where: town ? ` in ${town}` : "", price, travelSms, travelEmail }
 }
 

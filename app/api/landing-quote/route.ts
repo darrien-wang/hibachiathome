@@ -352,11 +352,12 @@ export async function POST(request: NextRequest) {
   if (updated && previous) {
     if (previous.travelFee !== travelFee) {
       whyLines.push(
+        // Same rule as travelLine below (owner 2026-11-21): counted from West Covina, confirmed from the address.
         travelFee
-          ? `This one includes ~$${travelFee} travel to ${cityLabel}.`
+          ? `This one includes ~$${travelFee} travel from our West Covina location, confirmed from your address.`
           : travelPending
             ? `Travel to ${cityLabel} is confirmed from your address.`
-            : `No travel fee for ${cityLabel}.`,
+            : `Travel is free within ${TRAVEL_FREE_RADIUS_MILES} miles of our West Covina location, confirmed from your address.`,
       )
     }
   }
