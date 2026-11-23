@@ -3429,12 +3429,21 @@ def cmd_order(a):
                 payload["grills"] = int(a.grills)
         if a.stations is not None:
             payload["stations_note"] = a.stations
-        res = site_post("/api/admin/chefs", payload)
-        plan = res.get("plan") or {}
-        print(f"OK    {order_no} dispatch plan: {plan.get('chefs')} chef(s) / {plan.get('grills')} grill(s) ({plan.get('source')})"
-              + (f"  stations: {plan['stations_note']}" if plan.get("stations_note") else ""))
-        for w in res.get("lint") or []:
-            print(f"   {'!!' if w.get('severity') == 'blocking' else '! '} {w.get('message')}")
+        if a.dry:
+            # --dry used to send this anyway (2026-11-22, David RH-20261122-1177:
+            # a dry run of --plan-rule changed the plan). Nothing goes out now.
+            what = "back to the headcount rule" if a.plan_rule else ", ".join(f"{k}={v}" for k, v in payload.items() if k not in ("action", "order_id"))
+            print(f"DRY   {order_no} dispatch plan would change: {what} - not saved (--dry)")
+            if no_invoice_change:
+                return
+            payload = None
+        if payload:
+            res = site_post("/api/admin/chefs", payload)
+            plan = res.get("plan") or {}
+            print(f"OK    {order_no} dispatch plan: {plan.get('chefs')} chef(s) / {plan.get('grills')} grill(s) ({plan.get('source')})"
+                  + (f"  stations: {plan['stations_note']}" if plan.get("stations_note") else ""))
+            for w in res.get("lint") or []:
+                print(f"   {'!!' if w.get('severity') == 'blocking' else '! '} {w.get('message')}")
         if no_invoice_change:
             return
     inv_order, prefill = _lookup(order)
