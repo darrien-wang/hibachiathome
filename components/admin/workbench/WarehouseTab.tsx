@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type CSSProperties } from "react"
 import { adminJson } from "./api"
 import { Dialog, DialogHead, Tag } from "./ui"
 import { askConfirm, askPrompt, tell } from "./ask"
@@ -973,9 +973,14 @@ const buyCount = (short: number, pack: BuyPack | null | undefined) => {
   return p > 0 ? Math.max(1, Math.ceil(short / p)) : null
 }
 const r1 = (n: number) => Math.round(n * 10) / 10
+// 备货页显示单位（老板 2026-11-22「能不能切换成 lb 单位」）：库里一律记 oz，lb 只是写法。
+const LbContext = createContext(false)
+const LB_KEY = "wh-prep-lb"
+/** 按当前单位写一个量：lb 模式下 oz 折成磅，别的单位（只、tbsp、份）照旧。 */
+const qtyIn = (qty: number, unit: string, lb: boolean) => (lb && unit === "oz" ? `${r1(qty / 16)} lb` : `${r1(qty)} ${unit}`)
 /** 实物的写法（在库、占用、可用）："3 个" / "1 盒 1 个" / "2 袋"；没有大单位就是"1.5 瓶"。 */
-function fmtCount(qty: number, pack: BuyPack | null | undefined, unit: string): string {
-  if (!pack || pack.per <= 0) return `${r1(qty)} ${unit}`
+function fmtCount(qty: number, pack: BuyPack | null | undefined, unit: string, lb = false): string {
+  if (!pack || pack.per <= 0) return qtyIn(qty, unit, lb)
   const small = qty / pack.per
   const big = bigOf(pack)
   if (!big) return `${r1(small)} ${pack.noun}`
@@ -985,8 +990,8 @@ function fmtCount(qty: number, pack: BuyPack | null | undefined, unit: string): 
   return rest > 0 ? `${b} ${big.noun} ${rest} ${pack.noun}` : `${b} ${big.noun}`
 }
 /** 需求的写法："4 个 ≈ 2 盒" / "76.5 只 ≈ 1.8 袋"；没有大单位就是"1.5 瓶"。 */
-function fmtNeed(qty: number, pack: BuyPack | null | undefined, unit: string): string {
-  if (!pack || pack.per <= 0) return `${r1(qty)} ${unit}`
+function fmtNeed(qty: number, pack: BuyPack | null | undefined, unit: string, lb = false): string {
+  if (!pack || pack.per <= 0) return qtyIn(qty, unit, lb)
   const small = qty / pack.per
   const big = bigOf(pack)
   return big ? `${r1(small)} ${pack.noun} ≈ ${r1(small / big.count)} ${big.noun}` : `${r1(small)} ${pack.noun}`
@@ -998,6 +1003,18 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
+  const [lb, setLbState] = useState(false)
+  useEffect(() => {
+    try {
+      setLbState(window.localStorage.getItem(LB_KEY) === "1")
+    } catch {}
+  }, [])
+  const setLb = (v: boolean) => {
+    setLbState(v)
+    try {
+      window.localStorage.setItem(LB_KEY, v ? "1" : "0")
+    } catch {}
+  }
   const toggle = (id: string) =>
     setSel((prev) => {
       const next = new Set(prev)
@@ -1117,7 +1134,22 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 24 }}>备货</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 24 }}>备货</div>
+          <span style={{ display: "inline-flex", border: `1px solid ${INK}` }} role="group" aria-label="单位">
+            {(["oz", "lb"] as const).map((u) => (
+              <button
+                key={u}
+                type="button"
+                aria-pressed={(u === "lb") === lb}
+                onClick={() => setLb(u === "lb")}
+                style={{ font: "inherit", fontSize: 13, fontWeight: 700, padding: "3px 12px", border: 0, cursor: "pointer", background: (u === "lb") === lb ? INK : "transparent", color: (u === "lb") === lb ? "#fff" : INK }}
+              >
+                {u}
+              </button>
+            ))}
+          </span>
+        </div>
         <div style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>勾上要备的订单，一键算出"买什么、买几瓶、去哪买"。差多少一律往上取整到整瓶整盒——最小采购单位就是一瓶，剩多少是师傅现场的事。</div>
       </div>
 
@@ -1152,6 +1184,7 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
       {err ? <div className="notice danger" style={{ marginTop: 10 }}>{err}</div> : null}
 
       {resp && groups ? (
+        <LbContext.Provider value={lb}>
         <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 24 }}>
           {resp.warnings.map((w, i) => (
             <div key={i} className="notice danger">{w}</div>
@@ -1182,7 +1215,7 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 15 }}>{row.label}</div>
                     <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>
-                      要 {row.pack && row.pack.per !== 1 ? `${r1(row.qty)} ${row.unit}（≈ ${fmtNeed(row.qty, row.pack, row.unit)}）` : fmtNeed(row.qty, row.pack, row.unit)} · 在库 {fmtCount(have, row.pack, row.unit)}
+                      要 {row.pack && row.pack.per !== 1 ? `${qtyIn(row.qty, row.unit, lb)}（≈ ${fmtNeed(row.qty, row.pack, row.unit, lb)}）` : fmtNeed(row.qty, row.pack, row.unit, lb)} · 在库 {fmtCount(have, row.pack, row.unit, lb)}
                       {row.pack?.desc ? ` · ${row.pack.desc}` : ""}
                     </div>
                     {resp.servings?.[row.id] && resp.servings[row.id].adults + resp.servings[row.id].kids > 0 ? (
@@ -1193,7 +1226,7 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
                     {basisOf(row.id) ? <div style={{ fontSize: 11.5, color: MUTED, marginTop: 1 }}>按 {basisOf(row.id)}</div> : null}
                   </div>
                   <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 20, color: "var(--color-accent-700)", whiteSpace: "nowrap" }}>
-                    {buy === null ? `补 ${short} ${row.unit}` : `买 ${buy} ${buyNoun(row.pack)}`}
+                    {buy === null ? `补 ${qtyIn(short, row.unit, lb)}` : `买 ${buy} ${buyNoun(row.pack)}`}
                   </div>
                 </div>
               ))}
@@ -1206,7 +1239,7 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
               {groups.setup.map((r) => (
                 <div key={r.id + r.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--color-divider)", fontSize: 14 }}>
                   <span style={{ fontWeight: 600 }}>{r.label}</span>
-                  <span>{Math.round(r.qty * 10) / 10} {r.unit}</span>
+                  <span>{qtyIn(r.qty, r.unit, lb)}</span>
                 </div>
               ))}
             </section>
@@ -1221,7 +1254,7 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
                     {r.label}
                     {r.alt ? <span style={{ fontWeight: 400, color: MUTED }}>（{r.alt}）</span> : null}
                   </span>
-                  <span style={{ whiteSpace: "nowrap" }}>{Math.round(r.qty * 10) / 10} {r.unit}</span>
+                  <span style={{ whiteSpace: "nowrap" }}>{qtyIn(r.qty, r.unit, lb)}</span>
                 </div>
               ))}
             </section>
@@ -1261,6 +1294,7 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
             <div style={{ fontSize: 12.5, color: MUTED }}>{groups.bulk.join("、")}是大宗，缺了直接买，不在这里算。</div>
           ) : null}
         </div>
+        </LbContext.Provider>
       ) : null}
     </div>
   )
@@ -1781,7 +1815,9 @@ function CountRow({
   const [editing, setEditing] = useState(false)
   const [bigIn, setBigIn] = useState("")
   const [smallIn, setSmallIn] = useState("")
-  const count = (q: number) => fmtCount(q, pack, row.unit)
+  const lb = useContext(LbContext)
+  const asLb = lb && row.unit === "oz"
+  const count = (q: number) => fmtCount(q, pack, row.unit, lb)
 
   // 快捷按钮，值都换回 BOM 单位（oz / 只 / tbsp）存
   const chips: Array<{ label: string; qty: number }> =
@@ -1825,12 +1861,12 @@ function CountRow({
           {stale ? <span style={{ fontSize: 11, color: MUTED, fontWeight: 600 }}> · 有阵子没盘了</span> : null}
         </div>
         <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 15, whiteSpace: "nowrap", color: short > 0 ? "var(--color-accent-700)" : "#16a34a" }}>
-          {short > 0 ? (buy === null ? `补 ${short} ${row.unit}` : `买 ${buy} ${buyNoun(pack)}`) : "够"}
+          {short > 0 ? (buy === null ? `补 ${qtyIn(short, row.unit, lb)}` : `买 ${buy} ${buyNoun(pack)}`) : "够"}
         </div>
       </div>
       <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>
         {/* 记账单位就是最小单位（只、个）时不重复写一遍 */}
-        要 {per === 1 ? fmtNeed(row.qty, pack, row.unit) : `${r1(row.qty)} ${row.unit}${per > 0 ? `（≈${fmtNeed(row.qty, pack, row.unit)}）` : ""}`} · 在库 {count(have)}
+        要 {per === 1 ? fmtNeed(row.qty, pack, row.unit, lb) : `${qtyIn(row.qty, row.unit, lb)}${per > 0 ? `（≈${fmtNeed(row.qty, pack, row.unit, lb)}）` : ""}`} · 在库 {count(have)}
         {committed > 0 ? (
           <>
             {" · "}
@@ -1882,14 +1918,14 @@ function CountRow({
           disabled={busy}
           style={{ marginTop: 6 }}
           onClick={async () => {
-            const v = await askPrompt({ title: row.label, message: `实际还有多少 ${row.unit}？`, placeholder: "例如 20", inputMode: "decimal" })
+            const v = await askPrompt({ title: row.label, message: `实际还有多少 ${asLb ? "lb" : row.unit}？`, placeholder: asLb ? "例如 2.5" : "例如 20", inputMode: "decimal" })
             if (v === null) return
-            const n = Number(v)
+            const n = Number(v) * (asLb ? 16 : 1)
             if (!Number.isFinite(n) || n < 0) return
             onSet(Math.round(n * 100) / 100)
           }}
         >
-          改在库（{have} {row.unit}）
+          改在库（{qtyIn(have, row.unit, lb)}）
         </button>
       )}
       {editing && per > 0 ? (
