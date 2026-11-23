@@ -1093,6 +1093,12 @@ def party_check_checks() -> None:
           and party_check.lead_segments("【来电小结】客人问桌椅") == ["客人问桌椅"])
     check("party check · city from the address, the comma before CA or not",
           [party_check.city_of(a) for a in ("1 Test Way, Palm Springs, CA 92262", "11968 Gorham Ave, Los Angeles CA 90049", "")] == ["Palm Springs", "Los Angeles", ""])
+    check("party check · an address with no street (a ZIP or a city alone, or none) warns; one with a street does not (11-23 Jane)",
+          [party_check.address_lacks_street(a) for a in ("", "92590", "92590 (Temecula)", "Temecula, CA 92590", "Temecula")] == [True] * 5
+          and [party_check.address_lacks_street(a) for a in ("24573 Piuma Rd, Malibu, CA, 90265", "35039 Indian Grass Dr", "Stay Wyld Desert, 5323 Roberts Rd, Yucca Valley")] == [False] * 3
+          and ("warn", "address") in pc_kinds(pc_party("RH-20301125-0001", "2030-11-25T18:30:00+00:00", name="Zip Only", address="92590 (Temecula)"))
+          and ("warn", "address") not in pc_kinds(pc_party("RH-20301125-0002", "2030-11-25T18:30:00+00:00", name="Street"))
+          and not any(g["kind"] == "address" for g in party_check.gaps_of(pc_party("RH-20301125-0003", "2030-11-25T18:30:00+00:00", name="Zip Only", address="92590"), blocking_only=True)))
     link = lambda **o: {"staff_member_id": "s1", "sent_via": "twilio", "sent_at": None, "first_opened_at": None, "last_opened_at": None, "revoked_at": None,
                         "stale": False, "change_pending_since": None, **o}
     team = [{"id": "s1", "name": "Blu", "role": "lead_chef"}, {"id": "s2", "name": "易非", "role": "assistant_chef"}]

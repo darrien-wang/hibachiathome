@@ -784,6 +784,29 @@ def warn_gaps(party: dict, srcs: list[dict], carr: list[dict], everything: list[
 STATION_TABLES = r"\btables?\b|\bu[\s-]?shaped?s?\b|桌|U\s*(?:形|型|字)"
 
 
+# A ZIP and/or a city alone is nothing a chef can drive to - the invoice lint's address_no_street
+# (lib/order-lint.ts addressLacksStreet), here so the day check shows it too: it reads party_check, not the
+# lint. 11-23: Jane's 11/25 order had only "92590 (Temecula)" two days out and `order check` said 缺项 0.
+_TRAILING_ZIP = re.compile(r"\b\d{5}(?:-\d{4})?\b\s*(?:\([^)]*\))?\s*$")
+
+
+def address_lacks_street(address) -> bool:
+    """Empty, a ZIP alone ("92590 (Temecula)") or a city with or without its ZIP: with a trailing ZIP dropped,
+    no number is left (a house number, a lot or a unit)."""
+    return not re.search(r"\d", _TRAILING_ZIP.sub("", str(address or "").strip()))
+
+
+def address_gaps(party: dict) -> list[dict]:
+    """A warning, not a block: the chef's sheet keeps its link and updates itself once the street is in."""
+    order = party["order"]
+    addr = str(order.get("event_address") or (invoice_of(order).get("contactInfo") or {}).get("eventAddress") or "").strip()
+    if not address_lacks_street(addr):
+        return []
+    no = order.get("order_no") or "<单号>"
+    title = f"地址只有「{addr}」，没有街道门牌，师傅导航不了" if addr else "订单上没有派对地址"
+    return [_gap("warn", "address", title, f"问客人要街道地址，再 desk order set {no} --address \"<门牌 街道, 城市, CA 邮编>\"", [])]
+
+
 def crew_gaps(party: dict) -> list[dict]:
     """The dispatch plan against the order (warnings). A stations note that seats the guests at tables or in U shapes
     while the order loads no table: the sheet prints the note word for word (Whitney RH-20261007-9434, 11-14: "10
@@ -906,7 +929,7 @@ def gaps_of(party: dict, *, blocking_only: bool = False) -> list[dict]:
     out = setup_gaps(party, srcs, carr) + allergy_gaps(srcs, carr, everything) + prep_sheet_gaps(party)
     if blocking_only:
         return [g for g in out if g["severity"] == "block"]
-    out += warn_gaps(party, srcs, carr, everything) + crew_gaps(party)
+    out += warn_gaps(party, srcs, carr, everything) + crew_gaps(party) + address_gaps(party)
     return sorted(out, key=lambda g: 0 if g["severity"] == "block" else 1)
 
 
