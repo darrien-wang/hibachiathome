@@ -1114,12 +1114,14 @@ export function undeliveredStillOpen(
  * three hours.
  */
 export function undeliveredRings(
-  lead: Pick<PhoneLead, "email" | "created_at">,
-  nowMs: number,
-  waitedMin: number,
+  _lead: Pick<PhoneLead, "email" | "created_at">,
+  _nowMs: number,
+  _waitedMin: number,
 ): boolean {
-  const fresh = Boolean(lead.created_at && nowMs - Date.parse(lead.created_at) < LEAD_LOOKBACK_MS)
-  return fresh && Boolean((lead.email ?? "").trim()) && shouldRing(waitedMin, nowMs)
+  // Never (owner 2026-11-22, on 818-210-2525 whose quote text bounced: 「为啥老
+  // 提醒我短信发不出去 以后别提醒了」). The item stays on the list without a ring;
+  // the desk sends the email or lets it go.
+  return false
 }
 
 const PT_STAMP = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })

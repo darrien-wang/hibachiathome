@@ -42,10 +42,11 @@ test("undelivered · an open lead with no receipt shows until it is emailed", ()
 })
 
 // 11-03: 626-819, no email, both texts 30005 - the phone rang every 15 minutes for three hours.
-test("undelivered · rings only for a lead from the last day that has an email to send instead", () => {
+// 11-22: the owner turned the ring off altogether (「以后别提醒了」); the item stays on the list.
+test("undelivered · never rings, not even for a fresh lead with an email", () => {
   const now = Date.parse("2026-11-03T20:20:00Z")
   const fresh = { email: "guest@example.com", created_at: "2026-11-03T19:59:00Z" }
-  assert.equal(undeliveredRings(fresh, now, 15), true)
+  assert.equal(undeliveredRings(fresh, now, 15), false)
   assert.equal(undeliveredRings({ ...fresh, email: null }, now, 15), false)
   assert.equal(undeliveredRings({ ...fresh, email: "  " }, now, 15), false)
   assert.equal(undeliveredRings({ ...fresh, created_at: "2026-11-01T19:59:00Z" }, now, 15), false)
