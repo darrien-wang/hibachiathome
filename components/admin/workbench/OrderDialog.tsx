@@ -39,6 +39,7 @@ import { CustomItemsPanel } from "./CustomItemsPanel"
 import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
 import { InvoiceArchivePanel } from "@/components/admin/invoice-archive-panel"
 import { OrderPhotosPanel } from "@/components/admin/order-photos-panel"
+import { PartyAlbumPanel } from "@/components/admin/party-album-panel"
 import { describeSetup, findTheme, findVariant } from "@/config/table-themes"
 import { ORDER_SOP_STEPS } from "@/lib/order-sop"
 import type { WorkbenchSettings } from "@/lib/workbench-settings-shared"
@@ -1239,6 +1240,10 @@ export function OrderDialog({
           <div>
             <Kicker>派对照片（师傅端上传）</Kicker>
             <OrderPhotosPanel adminKey={adminKey} orderId={o.id} />
+          </div>
+          <div>
+            <Kicker>派对相册（客人传照片视频，传了的人各拿 $50 券）</Kicker>
+            <PartyAlbumPanel adminKey={adminKey} orderId={o.id} customerName={o.customer_name ?? null} />
           </div>
           <div>
             <Kicker>已发送的发票（存档）</Kicker>

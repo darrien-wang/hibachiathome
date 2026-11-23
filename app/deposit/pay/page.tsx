@@ -968,7 +968,7 @@ function DepositPaymentPageInner() {
 }
 
 /** Bump when the wording below changes; it travels to Stripe metadata as `terms`. */
-const TERMS_VERSION = "2026-11-16.2"
+const TERMS_VERSION = "2026-11-23.1"
 
 /**
  * 派对条款。老板 2026-11-16 加：服务 2 小时/超时、等待、桌布蜡烛；同日老板同意按同行
@@ -1013,7 +1013,10 @@ function PartyTerms() {
         we&apos;ll try to send the chef you ask for, but a specific chef is only guaranteed if we confirm it in writing.
       </Term>
       <Term title="Photos and video">
-        your chef may film the cooking for our social media. Tell us before the party if you&apos;d rather not be filmed.
+        your chef may film the cooking. Photos and videos from your party, the chef&apos;s and the ones your guests add
+        to your party album, may be shared on our social media and our website (first names only, never your address).
+        Tell us before the party if you&apos;d rather not be filmed, or text us any time and we&apos;ll take a photo or
+        video down within 48 hours.
       </Term>
       <Term title="If something isn't right">
         tell the chef on the spot and text us within 48 hours so we can make it right. Please reach us before disputing a
