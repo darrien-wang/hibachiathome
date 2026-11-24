@@ -5,6 +5,7 @@ import { phone as sitePhone } from "@/config/site"
 import { Facebook, Instagram, Link as LinkIcon, MessageCircle, MessageSquare, MoreHorizontal, Music2, Plus, Share2, UserPlus } from "lucide-react"
 import { albumMediaType, avatarColor, groupAlbumText } from "@/lib/party-album"
 import { uploadAlbumFile } from "@/lib/album-upload-client"
+import Festive, { seasonOf } from "./Festive"
 import { SHARE_PLATFORMS, pickShareMedia, shareFileName, sharePlan, type SharePlatform } from "@/lib/album-share"
 
 // ============================================================
@@ -77,6 +78,7 @@ export default function AlbumClient({ token }: { token: string }) {
   const [note, setNote] = useState<string | null>(null)
   const [sheet, setSheet] = useState<"share" | "invite" | null>(null)
   const [nameSkipped, setNameSkipped] = useState(false)
+  const [celebrate, setCelebrate] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const api = `/api/album/${encodeURIComponent(token)}`
 
@@ -130,6 +132,7 @@ export default function AlbumClient({ token }: { token: string }) {
       // Two at a time: quick on Wi-Fi, doesn't choke a phone on LTE.
       const queue = batch.filter((b) => b.type)
       let next = 0
+      let landed = 0
       const worker = async () => {
         while (next < queue.length) {
           const b = queue[next++]
@@ -142,12 +145,15 @@ export default function AlbumClient({ token }: { token: string }) {
               onProgress: (p) => patch(b.key, { progress: p }),
             })
             patch(b.key, { state: "done", progress: 1 })
+            landed++
           } catch (e) {
             patch(b.key, { state: "failed", error: e instanceof Error ? e.message : "Didn't upload" })
           }
         }
       }
       await Promise.all([worker(), worker()])
+      // A thank-you burst of confetti once their photos are in.
+      if (landed > 0) setCelebrate((n) => n + 1)
       await load()
       // The real tiles are in the grid now; keep only what is still going or failed.
       setPending((list) => list.filter((u) => u.state !== "done"))
@@ -222,6 +228,7 @@ export default function AlbumClient({ token }: { token: string }) {
 
   return (
     <div className={`${shell} ${canAdd ? "pb-48" : "pb-32"} pt-8 sm:pt-12`}>
+      <Festive season={seasonOf(album.eventDate)} burst={celebrate} />
       <header>
         {dateLine ? <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-clay-700">{dateLine}</p> : null}
         <h1 className="mt-2 font-serif text-[42px] font-extrabold leading-[1.02] tracking-tight sm:text-5xl">{album.title}</h1>
