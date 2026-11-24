@@ -1012,13 +1012,13 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
   }
 
   // ---- 请回电 (2026-10-09) ------------------------------------------------
-  // A customer who asked for a phone call rang the owner's App when they asked; until he presses 1
-  // (put through) or 3 (no call needed), ring again every ten minutes, three rings at most.
+  // A customer who asked for a phone call rang the owner's App when they asked. That one ring is all
+  // (owner 2026-11-24: 「巡检以后只需要一次」); the sweep rings again only after he pressed 2.
   // ---- 师傅没确认改动 (2026-11-11, D-1111-03) ------------------------------
   // A change to a party inside 72 hours is texted to its chef, who replies 1 (the invoice app
   // sends it and files chef_change_notices). One still unconfirmed three hours before the start
-  // rings the owner's App here, once per chef per party; the ring just below repeats it like any
-  // open callback. Nothing to read until that table exists (lib/chef-notices.ts).
+  // rings the owner's App here, once per chef per party; like any open callback it rings once.
+  // Nothing to read until that table exists (lib/chef-notices.ts).
   const noticeRings = await ringUnackedNotices(supabase, now, { dryRun }).catch(() => [])
   const callbackRings = dryRun ? [] : await ringOpenCallbacks(supabase, now)
 

@@ -10,8 +10,9 @@
 //
 // State lives on the lead as touchpoints: callback_request (the customer asked, or the desk raised
 // it), callback_ring (each ring placed), callback_snooze, callback_done (put through, dismissed, or
-// we found a call with that number). A request is open until a callback_done follows it. lead-watch
-// rings an open one again every ten minutes, three rings at most, 8 AM - 10 PM Pacific.
+// we found a call with that number). A request is open until a callback_done follows it. Each
+// request rings once, 8 AM - 10 PM Pacific; lead-watch rings it again only after he pressed 2 (owner
+// 2026-11-24: 「一次就够了如果我没管的话」「巡检以后只需要一次」 - it used to ring three times).
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { toE164 } from "@/lib/sms-thread"
@@ -28,7 +29,10 @@ export const LIVE_PARTY_WHY = "现场"
 export const CHEF_NOTICE_WHY = "师傅未确认"
 export const RING_EVERY_MS = 10 * 60_000
 export const SNOOZE_MS = 10 * 60_000
-export const MAX_RINGS = 3
+// One ring per request. A missed ring is not rung again: the message waits in the workbench (owner
+// 2026-11-24, after the Menifee customer's "Can I call this number?" rang him twice in 15 minutes).
+// Pressing 2 asks for one more, ten minutes later; each press buys exactly one.
+export const MAX_RINGS = 1
 const REQUEST_TTL_MS = 12 * 3600_000 // asked last night: by 8 AM it is a text to answer, not a ring
 const DEDUPE_MS = 30 * 60_000 // "call me" twice in a row is one request
 
@@ -52,10 +56,16 @@ const ASKS = new RegExp(
   "i",
 )
 const REFUSES = /\b(don'?t|do not|no|never|can'?t|cannot|won'?t|not able to) (call|calls|phone|talk)\b|\btext only\b|\bno (me )?llam/i
+// The customer calling us: "Can I call this number?" (Menifee 11-24), "I'll call back later". The
+// "call this number" / "call back" asks above read the same words the other way round.
+const SELF_CALLS = /\b(i|we)(['’]ll|['’]d| will| would| can| could| may| might| shall| should| gonna| am going to| are going to)? (call|phone|ring)\b|\b(can|could|may|shall|should) (i|we) (call|phone|ring)\b/i
+// Asking us to call in so many words still rings, even next to the above ("Can I call you, or can you call me?").
+const ASKS_US = /\bcall me\b|\bgive (me|us) a (call|ring|buzz)\b|\b(can|could|would|will) (you|u|ya|someone|somebody)( please)? (call|phone|ring)\b|\bplease call\b|\bll[aá]m[ae]me\b|\bme (puede|puedes|pueden|podr[ií]a|podr[ií]as) llamar\b|\bpueden? llamarme\b/i
 
 export function wantsCall(body: string | null | undefined): boolean {
   const s = (body ?? "").trim()
-  return s.length > 0 && ASKS.test(s) && !REFUSES.test(s)
+  if (s.length === 0 || !ASKS.test(s) || REFUSES.test(s)) return false
+  return !SELF_CALLS.test(s) || ASKS_US.test(s)
 }
 
 function ptHour(ms: number): number {
@@ -90,6 +100,13 @@ export type OpenCallback = {
   rings: number
   lastRingAt: number | null
   snoozeUntil: number | null
+  /** Times he pressed 2: each one is a ring he asked for, on top of the first. */
+  snoozes?: number
+}
+
+/** How many rings this request may have had in all: the first, plus one per press of 2. */
+export function ringsAllowed(open: Pick<OpenCallback, "snoozes">): number {
+  return MAX_RINGS + (open.snoozes ?? 0)
 }
 
 export type Row = { touchpoint_type: string; occurred_at: string; raw_payload_json: Record<string, unknown> | null }
@@ -119,7 +136,7 @@ export function openFromRows(leadId: string, rows: Row[]): OpenCallback | null {
     const at = Date.parse(r.occurred_at)
     const p = r.raw_payload_json ?? {}
     if (r.touchpoint_type === "callback_request") {
-      open = { leadId, phone: String(p.phone ?? ""), name: String(p.name ?? ""), why: String(p.why ?? ""), requestedAt: at, rings: 0, lastRingAt: null, snoozeUntil: null }
+      open = { leadId, phone: String(p.phone ?? ""), name: String(p.name ?? ""), why: String(p.why ?? ""), requestedAt: at, rings: 0, lastRingAt: null, snoozeUntil: null, snoozes: 0 }
     } else if (!open) {
       continue
     } else if (r.touchpoint_type === "callback_ring") {
@@ -128,6 +145,7 @@ export function openFromRows(leadId: string, rows: Row[]): OpenCallback | null {
     } else if (r.touchpoint_type === "callback_snooze") {
       const until = Date.parse(String(p.until ?? ""))
       open.snoozeUntil = Number.isFinite(until) ? until : at + SNOOZE_MS
+      open.snoozes = (open.snoozes ?? 0) + 1
     } else if (r.touchpoint_type === "callback_done") {
       open = null
     }
@@ -198,7 +216,7 @@ export async function ringIfDue(supabase: SupabaseClient, leadId: string, now = 
   if (!open) return { rang: false, skipped: "none_open" }
   if (now - open.requestedAt > REQUEST_TTL_MS) return { rang: false, skipped: "stale" }
   if (!withinRingHours(now, isAlarm(open.why) ? LIVE_PARTY_RING_HOURS_PT : RING_HOURS_PT)) return { rang: false, skipped: "quiet_hours" }
-  if (open.rings >= MAX_RINGS) return { rang: false, skipped: "max_rings" }
+  if (open.rings >= ringsAllowed(open)) return { rang: false, skipped: "max_rings" }
   if (open.lastRingAt !== null && now - open.lastRingAt < RING_EVERY_MS) return { rang: false, skipped: "rang_recently" }
   if (open.snoozeUntil !== null && now < open.snoozeUntil) return { rang: false, skipped: "snoozed" }
   const phone = toE164(open.phone)
@@ -242,13 +260,14 @@ export async function requestCallback(
   // call while one is open there is a request of their own, not a repeat of the alarm: it replaces it
   // (the alarm's line stays in the inbox). The sweep that raises the alarm waits for a customer's.
   const sameKind = !open || isChefNoticeAlarm(open.why) === isChefNoticeAlarm(input.why)
-  if (!open || !sameKind || now - open.requestedAt > DEDUPE_MS || open.rings >= MAX_RINGS) {
+  // Asking again inside 30 minutes is the same request, and it has had its ring (11-24: once).
+  if (!open || !sameKind || now - open.requestedAt > DEDUPE_MS) {
     await record(supabase, input.leadId, "callback_request", { phone: input.phone, name: input.name, why: input.why.slice(0, 500), source: input.source }, now)
   }
   return ringIfDue(supabase, input.leadId, now)
 }
 
-/** lead-watch's 10-minute sweep: ring every open request that is due again. */
+/** lead-watch's 10-minute sweep: ring an open request it has not rung yet, or one he snoozed with 2. */
 export async function ringOpenCallbacks(supabase: SupabaseClient, now = Date.now()): Promise<Array<RingOutcome & { leadId: string }>> {
   // The widest window here; ringIfDue holds each request to its own.
   if (!withinRingHours(now, LIVE_PARTY_RING_HOURS_PT)) return []

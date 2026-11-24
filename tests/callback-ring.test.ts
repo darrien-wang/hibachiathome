@@ -4,7 +4,7 @@
 //   npm test
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { LIVE_PARTY_RING_HOURS_PT, isLivePartyAlarm, openFromRows, spokenName, wantsCall, withinRingHours } from "../lib/callback-ring"
+import { LIVE_PARTY_RING_HOURS_PT, MAX_RINGS, isLivePartyAlarm, openFromRows, ringsAllowed, spokenName, wantsCall, withinRingHours } from "../lib/callback-ring"
 
 test("callback · Jose's two texts on 10-09 ring", () => {
   assert.equal(wantsCall("If you can call me that'd be great. I'm driving."), true)
@@ -32,7 +32,30 @@ test("callback · not a request for us to call", () => {
     "Can I call you?",
     "no me llames, mándame mensaje",
     "",
+    // 11-24 Menifee: he meant to call us, and it rang the owner twice
+    "Can I call this number?",
+    "I'll call back later",
+    "I’ll call back in 10 min", // iPhone apostrophe
+    "We will call this number next week",
   ]) assert.equal(wantsCall(t), false, t)
+})
+
+test("callback · asking us to call still rings when they also offer to call", () => {
+  assert.equal(wantsCall("Can I call you, or can you call me?"), true)
+  assert.equal(wantsCall("Please call this number when you can"), true)
+  assert.equal(wantsCall("Call this number when you get a chance"), true)
+})
+
+test("callback · one ring per request; each press of 2 buys one more (owner 11-24: 一次就够了)", () => {
+  assert.equal(MAX_RINGS, 1)
+  const req = { touchpoint_type: "callback_request", occurred_at: "2026-11-24T22:21:05.514Z", raw_payload_json: { phone: "+19512831883", why: "Can I call this number?" } }
+  const ring1 = { touchpoint_type: "callback_ring", occurred_at: "2026-11-24T22:21:05.514Z", raw_payload_json: { attempt: 1 } }
+  const rung = openFromRows("lead", [req, ring1])
+  assert.equal(rung?.rings, 1)
+  assert.equal(rung && rung.rings >= ringsAllowed(rung), true, "missed once: the sweep leaves it")
+  const snoozed = openFromRows("lead", [req, ring1, { touchpoint_type: "callback_snooze", occurred_at: "2026-11-24T22:21:30.000Z", raw_payload_json: { until: "2026-11-24T22:31:30.000Z" } }])
+  assert.equal(snoozed && ringsAllowed(snoozed), 2)
+  assert.equal(snoozed && snoozed.rings < ringsAllowed(snoozed), true, "pressed 2: one more ring")
 })
 
 test("callback · the ring says a name, or the last four digits", () => {

@@ -100,6 +100,6 @@ export async function POST(request: NextRequest) {
   const line = `客人${spokenName(open)}想跟你通电话。按 1，现在接通；按 2，十分钟后再提醒；按 3，不用回电。`
   return twiml(
     `<Gather input="dtmf" numDigits="1" timeout="8" action="${escapeXml(here("key"))}" method="POST">${say(line)}<Pause length="1"/>${say(line)}</Gather>` +
-      say("没有按键。十分钟后会再响一次。"),
+      say("没有按键。这条不会再响了，客人的消息在工作台。"),
   )
 }
