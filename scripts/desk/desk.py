@@ -1744,8 +1744,10 @@ def cmd_ask(a):
     import uuid
     now = _dt.datetime.now(_dt.timezone.utc).isoformat()
     if a.done:
-        q = "/rest/v1/owner_asks?answered_at=is.null" + ("" if a.done == "all" else f"&id=like.{a.done}*")
-        open_rows = _db_read(q + "&select=id,question")
+        # ids are uuids: PostgREST cannot LIKE them, so match the short id here
+        open_rows = _db_read("/rest/v1/owner_asks?answered_at=is.null&select=id,question")
+        if a.done != "all":
+            open_rows = [r for r in open_rows if r["id"].startswith(a.done.strip().lower())]
         if not open_rows:
             raise SystemExit(f"no open ask matches {a.done!r} (desk ask --list)")
         for r in open_rows:
