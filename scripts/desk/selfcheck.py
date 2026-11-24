@@ -1082,6 +1082,17 @@ def party_check_checks() -> None:
           "a holiday as a price period, a menu question, the guests' arrival, our space spec, what we always bring, a superseded arrival time",
           pc_kinds(seen) == [], None, json.dumps(party_check.gaps_of(seen), ensure_ascii=False)[:600])
 
+    # a count only in a note blocks (owner 11-24: 备货单里数量要完全体现，不能在备注里体现)
+    moises = lambda prep: pc_party("RH-20261123-5609", "2030-11-24T19:30:00+00:00", name="Moises Test", prep_note=prep,
+                                   extras=[{"id": "gyoza", "qty": 1}], guests=[pc_guest(f"Guest {i}", "steak", "shrimp", ut=True) for i in range(1, 12)])
+    check("party check · a count only in a note blocks: '多带 1 个' (Moises 11-24), '另带两盘', 'bring 2 extra'; '多带炒饭' and a count that explains the line do not",
+          ("block", "count_in_note") in pc_kinds(moises("前菜送一份饺子：按每人 1 个要 11 个，单上是 1 盘 10 个，多带 1 个。"))
+          and ("block", "count_in_note") in pc_kinds(moises("春卷另带两盘给小孩。"))
+          and ("block", "count_in_note") in pc_kinds(moises("Please bring 2 extra bottles of tamari."))
+          and ("block", "count_in_note") not in pc_kinds(moises("多带炒饭，带 sriracha。送饺子 3 盘（30 个，24 人每人至少 1 个）。"))
+          and ("block", "count_in_note") not in pc_kinds(moises(None)),
+          None, json.dumps(party_check.gaps_of(moises("多带 1 个")), ensure_ascii=False)[:400])
+
     # the pieces it reads with
     check("party check · times: 7:00-7:30 PM, 4 PM, 5 点半, 18:00; a note's own stamps ('11-11 19:28', '19:3x') are not times asked for",
           party_check.times_in("Chefs arrive 7:00-7:30 PM to set up") == {"7:00", "7:30"} and party_check.times_in("Chef arrives at 4 PM") == {"4:00"}

@@ -920,13 +920,33 @@ def prep_sheet_gaps(party: dict) -> list[dict]:
                  [])]
 
 
+# A count the chef must bring that lives only in a note (owner 2026-11-24: 「备货单里数量要完全体现，不能在备注里体现」).
+# Moises 11-24 (RH-20261123-5609): the loading list said "Gyoza 10 pcs" and the 备货备注 "多带 1 个" - the chef ticks
+# the list. A verb of bringing more with a number after it, in the notes we write; "多带炒饭" (no number) is fine.
+_NUM = r"[\d一二两三四五六七八九十几]+"
+EXTRA_COUNT = (r"(?:多|另|再|额外|另外)(?:带|拿|装|备|给)\s*" + _NUM + r"\s*(?:个|份|盘|包|瓶|只|块|片|袋|盒|套|张|把|罐|磅|pcs?|lbs?|oz)?"
+               r"|\b(?:bring|pack)\s+(?:an?\s+)?(?:extra|additional|more)\s+\d+|\b\d+\s+(?:extra|more)\s+(?:pcs|pieces|trays?|bottles?|servings?|bags?)\b")
+
+
+def count_note_gaps(carr: list[dict]) -> list[dict]:
+    """Blocking: a note carries a count the order lines do not (the owner's rule)."""
+    named = {"notes": "订单备注", "prep_note": "备货备注"}
+    hits = [{"src": "carrier", "label": named[c["kind"]], "at": None, "text": cl}
+            for c in carr if c["kind"] in named for cl in clauses(c["text"]) if has(EXTRA_COUNT, cl)]
+    if not hits:
+        return []
+    return [_gap("block", "count_in_note", "数量只写在备注里：备货清单那一行不是这个数，师傅照清单装车",
+                 "把数量做进订单明细，备注只写原因：前菜按个数用 --free-item / --add-extra / --set-extra gyoza=11pcs，"
+                 "别的东西用 --custom-item；改完把备注里那句数量删掉（老板 11-24）", hits)]
+
+
 def gaps_of(party: dict, *, blocking_only: bool = False) -> list[dict]:
     """Every gap for one party, blocking first. blocking_only: the two the owner made blocking, from the order's
     own notes, the lead's and the deal (what `desk order show` reads)."""
     carr = carriers(party)
     srcs = sources(party)
     everything = srcs + [{"src": "carrier", "label": "", "at": None, "text": cl} for c in carr for cl in clauses(c["text"])]
-    out = setup_gaps(party, srcs, carr) + allergy_gaps(srcs, carr, everything) + prep_sheet_gaps(party)
+    out = setup_gaps(party, srcs, carr) + allergy_gaps(srcs, carr, everything) + prep_sheet_gaps(party) + count_note_gaps(carr)
     if blocking_only:
         return [g for g in out if g["severity"] == "block"]
     out += warn_gaps(party, srcs, carr, everything) + crew_gaps(party) + address_gaps(party)

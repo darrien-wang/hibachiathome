@@ -274,6 +274,31 @@ def tray_qty(x) -> int | float:
     return int(q) if q.is_integer() else q
 
 
+# Gyoza and spring rolls come 10 to a tray and can be counted by the piece (owner
+# 2026-11-24: 「备货单里数量要完全体现，不能在备注里体现」 - Moises's 11 guests were given a
+# gyoza each, desk could only write a whole tray, and the eleventh lived in a note).
+PIECES_PER_TRAY = {"gyoza": 10, "spring_rolls": 10}
+PIECE_GIFT_NAMES = {"gyoza": "Gyoza", "spring_rolls": "Spring Rolls"}  # "FREE: Gyoza (11 pcs)", read by the invoice's giftedAppetizerOf
+
+
+def _appetizer_count(flag: str, pair: str, allowed) -> tuple:
+    """id=N (trays or servings) or id=Npcs (gyoza / spring rolls by the piece:
+    gyoza=11pcs is 1.1 trays, which the loading list and the chef sheet show as
+    Gyoza 11 pcs). Returns (id, trays, pieces - None when given in trays)."""
+    m = re.fullmatch(r"([a-z_]+)=(\d+)(pcs)?", pair)
+    if not m or m.group(1) not in allowed:
+        raise SystemExit(f"{flag} {pair!r}: use id=N (trays / servings), or id=Npcs for {sorted(PIECES_PER_TRAY)} by the piece, "
+                         f"with id in {sorted(allowed)}")
+    app_id, n = m.group(1), int(m.group(2))
+    if not m.group(3):
+        return app_id, n, None
+    if app_id not in PIECES_PER_TRAY:
+        raise SystemExit(f"{flag} {pair!r}: only {sorted(PIECES_PER_TRAY)} go by the piece")
+    if n <= 0:
+        raise SystemExit(f"{flag} {pair!r}: give at least 1 piece")
+    return app_id, tray_qty(n / PIECES_PER_TRAY[app_id]), n
+
+
 # Whole-table protein servings (invoice PARTY_EXTRAS side_*, billed per serving; one serving = one
 # adult portion). How "a third protein for everyone" rides on an order that has no guest rows yet:
 # the church group RH-20261021-9381 wanted shrimp as the third protein for 15 = side_shrimp=15 ($150).
@@ -2147,8 +2172,8 @@ def _weekday_appetizer(line: dict, data: dict) -> float:
     app = m.group(1).lower().replace(" ", "_")
     price = APPETIZER_PRICES[app]
     have = next((tray_qty(e.get("qty")) for e in (data.get("partyExtras") or []) if e.get("id") == app), 0)
-    gifts = (GIFT_APPETIZER.fullmatch(str(x.get("label") or "")) for x in (data.get("promotions") or []))
-    free = tray_qty(have - sum(int(g.group(2)) for g in gifts if g and GIFT_LABELS[g.group(1)] == app))
+    gifts = (_gift_of(x.get("label")) for x in (data.get("promotions") or []))
+    free = tray_qty(have - sum(g[1] for g in gifts if g and g[0] == app))
     trays = 1
     if free > 1:
         adults, kids = _paid_heads(data)
@@ -2326,6 +2351,34 @@ def _deal_lines(data: dict) -> list[dict]:
 OFFICIAL_APPETIZER = re.compile(r"free appetizer[^:]*:\s*(gyoza|edamame|spring rolls)", re.I)
 GIFT_LABELS = {**{v: k for k, v in APPETIZER_LABELS.items()}, "Edamame (feeds 3)": "edamame"}  # lines saved before 2026-10-30 say it
 GIFT_APPETIZER = re.compile(r"FREE: (" + "|".join(map(re.escape, GIFT_LABELS)) + r") x(\d+)")
+# By the piece since 2026-11-24: "FREE: Gyoza (11 pcs)" (--free-item gyoza=11pcs) gives 1.1 trays.
+PIECE_GIFT_IDS = {v: k for k, v in PIECE_GIFT_NAMES.items()}
+GIFT_PIECES = re.compile(r"FREE: (" + "|".join(map(re.escape, PIECE_GIFT_IDS)) + r") \((\d+) pcs\)")
+
+
+def _gift_of(label) -> tuple | None:
+    """The appetizer and the trays a --free-item line gives, as the invoice's
+    giftedAppetizerOf reads it: "FREE: Gyoza (10 pcs) x2" is 2 trays,
+    "FREE: Gyoza (11 pcs)" 1.1. None for any other line."""
+    s = str(label or "")
+    m = GIFT_APPETIZER.fullmatch(s)
+    if m:
+        return GIFT_LABELS[m.group(1)], int(m.group(2))
+    m = GIFT_PIECES.fullmatch(s)
+    if m:
+        app = PIECE_GIFT_IDS[m.group(1)]
+        return app, tray_qty(int(m.group(2)) / PIECES_PER_TRAY[app])
+    return None
+
+
+def _gift_label(app: str, trays) -> str:
+    """The --free-item line for these trays: whole trays "FREE: Gyoza (10 pcs) x2", pieces "FREE: Gyoza (11 pcs)"."""
+    t = tray_qty(trays)
+    if float(t).is_integer():
+        return f"FREE: {APPETIZER_LABELS[app]} x{int(t)}"
+    if app not in PIECES_PER_TRAY:
+        raise SystemExit(f"{t} {app} is not a count we give - {app} goes by the whole serving")
+    return f"FREE: {PIECE_GIFT_NAMES[app]} ({round(t * PIECES_PER_TRAY[app])} pcs)"
 
 
 def _paid_children(data: dict) -> int:
@@ -2356,9 +2409,9 @@ def _swap_free_appetizer(data: dict, new: str) -> list[str]:
     official = [x for x in promos if x.get("id") in FREE_APPETIZER_PROMO_IDS]
     gifts = []  # (line, appetizer, trays)
     for x in promos:
-        m = GIFT_APPETIZER.fullmatch(str(x.get("label") or ""))
-        if m:
-            gifts.append((x, GIFT_LABELS[m.group(1)], int(m.group(2))))
+        g = _gift_of(x.get("label"))
+        if g:
+            gifts.append((x, g[0], g[1]))
     if len(official) > 1:
         raise SystemExit(f"this order has {[x.get('id') for x in official]} - they never stack; fix it in the invoice tool")
     line = official[0] if official else None
@@ -2424,7 +2477,7 @@ def _swap_free_appetizer(data: dict, new: str) -> list[str]:
             m = OFFICIAL_APPETIZER.search(x["label"])
             x["label"] = x["label"][:m.start(1)] + new.replace("_", " ").title() + x["label"][m.end(1):]
         else:
-            x["label"] = f"FREE: {APPETIZER_LABELS[new]} x{n}"
+            x["label"] = _gift_label(new, n)
         x["amount"] = round(was + delta * n, 2)
         out.append(f"promo {x.get('id')} '{x['label']}': {money(was)} -> {money(x['amount'])}"
                    + (f" ({n} tray(s) x {delta:+.2f}, what the extras move by)" if delta else " (same price)"))
@@ -2850,9 +2903,9 @@ def summary_free_trays(data: dict) -> dict[str, float]:
     add = lambda k, n: out.__setitem__(k, tray_qty(out.get(k, 0) + n))  # noqa: E731
     for p in data.get("promotions") or []:
         label = str(p.get("label") or "")
-        gift = GIFT_APPETIZER.fullmatch(label)
+        gift = _gift_of(label)
         if gift:
-            add(GIFT_LABELS[gift.group(1)], int(gift.group(2)))
+            add(gift[0], gift[1])
             continue
         if p.get("id") not in FREE_APPETIZER_PROMO_IDS:
             continue
@@ -3788,20 +3841,19 @@ def cmd_order(a):
             stamp = int(time.time())
             extras = data.setdefault("partyExtras", [])
             promos = data.setdefault("promotions", [])
+            # By the head (one gyoza or spring roll a guest) give the pieces:
+            # gyoza=11pcs, so the loading list says Gyoza 11 pcs (owner 2026-11-24).
             for pair in a.free_item:
-                m = re.fullmatch(r"([a-z_]+)=(\d+)", pair)
-                if not m or m.group(1) not in APPETIZER_PRICES:
-                    raise SystemExit(f"--free-item {pair!r}: use id=N with id in {sorted(APPETIZER_PRICES)}")
-                app_id, n = m.group(1), int(m.group(2))
+                app_id, n, pcs = _appetizer_count("--free-item", pair, APPETIZER_PRICES)
                 row = next((e for e in extras if e.get("id") == app_id), None)
                 if row:
                     row["qty"] = tray_qty(tray_qty(row.get("qty")) + n)
                 else:
                     extras.append({"id": app_id, "qty": n})
-                label = APPETIZER_LABELS[app_id]
+                label = _gift_label(app_id, n)
                 amount = round(APPETIZER_PRICES[app_id] * n, 2)
-                promos.append({"id": f"{app_id}_{stamp}", "label": f"FREE: {label} x{n}", "amount": amount})
-                changes.append(f"free item: {app_id} +{n} in partyExtras, promo 'FREE: {label} x{n}' {money(amount)}")
+                promos.append({"id": f"{app_id}_{stamp}", "label": label, "amount": amount})
+                changes.append(f"free item: {app_id} +{n} tray(s){f' = {pcs} pcs' if pcs else ''} in partyExtras, promo '{label}' {money(amount)}")
         if a.add_extra:
             # Trays the customer buys (Heather 10-09: gyoza for 11 on a Sunday - no
             # free-appetizer promo applies). partyExtras at menu price, no promo line;
@@ -3812,6 +3864,16 @@ def cmd_order(a):
             extras = data.setdefault("partyExtras", [])
             has_rows = data.get("mode") == "detailed" and bool(data.get("guests"))
             for pair in a.add_extra:
+                if pair.endswith("pcs"):
+                    # Bought by the piece (gyoza=5pcs: $1.50 each, the invoice's "Gyoza (each)").
+                    app_id, n, pcs = _appetizer_count("--add-extra", pair, APPETIZER_PRICES)
+                    row = next((e for e in extras if e.get("id") == app_id), None)
+                    if row:
+                        row["qty"] = tray_qty(tray_qty(row.get("qty")) + n)
+                    else:
+                        extras.append({"id": app_id, "qty": n})
+                    changes.append(f"paid extra: {app_id} +{pcs} pcs ({n} tray(s)) at {money(APPETIZER_PRICES[app_id] / PIECES_PER_TRAY[app_id])} a piece")
+                    continue
                 m = re.fullmatch(r"([a-z_]+)=(\d+)", pair)
                 if not m or m.group(1) not in {**APPETIZER_PRICES, **SETUP_PRICES, **PROTEIN_SIDE_PRICES, **CLOTH_PRICES, **PIECE_PRICES, **RICE_ADDIN_PRICES}:
                     raise SystemExit(f"--add-extra {pair!r}: use id=N with id in {sorted({**APPETIZER_PRICES, **SETUP_PRICES, **PROTEIN_SIDE_PRICES, **CLOTH_PRICES, **PIECE_PRICES, **RICE_ADDIN_PRICES})}")
@@ -3850,10 +3912,7 @@ def cmd_order(a):
             # saving the old 2 gyoza would have put the tray back on it.
             extras = data.setdefault("partyExtras", [])
             for pair in a.set_extra:
-                m = re.fullmatch(r"([a-z_]+)=(\d+)", pair)
-                if not m or m.group(1) not in {**APPETIZER_PRICES, **PROTEIN_SIDE_PRICES}:
-                    raise SystemExit(f"--set-extra {pair!r}: use id=N with id in {sorted({**APPETIZER_PRICES, **PROTEIN_SIDE_PRICES})}")
-                app_id, n = m.group(1), int(m.group(2))
+                app_id, n, _pcs = _appetizer_count("--set-extra", pair, {**APPETIZER_PRICES, **PROTEIN_SIDE_PRICES})
                 was = sum(tray_qty(e.get("qty")) for e in extras if e.get("id") == app_id)
                 data["partyExtras"] = extras = [e for e in extras if e.get("id") != app_id] + ([{"id": app_id, "qty": n}] if n else [])
                 unit = "serving(s)" if app_id in PROTEIN_SIDE_PRICES else "tray(s)"
@@ -4540,9 +4599,9 @@ def main(argv=None):
                    help="setup item at a set price per guest, e.g. tables_chairs=5 (Saturday's half price, D-1017-01): writes customDeal.extraRates "
                         "+ the matching 'Tables & Chairs at $5/guest' line at the current count")
     p.add_argument("--drop-deal", action="store_true", help="remove the order's custom deal and its deal_* promotion lines")
-    p.add_argument("--free-item", nargs="+", action="extend", metavar="ID=N", help="appetizer trays promised free: gyoza=2 adds 2 trays and a fixed 'FREE: Gyoza (10 pcs) x2' line")
-    p.add_argument("--add-extra", nargs="+", action="extend", metavar="ID=N", help="appetizer trays the customer buys (billed at menu price): gyoza=1; a setup item for N guests before the rows exist: utensils=18; or tablecloths for their own tables by count: white_linen=3 ($5, black), white_tablecloth=3 ($8, white); or chairs / 6-ft tables on their own by count: folding_chairs=30, folding_tables=2 (bare, no cloth)")
-    p.add_argument("--set-extra", nargs="+", action="extend", metavar="ID=N", help="the whole count of a party-wide appetizer (trays) or protein side (servings), the free appetizer's tray included; 0 takes the line off. For a tray the customer took off on the party page: gyoza=1 leaves just the free one")
+    p.add_argument("--free-item", nargs="+", action="extend", metavar="ID=N", help="appetizer trays promised free: gyoza=2 adds 2 trays and a fixed 'FREE: Gyoza (10 pcs) x2' line; by the piece (one a guest) gyoza=11pcs adds 1.1 trays and 'FREE: Gyoza (11 pcs)', so the loading list says 11 - never put the extra pieces in a note (owner 2026-11-24)")
+    p.add_argument("--add-extra", nargs="+", action="extend", metavar="ID=N", help="appetizer trays the customer buys (billed at menu price): gyoza=1, or by the piece gyoza=5pcs ($1.50 each); a setup item for N guests before the rows exist: utensils=18; or tablecloths for their own tables by count: white_linen=3 ($5, black), white_tablecloth=3 ($8, white); or chairs / 6-ft tables on their own by count: folding_chairs=30, folding_tables=2 (bare, no cloth)")
+    p.add_argument("--set-extra", nargs="+", action="extend", metavar="ID=N", help="the whole count of a party-wide appetizer (trays) or protein side (servings), the free appetizer's tray included; 0 takes the line off. For a tray the customer took off on the party page: gyoza=1 leaves just the free one; gyoza=11pcs sets 1.1 trays")
     p.add_argument("--custom-item", nargs="+", action="extend", metavar="SPEC",
                    help=f"something no menu has (订单另加, owner 2026-11-21), {CUSTOM_ITEM_FORM}: a bill row (a free one reads On us), a line on "
                         "the chef's sheet and the prep list by its Chinese name with the note. The same NAME again replaces it")

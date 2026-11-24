@@ -80,7 +80,8 @@ python scripts/desk/desk.py order set  <单号> --add-extra tables_chairs=27 | e
 python scripts/desk/desk.py order set  <单号> --add-extra canopy=6                    # 替客人租的 10×10 帐篷，$20 一顶，按顶（老板 11-19）；装车清单列出来，告诉老板去订
 python scripts/desk/desk.py order set  <单号> --custom-item "Plain rice|白米饭|2|serving|0|生米每份约 3 oz"   # 订单另加（自定义项，老板 11-21）：英文名|中文名|数量|单位|单价|备注；单价 0 = 送的（账单写 On us），中文名和备注只印在备料单和备货清单上；同名再加 = 改数量/备注；--remove-custom-item "Plain rice" 去掉；中文多的用 --custom-items-file F（UTF-8，一行一项）。存完读回来核对；工作台订单弹窗「金额 · 收款」→「订单另加」也能改（老板）
 关满的日子（老板 11-19 起，表 closed_dates）：`insert into closed_dates(day, note, created_by) values ('2026-12-05', '原因', 'desk')` 关；`delete from closed_dates where day = '…'` 开。关了以后：锁单页拒这一天（已锁的客人照常显示已锁）、网站自动报价短信不带锁单链接、机器不发「X 号还有档」那条，线索交给人。对客：`Saturday, Dec 5 is fully booked. Would Friday the 4th or Sunday the 6th work?`（不说别的档期空）。老板说能连台的例外：先删那一行、发链接、客人锁了再插回去。11-19 关过 12/5，一小时后老板又放开（找到新的外包公司能接），现在没有关着的日子。
-python scripts/desk/desk.py order set  <单号> --free-item edamame=2                    # 送的前菜
+python scripts/desk/desk.py order set  <单号> --free-item edamame=2                    # 送的前菜（整盘 / 整份）
+python scripts/desk/desk.py order set  <单号> --free-item gyoza=11pcs                  # 按人头送饺子 / 春卷：写个数，备货单直接显示 11 个（老板 11-24：数量要在明细里，不能写备注）
 python scripts/desk/desk.py order set  <单号> --free-appetizer spring_rolls --dry      # 客人挑的免费前菜（押金页默认 gyoza）
 python scripts/desk/desk.py order set  <单号> --prep-note-file F [--dry]       # 备货备注（备货清单/备货单上这一单那行，300 字内，空文件=清空）：要师傅带的、要注意的写这里或订单备注（D-1112-01，短信不算数）
 python scripts/desk/desk.py order set  <单号> --prep-guests 20 [--dry]         # 答应多带饭菜（老板 11-20「多带点炒饭和蔬菜，怕多来人」）：饭、蔬菜、沙拉和配的蛋、酱按 20 人备，备料单和备货清单写「备餐按 20 人（订单 15 人）」，不用再在备注里手写 oz；蛋白和价格不变；0 = 去掉
