@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { ALBUM_BUCKET, ALBUM_MAX_FILES_PER_DEVICE, DEVICE_RE } from "@/lib/party-album"
-import { albumByToken, albumDir, albumIndex, albumItems, albumLinks, albumSlot, contributorCount, guestNames, setGuestName } from "@/lib/party-album-server"
+import { albumByToken, albumDir, albumIndex, albumItems, albumLinks, albumSlot, contributorCount, guestNames, importChefPhotos, setGuestName } from "@/lib/party-album-server"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -38,6 +38,9 @@ export async function GET(request: NextRequest, { params }: Ctx) {
   const { album, role } = found
   const device = request.nextUrl.searchParams.get("device")
   const dev = device && DEVICE_RE.test(device) ? device : null
+  // The chef may upload after the album was made: pull in anything new from
+  // this party's prep sheet (idempotent; a shot the owner hid stays hidden).
+  if (album.order_id) await importChefPhotos(supabase, album, "auto").catch(() => 0)
   const { items, rows } = await albumItems(supabase, album, { device: role === "contributor" ? dev : null })
   const video = album.video_path
     ? ((await supabase.storage.from(ALBUM_BUCKET).createSignedUrl(album.video_path, 6 * 3600)).data?.signedUrl ?? null)

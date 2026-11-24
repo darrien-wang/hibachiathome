@@ -9,6 +9,7 @@ import {
   albumFirstName,
   albumTitle,
   newAlbumToken,
+  seedRank,
 } from "@/lib/party-album"
 
 // Server half of the party album: create one per order, take uploads (guest or
@@ -243,9 +244,9 @@ async function signMany(supabase: SupabaseClient, paths: string[]): Promise<Map<
 }
 
 /**
- * What a viewer sees. Seeds (staff + chef) first in the order they were added,
- * so the album opens on the shots we chose; then guests, newest first, so a
- * guest coming back sees what's new.
+ * What a viewer sees. Seeds first - this party's chef video leads, so it is the
+ * cover (seedRank) - then guests, newest first, so a guest coming back sees
+ * what's new.
  */
 export async function albumItems(
   supabase: SupabaseClient,
@@ -256,7 +257,7 @@ export async function albumItems(
   if (!opts.includeHidden) q = q.eq("status", "visible")
   const { data } = await q
   const all = (data ?? []) as AlbumMediaRow[]
-  const seeds = all.filter((r) => r.source !== "guest")
+  const seeds = all.filter((r) => r.source !== "guest").sort((a, b) => seedRank(a) - seedRank(b))
   const guests = all.filter((r) => r.source === "guest").reverse()
   const rows = [...seeds, ...guests]
   const [signed, names] = await Promise.all([

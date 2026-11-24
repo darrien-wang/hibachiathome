@@ -148,3 +148,17 @@ export function avatarColor(name: string): string {
   for (const ch of name.toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0
   return palette[h % palette.length]
 }
+
+/**
+ * Order of the seeds, so the cover is this party's own moment (owner,
+ * 2026-11-23: "the chef films first at this party, then the guests follow"):
+ * the chef's volcano video, then the chef's other videos, the chef's photos,
+ * then anything we uploaded. Lower comes first; ties keep upload order.
+ */
+export function seedRank(row: { source: string; kind: string; storage_path: string }): number {
+  if (row.source === "chef") {
+    if (row.kind === "video") return /\/volcano-/.test(row.storage_path) ? 0 : 1
+    return 2
+  }
+  return 3
+}

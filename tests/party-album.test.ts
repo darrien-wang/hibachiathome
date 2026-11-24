@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { albumByLabel, albumMediaType, groupAlbumText, hostAlbumText, albumPhone, albumTitle, couponExpiry, newAlbumToken, newCouponCode, DEVICE_RE } from "../lib/party-album"
+import { seedRank, albumByLabel, albumMediaType, groupAlbumText, hostAlbumText, albumPhone, albumTitle, couponExpiry, newAlbumToken, newCouponCode, DEVICE_RE } from "../lib/party-album"
 
 test("album title reads like a keepsake: Tommy's Party", () => {
   assert.equal(albumTitle("Tommy Lee"), "Tommy's Party")
@@ -49,4 +49,17 @@ test("tokens and codes", () => {
 test("coupon lasts 12 months", () => {
   const d = couponExpiry(new Date("2026-11-23T12:00:00Z"))
   assert.equal(d.toISOString().slice(0, 10), "2027-11-23")
+})
+
+test("cover = this party's chef video (volcano first), then chef's others, then ours", () => {
+  const rows = [
+    { id: "staff", source: "staff", kind: "video", storage_path: "album/a/staff/1-x.mp4" },
+    { id: "chefPhoto", source: "chef", kind: "photo", storage_path: "o/after-1-x.jpg" },
+    { id: "chefAfter", source: "chef", kind: "video", storage_path: "o/after-2-v.mov" },
+    { id: "volcano", source: "chef", kind: "video", storage_path: "o/volcano-3-v.mov" },
+  ]
+  assert.deepEqual(
+    [...rows].sort((a, b) => seedRank(a) - seedRank(b)).map((r) => r.id),
+    ["volcano", "chefAfter", "chefPhoto", "staff"],
+  )
 })
