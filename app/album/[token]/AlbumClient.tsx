@@ -60,8 +60,31 @@ function deviceId(): string {
   }
 }
 
-const prettyDate = (d: string | null) =>
-  d ? new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric", year: "numeric" }) : ""
+/**
+ * The party's date as a little tear-off calendar page (owner, 2026-11-23:
+ * "the date should feel like a calendar card") - a keepsake, not a form field.
+ */
+function CalendarCard({ date }: { date: string }) {
+  const d = new Date(`${date}T12:00:00Z`)
+  const opt = (o: Intl.DateTimeFormatOptions) => d.toLocaleDateString("en-US", { timeZone: "UTC", ...o })
+  return (
+    <div
+      className="relative w-[84px] shrink-0 -rotate-3 overflow-hidden rounded-2xl bg-surface text-center shadow-[0_6px_18px_rgba(61,42,28,0.18)] ring-1 ring-ink/10"
+      aria-label={opt({ weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+      role="img"
+    >
+      <div className="relative bg-flame pb-1 pt-2.5 text-[13px] font-extrabold uppercase tracking-[0.18em] text-cream">
+        <span className="absolute left-4 top-1 h-1.5 w-1.5 rounded-full bg-cream/80" />
+        <span className="absolute right-4 top-1 h-1.5 w-1.5 rounded-full bg-cream/80" />
+        {opt({ month: "short" })}
+      </div>
+      <div className="font-serif text-[40px] font-extrabold leading-[1.05] text-ink">{opt({ day: "numeric" })}</div>
+      <div className="border-t border-dashed border-ink/15 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-wide text-clay-700">
+        {opt({ weekday: "short" })} · {opt({ year: "numeric" })}
+      </div>
+    </div>
+  )
+}
 
 const PlayIcon = ({ size = 18 }: { size?: number }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} fill="#fffaf3" aria-hidden="true">
@@ -221,7 +244,6 @@ export default function AlbumClient({ token }: { token: string }) {
   const busy = pending.some((u) => u.state === "waiting" || u.state === "uploading")
   const total = items.length
   const people = data.people ?? 0
-  const dateLine = [prettyDate(album.eventDate), album.place].filter(Boolean).join(" · ")
   const canAdd = data.role === "contributor" && album.open
   const sideBtn =
     "flex flex-col items-center justify-center gap-0.5 rounded-2xl border-2 border-ink/15 bg-surface px-2 py-2.5 text-[14px] font-semibold text-ink active:bg-cream"
@@ -230,9 +252,14 @@ export default function AlbumClient({ token }: { token: string }) {
     <div className={`${shell} ${canAdd ? "pb-48" : "pb-32"} pt-8 sm:pt-12`}>
       <Festive season={seasonOf(album.eventDate)} burst={celebrate} />
       <header>
-        {dateLine ? <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-clay-700">{dateLine}</p> : null}
-        <h1 className="mt-2 font-serif text-[42px] font-extrabold leading-[1.02] tracking-tight sm:text-5xl">{album.title}</h1>
-        <p className="mt-3 text-[17px] leading-relaxed text-clay-700">Every photo and video from the night, all in one place.</p>
+        <div className="flex items-center gap-4">
+          {album.eventDate ? <CalendarCard date={album.eventDate} /> : null}
+          <div className="min-w-0">
+            {album.place ? <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-clay-700">{album.place}</p> : null}
+            <h1 className="mt-1 font-serif text-[38px] font-extrabold leading-[1.02] tracking-tight sm:text-5xl">{album.title}</h1>
+          </div>
+        </div>
+        <p className="mt-4 text-[17px] leading-relaxed text-clay-700">Every photo and video from the night, all in one place.</p>
       </header>
 
       {album.video ? (
