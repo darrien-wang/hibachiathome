@@ -64,6 +64,9 @@ type OutStop = {
   outsourcedBy: string | null
   note: string | null
   invoiceUrl: string | null
+  /** 给了哪家合作公司（老板 2026-11-23）；null = 还没选。结清了就不能在这里换。 */
+  partnerId?: string | null
+  partnerSettled?: boolean
   chefIds: string[]
   helperIds?: string[]
   pending?: { add: string[]; remove: string[] }
@@ -94,6 +97,8 @@ type Resp = {
   /** 直营的单（我们自己做）：上地图、排班、派师傅。外包的在 outsourced。 */
   stops: Stop[]
   outsourced?: OutStop[]
+  /** 外包合作公司（Meet Hibachi、JustOne Hibachi …） */
+  partners?: Array<{ id: string; name: string; active: boolean }>
   chefs: Chef[]
   missing: Array<{ name: string; address: string }>
   home: { lat: number; lng: number; label: string } | null
@@ -498,6 +503,21 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
       setOutBusy(null)
     }
   }
+  // 外包给哪家（老板 2026-11-23）：每场一个下拉，结算在「外包」页。
+  const partners = d?.partners ?? []
+  const setPartner = async (o: OutStop, partnerId: string) => {
+    if (outBusy) return
+    setOutBusy(o.id)
+    try {
+      const r = await adminJson<{ ok: boolean; error?: string }>(adminKey, "/api/admin/partners", { body: { action: "assign", order_id: o.id, partner_id: partnerId || null } })
+      if (!r.ok) throw new Error(r.error ?? "没改成")
+    } catch (e) {
+      void tell({ title: "没选上合作公司", message: e instanceof Error ? e.message : "出错了" })
+    } finally {
+      await load()
+      setOutBusy(null)
+    }
+  }
   const copyInvoiceLink = async (o: OutStop) => {
     if (!o.invoiceUrl) return
     const said = `${o.time} ${o.name} 给合作方的 invoice 链接，打开就是订单现在的样子，派对后两周内都能打开：`
@@ -584,6 +604,21 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
               {left.length ? <span style={{ color: "var(--color-accent-700)", fontWeight: 700 }}> · 名单上还有 {namesOf(left)}</span> : null}
               {(o.pending?.remove.length ?? 0) > 0 ? <span style={{ color: "var(--color-accent-700)", fontWeight: 700 }}> · 待通知 −{namesOf(o.pending!.remove)}</span> : null}
               <span style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
+                <select
+                  aria-label="外包给哪家合作公司"
+                  value={o.partnerId ?? ""}
+                  disabled={outBusy !== null || o.partnerSettled}
+                  title={o.partnerSettled ? "已经和这家结清了，要换先到「外包」页撤销结清" : "外包给哪家合作公司"}
+                  onChange={(e) => void setPartner(o, e.target.value)}
+                  style={{ fontSize: 13, padding: "2px 4px", fontWeight: o.partnerId ? 700 : 400, color: o.partnerId ? undefined : "var(--color-accent-700)" }}
+                >
+                  <option value="">未选公司</option>
+                  {partners.filter((p) => p.active || p.id === o.partnerId).map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
                 <button type="button" className="btn btn-secondary btn-sm" disabled={!o.invoiceUrl} title={o.invoiceUrl ?? "还没有链接：点改回直营再标一次外包会生成"} onClick={() => void copyInvoiceLink(o)}>
                   复制 invoice 链接
                 </button>
@@ -596,7 +631,7 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
         })}
       </div>
       <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 6 }}>
-        合作公司做：不派师傅、不发备料单、不进备货清单，也不算在上面的师傅数里。给合作方的是 invoice 链接，打开就是订单现在的样子，派对后两周内都能打开。客人那边看不到外包。
+        合作公司做：不派师傅、不发备料单、不进备货清单，也不算在上面的师傅数里。给合作方的是 invoice 链接，打开就是订单现在的样子，派对后两周内都能打开。客人那边看不到外包。和合作公司的账在「外包」页结。
       </div>
     </div>
   ) : null

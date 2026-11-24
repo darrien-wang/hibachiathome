@@ -15,6 +15,7 @@ import { ChefsTab, type ChefTabKey } from "./ChefsTab"
 import { CustomersTab } from "./CustomersTab"
 import WarehouseTab from "./WarehouseTab"
 import ReviewsTab from "./ReviewsTab"
+import PartnersTab from "./PartnersTab"
 import { PlannerTab } from "./planner-live"
 import { ChefDialog } from "./ChefDialog"
 import { LeadDialog } from "./LeadDialog"
@@ -33,8 +34,8 @@ import { displayName, eventParts, LEAD_STATUS_LABELS, LEAD_TAG_CLASS, leadUnrepl
 // out of that lead, ?since=YYYY-MM-DD scopes the lead list (from the board).
 // The old /admin/leads, /admin/orders, /admin/channels URLs redirect here.
 
-type Tab = "board" | "leads" | "orders" | "planner" | "chefs" | "customers" | "reviews" | "warehouse" | "cal" | "settings"
-const TAB_TITLES: Record<Tab, string> = { board: "看板", leads: "线索", orders: "订单", planner: "Planner", chefs: "员工", customers: "客户", reviews: "好评", warehouse: "仓库", cal: "日历", settings: "设置" }
+type Tab = "board" | "leads" | "orders" | "planner" | "chefs" | "partners" | "customers" | "reviews" | "warehouse" | "cal" | "settings"
+const TAB_TITLES: Record<Tab, string> = { board: "看板", leads: "线索", orders: "订单", planner: "Planner", chefs: "员工", partners: "外包", customers: "客户", reviews: "好评", warehouse: "仓库", cal: "日历", settings: "设置" }
 const CHEF_TABS = new Set(["shifts", "profile", "perf", "docs", "settle", "files", "sms"])
 
 type SearchHit = {
@@ -225,13 +226,16 @@ export default function Workbench() {
     ["orders", <>订单{changedCount ? <span className="wb-badge">{changedCount}</span> : null}</>],
     ["planner", <>Planner{data.planner.liveCount ? <span className="wb-live" title={`${data.planner.liveCount} 人正在操作 Planner`} /> : null}</>],
     ["chefs", <>员工{data.chefAlerts ? <span className="wb-badge">{data.chefAlerts}</span> : null}</>],
+    ["partners", "外包"],
     ["customers", "客户"],
     ["reviews", "好评"],
     ["warehouse", "仓库"],
     ["cal", "日历"],
     ["settings", "设置"],
   ]
-  const tabs = allTabs.filter(([t]) => t !== "board" || canBoard)
+  // 外包结算（老板 2026-11-23）只有老板看得到，接口也只认老板。
+  const isOwner = data.viewer?.role === "owner"
+  const tabs = allTabs.filter(([t]) => (t !== "board" || canBoard) && (t !== "partners" || isOwner))
   const refreshOrdersAndChefs = async () => {
     await Promise.all([data.refreshOrders(), data.refreshChefs()])
   }
@@ -298,6 +302,8 @@ export default function Workbench() {
           <PlannerTab adminKey={key} live={data.planner} isMobile={isMobile} onOpenLead={openLead} onOpenOrder={openOrder} />
         ) : tab === "chefs" ? (
           <ChefsTab key={chefView} adminKey={key} chefs={data.chefs} orders={data.orders} settings={data.settings} isMobile={isMobile} viewerRole={data.viewer?.role ?? null} sensitive={canChefMoney} initialView={chefView} onOpenChef={openChef} onOpenOrder={openOrder} onChanged={data.refreshChefs} />
+        ) : tab === "partners" && isOwner ? (
+          <PartnersTab adminKey={key} isMobile={isMobile} onOpenOrder={openOrder} />
         ) : tab === "customers" ? (
           <CustomersTab adminKey={key} leads={data.leads} isMobile={isMobile} viewerRole={data.viewer?.role ?? null} onCall={onCall} onOpenLead={openLead} />
         ) : tab === "reviews" ? (

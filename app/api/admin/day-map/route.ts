@@ -318,10 +318,21 @@ export async function GET(request: NextRequest) {
     savedBy: (dayPlanRow?.saved_by as string | null) ?? null,
   }
 
+  // 外包单给了哪家合作公司（老板 2026-11-23，lib/partner-settlement-server.ts）。
+  const outIds = outsourced.map((r) => r.id)
+  const [{ data: partnerRows }, { data: allocRows }] = await Promise.all([
+    supabase.from("partners").select("id, name, active").eq("partner_type", "contractor").order("created_at"),
+    outIds.length
+      ? supabase.from("order_partner_allocations").select("order_id, partner_id, status").in("order_id", outIds).eq("role", "contractor").neq("status", "voided")
+      : Promise.resolve({ data: [] as Array<{ order_id: string; partner_id: string; status: string }> }),
+  ])
+  const partnerOf = new Map(((allocRows ?? []) as Array<{ order_id: string; partner_id: string; status: string }>).map((a) => [a.order_id, a]))
+
   return NextResponse.json({
     ok: true,
     date,
     dayPlan,
+    partners: ((partnerRows ?? []) as Array<{ id: string; name: string; active: boolean }>).map((p) => ({ id: p.id, name: p.name, active: p.active })),
     stops: stops.map((s) => ({ ...s, chefIds: chefIdsOf.get(s.id) ?? [], helperIds: helperIdsOf.get(s.id) ?? [], pending: pendingOf(s.id) })),
     // 外包的单：开场先后，带给合作方的 invoice 链接（lib/outsourced.ts）。还挂着的名单（外包后又派上的不会有，
     // 派单接口拦着）和欠的通知照样算。
@@ -342,6 +353,8 @@ export async function GET(request: NextRequest) {
         outsourcedBy: mark?.by ?? null,
         note: mark?.note ?? null,
         invoiceUrl: partnerInvoiceUrl(mark?.invoice_token),
+        partnerId: partnerOf.get(r.id)?.partner_id ?? null,
+        partnerSettled: partnerOf.get(r.id)?.status === "paid" || partnerOf.get(r.id)?.status === "received",
         chefIds: chefIdsOf.get(r.id) ?? [],
         helperIds: helperIdsOf.get(r.id) ?? [],
         pending: pendingOf(r.id),

@@ -32,6 +32,7 @@ import { ackNotices } from "@/lib/chef-notices"
 import { phoneDigits10 } from "@/lib/staff-phones"
 import { isOutsourced, keepOutsourcedMark, outsourceBlocker, outsourcedMark, partnerInvoiceUrl, withOutsourcedMark, type OutsourcedMark } from "@/lib/outsourced"
 import { newInvoiceToken } from "@/lib/partner-invoice"
+import { assignPartner } from "@/lib/partner-settlement-server"
 import { instantToWallIso } from "@/lib/first-response"
 
 export const dynamic = "force-dynamic"
@@ -1575,6 +1576,9 @@ export async function POST(request: NextRequest) {
         const was = outsourcedMark(rawPlan)
         if (body.outsourced === false) {
           if (!was) return NextResponse.json({ ok: true, orderId: oid, outsourced: false, already: true })
+          // 指派的合作公司（lib/partner-settlement-server.ts）一起作废；已经和对方结过账的不能改回直营。
+          const cleared = await assignPartner(supabase, oid, null, `workbench:${actor.alias}`)
+          if (!cleared.ok) return NextResponse.json({ error: cleared.error }, { status: cleared.status })
           const { error } = await supabase.from("orders").update({ dispatch_plan: withOutsourcedMark(rawPlan, null), updated_at: now }).eq("id", oid)
           if (error) throw error
           await supabase.from("order_events").insert({ order_id: oid, actor: `workbench:${actor.alias}`, action: "outsourced_cleared", metadata: { was: { at: was.at, by: was.by } } })
@@ -1594,6 +1598,11 @@ export async function POST(request: NextRequest) {
         if (changed) {
           const { error } = await supabase.from("orders").update({ dispatch_plan: withOutsourcedMark(rawPlan, mark), updated_at: now }).eq("id", oid)
           if (error) throw error
+        }
+        // 外包给哪家（老板 2026-11-23）：partner_id 带了就顺手指派；没带就不动原来选的。
+        if (isUuid(body.partner_id)) {
+          const assigned = await assignPartner(supabase, oid, body.partner_id, `workbench:${actor.alias}`)
+          if (!assigned.ok) return NextResponse.json({ error: assigned.error }, { status: assigned.status })
         }
         const off = (onIt ?? []) as Array<{ id: string; staff_member_id: string; assignment_role: string | null }>
         if (off.length) {
