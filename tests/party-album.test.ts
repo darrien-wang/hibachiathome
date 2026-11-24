@@ -1,13 +1,29 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { albumMediaType, albumPhone, albumTitle, couponExpiry, newAlbumToken, newCouponCode, DEVICE_RE } from "../lib/party-album"
+import { albumByLabel, albumMediaType, groupAlbumText, hostAlbumText, albumPhone, albumTitle, couponExpiry, newAlbumToken, newCouponCode, DEVICE_RE } from "../lib/party-album"
 
-test("album title uses the host's first name", () => {
-  assert.equal(albumTitle("Lisa Ramirez"), "Lisa's party")
-  assert.equal(albumTitle("james smith"), "James' party")
-  assert.equal(albumTitle("  "), "Your party")
-  assert.equal(albumTitle(null), "Your party")
+test("album title reads like a keepsake: Tommy's Party", () => {
+  assert.equal(albumTitle("Tommy Lee"), "Tommy's Party")
+  assert.equal(albumTitle("TOMMY"), "Tommy's Party")
+  assert.equal(albumTitle("james smith"), "James' Party")
+  assert.equal(albumTitle("  "), "Our Party")
+  assert.equal(albumTitle(null), "Our Party")
+})
+
+test("seeds read as us, guests stay anonymous", () => {
+  assert.equal(albumByLabel("staff", false), "Real Hibachi")
+  assert.equal(albumByLabel("chef", false), "Real Hibachi")
+  assert.equal(albumByLabel("guest", false), null)
+  assert.equal(albumByLabel("guest", true), "You")
+})
+
+test("host and group texts never mention a coupon", () => {
+  const link = "https://www.realhibachi.com/album/abc"
+  for (const t of [hostAlbumText("Tommy", link), groupAlbumText(link)]) {
+    assert.ok(t.includes(link))
+    assert.ok(!/\$|coupon|off/i.test(t), t)
+  }
 })
 
 test("phone: US 10-digit only", () => {

@@ -1,35 +1,37 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { phone as sitePhone } from "@/config/site"
-import { ALBUM_COUPON, albumMediaType, groupAlbumText } from "@/lib/party-album"
+import { albumMediaType, groupAlbumText } from "@/lib/party-album"
+import { uploadAlbumFile } from "@/lib/album-upload-client"
 
 // ============================================================
 // /album/<token> - the party album guests open from the group chat
 // ============================================================
-// One big button: pick photos and videos, they upload in the background (two
-// at a time, straight to storage), the grid fills in. After the first one
-// lands, a card asks for name + phone and hands back a $50 code. Built to be
-// the easiest page on the site: no sign-in, nothing to fill before uploading.
+// Owner, 2026-11-23: one job - get people to join in. At first glance it has to
+// be the party itself (a title like "Tommy's Party", the date, the photos and
+// videos we seeded), so it feels like a keepsake, not a form or a promo. The
+// only action is "Add your photos & videos", pinned to the bottom; nothing to
+// fill in, no coupon. What you add shows up in the grid the moment you pick it.
 
 type Item = {
   id: string
-  source: "guest" | "chef"
+  source: "guest" | "staff" | "chef"
   kind: "photo" | "video"
   url: string | null
   thumb: string | null
   by: string | null
-  mine?: boolean
+  mine: boolean
   createdAt: string
 }
 type AlbumData = {
   ok: boolean
   error?: string
-  album?: { title: string; eventDate: string | null; open: boolean; video: string | null }
+  album?: { title: string; eventDate: string | null; place: string | null; open: boolean; video: string | null }
   items?: Item[]
-  claimed?: { code: string; expiresAt: string } | null
+  people?: number
 }
-type Upload = { key: string; name: string; progress: number; state: "waiting" | "uploading" | "done" | "failed"; error?: string }
+type Pending = { key: string; preview: string | null; progress: number; state: "waiting" | "uploading" | "done" | "failed"; error?: string }
 
 const DEVICE_KEY = "rh-album-device"
 
@@ -47,77 +49,21 @@ function deviceId(): string {
 }
 
 const prettyDate = (d: string | null) =>
-  d ? new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric" }) : ""
+  d ? new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric", year: "numeric" }) : ""
 
-const until = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-
-/** A 480px JPEG preview, made on the phone so the grid never pulls the full files. */
-async function makeThumb(file: File, kind: "photo" | "video"): Promise<Blob | null> {
-  const draw = (src: CanvasImageSource, w: number, h: number) => {
-    if (!w || !h) return null
-    const scale = Math.min(1, 480 / Math.max(w, h))
-    const canvas = document.createElement("canvas")
-    canvas.width = Math.round(w * scale)
-    canvas.height = Math.round(h * scale)
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return null
-    ctx.drawImage(src, 0, 0, canvas.width, canvas.height)
-    return new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), "image/jpeg", 0.8))
-  }
-  const url = URL.createObjectURL(file)
-  try {
-    if (kind === "photo") {
-      const img = new Image()
-      img.decoding = "async"
-      img.src = url
-      await img.decode()
-      return await draw(img, img.naturalWidth, img.naturalHeight)
-    }
-    const video = document.createElement("video")
-    video.muted = true
-    video.playsInline = true
-    video.preload = "metadata"
-    video.src = url
-    await new Promise<void>((resolve, reject) => {
-      video.onloadedmetadata = () => resolve()
-      video.onerror = () => reject(new Error("video"))
-      setTimeout(() => reject(new Error("timeout")), 8000)
-    })
-    video.currentTime = Math.min(1, (video.duration || 2) / 2)
-    await new Promise<void>((resolve, reject) => {
-      video.onseeked = () => resolve()
-      setTimeout(() => reject(new Error("timeout")), 8000)
-    })
-    return await draw(video, video.videoWidth, video.videoHeight)
-  } catch {
-    return null
-  } finally {
-    URL.revokeObjectURL(url)
-  }
-}
-
-function put(url: string, body: Blob, type: string, onProgress?: (p: number) => void): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
-    xhr.open("PUT", url)
-    xhr.setRequestHeader("content-type", type)
-    xhr.setRequestHeader("x-upsert", "false")
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total)
-    }
-    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`upload ${xhr.status}`)))
-    xhr.onerror = () => reject(new Error("network"))
-    xhr.send(body)
-  })
-}
+const PlayIcon = ({ size = 18 }: { size?: number }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="#fffaf3" aria-hidden="true">
+    <path d="M8 5v14l11-7z" />
+  </svg>
+)
 
 export default function AlbumClient({ token }: { token: string }) {
   const [device, setDevice] = useState<string | null>(null)
   const [data, setData] = useState<AlbumData | null>(null)
-  const [uploads, setUploads] = useState<Upload[]>([])
+  const [pending, setPending] = useState<Pending[]>([])
   const [termsOpen, setTermsOpen] = useState(false)
-  const [viewer, setViewer] = useState<Item | null>(null)
-  const [shareNote, setShareNote] = useState<string | null>(null)
+  const [viewer, setViewer] = useState<number | null>(null)
+  const [note, setNote] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const api = `/api/album/${encodeURIComponent(token)}`
 
@@ -129,7 +75,7 @@ export default function AlbumClient({ token }: { token: string }) {
       const res = await fetch(`${api}?device=${device}`, { cache: "no-store" })
       setData((await res.json()) as AlbumData)
     } catch {
-      setData({ ok: false, error: "We couldn't open the album. Please check your connection and try again." })
+      setData((d) => d ?? { ok: false, error: "We couldn't open it. Please check your connection and try again." })
     }
   }, [api, device])
 
@@ -147,68 +93,59 @@ export default function AlbumClient({ token }: { token: string }) {
     [api, device],
   )
 
-  const setUpload = (key: string, patch: Partial<Upload>) => setUploads((list) => list.map((u) => (u.key === key ? { ...u, ...patch } : u)))
-
-  const uploadOne = useCallback(
-    async (file: File, key: string) => {
-      const type = albumMediaType(file.type, file.name)
-      if (!type) {
-        setUpload(key, { state: "failed", error: "Not a photo or video" })
-        return
-      }
-      const kind = type.startsWith("video/") ? "video" : "photo"
-      setUpload(key, { state: "uploading", progress: 0.01 })
-      try {
-        const thumb = await makeThumb(file, kind)
-        const slot = (await post({ action: "slot", type, size: file.size, thumb: !!thumb })) as { path: string; url: string; thumbPath: string | null; thumbUrl: string | null }
-        await put(slot.url, file, type, (p) => setUpload(key, { progress: Math.max(0.02, p * 0.97) }))
-        let thumbPath: string | null = null
-        if (thumb && slot.thumbUrl && slot.thumbPath) {
-          try {
-            await put(slot.thumbUrl, thumb, "image/jpeg")
-            thumbPath = slot.thumbPath
-          } catch {
-            /* the full file still made it; the grid falls back to it */
-          }
-        }
-        await post({ action: "done", path: slot.path, thumbPath })
-        setUpload(key, { state: "done", progress: 1 })
-      } catch (e) {
-        setUpload(key, { state: "failed", error: e instanceof Error ? e.message : "Upload failed" })
-      }
-    },
-    [post],
-  )
+  const patch = (key: string, p: Partial<Pending>) => setPending((list) => list.map((u) => (u.key === key ? { ...u, ...p } : u)))
 
   const onPick = useCallback(
     async (files: FileList | null) => {
       if (!files || files.length === 0) return
-      const batch = Array.from(files).map((f, i) => ({ file: f, key: `${Date.now()}-${i}-${f.name}` }))
-      setUploads((list) => [...list, ...batch.map((b) => ({ key: b.key, name: b.file.name, progress: 0, state: "waiting" as const }))])
-      // Two at a time: fast on Wi-Fi, doesn't choke a phone on LTE.
+      const batch = Array.from(files).map((file, i) => ({ file, type: albumMediaType(file.type, file.name), key: `${Date.now()}-${i}-${file.name}` }))
+      setPending((list) => [
+        ...batch.map((b) => ({
+          key: b.key,
+          preview: null,
+          progress: 0,
+          state: b.type ? ("waiting" as const) : ("failed" as const),
+          error: b.type ? undefined : "Not a photo or video",
+        })),
+        ...list,
+      ])
+      // Two at a time: quick on Wi-Fi, doesn't choke a phone on LTE.
+      const queue = batch.filter((b) => b.type)
       let next = 0
       const worker = async () => {
-        while (next < batch.length) {
-          const b = batch[next++]
-          await uploadOne(b.file, b.key)
+        while (next < queue.length) {
+          const b = queue[next++]
+          patch(b.key, { state: "uploading", progress: 0.01 })
+          try {
+            await uploadAlbumFile(b.file, b.type as string, {
+              slot: (a) => post({ action: "slot", ...a }) as never,
+              done: (a) => post({ action: "done", ...a }),
+              onPreview: (url) => patch(b.key, { preview: url }),
+              onProgress: (p) => patch(b.key, { progress: p }),
+            })
+            patch(b.key, { state: "done", progress: 1 })
+          } catch (e) {
+            patch(b.key, { state: "failed", error: e instanceof Error ? e.message : "Didn't upload" })
+          }
         }
       }
       await Promise.all([worker(), worker()])
       await load()
+      // The real tiles are in the grid now; keep only what is still going or failed.
+      setPending((list) => list.filter((u) => u.state !== "done"))
     },
-    [load, uploadOne],
+    [load, post],
   )
 
-  const shareAlbum = useCallback(async () => {
-    const link = window.location.href.split("?")[0]
-    const text = groupAlbumText(link)
+  const invite = useCallback(async () => {
+    const text = groupAlbumText(window.location.href.split("?")[0])
     try {
       if (navigator.share) {
         await navigator.share({ text })
         return
       }
       await navigator.clipboard.writeText(text)
-      setShareNote("Copied - paste it into your group chat.")
+      setNote("Link copied - paste it into your group chat.")
     } catch {
       /* closed the share sheet */
     }
@@ -216,7 +153,7 @@ export default function AlbumClient({ token }: { token: string }) {
 
   const remove = useCallback(
     async (item: Item) => {
-      if (!window.confirm("Remove this from the album?")) return
+      if (!window.confirm("Take this one out of the album?")) return
       try {
         await post({ action: "remove", id: item.id })
         setViewer(null)
@@ -228,25 +165,21 @@ export default function AlbumClient({ token }: { token: string }) {
     [load, post],
   )
 
-  const items = data?.items ?? []
-  const busy = uploads.some((u) => u.state === "waiting" || u.state === "uploading")
-  const active = uploads.filter((u) => u.state !== "done")
-  const doneCount = uploads.filter((u) => u.state === "done").length
-  const addedSome = doneCount > 0 || items.some((i) => i.mine)
-
-  const shell = "mx-auto w-full max-w-[640px] px-4 pb-16 pt-20 sm:px-5 sm:pt-24"
+  const shell = "mx-auto w-full max-w-[640px] px-4 sm:px-5"
 
   if (!data) {
     return (
-      <div className={shell}>
-        <div className="h-48 animate-pulse rounded-[28px] bg-surface" />
+      <div className={`${shell} pt-10`}>
+        <div className="h-5 w-48 animate-pulse rounded bg-surface" />
+        <div className="mt-4 h-12 w-64 animate-pulse rounded bg-surface" />
+        <div className="mt-6 aspect-[4/5] w-full animate-pulse rounded-[24px] bg-surface" />
       </div>
     )
   }
   if (!data.ok || !data.album) {
     return (
-      <div className={shell}>
-        <h1 className="font-serif text-3xl font-extrabold leading-tight">We couldn&apos;t open this album</h1>
+      <div className={`${shell} pb-16 pt-16`}>
+        <h1 className="font-serif text-3xl font-extrabold leading-tight">We couldn&apos;t open this</h1>
         <p className="mt-4 text-[17px] leading-relaxed text-clay-700">{data.error}</p>
         <a href={`sms:${sitePhone.sms.e164}`} className="mt-7 inline-block rounded-full bg-flame px-6 py-3.5 font-semibold text-cream">
           Text us
@@ -256,163 +189,204 @@ export default function AlbumClient({ token }: { token: string }) {
   }
 
   const { album } = data
+  const items = data.items ?? []
+  const hero = album.video ? null : (items[0] ?? null)
+  const grid = album.video ? items : items.slice(1)
+  const busy = pending.some((u) => u.state === "waiting" || u.state === "uploading")
+  const total = items.length
+  const people = data.people ?? 0
+  const dateLine = [prettyDate(album.eventDate), album.place].filter(Boolean).join(" · ")
+
   return (
-    <div className={shell}>
-      <span className="inline-block rounded-full bg-gold-100 px-4 py-1.5 text-xs font-semibold tracking-wide text-gold-800">Party album</span>
-      <h1 className="mt-4 font-serif text-4xl font-extrabold leading-[1.08] tracking-tight">{album.title}</h1>
-      {album.eventDate ? <p className="mt-2 text-[17px] text-clay-700">{prettyDate(album.eventDate)}</p> : null}
+    <div className={`${shell} ${album.open ? "pb-44" : "pb-16"} pt-8 sm:pt-12`}>
+      <header>
+        {dateLine ? <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-clay-700">{dateLine}</p> : null}
+        <h1 className="mt-2 font-serif text-[42px] font-extrabold leading-[1.02] tracking-tight sm:text-5xl">{album.title}</h1>
+        <p className="mt-3 text-[17px] leading-relaxed text-clay-700">Every photo and video from the night, all in one place.</p>
+      </header>
 
       {album.video ? (
-        <section className="mt-7 overflow-hidden rounded-[24px] bg-cocoa">
-          <video src={album.video} controls playsInline className="aspect-[9/16] max-h-[70vh] w-full bg-cocoa object-contain" />
-          <div className="flex items-center justify-between gap-3 px-5 py-4 text-cream">
-            <span className="text-[16px] font-bold">Your party video</span>
-            <a href={album.video} download className="rounded-full bg-cream px-4 py-2 text-[14px] font-semibold text-ink">
-              Save video
-            </a>
-          </div>
+        <section className="mt-6 overflow-hidden rounded-[24px] bg-cocoa">
+          <video src={album.video} controls playsInline className="aspect-[9/16] max-h-[78vh] w-full bg-cocoa object-contain" />
         </section>
+      ) : hero ? (
+        <button type="button" onClick={() => setViewer(0)} className="relative mt-6 block w-full overflow-hidden rounded-[24px] bg-surface" aria-label="Open">
+          {hero.kind === "video" && hero.url ? (
+            <video src={hero.url} poster={hero.thumb ?? undefined} autoPlay muted loop playsInline preload="metadata" className="aspect-[4/5] w-full object-cover" />
+          ) : hero.url || hero.thumb ? (
+            // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
+            <img src={hero.url ?? hero.thumb ?? ""} alt="" className="aspect-[4/5] w-full object-cover" />
+          ) : null}
+          {hero.kind === "video" ? (
+            <span className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-cocoa/60 px-3 py-1.5 text-[13px] font-semibold text-cream">
+              <PlayIcon size={14} /> Video
+            </span>
+          ) : null}
+        </button>
+      ) : pending.length === 0 ? (
+        <div className="mt-6 flex aspect-[4/5] w-full flex-col items-center justify-center rounded-[24px] bg-surface px-8 text-center">
+          <p className="font-serif text-2xl font-extrabold">The first photo starts the album</p>
+          <p className="mt-2 text-[15px] text-clay-700">Add one from the night and everyone at the party will see it here.</p>
+        </div>
       ) : null}
+
+      <div className="mt-5 flex items-center justify-between gap-3">
+        <p className="text-[14px] font-semibold text-ink">
+          {total === 0 ? "" : `${total} ${total === 1 ? "photo or video" : "photos & videos"}`}
+          {people > 1 ? <span className="font-normal text-clay-700"> · from {people} people</span> : null}
+        </p>
+        <button type="button" onClick={() => void invite()} className="shrink-0 text-[14px] font-semibold text-flame-700 underline-offset-4 hover:underline">
+          Invite others
+        </button>
+      </div>
+      {note ? <p className="mt-1 text-right text-[13px] text-clay-700">{note}</p> : null}
+
+      {pending.length > 0 || grid.length > 0 ? (
+        <div className="mt-3 grid grid-cols-3 gap-1.5 sm:gap-2">
+          {pending.map((u) => (
+            <div key={u.key} className="relative aspect-square overflow-hidden rounded-xl bg-surface">
+              {u.preview ? (
+                // eslint-disable-next-line @next/next/no-img-element -- local preview of the file being added
+                <img src={u.preview} alt="" className={`h-full w-full object-cover ${u.state === "done" ? "" : "opacity-70"}`} />
+              ) : null}
+              {u.state === "failed" ? (
+                <span className="absolute inset-0 flex items-center justify-center bg-cocoa/60 p-2 text-center text-[11px] font-semibold text-cream">{u.error}</span>
+              ) : u.state !== "done" ? (
+                <span className="absolute inset-x-2 bottom-2 h-1.5 overflow-hidden rounded-full bg-cream/70">
+                  <span className="block h-full rounded-full bg-flame transition-[width]" style={{ width: `${Math.round(Math.max(0.04, u.progress) * 100)}%` }} />
+                </span>
+              ) : null}
+            </div>
+          ))}
+          {grid.map((it) => {
+            const src = it.thumb ?? (it.kind === "photo" ? it.url : null)
+            return (
+              <button
+                key={it.id}
+                type="button"
+                onClick={() => setViewer(items.indexOf(it))}
+                className="relative aspect-square overflow-hidden rounded-xl bg-surface"
+                aria-label={it.kind === "video" ? "Play video" : "Open photo"}
+              >
+                {src ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- signed storage URL, sized on the phone
+                  <img src={src} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                ) : it.url ? (
+                  <video src={`${it.url}#t=0.5`} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+                ) : null}
+                {it.kind === "video" ? (
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cocoa/55">
+                      <PlayIcon />
+                    </span>
+                  </span>
+                ) : null}
+                {it.mine ? <span className="absolute bottom-1 left-1 rounded-full bg-cocoa/55 px-2 py-0.5 text-[11px] font-semibold text-cream">You</span> : null}
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
+
+      <p className="mt-10 text-center text-[13px] text-clay-700">Cooked with love by Real Hibachi</p>
 
       {album.open ? (
-        <section className="mt-7 rounded-[28px] bg-surface p-5 sm:p-6">
-          <p className="text-[17px] leading-relaxed">
-            Add the photos and videos you took, so everyone has them in one place. Everyone who adds some gets{" "}
-            <strong>${ALBUM_COUPON.amountCents / 100} off their own hibachi party</strong>, and we&apos;ll turn the best clips into a party video.
-          </p>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*,video/*"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              void onPick(e.target.files)
-              e.target.value = ""
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            className="mt-5 w-full rounded-full bg-flame px-6 py-4 text-[17px] font-semibold text-cream active:bg-flame-600"
-          >
-            {addedSome ? "Add more photos & videos" : "Add your photos & videos"}
-          </button>
-          <p className="mt-3 text-[13px] leading-relaxed text-clay-700">
-            By adding photos or videos, you agree we may share them on our social media and website.{" "}
-            <button type="button" className="font-semibold text-ink underline" onClick={() => setTermsOpen((v) => !v)} aria-expanded={termsOpen}>
-              {termsOpen ? "Hide terms" : "Read terms"}
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink/10 bg-cream/95 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
+          <div className="mx-auto w-full max-w-[640px] px-4 sm:px-5">
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                void onPick(e.target.files)
+                e.target.value = ""
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-flame px-6 py-4 text-[17px] font-semibold text-cream active:bg-flame-600"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              {busy ? "Adding… pick more anytime" : "Add your photos & videos"}
             </button>
-          </p>
-          {termsOpen ? <AlbumTerms /> : null}
-
-          {active.length > 0 || doneCount > 0 ? (
-            <div className="mt-5 flex flex-col gap-2">
-              {doneCount > 0 ? (
-                <p className="text-[14px] font-semibold text-ink">
-                  {doneCount} added{busy ? ` · ${active.filter((u) => u.state !== "failed").length} to go - you can keep browsing` : " - thank you!"}
-                </p>
-              ) : busy ? (
-                <p className="text-[14px] font-semibold text-ink">Uploading - you can keep browsing, just keep this page open</p>
-              ) : null}
-              {active.slice(0, 6).map((u) => (
-                <div key={u.key} className="flex items-center gap-3 text-[13px]">
-                  <span className="w-28 shrink-0 truncate text-clay-700">{u.name}</span>
-                  {u.state === "failed" ? (
-                    <span className="font-semibold text-flame-800">{u.error}</span>
-                  ) : (
-                    <span className="h-2 flex-1 overflow-hidden rounded-full bg-cream">
-                      <span className="block h-full rounded-full bg-flame transition-[width]" style={{ width: `${Math.round(u.progress * 100)}%` }} />
-                    </span>
-                  )}
-                </div>
-              ))}
-              {active.length > 6 ? <p className="text-[13px] text-clay-700">and {active.length - 6} more…</p> : null}
-            </div>
-          ) : null}
-        </section>
-      ) : (
-        <p className="mt-6 text-[15px] text-clay-700">This album is closed for new photos. Thank you to everyone who added some!</p>
-      )}
-
-      {data.claimed ? (
-        <CouponCard code={data.claimed.code} expiresAt={data.claimed.expiresAt} />
-      ) : addedSome ? (
-        <ClaimCard onClaim={async (name, phone, adsOk) => {
-          await post({ action: "claim", name, phone, adsOk })
-          await load()
-        }} />
+            <p className="mt-2 text-center text-[12px] leading-snug text-clay-700">
+              By adding, you agree we may share them on our social media and website.{" "}
+              <button type="button" className="font-semibold text-ink underline" onClick={() => setTermsOpen(true)}>
+                Terms
+              </button>
+            </p>
+          </div>
+        </div>
       ) : null}
 
-      <button
-        type="button"
-        onClick={() => void shareAlbum()}
-        className="mt-5 w-full rounded-full border-2 border-ink/15 bg-surface px-6 py-3.5 text-[16px] font-semibold text-ink"
-      >
-        Invite friends from the party
-      </button>
-      {shareNote ? <p className="mt-2 text-center text-[13px] text-clay-700">{shareNote}</p> : null}
-
-      <section className="mt-8">
-        <h2 className="text-[15px] font-bold">{items.length === 0 ? "Nothing here yet" : items.length === 1 ? "1 photo or video" : `${items.length} photos & videos`}</h2>
-        {items.length === 0 ? (
-          <p className="mt-2 text-[15px] text-clay-700">Be the first to add one.</p>
-        ) : (
-          <div className="mt-3 grid grid-cols-3 gap-1.5 sm:gap-2">
-            {items.map((it) => (
-              <Tile key={it.id} item={it} onOpen={() => setViewer(it)} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {viewer ? <Viewer item={viewer} onClose={() => setViewer(null)} onRemove={viewer.mine ? () => void remove(viewer) : undefined} /> : null}
+      {termsOpen ? <TermsSheet onClose={() => setTermsOpen(false)} /> : null}
+      {viewer !== null && items[viewer] ? (
+        <Viewer items={items} index={viewer} onIndex={setViewer} onClose={() => setViewer(null)} onRemove={(it) => void remove(it)} />
+      ) : null}
     </div>
   )
 }
 
-function Tile({ item, onOpen }: { item: Item; onOpen: () => void }) {
-  const src = item.thumb ?? (item.kind === "photo" ? item.url : null)
-  return (
-    <button type="button" onClick={onOpen} className="relative aspect-square overflow-hidden rounded-xl bg-surface" aria-label={item.kind === "video" ? "Play video" : "Open photo"}>
-      {src ? (
-        // eslint-disable-next-line @next/next/no-img-element -- signed storage URLs, already sized on the phone
-        <img src={src} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
-      ) : item.url ? (
-        <video src={`${item.url}#t=0.5`} muted playsInline preload="metadata" className="h-full w-full object-cover" />
-      ) : null}
-      {item.kind === "video" ? (
-        <span className="absolute inset-0 flex items-center justify-center">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cocoa/60">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="#fffaf3" aria-hidden="true">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </span>
-        </span>
-      ) : null}
-      {item.by ? <span className="absolute bottom-1 left-1 max-w-[90%] truncate rounded-full bg-cocoa/55 px-2 py-0.5 text-[11px] font-semibold text-cream">{item.by}</span> : null}
-    </button>
-  )
-}
-
-function Viewer({ item, onClose, onRemove }: { item: Item; onClose: () => void; onRemove?: () => void }) {
+function Viewer({
+  items,
+  index,
+  onIndex,
+  onClose,
+  onRemove,
+}: {
+  items: Item[]
+  index: number
+  onIndex: (i: number) => void
+  onClose: () => void
+  onRemove: (it: Item) => void
+}) {
+  const item = items[index]
+  const touchX = useRef<number | null>(null)
+  const go = useCallback((d: number) => onIndex((index + d + items.length) % items.length), [index, items.length, onIndex])
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = "hidden"
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+      if (e.key === "ArrowRight") go(1)
+      if (e.key === "ArrowLeft") go(-1)
+    }
     window.addEventListener("keydown", onKey)
     return () => {
       document.body.style.overflow = prev
       window.removeEventListener("keydown", onKey)
     }
-  }, [onClose])
+  }, [go, onClose])
+  const arrow = "absolute top-1/2 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full text-cream/80 sm:flex"
   return (
-    <div className="fixed inset-0 z-[80] flex flex-col bg-cocoa/95" role="dialog" aria-modal="true" onClick={onClose}>
-      <div className="flex items-center justify-between px-4 py-3 text-cream" onClick={(e) => e.stopPropagation()}>
-        <span className="text-[14px] font-semibold">{item.by ?? ""}</span>
+    <div
+      className="fixed inset-0 z-[80] flex flex-col bg-cocoa/95"
+      role="dialog"
+      aria-modal="true"
+      onTouchStart={(e) => {
+        touchX.current = e.touches[0]?.clientX ?? null
+      }}
+      onTouchEnd={(e) => {
+        const start = touchX.current
+        const end = e.changedTouches[0]?.clientX
+        touchX.current = null
+        if (start == null || end == null || items.length < 2) return
+        if (end - start > 50) go(-1)
+        else if (start - end > 50) go(1)
+      }}
+    >
+      <div className="flex items-center justify-between px-4 py-3 text-cream">
+        <span className="text-[14px] font-semibold tabular-nums text-cream/80">
+          {index + 1} / {items.length}
+        </span>
         <div className="flex items-center gap-2">
-          {onRemove ? (
-            <button type="button" onClick={onRemove} className="rounded-full px-3 py-2 text-[14px] font-semibold text-cream/80">
+          {item.mine ? (
+            <button type="button" onClick={() => onRemove(item)} className="rounded-full px-3 py-2 text-[14px] font-semibold text-cream/80">
               Remove
             </button>
           ) : null}
@@ -428,128 +402,85 @@ function Viewer({ item, onClose, onRemove }: { item: Item; onClose: () => void; 
           </button>
         </div>
       </div>
-      <div className="flex min-h-0 flex-1 items-center justify-center px-2 pb-4" onClick={(e) => e.stopPropagation()}>
-        {item.url ? (
-          item.kind === "video" ? (
-            <video src={item.url} controls autoPlay playsInline className="max-h-full max-w-full" />
+      <div className="relative flex min-h-0 flex-1 items-center justify-center px-2 pb-6" onClick={onClose}>
+        <div onClick={(e) => e.stopPropagation()} className="flex max-h-full max-w-full items-center justify-center">
+          {item.url ? (
+            item.kind === "video" ? (
+              <video key={item.id} src={item.url} controls autoPlay playsInline className="max-h-[80vh] max-w-full" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element -- full-size signed storage URL
+              <img key={item.id} src={item.url} alt="" className="max-h-[80vh] max-w-full object-contain" />
+            )
           ) : (
-            // eslint-disable-next-line @next/next/no-img-element -- full-size signed storage URL
-            <img src={item.url} alt="" className="max-h-full max-w-full object-contain" />
-          )
-        ) : (
-          <p className="text-cream">This one is still processing.</p>
-        )}
+            <p className="text-cream">Still processing - try again in a minute.</p>
+          )}
+        </div>
+        {items.length > 1 ? (
+          <>
+            <button
+              type="button"
+              aria-label="Previous"
+              onClick={(e) => {
+                e.stopPropagation()
+                go(-1)
+              }}
+              className={`${arrow} left-1`}
+            >
+              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+                <path d="M15 6l-6 6 6 6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              aria-label="Next"
+              onClick={(e) => {
+                e.stopPropagation()
+                go(1)
+              }}
+              className={`${arrow} right-1`}
+            >
+              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+                <path d="M9 6l6 6-6 6" />
+              </svg>
+            </button>
+          </>
+        ) : null}
       </div>
     </div>
   )
 }
 
-function ClaimCard({ onClaim }: { onClaim: (name: string, phone: string, adsOk: boolean) => Promise<void> }) {
-  const [name, setName] = useState("")
-  const [phone, setPhone] = useState("")
-  const [adsOk, setAdsOk] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState<string | null>(null)
-  const field = "mt-1.5 w-full rounded-2xl border-2 border-ink/10 bg-cream px-4 py-3 text-[17px] text-ink outline-none focus:border-flame"
-  return (
-    <section className="mt-5 rounded-[28px] border-2 border-gold-300 bg-gold-100/60 p-5 sm:p-6">
-      <h2 className="font-serif text-2xl font-extrabold leading-tight">Your ${ALBUM_COUPON.amountCents / 100} is waiting</h2>
-      <p className="mt-2 text-[15px] leading-relaxed text-clay-700">
-        Thanks for adding to the album! Leave your name and number and we&apos;ll save ${ALBUM_COUPON.amountCents / 100} off your own hibachi party
-        for you. We&apos;ll text you when the party video is ready.
-      </p>
-      <form
-        className="mt-4"
-        onSubmit={async (e) => {
-          e.preventDefault()
-          setBusy(true)
-          setErr(null)
-          try {
-            await onClaim(name, phone, adsOk)
-          } catch (x) {
-            setErr(x instanceof Error ? x.message : "Something went wrong")
-          } finally {
-            setBusy(false)
-          }
-        }}
-      >
-        <label className="block text-[15px] font-semibold">
-          Your name
-          <input className={field} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required minLength={2} maxLength={60} />
-        </label>
-        <label className="mt-3 block text-[15px] font-semibold">
-          Mobile number
-          <input className={field} value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" autoComplete="tel" required placeholder="(555) 555-5555" />
-        </label>
-        <label className="mt-4 flex items-start gap-3 text-[14px] leading-relaxed text-clay-700">
-          <input type="checkbox" checked={adsOk} onChange={(e) => setAdsOk(e.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-flame" />
-          <span>It&apos;s also fine to use what I added in Real Hibachi ads. (Optional)</span>
-        </label>
-        {err ? <p className="mt-3 text-[14px] font-semibold text-flame-800">{err}</p> : null}
-        <button type="submit" disabled={busy} className="mt-4 w-full rounded-full bg-ink px-6 py-4 text-[17px] font-semibold text-cream disabled:opacity-60">
-          {busy ? "Saving…" : `Save my $${ALBUM_COUPON.amountCents / 100}`}
-        </button>
-      </form>
-    </section>
-  )
-}
-
-function CouponCard({ code, expiresAt }: { code: string; expiresAt: string }) {
-  const [copied, setCopied] = useState(false)
-  return (
-    <section className="mt-5 rounded-[28px] border-2 border-dashed border-gold-500 bg-gold-100/60 p-5 text-center sm:p-6">
-      <p className="text-[14px] font-semibold uppercase tracking-wide text-gold-800">${ALBUM_COUPON.amountCents / 100} off your own party</p>
-      <p className="mt-2 font-mono text-3xl font-extrabold tracking-wider">{code}</p>
-      <p className="mt-2 text-[14px] leading-relaxed text-clay-700">
-        Saved to your number until {until(expiresAt)}. When you&apos;re ready, mention it when you book or text us at {sitePhone.sms.display}.
-      </p>
-      <button
-        type="button"
-        onClick={async () => {
-          try {
-            await navigator.clipboard.writeText(code)
-            setCopied(true)
-          } catch {}
-        }}
-        className="mt-4 rounded-full bg-ink px-5 py-2.5 text-[15px] font-semibold text-cream"
-      >
-        {copied ? "Copied" : "Copy code"}
-      </button>
-    </section>
-  )
-}
-
-/** What "Read terms" opens. Bump ALBUM_TERMS_VERSION in lib/party-album.ts when this changes. */
-function AlbumTerms() {
-  const terms: Array<[string, ReactNode]> = useMemo(
-    () => [
-      ["Who sees the album", "anyone who has this album link can see and save what's in it."],
-      [
-        "How we use what you add",
-        "by adding photos or videos, you let Real Hibachi use them, including editing them into a party video, on our social media and our website. We use first names only, and never show an address.",
-      ],
-      ["Ads", "we only use what you added in paid ads if you tick the box for that."],
-      ["Kids", "we don't use close-ups of children's faces in ads."],
-      ["Only add your own", "please add only photos and videos you took and are happy to share."],
-      [
-        "Taking something down",
-        `you can remove anything you added from this phone right here. For anything else, text us at ${sitePhone.sms.display} and we'll take down a photo or video of you within 48 hours.`,
-      ],
-      [
-        `The $${ALBUM_COUPON.amountCents / 100}`,
-        `one per person per party, for people who add at least one photo or video. It's $${ALBUM_COUPON.amountCents / 100} off your own Real Hibachi party within ${ALBUM_COUPON.months} months, one $${ALBUM_COUPON.amountCents / 100} offer per party (it can't be combined with another $${ALBUM_COUPON.amountCents / 100} offer), and it has no cash value.`,
-      ],
-      ["Texts", "we'll text the number you leave about your coupon and the party video. Reply STOP to opt out."],
+/** "Terms" opens this. Bump ALBUM_TERMS_VERSION in lib/party-album.ts when it changes. */
+function TermsSheet({ onClose }: { onClose: () => void }) {
+  const terms: Array<[string, string]> = [
+    ["Who sees it", "anyone with this link can see and save what's here."],
+    [
+      "How we use what you add",
+      "by adding photos or videos, you let Real Hibachi use them, including in a party video, on our social media and our website. We use first names only and never show an address.",
     ],
-    [],
-  )
+    ["Ads", "we don't use what you add in paid ads without asking you first."],
+    ["Kids", "we don't use close-ups of children's faces in ads."],
+    ["Only add your own", "please add only photos and videos you took and are happy to share."],
+    [
+      "Taking something down",
+      `you can remove anything you added from this phone right here. For anything else, text us at ${sitePhone.sms.display} and we'll take down a photo or video of you within 48 hours.`,
+    ],
+  ]
   return (
-    <div className="mt-3 flex flex-col gap-2 rounded-2xl bg-cream p-4 text-[13px] leading-relaxed text-clay-700">
-      {terms.map(([t, body]) => (
-        <p key={t}>
-          <span className="font-semibold text-ink">{t}:</span> {body}
-        </p>
-      ))}
+    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-cocoa/40 sm:items-center" role="dialog" aria-modal="true" onClick={onClose}>
+      <div className="max-h-[80vh] w-full max-w-[560px] overflow-y-auto rounded-t-[28px] bg-cream p-6 sm:rounded-[28px]" onClick={(e) => e.stopPropagation()}>
+        <h2 className="font-serif text-2xl font-extrabold">Album terms</h2>
+        <div className="mt-4 flex flex-col gap-3 text-[14px] leading-relaxed text-clay-700">
+          {terms.map(([t, body]) => (
+            <p key={t}>
+              <span className="font-semibold text-ink">{t}:</span> {body}
+            </p>
+          ))}
+        </div>
+        <button type="button" onClick={onClose} className="mt-6 w-full rounded-full bg-ink px-6 py-3.5 text-[16px] font-semibold text-cream">
+          Got it
+        </button>
+      </div>
     </div>
   )
 }

@@ -4,16 +4,18 @@
 // Owner, 2026-11-23: after the party, one link where every guest adds their
 // photos and videos; we cut a party video from the pool and send it back so it
 // gets shared again. Uploading = agreeing that we may use what you add on our
-// social media and our website. Everyone who adds at least one photo or video
-// and leaves a name + phone gets a $50 coupon for their own party.
+// social media and our website.
 //
-// The five open questions from the proposal (who gets the coupon, stacking,
-// the $599 minimum, how long it lasts, the host's coupon) run on the defaults
-// I recommended until the owner says otherwise - change them here, and the page
-// copy follows.
+// Same day, the owner narrowed it: the page has one job - get people to join
+// in. It must read as a photo/video album at first glance (staff seed it
+// first), and nothing on it may pull attention away from adding: no coupon and
+// no form for the person sharing. The $50 is for the people a guest shares the
+// party with later (next stage), not for the guest. ALBUM_COUPON (owner-approved
+// rules: 12 months, one $50 offer per party, works at the $599 minimum) and the
+// coupons table wait for that stage.
 
-/** Bump whenever ALBUM_TERMS below changes; stored on every upload. */
-export const ALBUM_TERMS_VERSION = "2026-11-23.1"
+/** Bump whenever the album terms change; stored on every upload. */
+export const ALBUM_TERMS_VERSION = "2026-11-23.2"
 
 export const ALBUM_COUPON = {
   amountCents: 5000,
@@ -61,13 +63,18 @@ export function albumMediaType(type: string, fileName: string): string | null {
 
 export const DEVICE_RE = /^[a-z0-9]{16,40}$/
 
-/** "Lisa Ramirez" -> "Lisa's party"; "James" -> "James' party"; blank -> "Your party". */
+/**
+ * "Tommy Lee" -> "Tommy's Party"; "James" -> "James' Party"; blank -> "Our Party".
+ * Owner, 2026-11-23: the title should read like a keepsake ("Tommy's Party"),
+ * so the first feeling is "this was a night worth remembering", not "they want
+ * my info". The workbench can rename it ("Sophia's Sweet 16").
+ */
 export function albumTitle(customerName: string | null | undefined): string {
   const first = (customerName ?? "").trim().split(/\s+/)[0] ?? ""
   const clean = first.replace(/[^\p{L}\p{M}'\-]/gu, "")
-  if (!clean) return "Your party"
-  const name = clean.charAt(0).toUpperCase() + clean.slice(1)
-  return /s$/i.test(name) ? `${name}' party` : `${name}'s party`
+  if (!clean) return "Our Party"
+  const name = clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase()
+  return /s$/i.test(name) ? `${name}' Party` : `${name}'s Party`
 }
 
 /** US numbers only (that is who we serve): "(951) 207-0523" -> "+19512070523". */
@@ -106,13 +113,18 @@ export function couponExpiry(from: Date = new Date()): Date {
 export function hostAlbumText(firstName: string, link: string): string {
   const hi = firstName ? `Hi ${firstName}, thank you` : "Thank you"
   return (
-    `${hi} for having us! Here's your party album: ${link}\n` +
-    `Everyone can add their photos and videos there, and each person who does gets $50 off their own hibachi party. ` +
-    `We'll make a short video from the best clips and send it to you.`
+    `${hi} for having us! Here are the photos and videos from your party: ${link}\n` +
+    `Everyone can add theirs to the same album, and we'll make a short party video from the best clips.`
   )
 }
 
 /** What the host pastes into the group chat. */
 export function groupAlbumText(link: string): string {
-  return `Add your pics and videos from the party here 👉 ${link}\nYou get $50 off your own hibachi party for adding some, and they're making us a party video!`
+  return `All the pics and videos from the party are here 👉 ${link}\nAdd yours too - they're making us a party video!`
+}
+
+/** Who a tile says it's from. Staff and chef seeds read as us; guests stay anonymous. */
+export function albumByLabel(source: string, mine: boolean): string | null {
+  if (mine) return "You"
+  return source === "staff" || source === "chef" ? "Real Hibachi" : null
 }

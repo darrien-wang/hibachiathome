@@ -68,3 +68,12 @@ alter table public.party_albums enable row level security;
 alter table public.album_people enable row level security;
 alter table public.album_media enable row level security;
 alter table public.coupons enable row level security;
+
+-- 2026-11-23 (same day, owner): the page is about joining in, not the coupon.
+-- Staff seed the album first (their own uploads, or the chef's shots copied in)
+-- so a guest opening it sees a real album straight away.
+alter table public.album_media add column if not exists source text not null default 'guest' check (source in ('guest', 'staff', 'chef'));
+alter table public.album_media add column if not exists added_by text;
+-- The city under the title ("Saturday, November 22 · Pasadena") - part of what
+-- makes it read as a memory rather than a form. City only, never the street.
+alter table public.party_albums add column if not exists place text;

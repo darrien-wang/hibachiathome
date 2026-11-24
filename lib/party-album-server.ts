@@ -1,7 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { ALBUM_BUCKET, albumTitle, newAlbumToken } from "@/lib/party-album"
+import { cityOf } from "@/lib/customers"
+import {
+  ALBUM_BUCKET,
+  ALBUM_MAX_BYTES,
+  ALBUM_MEDIA_TYPES,
+  ALBUM_TERMS_VERSION,
+  albumByLabel,
+  albumTitle,
+  newAlbumToken,
+} from "@/lib/party-album"
 
-// Server half of the party album: create one per order, list what is in it.
+// Server half of the party album: create one per order, take uploads (guest or
+// staff), copy the chef's shots in, list what is in it.
 
 export type AlbumRow = {
   id: string
@@ -9,17 +19,21 @@ export type AlbumRow = {
   token: string
   title: string
   event_date: string | null
+  place: string | null
   status: "open" | "closed"
   video_path: string | null
   video_ready_at: string | null
   created_at: string
 }
 
+export type AlbumSource = "guest" | "staff" | "chef"
+
 export type AlbumMediaRow = {
   id: string
   album_id: string
-  person_id: string | null
   device: string | null
+  source: AlbumSource
+  added_by: string | null
   kind: "photo" | "video"
   storage_path: string
   thumb_path: string | null
@@ -32,17 +46,18 @@ export type AlbumMediaRow = {
 
 export type AlbumItem = {
   id: string
-  source: "guest" | "chef"
+  source: AlbumSource
   kind: "photo" | "video"
   url: string | null
   thumb: string | null
   by: string | null
-  mine?: boolean
+  mine: boolean
   createdAt: string
 }
 
 const SIGN_TTL = 6 * 3600
-const ALBUM_COLS = "id, order_id, token, title, event_date, status, video_path, video_ready_at, created_at"
+const ALBUM_COLS = "id, order_id, token, title, event_date, place, status, video_path, video_ready_at, created_at"
+const MEDIA_COLS = "id, album_id, device, source, added_by, kind, storage_path, thumb_path, content_type, bytes, status, picked, created_at"
 
 export async function albumByToken(supabase: SupabaseClient, token: string): Promise<AlbumRow | null> {
   if (!/^[a-z0-9]{8,24}$/.test(token)) return null
@@ -59,11 +74,7 @@ export async function albumForOrder(supabase: SupabaseClient, orderId: string): 
 export async function ensureAlbumForOrder(supabase: SupabaseClient, orderId: string, createdBy: string): Promise<AlbumRow> {
   const existing = await albumForOrder(supabase, orderId)
   if (existing) return existing
-  const { data: order, error: oErr } = await supabase
-    .from("orders")
-    .select("id, customer_name, event_start")
-    .eq("id", orderId)
-    .maybeSingle()
+  const { data: order, error: oErr } = await supabase.from("orders").select("id, customer_name, event_start, event_address").eq("id", orderId).maybeSingle()
   if (oErr || !order) throw new Error(oErr?.message ?? "order not found")
   const eventDate = order.event_start
     ? new Date(order.event_start as string).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" })
@@ -71,16 +82,134 @@ export async function ensureAlbumForOrder(supabase: SupabaseClient, orderId: str
   for (let attempt = 0; attempt < 3; attempt++) {
     const { data, error } = await supabase
       .from("party_albums")
-      .insert({ order_id: orderId, token: newAlbumToken(), title: albumTitle(order.customer_name as string | null), event_date: eventDate, created_by: createdBy })
+      .insert({
+        order_id: orderId,
+        token: newAlbumToken(),
+        title: albumTitle(order.customer_name as string | null),
+        event_date: eventDate,
+        place: cityOf(order.event_address as string | null),
+        created_by: createdBy,
+      })
       .select(ALBUM_COLS)
       .single()
     if (!error && data) return data as AlbumRow
-    // Lost a race with another click: read the winner back.
     const again = await albumForOrder(supabase, orderId)
     if (again) return again
     if (error && !/duplicate|unique/i.test(error.message)) throw new Error(error.message)
   }
   throw new Error("could not create album")
+}
+
+/** Storage folder for one uploader: a guest's device id, or "staff". */
+export const albumDir = (album: AlbumRow, who: string) => `album/${album.id}/${who}/`
+
+/** One-time signed upload URL(s) for a file going into `dir`. */
+export async function albumSlot(
+  supabase: SupabaseClient,
+  dir: string,
+  typeRaw: unknown,
+  sizeRaw: unknown,
+  wantThumb: boolean,
+): Promise<{ ok: true; path: string; url: string; thumbPath: string | null; thumbUrl: string | null } | { ok: false; error: string; status?: number }> {
+  const type = String(typeRaw ?? "").toLowerCase()
+  const media = ALBUM_MEDIA_TYPES[type]
+  if (!media) return { ok: false, error: "We can take photos (JPG, PNG, HEIC) and videos (MP4, MOV)." }
+  const size = Number(sizeRaw ?? 0)
+  if (!(size > 0) || size > ALBUM_MAX_BYTES) return { ok: false, error: "That file is over 500 MB. Could you trim it a little and try again?" }
+  const stem = `${dir}${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const path = `${stem}.${media.ext}`
+  const main = await supabase.storage.from(ALBUM_BUCKET).createSignedUploadUrl(path)
+  if (main.error || !main.data) return { ok: false, error: main.error?.message ?? "no upload url", status: 500 }
+  let thumbPath: string | null = null
+  let thumbUrl: string | null = null
+  if (wantThumb) {
+    thumbPath = `${stem}.thumb.jpg`
+    const t = await supabase.storage.from(ALBUM_BUCKET).createSignedUploadUrl(thumbPath)
+    thumbUrl = t.data?.signedUrl ?? null
+    if (!thumbUrl) thumbPath = null
+  }
+  return { ok: true, path, url: main.data.signedUrl, thumbPath, thumbUrl }
+}
+
+/** Index a file that landed in `dir` (checks it is really there). */
+export async function albumIndex(
+  supabase: SupabaseClient,
+  album: AlbumRow,
+  dir: string,
+  pathRaw: unknown,
+  thumbRaw: unknown,
+  who: { source: AlbumSource; device: string | null; addedBy: string | null },
+): Promise<{ ok: true; id: string } | { ok: false; error: string; status?: number }> {
+  const path = String(pathRaw ?? "")
+  if (!path.startsWith(dir)) return { ok: false, error: "bad path" }
+  const name = path.slice(dir.length)
+  const m = /^\d+-[a-z0-9]+\.([a-z0-9]+)$/.exec(name)
+  if (!m) return { ok: false, error: "bad path" }
+  const entry = Object.entries(ALBUM_MEDIA_TYPES).find(([, v]) => v.ext === m[1])
+  if (!entry) return { ok: false, error: "bad type" }
+  const { data: dup } = await supabase.from("album_media").select("id").eq("storage_path", path).maybeSingle()
+  if (dup) return { ok: true, id: dup.id as string }
+  const { data: listed } = await supabase.storage.from(ALBUM_BUCKET).list(dir.slice(0, -1), { search: name.split(".")[0], limit: 10 })
+  const obj = (listed ?? []).find((o) => o.name === name)
+  if (!obj) return { ok: false, error: "The upload didn't finish. Could you try that one again?" }
+  const thumb = String(thumbRaw ?? "")
+  const thumbName = thumb.startsWith(dir) ? thumb.slice(dir.length) : ""
+  const thumbOk = !!thumbName && thumbName === `${name.replace(/\.[a-z0-9]+$/, "")}.thumb.jpg` && (listed ?? []).some((o) => o.name === thumbName)
+  const meta = (obj.metadata ?? {}) as { size?: number; mimetype?: string }
+  const { data: row, error } = await supabase
+    .from("album_media")
+    .insert({
+      album_id: album.id,
+      device: who.device,
+      source: who.source,
+      added_by: who.addedBy,
+      kind: entry[1].kind,
+      storage_path: path,
+      thumb_path: thumbOk ? thumb : null,
+      content_type: meta.mimetype || entry[0],
+      bytes: typeof meta.size === "number" ? meta.size : null,
+      terms_version: ALBUM_TERMS_VERSION,
+    })
+    .select("id")
+    .single()
+  if (error || !row) return { ok: false, error: error?.message ?? "could not save", status: 500 }
+  return { ok: true, id: row.id as string }
+}
+
+/**
+ * Copy the chef's shots from the prep sheet (order_photos) into the album. The
+ * files stay where they are; the album rows just point at them. Setup photos
+ * (an empty table) are skipped unless asked for. Returns how many were added.
+ */
+export async function importChefPhotos(supabase: SupabaseClient, album: AlbumRow, addedBy: string, includeSetup = false): Promise<number> {
+  if (!album.order_id) return 0
+  const phases = includeSetup ? ["setup", "volcano", "after"] : ["volcano", "after"]
+  const { data: photos } = await supabase
+    .from("order_photos")
+    .select("storage_path, content_type, bytes, phase")
+    .eq("order_id", album.order_id)
+    .in("phase", phases)
+    .order("created_at", { ascending: true })
+  const { data: have } = await supabase.from("album_media").select("storage_path").eq("album_id", album.id).eq("source", "chef")
+  const already = new Set((have ?? []).map((h) => h.storage_path as string))
+  const rows = (photos ?? [])
+    .filter((p) => !already.has(p.storage_path as string))
+    .map((p) => ({
+      album_id: album.id,
+      device: null,
+      source: "chef",
+      added_by: addedBy,
+      kind: String(p.content_type ?? "").startsWith("video/") ? "video" : "photo",
+      storage_path: p.storage_path as string,
+      thumb_path: null,
+      content_type: p.content_type as string | null,
+      bytes: p.bytes as number | null,
+      terms_version: ALBUM_TERMS_VERSION,
+    }))
+  if (rows.length === 0) return 0
+  const { error } = await supabase.from("album_media").insert(rows)
+  if (error) throw new Error(error.message)
+  return rows.length
 }
 
 async function signMany(supabase: SupabaseClient, paths: string[]): Promise<Map<string, string>> {
@@ -91,67 +220,41 @@ async function signMany(supabase: SupabaseClient, paths: string[]): Promise<Map<
 }
 
 /**
- * Everything a viewer of the album sees: guests' uploads (visible only, unless
- * includeHidden) plus the chef's shots of the food and the volcano (the setup
- * photo of an empty table is left out - nobody wants that one).
+ * What a viewer sees. Seeds (staff + chef) first in the order they were added,
+ * so the album opens on the shots we chose; then guests, newest first, so a
+ * guest coming back sees what's new.
  */
 export async function albumItems(
   supabase: SupabaseClient,
   album: AlbumRow,
   opts: { device?: string | null; includeHidden?: boolean } = {},
 ): Promise<{ items: AlbumItem[]; rows: AlbumMediaRow[] }> {
-  let q = supabase
-    .from("album_media")
-    .select("id, album_id, person_id, device, kind, storage_path, thumb_path, content_type, bytes, status, picked, created_at")
-    .eq("album_id", album.id)
-    .order("created_at", { ascending: true })
-    .limit(1000)
+  let q = supabase.from("album_media").select(MEDIA_COLS).eq("album_id", album.id).order("created_at", { ascending: true }).limit(1000)
   if (!opts.includeHidden) q = q.eq("status", "visible")
-  const { data: mediaData } = await q
-  const rows = (mediaData ?? []) as AlbumMediaRow[]
-
-  const personIds = Array.from(new Set(rows.map((r) => r.person_id).filter(Boolean))) as string[]
-  const { data: people } = personIds.length
-    ? await supabase.from("album_people").select("id, name").in("id", personIds)
-    : { data: [] as Array<{ id: string; name: string }> }
-  const nameOf = new Map((people ?? []).map((p) => [p.id as string, String(p.name ?? "").split(/\s+/)[0] || null]))
-
-  const chef = album.order_id
-    ? (
-        await supabase
-          .from("order_photos")
-          .select("id, phase, storage_path, content_type, created_at")
-          .eq("order_id", album.order_id)
-          .in("phase", ["volcano", "after"])
-          .order("created_at", { ascending: true })
-      ).data ?? []
-    : []
-
-  const signed = await signMany(supabase, [
-    ...rows.flatMap((r) => [r.storage_path, r.thumb_path ?? ""]),
-    ...chef.map((c) => c.storage_path as string),
-  ])
-
-  const items: AlbumItem[] = [
-    ...chef.map((c) => ({
-      id: `chef-${c.id}`,
-      source: "chef" as const,
-      kind: String(c.content_type ?? "").startsWith("video/") ? ("video" as const) : ("photo" as const),
-      url: signed.get(c.storage_path as string) ?? null,
-      thumb: null,
-      by: "Your chef",
-      createdAt: c.created_at as string,
-    })),
-    ...rows.map((r) => ({
+  const { data } = await q
+  const all = (data ?? []) as AlbumMediaRow[]
+  const seeds = all.filter((r) => r.source !== "guest")
+  const guests = all.filter((r) => r.source === "guest").reverse()
+  const rows = [...seeds, ...guests]
+  const signed = await signMany(supabase, rows.flatMap((r) => [r.storage_path, r.thumb_path ?? ""]))
+  const items = rows.map((r) => {
+    const mine = !!opts.device && r.device === opts.device
+    return {
       id: r.id,
-      source: "guest" as const,
+      source: r.source,
       kind: r.kind,
       url: signed.get(r.storage_path) ?? null,
       thumb: r.thumb_path ? (signed.get(r.thumb_path) ?? null) : null,
-      by: r.person_id ? (nameOf.get(r.person_id) ?? null) : null,
-      mine: !!opts.device && r.device === opts.device,
+      by: albumByLabel(r.source, mine),
+      mine,
       createdAt: r.created_at,
-    })),
-  ]
+    }
+  })
   return { items, rows }
+}
+
+/** "8 people" - distinct guest phones plus us, if we seeded. */
+export function contributorCount(rows: AlbumMediaRow[]): number {
+  const guests = new Set(rows.filter((r) => r.source === "guest" && r.device).map((r) => r.device))
+  return guests.size + (rows.some((r) => r.source !== "guest") ? 1 : 0)
 }

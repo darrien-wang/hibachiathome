@@ -158,18 +158,18 @@ gtag('config','${googleAdsId}',{allow_enhanced_conversions:true});`}
           </QuietBoundary>
         </Suspense>
         <QuietBoundary>
-          <HideOnAdmin>
+          <HideOnAdmin chrome>
             <LanguageSuggestBanner />
           </HideOnAdmin>
         </QuietBoundary>
         <QuietBoundary>
-          <HideOnAdmin>
+          <HideOnAdmin chrome>
             <Header />
           </HideOnAdmin>
         </QuietBoundary>
         <main>{children}</main>
         <QuietBoundary>
-          <HideOnAdmin>
+          <HideOnAdmin chrome>
             <Footer />
           </HideOnAdmin>
         </QuietBoundary>
