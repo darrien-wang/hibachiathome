@@ -850,26 +850,40 @@ function NamePrompt({ onSave, onSkip }: { onSave: (name: string) => Promise<void
   const [name, setName] = useState("")
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const save = async () => {
+    if (busy || !name.trim()) return
+    setBusy(true)
+    setErr(null)
+    try {
+      await onSave(name)
+    } catch (x) {
+      setErr(x instanceof Error ? x.message : "Couldn't save")
+    } finally {
+      setBusy(false)
+    }
+  }
   return (
     <form
       className="mt-4 flex flex-col gap-2 rounded-2xl bg-surface p-4"
-      onSubmit={async (e) => {
+      onSubmit={(e) => {
         e.preventDefault()
-        setBusy(true)
-        setErr(null)
-        try {
-          await onSave(name)
-        } catch (x) {
-          setErr(x instanceof Error ? x.message : "Couldn't save")
-        } finally {
-          setBusy(false)
-        }
+        void save()
       }}
     >
       <div className="flex gap-2">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
+          // The keyboard's Enter / Done key saves (owner, 2026-11-23). Not while
+          // a Chinese/Japanese keyboard is still composing - that Enter only
+          // confirms the characters.
+          onKeyDown={(e) => {
+            if ((e.key === "Enter" || e.keyCode === 13) && !e.nativeEvent.isComposing) {
+              e.preventDefault()
+              void save()
+            }
+          }}
+          enterKeyHint="done"
           placeholder="Your first name"
           autoComplete="given-name"
           maxLength={20}
