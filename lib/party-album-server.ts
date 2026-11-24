@@ -6,6 +6,7 @@ import {
   ALBUM_MEDIA_TYPES,
   ALBUM_TERMS_VERSION,
   albumByLabel,
+  albumFirstName,
   albumTitle,
   newAlbumToken,
 } from "@/lib/party-album"
@@ -17,6 +18,7 @@ export type AlbumRow = {
   id: string
   order_id: string | null
   token: string
+  view_token: string
   title: string
   event_date: string | null
   place: string | null
@@ -51,19 +53,39 @@ export type AlbumItem = {
   url: string | null
   thumb: string | null
   by: string | null
+  /** The guest's own first name (shown with "You" on their phone too). */
+  name: string | null
   mine: boolean
   createdAt: string
 }
 
 const SIGN_TTL = 6 * 3600
-const ALBUM_COLS = "id, order_id, token, title, event_date, place, status, video_path, video_ready_at, created_at"
+const ALBUM_COLS = "id, order_id, token, view_token, title, event_date, place, status, video_path, video_ready_at, created_at"
 const MEDIA_COLS = "id, album_id, device, source, added_by, kind, storage_path, thumb_path, content_type, bytes, status, picked, created_at"
 
-export async function albumByToken(supabase: SupabaseClient, token: string): Promise<AlbumRow | null> {
+/**
+ * Two links per album (owner, 2026-11-23): the invite link (`token`) lets you
+ * add photos; the share link (`view_token`) only lets you look and share on.
+ */
+export type AlbumRole = "contributor" | "viewer"
+
+export async function albumByToken(supabase: SupabaseClient, token: string): Promise<{ album: AlbumRow; role: AlbumRole } | null> {
   if (!/^[a-z0-9]{8,24}$/.test(token)) return null
-  const { data } = await supabase.from("party_albums").select(ALBUM_COLS).eq("token", token).maybeSingle()
-  return (data as AlbumRow | null) ?? null
+  const { data } = await supabase
+    .from("party_albums")
+    .select(ALBUM_COLS)
+    .or(`token.eq.${token},view_token.eq.${token}`)
+    .limit(1)
+    .maybeSingle()
+  const album = (data as AlbumRow | null) ?? null
+  if (!album) return null
+  return { album, role: album.token === token ? "contributor" : "viewer" }
 }
+
+export const albumLinks = (origin: string, album: AlbumRow) => ({
+  invite: `${origin}/album/${album.token}`,
+  share: `${origin}/album/${album.view_token}`,
+})
 
 export async function albumForOrder(supabase: SupabaseClient, orderId: string): Promise<AlbumRow | null> {
   const { data } = await supabase.from("party_albums").select(ALBUM_COLS).eq("order_id", orderId).maybeSingle()
@@ -85,6 +107,7 @@ export async function ensureAlbumForOrder(supabase: SupabaseClient, orderId: str
       .insert({
         order_id: orderId,
         token: newAlbumToken(),
+        view_token: newAlbumToken(),
         title: albumTitle(order.customer_name as string | null),
         event_date: eventDate,
         place: cityOf(order.event_address as string | null),
@@ -236,7 +259,10 @@ export async function albumItems(
   const seeds = all.filter((r) => r.source !== "guest")
   const guests = all.filter((r) => r.source === "guest").reverse()
   const rows = [...seeds, ...guests]
-  const signed = await signMany(supabase, rows.flatMap((r) => [r.storage_path, r.thumb_path ?? ""]))
+  const [signed, names] = await Promise.all([
+    signMany(supabase, rows.flatMap((r) => [r.storage_path, r.thumb_path ?? ""])),
+    guestNames(supabase, album.id),
+  ])
   const items = rows.map((r) => {
     const mine = !!opts.device && r.device === opts.device
     return {
@@ -245,7 +271,8 @@ export async function albumItems(
       kind: r.kind,
       url: signed.get(r.storage_path) ?? null,
       thumb: r.thumb_path ? (signed.get(r.thumb_path) ?? null) : null,
-      by: albumByLabel(r.source, mine),
+      by: albumByLabel(r.source, mine, r.device ? names.get(r.device) : null),
+      name: r.source === "guest" && r.device ? (albumFirstName(names.get(r.device)) ?? null) : null,
       mine,
       createdAt: r.created_at,
     }
@@ -257,4 +284,25 @@ export async function albumItems(
 export function contributorCount(rows: AlbumMediaRow[]): number {
   const guests = new Set(rows.filter((r) => r.source === "guest" && r.device).map((r) => r.device))
   return guests.size + (rows.some((r) => r.source !== "guest") ? 1 : 0)
+}
+
+/** device -> name a guest left on this album. */
+export async function guestNames(supabase: SupabaseClient, albumId: string): Promise<Map<string, string>> {
+  const { data } = await supabase.from("album_people").select("device, name").eq("album_id", albumId).not("device", "is", null)
+  return new Map((data ?? []).map((p) => [p.device as string, String(p.name ?? "")]))
+}
+
+/** Save (or change) the first name for one phone on one album. */
+export async function setGuestName(supabase: SupabaseClient, albumId: string, device: string, raw: string): Promise<string | null> {
+  const name = albumFirstName(raw)
+  if (!name) return null
+  const { data: have } = await supabase.from("album_people").select("id").eq("album_id", albumId).eq("device", device).maybeSingle()
+  if (have) {
+    await supabase.from("album_people").update({ name, terms_version: ALBUM_TERMS_VERSION }).eq("id", have.id)
+  } else {
+    const { error } = await supabase.from("album_people").insert({ album_id: albumId, device, name, terms_version: ALBUM_TERMS_VERSION })
+    if (error && !/duplicate|unique/i.test(error.message)) throw new Error(error.message)
+    if (error) await supabase.from("album_people").update({ name }).eq("album_id", albumId).eq("device", device)
+  }
+  return name
 }

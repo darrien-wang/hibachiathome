@@ -77,3 +77,15 @@ alter table public.album_media add column if not exists added_by text;
 -- The city under the title ("Saturday, November 22 · Pasadena") - part of what
 -- makes it read as a memory rather than a form. City only, never the street.
 alter table public.party_albums add column if not exists place text;
+
+-- Two links per album (owner, 2026-11-23): `token` is the invite link (whoever
+-- has it can add photos), `view_token` is the share link (look and share only).
+alter table public.party_albums add column if not exists view_token text unique;
+update public.party_albums set view_token = substr(md5(random()::text || id::text), 1, 12) where view_token is null;
+alter table public.party_albums alter column view_token set not null;
+
+-- Names on the tiles (owner, 2026-11-23: who added each one gives people a
+-- sense of "that's mine"). A guest may leave a first name after their first
+-- upload - no phone, no account; one name per phone per album.
+alter table public.album_people alter column phone drop not null;
+create unique index if not exists album_people_album_device_uq on public.album_people (album_id, device) where device is not null;

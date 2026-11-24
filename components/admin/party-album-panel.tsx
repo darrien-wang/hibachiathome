@@ -19,6 +19,7 @@ type Item = {
   kind: "photo" | "video"
   url: string | null
   thumb: string | null
+  name?: string | null
   status?: "visible" | "hidden"
   picked?: boolean
 }
@@ -26,7 +27,7 @@ type Data = {
   ok: boolean
   error?: string
   album: null | { id: string; title: string; eventDate: string | null; place: string | null; open: boolean; token: string }
-  link?: string
+  links?: { invite: string; share: string }
   items?: Item[]
   people?: number
 }
@@ -145,7 +146,8 @@ export function PartyAlbumPanel({ adminKey, orderId, customerName }: { adminKey:
   }
 
   const album = data.album
-  const link = data.link ?? ""
+  const link = data.links?.invite ?? ""
+  const shareLink = data.links?.share ?? ""
   const rawFirst = (customerName ?? "").trim().split(/\s+/)[0] ?? ""
   const first = rawFirst ? rawFirst.charAt(0).toUpperCase() + rawFirst.slice(1).toLowerCase() : ""
   const items = data.items ?? []
@@ -173,9 +175,16 @@ export function PartyAlbumPanel({ adminKey, orderId, customerName }: { adminKey:
           {[album.eventDate, album.place].filter(Boolean).join(" · ")} · {album.open ? "开放上传" : "已关闭上传"}
         </span>
       </div>
-      <a href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, fontWeight: 600, wordBreak: "break-all" }}>
-        {link}
-      </a>
+      <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "2px 8px", fontSize: 13 }}>
+        <span style={small}>邀请链接（能上传）</span>
+        <a href={link} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600, wordBreak: "break-all" }}>
+          {link}
+        </a>
+        <span style={small}>展示链接（只能看）</span>
+        <a href={shareLink} target="_blank" rel="noopener noreferrer" style={{ wordBreak: "break-all" }}>
+          {shareLink}
+        </a>
+      </div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         <input
           ref={fileRef}
@@ -194,7 +203,8 @@ export function PartyAlbumPanel({ adminKey, orderId, customerName }: { adminKey:
         <button type="button" style={chip} disabled={busy} onClick={() => void act({ action: "chef" }, (r) => (Number(r.added) ? `放进了师傅拍的 ${r.added} 个` : "师傅拍的都已经在里面了"))}>
           放进师傅拍的
         </button>
-        <button type="button" style={chip} onClick={() => void copy(link, "链接")}>复制链接</button>
+        <button type="button" style={chip} onClick={() => void copy(link, "邀请链接")}>复制邀请链接</button>
+        <button type="button" style={chip} onClick={() => void copy(shareLink, "展示链接")}>复制展示链接</button>
         <button type="button" style={chip} onClick={() => void copy(hostAlbumText(first, link), "给主人的短信")}>复制给主人的短信</button>
         <button type="button" style={chip} onClick={() => void copy(groupAlbumText(link), "给群里的话")}>复制给群里的话</button>
         <button type="button" style={chip} disabled={busy} onClick={() => void act({ action: "status", open: !album.open }, album.open ? "已关闭上传" : "已重新开放")}>
@@ -222,7 +232,7 @@ export function PartyAlbumPanel({ adminKey, orderId, customerName }: { adminKey:
                   {it.kind === "video" ? <span style={{ position: "absolute", top: 4, left: 4, fontSize: 10, background: "rgba(0,0,0,.6)", color: "#fff", borderRadius: 4, padding: "1px 4px" }}>视频</span> : null}
                   {it.id === coverId ? <span style={{ position: "absolute", top: 4, right: 4, fontSize: 10, background: "#e8722a", color: "#fff", borderRadius: 4, padding: "1px 4px" }}>封面</span> : null}
                 </a>
-                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{SOURCE_LABEL[it.source]}</div>
+                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{it.source === "guest" && it.name ? `客人 ${it.name}` : SOURCE_LABEL[it.source]}</div>
                 <div style={{ display: "flex", gap: 4, marginTop: 2 }}>
                   <button type="button" style={{ ...chip, padding: "2px 6px", fontSize: 11 }} disabled={busy} onClick={() => void act({ action: "media", id: it.id, picked: !it.picked })}>
                     {it.picked ? "取消选" : "选"}

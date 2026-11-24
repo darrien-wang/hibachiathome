@@ -6,6 +6,7 @@ import {
   albumForOrder,
   albumIndex,
   albumItems,
+  albumLinks,
   albumSlot,
   contributorCount,
   ensureAlbumForOrder,
@@ -16,7 +17,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 // 派对相册 · 工作台侧（2026-11-23）
-//   GET  ?orderId=                                   -> { album, link, items(含隐藏), people }
+//   GET  ?orderId=                                   -> { album, links{invite 能上传, share 只能看}, items(含隐藏), people }
 //   POST { action: "create", orderId }               -> 建相册（幂等，一单一个），顺手把师傅拍的放进去
 //   POST { action: "title", orderId, title }         -> 改标题（"Sophia's Sweet 16"）
 //   POST { action: "slot", orderId, type, size, thumb } -> 种子素材：签名上传地址
@@ -27,7 +28,7 @@ export const dynamic = "force-dynamic"
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-const linkFor = (request: NextRequest, token: string) => `${new URL(request.url).origin}/album/${token}`
+const linksFor = (request: NextRequest, album: Parameters<typeof albumLinks>[1]) => albumLinks(new URL(request.url).origin, album)
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status })
 
 export async function GET(request: NextRequest) {
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     ok: true,
     album: { id: album.id, title: album.title, eventDate: album.event_date, place: album.place, open: album.status === "open", token: album.token },
-    link: linkFor(request, album.token),
+    links: linksFor(request, album),
     items: items.map((it) => ({ ...it, status: byId.get(it.id)?.status ?? "visible", picked: byId.get(it.id)?.picked ?? false })),
     people: contributorCount(rows.filter((r) => r.status === "visible")),
   })
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
       const album = await ensureAlbumForOrder(supabase, orderId, actor.alias)
       // The chef's volcano and end-of-party shots are the natural first seeds.
       const added = await importChefPhotos(supabase, album, actor.alias).catch(() => 0)
-      return NextResponse.json({ ok: true, token: album.token, link: linkFor(request, album.token), chefAdded: added })
+      return NextResponse.json({ ok: true, links: linksFor(request, album), chefAdded: added })
     } catch (e) {
       return fail(e instanceof Error ? e.message : String(e), 500)
     }

@@ -123,8 +123,28 @@ export function groupAlbumText(link: string): string {
   return `All the pics and videos from the party are here 👉 ${link}\nAdd yours too - they're making us a party video!`
 }
 
-/** Who a tile says it's from. Staff and chef seeds read as us; guests stay anonymous. */
-export function albumByLabel(source: string, mine: boolean): string | null {
+/**
+ * Who a tile says it's from: you, us (seeds), or the first name a guest left.
+ * Owner, 2026-11-23: a name on each tile gives people the "that's mine" feeling.
+ */
+export function albumByLabel(source: string, mine: boolean, guestName?: string | null): string | null {
   if (mine) return "You"
-  return source === "staff" || source === "chef" ? "Real Hibachi" : null
+  if (source === "staff" || source === "chef") return "Real Hibachi"
+  return albumFirstName(guestName)
+}
+
+/** "  maria  lopez " -> "Maria"; junk -> null. First names only (album terms). */
+export function albumFirstName(raw: string | null | undefined): string | null {
+  const first = (raw ?? "").trim().split(/\s+/)[0] ?? ""
+  const clean = first.replace(/[^\p{L}\p{M}'\-]/gu, "").slice(0, 20)
+  if (clean.length < 1) return null
+  return clean.charAt(0).toUpperCase() + clean.slice(1)
+}
+
+/** A steady colour per name for the initial circle (same name, same colour). */
+export function avatarColor(name: string): string {
+  const palette = ["#c2410c", "#0f766e", "#7c3aed", "#b45309", "#be185d", "#1d4ed8", "#4d7c0f", "#9f1239"]
+  let h = 0
+  for (const ch of name.toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+  return palette[h % palette.length]
 }

@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { ALBUM_BUCKET, ALBUM_MAX_FILES_PER_DEVICE, DEVICE_RE } from "@/lib/party-album"
-import { albumByToken, albumDir, albumIndex, albumItems, albumSlot, contributorCount } from "@/lib/party-album-server"
+import { albumByToken, albumDir, albumIndex, albumItems, albumLinks, albumSlot, contributorCount, guestNames, setGuestName } from "@/lib/party-album-server"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -16,10 +16,14 @@ export const dynamic = "force-dynamic"
 // localStorage - enough to let people take back what they added. No names, no
 // numbers, no coupon here (owner, 2026-11-23: this page is only about joining in).
 //
+// Two links per album: the invite link (token) can add; the share link
+// (view_token) can only look and share on - its POSTs are refused.
+//
 //   GET  ?device=                                    -> album + items
 //   POST { action: "slot", device, type, size, thumb } -> signed upload URL(s)
 //   POST { action: "done", device, path, thumbPath? }  -> indexed
 //   POST { action: "remove", device, id }              -> deletes one of your own
+//   POST { action: "name", device, name }              -> first name on your tiles
 
 type Ctx = { params: Promise<{ token: string }> }
 
@@ -29,19 +33,25 @@ export async function GET(request: NextRequest, { params }: Ctx) {
   const { token } = await params
   const supabase = createServerSupabaseClient()
   if (!supabase) return bad("not configured", 500)
-  const album = await albumByToken(supabase, token)
-  if (!album) return bad("This link doesn't open anything. Please text us and we'll send a new one.", 404)
+  const found = await albumByToken(supabase, token)
+  if (!found) return bad("This link doesn't open anything. Please text us and we'll send a new one.", 404)
+  const { album, role } = found
   const device = request.nextUrl.searchParams.get("device")
   const dev = device && DEVICE_RE.test(device) ? device : null
-  const { items, rows } = await albumItems(supabase, album, { device: dev })
+  const { items, rows } = await albumItems(supabase, album, { device: role === "contributor" ? dev : null })
   const video = album.video_path
     ? ((await supabase.storage.from(ALBUM_BUCKET).createSignedUrl(album.video_path, 6 * 3600)).data?.signedUrl ?? null)
     : null
+  const links = albumLinks(new URL(request.url).origin, album)
   return NextResponse.json({
     ok: true,
+    role,
     album: { title: album.title, eventDate: album.event_date, place: album.place, open: album.status === "open", video },
+    // A viewer never learns the invite link.
+    links: role === "contributor" ? links : { share: links.share },
     items,
     people: contributorCount(rows),
+    me: role === "contributor" && dev ? { name: (await guestNames(supabase, album.id)).get(dev) ?? null } : null,
   })
 }
 
@@ -49,8 +59,10 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   const { token } = await params
   const supabase = createServerSupabaseClient()
   if (!supabase) return bad("not configured", 500)
-  const album = await albumByToken(supabase, token)
-  if (!album) return bad("This link doesn't open anything.", 404)
+  const found = await albumByToken(supabase, token)
+  if (!found) return bad("This link doesn't open anything.", 404)
+  if (found.role !== "contributor") return bad("This link is for looking only. Ask whoever sent it for the invite link to add photos.", 403)
+  const { album } = found
 
   let body: Record<string, unknown>
   try {
@@ -73,6 +85,11 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   if (body.action === "done") {
     const r = await albumIndex(supabase, album, dir, body.path, body.thumbPath, { source: "guest", device, addedBy: null })
     return r.ok ? NextResponse.json(r) : bad(r.error, r.status)
+  }
+
+  if (body.action === "name") {
+    const name = await setGuestName(supabase, album.id, device, String(body.name ?? ""))
+    return name ? NextResponse.json({ ok: true, name }) : bad("Please type your first name.")
   }
 
   if (body.action === "remove") {
