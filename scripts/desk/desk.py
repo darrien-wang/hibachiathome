@@ -1734,6 +1734,44 @@ def cmd_callback(a):
         print(f"--    not rung: {out.get('skipped') or out.get('error')}")
 
 
+def cmd_ask(a):
+    """需要你回复 (owner 2026-11-24): the App no longer rings for what the desk answers itself; it rings its
+    own channel for a question the desk has put to the owner in chat. Ask in chat first, then
+      desk ask "要不要明早发 Rayna 相册链接？" [--lead L] [--order RH-...]   ring it
+      desk ask --list                                                      what is still open
+      desk ask --done <id|all> [--note "老板：发"]                          he answered: stop ringing
+    The App re-rings every 15 minutes, 4 times at most; an ask stops by itself after 12 hours."""
+    import uuid
+    now = _dt.datetime.now(_dt.timezone.utc).isoformat()
+    if a.done:
+        q = "/rest/v1/owner_asks?answered_at=is.null" + ("" if a.done == "all" else f"&id=like.{a.done}*")
+        open_rows = _db_read(q + "&select=id,question")
+        if not open_rows:
+            raise SystemExit(f"no open ask matches {a.done!r} (desk ask --list)")
+        for r in open_rows:
+            body = {"answered_at": now, "answered_note": (a.note or "").strip() or None}
+            _supabase("PATCH", f"/rest/v1/owner_asks?id=eq.{r['id']}", json.dumps(body).encode(), "application/json")
+            print(f"OK    answered {r['id'][:8]}  {r['question'][:70]}")
+        return
+    if a.list or not a.question:
+        rows = _db_read("/rest/v1/owner_asks?answered_at=is.null&select=id,question,created_at,lead_id,order_no&order=created_at.asc")
+        if not rows:
+            print("no open asks")
+        for r in rows:
+            print(f"{r['id'][:8]}  {pt(r['created_at'])}  {r['question'][:90]}" + (f"  [{r['order_no']}]" if r.get("order_no") else ""))
+        return
+    question = a.question.strip()
+    if len(question) < 4:
+        raise SystemExit("the question is the text the owner sees on his phone: write it out")
+    lead = a.lead
+    if lead and not is_uuid(lead):
+        raise SystemExit("--lead must be a lead id (uuid)")
+    row = {"id": str(uuid.uuid4()), "question": question, "lead_id": lead or None, "order_no": a.order or None, "created_by": "desk"}
+    _supabase("POST", "/rest/v1/owner_asks", json.dumps(row).encode(), "application/json")
+    print(f"OK    ringing the owner's App (需要你回复) · {row['id'][:8]}  {question[:80]}")
+    print(f"      when he answers: desk ask --done {row['id'][:8]}")
+
+
 def cmd_fields(a):
     fields = {}
     for kv in a.pairs:
@@ -4375,6 +4413,10 @@ def main(argv=None):
     p = sp.add_parser("chef-confirm", help="a chef confirmed a change to his party without replying 1: mark his open change notices confirmed")
     p.add_argument("phone"); p.add_argument("--order", metavar="RH-…", help="only that party's notices"); p.set_defaults(fn=cmd_chef_confirm)
     p = sp.add_parser("callback", help="ring the owner's App: this customer wants a phone call"); p.add_argument("lead"); p.add_argument("--why"); p.set_defaults(fn=cmd_callback)
+    p = sp.add_parser("ask", help="ring the owner's App on its 需要你回复 channel for a question asked in chat")
+    p.add_argument("question", nargs="?"); p.add_argument("--lead"); p.add_argument("--order")
+    p.add_argument("--list", action="store_true"); p.add_argument("--done", metavar="ID|all"); p.add_argument("--note")
+    p.set_defaults(fn=cmd_ask)
     p = sp.add_parser("fields"); p.add_argument("lead"); p.add_argument("pairs", nargs="+"); p.set_defaults(fn=cmd_fields)
     p = sp.add_parser("link"); p.add_argument("kind", choices=["deposit", "planner", "short"]); p.add_argument("url", nargs="?")
     p.add_argument("--lead"); p.add_argument("--adults", type=int); p.add_argument("--kids", type=int, default=0); p.add_argument("--city")
