@@ -93,6 +93,9 @@ export async function albumForOrder(supabase: SupabaseClient, orderId: string): 
   return (data as AlbumRow | null) ?? null
 }
 
+/** "joshua tree" / "JOSHUA TREE" -> "Joshua Tree" for the line above the title. */
+export const titleCity = (c: string | null) => (c ? c.toLowerCase().replace(/(^|[\s-])([a-z])/g, (_, p: string, ch: string) => p + ch.toUpperCase()) : null)
+
 /** Idempotent: an order has at most one album. */
 export async function ensureAlbumForOrder(supabase: SupabaseClient, orderId: string, createdBy: string): Promise<AlbumRow> {
   const existing = await albumForOrder(supabase, orderId)
@@ -111,7 +114,7 @@ export async function ensureAlbumForOrder(supabase: SupabaseClient, orderId: str
         view_token: newAlbumToken(),
         title: albumTitle(order.customer_name as string | null),
         event_date: eventDate,
-        place: cityOf(order.event_address as string | null),
+        place: titleCity(cityOf(order.event_address as string | null)),
         created_by: createdBy,
       })
       .select(ALBUM_COLS)

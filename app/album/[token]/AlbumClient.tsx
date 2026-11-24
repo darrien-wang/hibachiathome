@@ -257,7 +257,6 @@ export default function AlbumClient({ token }: { token: string }) {
             <h1 className="mt-1 font-serif text-[38px] font-extrabold leading-[1.02] tracking-tight sm:text-5xl">{album.title}</h1>
           </div>
         </div>
-        <p className="mt-4 text-[17px] leading-relaxed text-clay-700">Every photo and video from the night, all in one place.</p>
       </header>
 
       {album.video ? (
@@ -283,10 +282,7 @@ export default function AlbumClient({ token }: { token: string }) {
         </button>
       ) : pending.length === 0 ? (
         <div className="mt-6 flex aspect-[4/5] w-full flex-col items-center justify-center rounded-[24px] bg-surface px-8 text-center">
-          <p className="font-serif text-2xl font-extrabold">{canAdd ? "The first photo starts the album" : "Photos are on their way"}</p>
-          <p className="mt-2 text-[15px] text-clay-700">
-            {canAdd ? "Add one from the night and everyone at the party will see it here." : "Check back soon for the photos and videos from the night."}
-          </p>
+          <p className="font-serif text-2xl font-extrabold">{canAdd ? "Add the first photo" : "Photos coming soon"}</p>
         </div>
       ) : null}
 
@@ -354,7 +350,6 @@ export default function AlbumClient({ token }: { token: string }) {
         </div>
       ) : null}
 
-      <p className="mt-10 text-center text-[13px] text-clay-700">Cooked with love by Real Hibachi</p>
 
       {/* The action bar (owner, 2026-11-23: "make it warmer"): a floating card,
           not a toolbar - Invite friends on the left, a raised round "Add photos"
@@ -398,7 +393,7 @@ export default function AlbumClient({ token }: { token: string }) {
                 </button>
               </div>
               <p className="mt-1.5 text-center text-[11px] leading-snug text-clay-700">
-                By adding photos, you agree we may share them on our social media and website.{" "}
+                Photos you add may appear on our social & website ·{" "}
                 <button type="button" className="font-semibold text-ink underline" onClick={() => setTermsOpen(true)}>
                   Terms
                 </button>
@@ -871,12 +866,11 @@ function NamePrompt({ onSave, onSkip }: { onSave: (name: string) => Promise<void
         }
       }}
     >
-      <p className="text-[15px] font-semibold text-ink">Add your name so everyone knows these are yours</p>
       <div className="flex gap-2">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="First name"
+          placeholder="Your first name"
           autoComplete="given-name"
           maxLength={20}
           className="min-w-0 flex-1 rounded-xl border-2 border-ink/10 bg-cream px-3 py-2.5 text-[16px] outline-none focus:border-flame"
