@@ -45,17 +45,17 @@ const ev = (over: Partial<InboxEvent> = {}): InboxEvent => ({
 })
 
 test("owner asks · the App version comes from the user agent", () => {
-  assert.equal(appVersionFromUA("Mozilla/5.0 (Linux; Android 16) RealHibachiWorkbenchAndroid/2.3.0"), "2.3.0")
+  assert.equal(appVersionFromUA("Mozilla/5.0 (Linux; Android 16) RealHibachiWorkbenchAndroid/2.3.2-debug"), "2.3.2")
   assert.equal(appVersionFromUA("Mozilla/5.0 (Windows NT 10.0) Chrome/131"), null)
   assert.equal(appVersionFromUA(null), null)
-  assert.equal(versionAtLeast("2.3.0", "2.3.0"), true)
-  assert.equal(versionAtLeast("2.10.0", "2.3.0"), true)
-  assert.equal(versionAtLeast("2.2.2", "2.3.0"), false)
-  assert.equal(versionAtLeast(null, "2.3.0"), false)
+  assert.equal(versionAtLeast("2.3.2", "2.3.2"), true)
+  assert.equal(versionAtLeast("2.10.0", "2.3.2"), true)
+  assert.equal(versionAtLeast("2.3.1", "2.3.2"), false)
+  assert.equal(versionAtLeast(null, "2.3.2"), false)
 })
 
-test("owner asks · ring on their own channel in App 2.3.0+, on the new-lead channel before it", () => {
-  const e = ownerAskEvent(ask(), AT_10AM_PT, "2.3.0")
+test("owner asks · ring on their own channel in App 2.3.2+, on the new-lead channel before it (the phone ran 2.3.1 on 11-24)", () => {
+  const e = ownerAskEvent(ask(), AT_10AM_PT, "2.3.2")
   assert.equal(e.kind, "owner")
   assert.equal(e.key, "owner_ask:a1")
   assert.equal(e.title, "需要你回复")
@@ -63,7 +63,7 @@ test("owner asks · ring on their own channel in App 2.3.0+, on the new-lead cha
   assert.equal(e.url, "/admin?tab=leads&lead=lead-1")
   assert.equal(e.ring, true)
   assert.equal(e.waitedMinutes, 10)
-  assert.equal(ownerAskEvent(ask(), AT_10AM_PT, "2.2.2").kind, "lead")
+  assert.equal(ownerAskEvent(ask(), AT_10AM_PT, "2.3.1").kind, "lead")
   assert.equal(ownerAskEvent(ask({ lead_id: null }), AT_10AM_PT, null).url, "/admin")
 })
 
@@ -105,7 +105,7 @@ test("mobile events · owner asks first, the desk's routine work dropped, the sa
     ev({ key: "sms:stuck", waitedMinutes: 42 }),
     ev({ key: "undelivered:x", kind: "undelivered", waitedMinutes: 6000 }),
   ]
-  const out = mobileEvents(events, [ask(), ask({ id: "a2", answered_at: "2026-11-24T17:59:00Z" })], { now: AT_10AM_PT, appVersion: "2.3.0" })
+  const out = mobileEvents(events, [ask(), ask({ id: "a2", answered_at: "2026-11-24T17:59:00Z" })], { now: AT_10AM_PT, appVersion: "2.3.2" })
   assert.deepEqual(out.map((e) => [e.key, e.kind]), [["owner_ask:a1", "owner"], ["sms:stuck", "sms"]])
   const stuck = out[1] as Record<string, unknown>
   assert.equal(stuck.title, "客服没回 · Rayna 等了 31 分钟")
@@ -113,5 +113,5 @@ test("mobile events · owner asks first, the desk's routine work dropped, the sa
 })
 
 test("mobile events · nothing open, nothing rings", () => {
-  assert.deepEqual(mobileEvents([ev({ waitedMinutes: 5 })], [], { now: AT_10AM_PT, appVersion: "2.3.0" }), [])
+  assert.deepEqual(mobileEvents([ev({ waitedMinutes: 5 })], [], { now: AT_10AM_PT, appVersion: "2.3.2" }), [])
 })

@@ -6,7 +6,7 @@ import type { InboxEvent } from "./inbox"
 // The desk answers customers on its own, so the workbench App stops ringing for every new lead and text.
 // What reaches the phone now:
 //   1. owner asks - a question the desk put to the owner in chat (`desk ask`). They ring the App's own
-//      "需要你回复" channel (App 2.3.0+; an older App gets them on the new-lead channel) until the desk
+//      "需要你回复" channel (App 2.3.2+; an older App gets them on the new-lead channel) until the desk
 //      marks them answered, or for OWNER_ASK_TTL_HOURS.
 //   2. a safety net - a customer or chef still waiting SAFETY_NET_MINUTES after writing, in the daytime,
 //      means the desk is not answering (it went down, as the network did on 11-24 06:5x), so the phone
@@ -15,8 +15,8 @@ import type { InboxEvent } from "./inbox"
 
 export const OWNER_ASK_TTL_HOURS = 12
 export const OWNER_KIND = "owner"
-/** The first App build with the "owner" channel; older builds would file the kind under "other" (quiet). */
-export const OWNER_CHANNEL_MIN_APP = "2.3.0"
+/** The first App build with the "owner" channel (2.3.2; the 2.3.0/2.3.1 builds predate it); older builds would file the kind under "other" (quiet). */
+export const OWNER_CHANNEL_MIN_APP = "2.3.2"
 export const SAFETY_NET_MINUTES = 30
 /** Pacific hours the safety net may ring in: from 07:00 up to (not including) 23:00. */
 export const SAFETY_NET_FROM_HOUR = 7
@@ -41,7 +41,7 @@ export type MobileEvent = Omit<InboxEvent, "kind" | "leadId" | "phone" | "orderI
   kind: string
 }
 
-/** "2.3.0" from the App's user agent (`... RealHibachiWorkbenchAndroid/2.3.0`), null for a browser. */
+/** "2.3.2" from the App's user agent (`... RealHibachiWorkbenchAndroid/2.3.2-debug`), null for a browser. */
 export function appVersionFromUA(ua: string | null | undefined): string | null {
   const m = /RealHibachiWorkbenchAndroid\/(\d+(?:\.\d+)*)/.exec(String(ua ?? ""))
   return m ? m[1] : null
