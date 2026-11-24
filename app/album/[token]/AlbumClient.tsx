@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import { phone as sitePhone } from "@/config/site"
-import { Facebook, Instagram, Link as LinkIcon, MessageCircle, MessageSquare, MoreHorizontal, Music2, Plus, Share2, UserPlus } from "lucide-react"
+import { Facebook, Heart, ImagePlus, Instagram, Link as LinkIcon, MessageCircle, MessageSquare, MoreHorizontal, Music2, UserPlus } from "lucide-react"
 import { albumMediaType, avatarColor, groupAlbumText } from "@/lib/party-album"
 import { uploadAlbumFile } from "@/lib/album-upload-client"
 import Festive, { seasonOf } from "./Festive"
@@ -245,8 +245,6 @@ export default function AlbumClient({ token }: { token: string }) {
   const total = items.length
   const people = data.people ?? 0
   const canAdd = data.role === "contributor" && album.open
-  const sideBtn =
-    "flex flex-col items-center justify-center gap-0.5 rounded-2xl border-2 border-ink/15 bg-surface px-2 py-2.5 text-[14px] font-semibold text-ink active:bg-cream"
 
   return (
     <div className={`${shell} ${canAdd ? "pb-48" : "pb-32"} pt-8 sm:pt-12`}>
@@ -358,11 +356,16 @@ export default function AlbumClient({ token }: { token: string }) {
 
       <p className="mt-10 text-center text-[13px] text-clay-700">Cooked with love by Real Hibachi</p>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink/10 bg-cream/95 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
-        <div className="mx-auto w-full max-w-[640px] px-4 sm:px-5">
-          {note ? <p className="mb-2 text-center text-[13px] font-semibold text-ink">{note}</p> : null}
+      {/* The action bar (owner, 2026-11-23: "make it warmer"): a floating card,
+          not a toolbar - Invite friends on the left, a raised round "Add photos"
+          in the middle, "Share my happiness" on the right. */}
+      <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(12px,env(safe-area-inset-bottom))]">
+        <div className="mx-auto w-full max-w-[520px]">
+          {note ? (
+            <p className="mx-auto mb-2 w-fit rounded-full bg-ink/85 px-4 py-1.5 text-center text-[13px] font-semibold text-cream shadow">{note}</p>
+          ) : null}
           {canAdd ? (
-            <>
+            <div className="rounded-[28px] bg-surface/95 px-3 pb-2 pt-2.5 shadow-[0_10px_30px_rgba(61,42,28,0.18)] ring-1 ring-ink/5 backdrop-blur">
               <input
                 ref={inputRef}
                 type="file"
@@ -374,39 +377,41 @@ export default function AlbumClient({ token }: { token: string }) {
                   e.target.value = ""
                 }}
               />
-              <div className="grid grid-cols-[1fr_1.35fr_1fr] gap-2">
-                <button type="button" onClick={() => void invite()} className={sideBtn}>
-                  <UserPlus size={20} strokeWidth={2.2} aria-hidden="true" />
-                  Invite
+              <div className="grid grid-cols-3 items-end">
+                <button type="button" onClick={() => void invite()} className="flex flex-col items-center gap-1 rounded-2xl py-1 active:scale-95">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gold-100 text-gold-800">
+                    <UserPlus size={21} strokeWidth={2.2} aria-hidden="true" />
+                  </span>
+                  <span className="text-[13px] font-semibold leading-tight text-ink">Invite friends</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => inputRef.current?.click()}
-                  className="flex flex-col items-center justify-center gap-0.5 rounded-2xl bg-flame px-2 py-2.5 text-[15px] font-bold text-cream active:bg-flame-600"
-                >
-                  <Plus size={24} strokeWidth={2.6} aria-hidden="true" />
-                  {busy ? "Adding…" : "Upload"}
+                <button type="button" onClick={() => inputRef.current?.click()} className="flex flex-col items-center gap-1 active:scale-95">
+                  <span className="-mt-9 flex h-[68px] w-[68px] items-center justify-center rounded-full bg-gradient-to-br from-[#f5a25d] via-flame to-flame-600 text-cream shadow-[0_8px_20px_rgba(232,114,42,0.45)] ring-4 ring-surface">
+                    <ImagePlus size={28} strokeWidth={2.2} aria-hidden="true" />
+                  </span>
+                  <span className="text-[13px] font-bold leading-tight text-flame-700">{busy ? "Adding…" : "Add photos"}</span>
                 </button>
-                <button type="button" onClick={() => setSheet("share")} className={sideBtn}>
-                  <Share2 size={20} strokeWidth={2.2} aria-hidden="true" />
-                  Share
+                <button type="button" onClick={() => setSheet("share")} className="flex flex-col items-center gap-1 rounded-2xl py-1 active:scale-95">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#fde4ea] text-[#d6336c]">
+                    <Heart size={21} strokeWidth={2.2} fill="currentColor" aria-hidden="true" />
+                  </span>
+                  <span className="text-[13px] font-semibold leading-tight text-ink">Share my happiness</span>
                 </button>
               </div>
-              <p className="mt-2 text-center text-[12px] leading-snug text-clay-700">
-                By uploading, you agree we may share them on our social media and website.{" "}
+              <p className="mt-1.5 text-center text-[11px] leading-snug text-clay-700">
+                By adding photos, you agree we may share them on our social media and website.{" "}
                 <button type="button" className="font-semibold text-ink underline" onClick={() => setTermsOpen(true)}>
                   Terms
                 </button>
               </p>
-            </>
+            </div>
           ) : (
             <button
               type="button"
               onClick={() => setSheet("share")}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-flame px-6 py-4 text-[17px] font-semibold text-cream active:bg-flame-600"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-br from-[#f5a25d] via-flame to-flame-600 px-6 py-4 text-[17px] font-bold text-cream shadow-[0_10px_26px_rgba(232,114,42,0.4)] active:scale-[0.98]"
             >
-              <Share2 size={20} strokeWidth={2.4} aria-hidden="true" />
-              Share
+              <Heart size={20} strokeWidth={2.2} fill="currentColor" aria-hidden="true" />
+              Share the happiness
             </button>
           )}
         </div>
@@ -756,7 +761,8 @@ function ShareSheet({
   }
 
   return (
-    <BottomSheet title={`Share ${title}`} onClose={onClose}>
+    <BottomSheet title="Share my happiness" onClose={onClose}>
+      <p className="mt-1 text-[15px] text-clay-700">{title}</p>
       <div className="mt-5 grid grid-cols-4 gap-y-4">
         {SHARE_PLATFORMS.map((p) => {
           const look = PLATFORM_LOOK[p.id]

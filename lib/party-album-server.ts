@@ -307,3 +307,32 @@ export async function setGuestName(supabase: SupabaseClient, albumId: string, de
   }
   return name
 }
+
+/**
+ * Owner, 2026-11-23: "as soon as the party starts normally that day, make one
+ * automatically". Every party that is still active and whose start time has
+ * passed (looking back 12 hours) gets its album, with the chef's shots so far.
+ * Nothing is sent to anyone. Returns the orders it made albums for.
+ */
+export async function autoCreateAlbums(supabase: SupabaseClient, now = new Date()): Promise<string[]> {
+  const from = new Date(now.getTime() - 12 * 3600 * 1000).toISOString()
+  const { data: orders, error } = await supabase
+    .from("orders")
+    .select("id")
+    .eq("order_status", "active")
+    .gte("event_start", from)
+    .lte("event_start", now.toISOString())
+    .limit(50)
+  if (error) throw new Error(error.message)
+  const ids = (orders ?? []).map((o) => o.id as string)
+  if (ids.length === 0) return []
+  const { data: have } = await supabase.from("party_albums").select("order_id").in("order_id", ids)
+  const has = new Set((have ?? []).map((h) => h.order_id as string))
+  const made: string[] = []
+  for (const id of ids.filter((x) => !has.has(x))) {
+    const album = await ensureAlbumForOrder(supabase, id, "auto")
+    await importChefPhotos(supabase, album, "auto").catch(() => 0)
+    made.push(id)
+  }
+  return made
+}

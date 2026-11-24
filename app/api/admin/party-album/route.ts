@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { resolveAdminActor } from "@/lib/admin-auth"
+import { CRON_PURPOSE_PARTY_ALBUMS, isCronCall } from "@/lib/cron-key"
 import {
   albumDir,
   albumForOrder,
@@ -8,6 +9,7 @@ import {
   albumItems,
   albumLinks,
   albumSlot,
+  autoCreateAlbums,
   contributorCount,
   ensureAlbumForOrder,
   importChefPhotos,
@@ -25,6 +27,7 @@ export const dynamic = "force-dynamic"
 //   POST { action: "chef", orderId, setup? }         -> 把师傅备料单上传的照片视频放进相册
 //   POST { action: "media", id, status?, picked? }   -> 隐藏/恢复、挑进选材夹
 //   POST { action: "status", orderId, open }         -> 关/开上传
+//   POST ?consumer=cron（pg_cron 每 15 分钟，派生钥匙 party-albums）-> 已开始没取消的派对自动建相册，不发任何消息
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -51,6 +54,16 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (isCronCall(request, CRON_PURPOSE_PARTY_ALBUMS)) {
+    const supabase = createServerSupabaseClient()
+    if (!supabase) return fail("supabase not configured", 500)
+    try {
+      const made = await autoCreateAlbums(supabase)
+      return NextResponse.json({ ok: true, made: made.length })
+    } catch (e) {
+      return fail(e instanceof Error ? e.message : String(e), 500)
+    }
+  }
   const actor = await resolveAdminActor(request)
   if (!actor) return fail("unauthorized", 401)
   const supabase = createServerSupabaseClient()

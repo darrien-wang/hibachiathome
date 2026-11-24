@@ -7,9 +7,10 @@ import { uploadAlbumFile } from "@/lib/album-upload-client"
 // ============================================================
 // 派对相册 · 订单弹窗「记录」页（2026-11-23）
 // ============================================================
-// 老板定：相册页只为一件事——让客人参与进来。所以先由我们放「种子」：
-// 建相册时自动放进师傅拍的洋葱火山和派对结束的照片视频，这里还能再传
-// 一批（摄影/挑过的好图）；客人打开第一眼就是一本有内容的相册。
+// 老板定：相册页只为一件事——让客人参与进来。相册是这个客人专属的，只放
+// 这一场的东西：建相册时自动放进师傅拍的洋葱火山和派对结束的照片视频（打开
+// 时也会自动补进师傅后传的），「补传这场的照片视频」给师傅用微信发来的这场
+// 素材用。别的派对的素材不要放进来（老板 2026-11-23）。
 // 标题默认 "Tommy's Party"，可以改成 "Sophia's Sweet 16" 这种更有纪念感的。
 // 短信先手动复制发。
 
@@ -34,7 +35,7 @@ type Data = {
 
 const small = { fontSize: 12, color: "#6b7280" } as const
 const chip = { fontSize: 12, padding: "4px 10px", borderRadius: 999, border: "1px solid #d1d5db", background: "#fff", cursor: "pointer" } as const
-const SOURCE_LABEL: Record<Item["source"], string> = { guest: "客人", staff: "我们传的", chef: "师傅拍的" }
+const SOURCE_LABEL: Record<Item["source"], string> = { guest: "客人", staff: "我们补传的", chef: "师傅拍的" }
 
 export function PartyAlbumPanel({ adminKey, orderId, customerName }: { adminKey: string; orderId: string; customerName?: string | null }) {
   const [data, setData] = useState<Data | null>(null)
@@ -198,7 +199,7 @@ export function PartyAlbumPanel({ adminKey, orderId, customerName }: { adminKey:
           }}
         />
         <button type="button" style={{ ...chip, borderColor: "#e8722a", color: "#a34812", fontWeight: 600 }} disabled={!!seeding} onClick={() => fileRef.current?.click()}>
-          {seeding ? `传种子素材 ${seeding.done + seeding.failed}/${seeding.total}…` : "传种子素材"}
+          {seeding ? `补传中 ${seeding.done + seeding.failed}/${seeding.total}…` : "补传这场的照片视频"}
         </button>
         <button type="button" style={chip} disabled={busy} onClick={() => void act({ action: "chef" }, (r) => (Number(r.added) ? `放进了师傅拍的 ${r.added} 个` : "师傅拍的都已经在里面了"))}>
           放进师傅拍的
@@ -213,7 +214,7 @@ export function PartyAlbumPanel({ adminKey, orderId, customerName }: { adminKey:
       </div>
       <div style={small}>
         种子 {seedCount} 个 · 客人传了 {guestCount} 个 · 参与 {data.people ?? 0} 人（同一部手机算一人）
-        {seedCount === 0 ? <span style={{ color: "#b45309" }}> · 还没有种子，先传几张好的再发给主人</span> : null}
+        {seedCount === 0 ? <span style={{ color: "#b45309" }}> · 还没有这场的素材：等师傅在备料单上传，或把这场的视频补传进来再发给主人</span> : null}
       </div>
       {items.length > 0 ? (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

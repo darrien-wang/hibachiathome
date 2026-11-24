@@ -28,6 +28,9 @@ export const CRON_PURPOSE_COMPETITOR_WATCH = "competitor-watch"
 /** 每小时把 Google（服务账号）/ Meta 最近几天的花费同步进 ad_spend_daily（2026-11-04 起由 pg_cron 调，取代只在电脑开着时跑的桌面任务 ads-spend-sync） */
 export const CRON_PURPOSE_AD_SPEND = "ad-spend"
 
+/** 每 15 分钟给已经开始、没取消的派对自动建派对相册（老板 2026-11-23） */
+export const CRON_PURPOSE_PARTY_ALBUMS = "party-albums"
+
 export function cronKeyFor(purpose: string, base = process.env.LEAD_WATCH_CRON_KEY): string | null {
   const k = (base ?? "").trim()
   return k ? createHmac("sha256", k).update(purpose).digest("hex") : null
