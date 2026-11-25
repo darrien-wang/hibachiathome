@@ -149,6 +149,7 @@
 - **桌椅只有"要"或"不要"，锁单前定好**（老板 11-06 D-1106-03；11-12 D-1112-02 加严）：
   - **为什么**：桌椅现在向第三方租，每场都有额外成本（老板 11-12：「我们需要向第三方服务商租赁桌椅，我们也有额外的成本，所以需要提前确定好到底需不需要桌椅，临时添加可能会提供不了」）。对客不说是租的，只说每场提前给他留好。
   - **锁单前问清**要不要、要几位，写进订单，师傅照单带：`Could you let me know if you'd like our tables and chairs, and for how many? We reserve them for each party ahead of time, so we can't always add them at the last minute.`
+  - **不能前一天送**（老板 11-25：「提前一天不行 当天我们可以提前过去 根据人数情况确认提前时间」，Menifee 问能不能前一天送来先布置）：`We can't drop them off the day before, but on the day your chef comes early to set up the tables, chairs and tablecloths. We'll confirm the arrival time once your headcount is set.` 提前多久按人数定，人数定了再告诉客人几点到。
   - **不答应**"先带着备用、现场看够不够、用多少收多少"，也不让客人到现场再决定（老板 11-12：「也不能先带过去，看看要不要用」）。起因：Esme 11/6 约定"先用你们的、不够再用我们的、备到 16 人"，现场师傅没带，一半客人没桌子，老板给了 $100 off。
   - **拿不准几位**：请他按最可能的最多人数订。不再说"桌数到前一天都能改"（那是 11-12 以前的话术）。
   - **锁单以后才加**（短信、邮件、派对页勾的、自助改单进来的）：**不是派对当天才说的，直接答应**，加进订单（`--add-extra tables_chairs=N` 或单租 `folding_chairs` / `folding_tables`），把新总价告诉客人（老板 11-12：「以后你直接答应可以 只要不是当天说要的话」；Marissa 12/12 30 位是第一单）。订了桌椅的，师傅提前约 1 小时到，订单备注里的到场时间跟着改。**派对当天才说要的**：先问老板能不能租到，不先答应，也不写"加好了"。
