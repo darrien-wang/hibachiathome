@@ -163,3 +163,16 @@ test("setup · canopies on the order reach the load list by count, and stay out 
   const setup = prep.items.filter((i) => i.group === "setup").map((i) => [i.id, i.qty])
   assert.deepEqual(setup, [["canopies", 6]])
 })
+
+test("prep · noodles show how many guests ordered them next to the oz, summed across a day's orders (owner, 2026-11-25)", () => {
+  const guests = Array.from({ length: 10 }, (_, i) => ({ proteins: ["chicken", "steak"], noodles: i < 3, isChild: i === 0 }))
+  const inv = { mode: "detailed", adultCount: 9, childCount: 1, guests }
+  const one = orderPrep(inv as never, "2026-11-20T00:00:00Z", 0, 0).items.find((i) => i.id === "noodles")
+  assert.ok(one)
+  assert.match(one.alt ?? "", /^3 人点了（含小孩 1）/)
+  const party = { mode: "simple", adultCount: 6, childCount: 0, guests: [], partyExtras: [{ id: "noodles_party", qty: 4 }] }
+  const two = orderPrep(party as never, "2026-11-20T00:00:00Z", 0, 0).items
+  const day = aggregatePrep([...orderPrep(inv as never, "2026-11-20T00:00:00Z", 0, 0).items, ...two]).find((i) => i.id === "noodles")
+  assert.ok(day)
+  assert.match(day.alt ?? "", /^7 人点了（含小孩 1）/)
+})

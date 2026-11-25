@@ -28,6 +28,8 @@ export type PrepItem = {
    * 路径，没有就给色块（从外到内 托盘/盘子/餐具），停车场看手机反而更好认。
    */
   art?: { photo?: string; swatch?: { charger: string; plate: string; accent: string } }
+  /** 按份点的东西（面）几个人点了：oz 之外老板要看到人数（2026-11-25）。合并几张单时相加。 */
+  servings?: { adult: number; child: number }
 }
 export type PrepGroup = "protein" | "produce" | "frozen" | "pantry" | "custom" | "setup"
 
@@ -165,6 +167,13 @@ function alt(id: string, qty: number, unit: string): string | undefined {
   if (id === "eggs") return `带 ${Math.ceil(qty * BUFFER) + 1} 个（combo 装 2 盒一提 = 36 个，要 ${Math.max(1, Math.ceil((qty * BUFFER + 1) / EGGS_PER_BOX))} 提）`
   if (unit === "oz" && qty >= 16) return `≈ ${r1(qty / 16)} lb，买 ${halfLbUp(qty / 16)} lb`
   return undefined
+}
+
+/** 面：几个人点了（老板 2026-11-25「除了 oz 也要显示 order 的人数」），后面接换算。 */
+function noodleAlt(oz: number, s: { adult: number; child: number }): string {
+  const who = `${s.adult + s.child} 人点了${s.child ? `（含小孩 ${s.child}）` : ""}`
+  const conv = alt("noodles", oz, "oz")
+  return conv ? `${who}；${conv}` : who
 }
 
 // ---- 订单数据（orders.invoice_data 的最小形状）------------------------
@@ -390,7 +399,8 @@ export function orderPrep(
   if (noodleA + noodleK > 0) {
     const cooked = noodleA * NOODLE_PORTION.adult + noodleK * NOODLE_PORTION.child
     const oz = r1(cooked / NOODLE_COOKED_PER_DRY)
-    items.push({ id: "noodles", label: "Noodles 面（干面，熟面 ÷ 3）", qty: oz, unit: "oz", alt: alt("noodles", oz, "oz"), group: "frozen" })
+    const servings = { adult: noodleA, child: noodleK }
+    items.push({ id: "noodles", label: "Noodles 面（干面，熟面 ÷ 3）", qty: oz, unit: "oz", alt: noodleAlt(oz, servings), group: "frozen", servings })
   }
   for (const e of extras) {
     const qty = e.qty ?? 0
@@ -596,14 +606,18 @@ export function aggregatePrep(all: PrepItem[]): PrepItem[] {
     const cur = by.get(key)
     if (cur) {
       cur.qty = r1(cur.qty + it.qty)
+      if (cur.servings || it.servings) {
+        cur.servings = { adult: (cur.servings?.adult ?? 0) + (it.servings?.adult ?? 0), child: (cur.servings?.child ?? 0) + (it.servings?.child ?? 0) }
+      }
       // 订单另加的同名项（两张单都要白米饭）：数量相加，各单不一样的备注都留着。
       if (cur.group === "custom" && it.alt && !(cur.alt ?? "").split("；").includes(it.alt)) cur.alt = cur.alt ? `${cur.alt}；${it.alt}` : it.alt
-    } else by.set(key, { ...it })
+    } else by.set(key, { ...it, ...(it.servings ? { servings: { ...it.servings } } : {}) })
   }
   const out = [...by.values()]
   for (const it of out) {
     if (it.group === "custom") continue // 提示就是办公室写的备注，不换算
     if (it.id === "mixed_vege") it.alt = vegeAlt(it.qty)
+    else if (it.id === "noodles" && it.servings) it.alt = noodleAlt(it.qty, it.servings)
     else it.alt = alt(it.id, it.qty, it.unit) ?? it.alt
   }
   const order: PrepGroup[] = ["protein", "produce", "frozen", "pantry", "custom", "setup"]
