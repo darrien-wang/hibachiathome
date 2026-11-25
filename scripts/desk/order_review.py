@@ -11,7 +11,8 @@ This module is the reviewer's eyes and its stamp; it sends nothing.
   the prep-list line, the link each chef holds right now (since 2026-11-13 one per chef
   per party: his page is always the order as it stands, and the link's snapshot is the version he was
   last told about), the machine checks of party_check, and every word on the customer's side: texts,
-  emails, website forms, party-page messages and the lead's notes.
+  emails, Yelp / Airbnb / Facebook / Instagram messages copied in with desk channel, website forms,
+  party-page messages and the lead's notes.
 - fingerprint() digests what a review vouches for: the order as the chef will get it (the dispatch plan
   with it), the crew, and the newest thing the customer said. A review is good only while the fingerprint
   is unchanged.
@@ -32,6 +33,11 @@ SKIP_ACTION = "order_review_skipped"
 VOLATILE_INVOICE_KEYS = {"cardFunding", "selectedGratuityRate", "salesTaxRate", "salesTaxJurisdiction", "pricingTerms"}
 FORM_TYPES = ("contact_form", "landing_contact", "quote_book_online", "planner_unlock")
 EMAIL_TYPES = ("email_inbound", "email_outbound")
+# Yelp / Airbnb / Facebook / Instagram messages, copied into the lead with desk channel (lib/channel-messages.ts).
+# A booking made there is talked through there only: Sijie RH-20261121-3048 (Airbnb, 2026-11-25) had its whole
+# conversation in these rows, and the packet showed none of them.
+CHANNEL_TYPES = ("channel_inbound", "channel_outbound")
+CHANNEL_LABELS = {"yelp": "Yelp", "airbnb": "Airbnb", "facebook": "Facebook", "instagram": "Instagram"}
 PROMISE_NOTE = re.compile(r"\[(promised|owner|callback|why)\]", re.I)
 # Where a reply starts quoting the thread: "> ..." lines, Gmail's "On Thu, Nov 12, 2026 at 9:10 AM ... wrote:"
 # (often wrapped, "wrote:" on the next line), Outlook's "-----Original Message-----" / "From: ..." block.
@@ -61,6 +67,17 @@ def _form_text(kind: str, raw: dict) -> str:
     bits = [f"{k}={raw[k]}" for k in keys if raw.get(k) not in (None, "", [], {})]
     labels = {"contact_form": "联系表单", "landing_contact": "落地页表单", "quote_book_online": "报价页点了在线订", "planner_unlock": "派对页认领"}
     return f"{labels.get(kind, kind)}: " + ", ".join(bits)
+
+
+def _channel_message(t: dict) -> dict:
+    """One copied-in channel message. Its time is the one the channel shows (occurred_at, desk channel --at), not
+    when it was copied in: the 08:39 Yelp message copied at 09:05 sits at 08:39."""
+    raw = t.get("raw_payload_json") if isinstance(t.get("raw_payload_json"), dict) else {}
+    return {"at": t.get("occurred_at") or t.get("created_at"),
+            "direction": "inbound" if t.get("touchpoint_type") == "channel_inbound" else "outbound",
+            "channel": str(raw.get("channel") or t.get("touchpoint_source") or ""),
+            "author": str(raw.get("author") or "").strip(),
+            "text": str(raw.get("body") or "").strip()}
 
 
 def lead_ids(order: dict, db_get) -> list[str]:
@@ -94,8 +111,8 @@ def load(order_no: str, site_get, db_get, now: _dt.datetime | None = None) -> di
     leads = lead_ids(order, db_get)
     touch = []
     if leads:
-        types = ",".join((*EMAIL_TYPES, *FORM_TYPES))
-        touch = _get(db_get, "/rest/v1/lead_touchpoints?select=lead_id,touchpoint_type,created_at,raw_payload_json"
+        types = ",".join((*EMAIL_TYPES, *FORM_TYPES, *CHANNEL_TYPES))
+        touch = _get(db_get, "/rest/v1/lead_touchpoints?select=lead_id,touchpoint_type,touchpoint_source,created_at,occurred_at,raw_payload_json"
                              f"&lead_id=in.({','.join(leads)})&touchpoint_type=in.({types})&order=created_at.asc&limit=500", [])
     reviews = _get(db_get, f"/rest/v1/order_events?select=created_at,actor,action,metadata&order_id=eq.{order['id']}"
                            f"&action=in.({REVIEW_ACTION},{SKIP_ACTION})&order=created_at.desc&limit=5", [])
@@ -103,7 +120,9 @@ def load(order_no: str, site_get, db_get, now: _dt.datetime | None = None) -> di
                "text": _email_text(t.get("raw_payload_json") or {})} for t in touch if t.get("touchpoint_type") in EMAIL_TYPES]
     forms = [{"at": t.get("created_at"), "kind": t.get("touchpoint_type"), "text": _form_text(t.get("touchpoint_type") or "", t.get("raw_payload_json") or {})}
              for t in touch if t.get("touchpoint_type") in FORM_TYPES]
-    packet = {"order": order, "party": party, "gaps": gaps, "links": links, "emails": emails, "forms": forms, "reviews": reviews, "leads": leads}
+    channel = [_channel_message(t) for t in touch if t.get("touchpoint_type") in CHANNEL_TYPES]
+    packet = {"order": order, "party": party, "gaps": gaps, "links": links, "emails": emails, "forms": forms, "channel": channel,
+              "reviews": reviews, "leads": leads}
     packet["fingerprint"] = fingerprint(packet)
     return packet
 
@@ -112,10 +131,11 @@ def _latest(times) -> str:
     return max((str(t) for t in times if t), default="")
 
 
-def fingerprint(packet: dict, *, with_plan: bool = True) -> str:
+def fingerprint(packet: dict, *, with_plan: bool = True, with_channel: bool = True) -> str:
     """What a review vouches for, digested. It changes when the order changes in a way the chef or the
     customer would see, when the crew changes, or when the customer says something new. with_plan=False:
-    the digest as it was before the dispatch plan went in (2026-11-14), to name a pass recorded before."""
+    the digest as it was before the dispatch plan went in (2026-11-14), to name a pass recorded before;
+    with_channel=False: before the channel messages went in (2026-11-25), likewise."""
     o, party = packet["order"], packet["party"]
     inv = o.get("invoice_data") if isinstance(o.get("invoice_data"), dict) else {}
     parts = {
@@ -142,6 +162,13 @@ def fingerprint(packet: dict, *, with_plan: bool = True) -> str:
     # 外包 (2026-11-18): who runs the party changed. Only on an outsourced order, so every other keeps its fingerprint.
     if party_check.outsourced_mark(o):
         parts["outsourced"] = True
+    # What the customer said on Yelp / Airbnb / Facebook / Instagram (2026-11-25). A message is copied in by hand,
+    # sometimes late and with the earlier time the channel shows, so how many there are goes in with the newest
+    # time: one backfilled under a newer one still voids the pass. Only on an order whose leads have one, so
+    # every other order keeps the fingerprint its review was stamped with.
+    said = [m for m in packet.get("channel") or [] if m.get("direction") == "inbound"]
+    if with_channel and said:
+        parts["channel_said"] = [_latest(m.get("at") for m in said), len(said)]
     return hashlib.sha256(json.dumps(parts, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8")).hexdigest()[:16]
 
 
@@ -156,7 +183,13 @@ def review_state(packet: dict) -> tuple[bool, str]:
     if meta.get("verdict") != "pass":
         return False, f"{when} 那次审查没过：{str(meta.get('summary') or '')[:160]}"
     if meta.get("fingerprint") != packet["fingerprint"]:
-        if meta.get("fingerprint") == fingerprint(packet, with_plan=False):
+        old = meta.get("fingerprint")
+        if packet.get("channel") and old in (fingerprint(packet, with_channel=False), fingerprint(packet, with_plan=False, with_channel=False)):
+            # Nothing moved but the digest learned the channel messages (2026-11-25): that pass was made from a
+            # packet that did not show them, so it is not taken on trust - say so instead of "something changed".
+            return False, (f"{when} 审查过，之后订单和对话都没变，但那次的审查材料里没有 Yelp / Airbnb / Facebook / Instagram 消息"
+                           f"（指纹 {old} → {packet['fingerprint']}）：对着【四】里的这些消息再审一次")
+        if old == fingerprint(packet, with_plan=False):
             # Nothing else moved: the pass was stamped without the plan in the digest (before 2026-11-14, when the packet
             # had no plan lines either, or before the order had a plan) - say so instead of "something changed".
             return False, f"{when} 审查过，之后订单和对话都没变，但那次的指纹不含派工计划（指纹 {meta.get('fingerprint')} → {packet['fingerprint']}）：对着【二】派工那几行再审一次"
@@ -256,13 +289,17 @@ def render(packet: dict) -> list[str]:
     for l in packet["links"]:
         out.append(link_line(l, names))
         out += _snapshot_lines(l.get("sheet_snapshot") or {})
-    out += ["", "【四】对话（按时间；客=客人，我=我们，网=网站表单，页=派对页留言，记=线索备注，师=发给师傅的短信）"]
+    out += ["", "【四】对话（按时间；客=客人，我=我们，网=网站表单，页=派对页留言，记=线索备注，师=发给师傅的短信；"
+                "Yelp / Airbnb / Facebook / Instagram 是抄进工作台的渠道消息，时间按渠道里显示的）"]
     items = []
     for m in party.get("customer_sms") or []:
         body = str(m.get("body") or "").strip() + (f" [+{m.get('media')} 张图]" if m.get("media") else "")
         items.append((m.get("at"), "客" if m.get("direction") == "inbound" else "我", "短信", body))
     for e in packet.get("emails") or []:
         items.append((e["at"], "客" if e["direction"] == "inbound" else "我", "邮件", e["text"]))
+    for m in packet.get("channel") or []:
+        kind = CHANNEL_LABELS.get(m.get("channel"), m.get("channel") or "渠道") + (f"·{m['author']}" if m.get("author") else "")
+        items.append((m.get("at"), "客" if m.get("direction") == "inbound" else "我", kind, m.get("text") or ""))
     for f in packet.get("forms") or []:
         items.append((f["at"], "网", "表单", f["text"]))
     for r in party.get("requests") or []:

@@ -1504,6 +1504,25 @@ def outsourced_checks() -> None:
           bool(fp_out) and bool(fp_direct) and fp_out != fp_direct and "（还没有在用的备料单链接）" in r2.out, r2)
 
 
+def review_channel_checks() -> None:
+    # desk order review on an Airbnb booking (Sijie RH-20261121-3048, 2026-11-25): 【四】 shows the thread copied in with
+    # desk channel, both sides, at the times Airbnb shows - the reviewer had to dig it out of desk card and Gmail.
+    lead = "1d2eb8ef-8ecf-40b0-ba5e-922568736c6e"
+    p = pc_party("RH-20261121-3048", "2026-11-27T00:30:00+00:00", name="Sijie", guests=[pc_guest(f"Guest {i}", "filet_mignon", "lobster_tail") for i in range(1, 8)],
+                 team=[{"id": "s-eason", "name": "Eason", "role": "lead_chef"}], address="5323 Roberts Rd, Yucca Valley, CA 92284")
+    p["order"]["source_metadata"] = {"lead_id": lead}
+    db = review_db(p)
+    row = lambda kind, at, body: {"lead_id": lead, "touchpoint_type": kind, "touchpoint_source": "airbnb", "created_at": "2026-11-21T22:05:00Z",
+                                  "occurred_at": at, "raw_payload_json": {"channel": "airbnb", "body": body, "author": None}}
+    db["lead_touchpoints"] = [row("channel_inbound", "2026-11-21T21:38:00Z", "We have 6 adults, one 5 year old and one 3 year old."),
+                              row("channel_outbound", "2026-11-21T21:50:00Z", "Yes, 7 is right, and your 3-year-old is on us.")]
+    gets = {"/api/admin/prep": {"ok": True, "orders": []}, "/api/admin/sms-thread": {"messages": []}}
+    r = DeskRun(["order", "review", "RH-20261121-3048"], gets=gets, db=fake_db(db))
+    check("审查材料 · an Airbnb booking: 【四】 has the Airbnb thread, both sides, at the times Airbnb shows (not when it was copied in)",
+          r.exit is None and r.has("11-21 13:38 客·Airbnb  We have 6 adults, one 5 year old and one 3 year old.",
+                                   "11-21 13:50 我·Airbnb  Yes, 7 is right, and your 3-year-old is on us.") and r.posted == [], r)
+
+
 def order_flow_checks() -> None:
     cancel = ["order", "cancel", ORDER_NO]
     r = DeskRun([*cancel, "--why", CANCEL_WHY, "--dry"], posts=cancel_reply)
@@ -2542,6 +2561,7 @@ def main() -> int:
     chef_text_checks()
     dispatch_plan_checks()
     outsourced_checks()
+    review_channel_checks()
 
     # A request with no "please" stops a send (owner 2026-11-01). Same samples as tests/voice-check.test.ts.
     now = datetime.datetime(2026, 11, 1, 12, 0, tzinfo=datetime.timezone.utc)
@@ -2581,8 +2601,9 @@ def main() -> int:
                                    "selectedGratuityRate": 0.2, "pricingTerms": "v2_by_method"}}
     base_party = {"team": [{"id": "s1", "role": "lead_chef"}], "customer_sms": [{"direction": "inbound", "at": "2030-11-10T18:00:00.000Z", "body": "8 of us"}],
                   "requests": [], "lead_notes": []}
-    def pk(order=None, party=None, emails=(), forms=(), reviews=()):
-        p = {"order": order or base_order, "party": party or base_party, "emails": list(emails), "forms": list(forms), "reviews": list(reviews)}
+    def pk(order=None, party=None, emails=(), forms=(), reviews=(), channel=()):
+        p = {"order": order or base_order, "party": party or base_party, "emails": list(emails), "forms": list(forms), "channel": list(channel),
+             "reviews": list(reviews)}
         p["fingerprint"] = order_review.fingerprint(p)
         return p
     fp = pk()["fingerprint"]
@@ -2627,6 +2648,30 @@ def main() -> int:
           said[0] is False and "之后订单和对话都没变，但那次的指纹不含派工计划" in said[1] and "【二】派工" in said[1], None, said[1])
     texted_too = order_review.review_state(pk(order=planned, party=texted, reviews=[legacy]))
     check("  ... and once the customer has texted since, the usual 'changed since'", texted_too[0] is False and "之后订单、派工或客人的话变了" in texted_too[1], None, texted_too[1])
+    # Yelp / Airbnb / Facebook / Instagram messages copied in with desk channel (Sijie RH-20261121-3048, 2026-11-25:
+    # the whole Airbnb conversation was in them and the packet showed none). They sit in the digest only when there is one.
+    a_in = {"at": "2030-11-10T19:00:00Z", "direction": "inbound", "channel": "airbnb", "author": "", "text": "We have 6 adults, one 5 year old and one 3 year old."}
+    a_out = {"at": "2030-11-10T19:05:00Z", "direction": "outbound", "channel": "airbnb", "author": "", "text": "Yes, 7 is right, and your 3-year-old is on us."}
+    check("review gate: an order with no channel message keeps its fingerprint (an empty channel list adds nothing)",
+          pk(channel=[])["fingerprint"] == fp and pk(channel=[a_out])["fingerprint"] == fp)
+    ch_pass = stamp("pass", pk(channel=[a_in, a_out])["fingerprint"])
+    later = {**a_in, "at": "2030-11-12T21:00:00Z", "text": "Can the chef bring a high chair?"}
+    backfilled = {**a_in, "at": "2030-11-10T18:30:00Z", "text": "Also no mushrooms for me."}
+    check("review gate: the customer wrote on Airbnb after the pass -> stale; only our own Airbnb reply -> still fresh",
+          order_review.review_state(pk(channel=[a_in, a_out, later], reviews=[ch_pass]))[0] is False
+          and order_review.review_state(pk(channel=[a_in, a_out, {**a_out, "at": "2030-11-12T21:00:00Z"}], reviews=[ch_pass]))[0] is True)
+    check("  a message copied in late, with the earlier time the channel shows, still voids the pass (the count is in the digest)",
+          order_review.review_state(pk(channel=[backfilled, a_in, a_out], reviews=[ch_pass]))[0] is False)
+    pre = stamp("pass", order_review.fingerprint(pk(channel=[a_in, a_out]), with_channel=False))
+    said_ch = order_review.review_state(pk(channel=[a_in, a_out], reviews=[pre]))
+    check("  a pass made from a packet without them -> stale, and it says so instead of 'changed'",
+          said_ch[0] is False and "审查材料里没有 Yelp / Airbnb / Facebook / Instagram 消息" in said_ch[1] and "【四】" in said_ch[1], None, said_ch[1])
+    check("  the channel row as stored: the channel's own time (occurred_at), the channel from the payload, then the source",
+          order_review._channel_message({"touchpoint_type": "channel_inbound", "touchpoint_source": "yelp", "created_at": "2030-11-10T17:05:00Z",
+                                         "occurred_at": "2030-11-10T16:39:00Z", "raw_payload_json": {"channel": "yelp", "body": " Got it! ", "author": None}})
+          == {"at": "2030-11-10T16:39:00Z", "direction": "inbound", "channel": "yelp", "author": "", "text": "Got it!"}
+          and order_review._channel_message({"touchpoint_type": "channel_outbound", "touchpoint_source": "airbnb", "created_at": "2030-11-10T17:05:00Z",
+                                             "raw_payload_json": {"body": "See you"}})["channel"] == "airbnb")
     check("review email: the quoted thread below a reply is dropped",
           order_review._email_text({"text": "Carla is pescatarian.\r\n\r\nOn Thu, Nov 12, 2026 at 9:10 AM Real Hibachi <support@realhibachi.com>\r\nwrote:\r\n> Hi Jane"}) == "Carla is pescatarian.")
     # 【三】 since 2026-11-13: one link per chef per party, updated in place - 发于 is when it last went to him,
