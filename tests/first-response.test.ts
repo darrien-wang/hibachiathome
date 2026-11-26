@@ -208,7 +208,6 @@ test("placeName capitalizes what the customer typed, and keeps ZIPs and regions 
 test("template B hands edge cases to a person", () => {
   assert.deepEqual(quoteFollowUpPlan({ adults: 0, kids: 0, todayPt: today }), { send: false, reason: "no_guests" })
   assert.deepEqual(quoteFollowUpPlan({ adults: 70, kids: 0, eventDate: "2026-12-05", todayPt: today }), { send: false, reason: "large_party" })
-  assert.deepEqual(quoteFollowUpPlan({ adults: 10, kids: 0, eventDate: "2026-10-06", todayPt: today }), { send: false, reason: "date_past" })
   assert.deepEqual(quoteFollowUpPlan({ adults: 10, kids: 0, eventDate: "2026-10-08", todayPt: today }), { send: false, reason: "date_within_48h" })
   // Two days out is fine (the free-change window is still open).
   assert.ok(quoteFollowUpPlan({ adults: 10, kids: 0, eventDate: "2026-10-09", todayPt: today }).send)
@@ -313,4 +312,29 @@ test("partyBillText: first name, signer, the order's own pay link, cash still fi
   assert.match(text, /Cash to your chef works too\.$/)
   assert.doesNotMatch(text, /optional/i)
   assert.match(partyBillText({ customerName: "", payUrl: "x" }), /^Hi, it's Rowling from Real Hibachi/)
+})
+
+test("template B, the page sent a day already behind us: say so and ask for the real one (2026-11-26, aaae5f5b)", () => {
+  // The 11-26 lead: 30 adults, "LA & Orange County", Nov 13 on the 26th. The machine used to hand it to a
+  // person and tell nobody; the customer waited 33 minutes.
+  const plan = quoteFollowUpPlan({ adults: 30, kids: 0, eventDate: "2026-11-13", city: "LA & Orange County", todayPt: "2026-11-26" })
+  assert.ok(plan.send)
+  assert.equal(plan.text, "Hi, it's Rowling from Real Hibachi. Saw your quote for 30. The form sent us Nov 13, which has already passed. What date are you planning for?")
+  assert.equal(plan.dated, false)
+  assert.equal(plan.pastDate, true)
+  // A town is said like the other first texts; yesterday is already past.
+  const town = quoteFollowUpPlan({ adults: 12, kids: 3, eventDate: "2026-10-06", city: "Palm Springs", todayPt: today })
+  assert.ok(town.send)
+  assert.equal(town.text, "Hi, it's Rowling from Real Hibachi. Saw your quote for 15 in Palm Springs. The form sent us Oct 6, which has already passed. What date are you planning for?")
+  // The page's default count is not the customer's, so it is not repeated.
+  const unknown = quoteFollowUpPlan({ adults: 15, kids: 0, eventDate: "2026-10-01", city: "Irvine", todayPt: today, numberUnknown: true })
+  assert.ok(unknown.send)
+  assert.equal(unknown.text, "Hi, it's Rowling from Real Hibachi. Saw your quote. The form sent us Oct 1, which has already passed. What date are you planning for?")
+  // Not the D-1121-04 test: the question is the date whatever the arm says, and it is never dated.
+  const armed = quoteFollowUpPlan({ adults: 10, kids: 0, eventDate: "2026-10-06", todayPt: today, askDate: true })
+  assert.ok(armed.send)
+  assert.match(armed.text, /What date are you planning for\?$/)
+  assert.doesNotMatch(armed.text, /—|👋|your \d/)
+  // Today and the next day still go to a person ("open on our end" needs the calendar).
+  assert.deepEqual(quoteFollowUpPlan({ adults: 10, kids: 0, eventDate: today, todayPt: today }), { send: false, reason: "date_within_48h" })
 })

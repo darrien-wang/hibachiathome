@@ -575,7 +575,7 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
         const { data: attr } = await supabase.from("lead_attribution").select("channel").eq("id", lead.id).maybeSingle()
         if (DATE_ASK_CHANNELS.includes(String((attr as { channel?: string | null } | null)?.channel ?? ""))) arm = dateAskArm(phone)
       }
-      const template = arm === "date" ? "B_date" : "B"
+      let template = arm === "date" ? "B_date" : "B"
       const inTest = arm ? { test: DATE_ASK_TEST, arm } : {}
       const plan = quoteFollowUpPlan({
         adults: Number(payload.adults ?? lead.adult_count ?? 0) || 0,
@@ -590,6 +590,8 @@ async function runWatch(supabase: AnySupabase, dryRun: boolean, cronCaller: bool
         human(plan.reason)
         continue
       }
+      // The page sent a day already behind us: the text asks for the real one (lib/first-response.ts, 11-26).
+      if (plan.pastDate) template = "B_past_date"
       // The conversation may already be under way - the customer texted first,
       // or a person already sent something after the quote. Twilio is the truth
       // for both (the desk and the app both send through it); the quote itself

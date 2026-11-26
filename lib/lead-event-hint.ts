@@ -49,6 +49,16 @@ export function hintFromRows(rows: HintRow[]): LeadEventHint | null {
   return null
 }
 
+/**
+ * A hint that names a day already behind us (YYYY-MM-DD before `todayPt`, the
+ * Pacific date) is no party date to keep to: asking "what date?" is the right
+ * question then (2026-11-26, a quote form that sent Nov 13 on the 26th). A
+ * date in the customer's own words is kept - it has no year to compare.
+ */
+export function hintIsPast(hint: LeadEventHint | null | undefined, todayPt: string): boolean {
+  return Boolean(hint && /^\d{4}-\d{2}-\d{2}$/.test(hint.date) && /^\d{4}-\d{2}-\d{2}$/.test(todayPt) && hint.date < todayPt)
+}
+
 /** Newest date on the lead's timeline, read from the database. */
 export async function loadLeadEventHint(supabase: SupabaseClient, leadId: string): Promise<LeadEventHint | null> {
   const { data } = await supabase

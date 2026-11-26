@@ -2,7 +2,8 @@ import { type NextRequest, NextResponse } from "next/server"
 import { can, resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { fetchSmsThread, fetchSmsThreads, sendSms, toE164 } from "@/lib/sms-thread"
-import { loadLeadEventHint } from "@/lib/lead-event-hint"
+import { hintIsPast, loadLeadEventHint } from "@/lib/lead-event-hint"
+import { ptDate } from "@/lib/first-response"
 import { CUSTOMER_FORM_TYPES } from "@/lib/customer-forms"
 import { otherSenderJustAnswered } from "@/lib/duplicate-brake"
 import { isOptOutBlock } from "@/lib/sms-opt-out"
@@ -200,7 +201,11 @@ export async function POST(request: NextRequest) {
             .maybeSingle()
           leadId = (data as { id: string } | null)?.id ?? null
         }
-        if (leadId) hint = (await loadLeadEventHint(supabase, leadId))?.date ?? null
+        if (leadId) {
+          // A day already behind us does not count (lib/lead-event-hint.ts hintIsPast): "what date?" is right then.
+          const found = await loadLeadEventHint(supabase, leadId)
+          hint = found && !hintIsPast(found, ptDate(Date.now())) ? found.date : null
+        }
       }
     }
     if (said || hint) {

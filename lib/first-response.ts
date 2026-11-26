@@ -103,7 +103,8 @@ export type QuoteFollowUpInput = {
   askDate?: boolean
 }
 
-export type QuoteFollowUpPlan = { send: true; text: string; dated: boolean } | { send: false; reason: string }
+/** `pastDate`: the page sent a day already behind us, and the text asks for the real one (lead-watch files it as "B_past_date"). */
+export type QuoteFollowUpPlan = { send: true; text: string; dated: boolean; pastDate?: true } | { send: false; reason: string }
 
 /** Large parties get the E-type treatment from a person (per-head quote, "3-chef party"). */
 export const LARGE_PARTY_ADULTS = 61
@@ -137,15 +138,23 @@ export function quoteFollowUpPlan(i: QuoteFollowUpInput): QuoteFollowUpPlan {
   if (guests <= 0) return { send: false, reason: "no_guests" }
   if (adults >= LARGE_PARTY_ADULTS) return { send: false, reason: "large_party" }
   const date = i.eventDate && /^\d{4}-\d{2}-\d{2}$/.test(i.eventDate) ? i.eventDate : ""
-  if (date) {
-    const days = daysBetween(i.todayPt, date)
-    if (days < 0) return { send: false, reason: "date_past" }
-    if (days < QUOTE_FOLLOW_UP_MIN_DAYS) return { send: false, reason: "date_within_48h" }
-  }
   const place = placeName(i.city)
   // Owner 2026-10-29 (leads voice.md): no em dash, no 👋, no "your 15" for a
   // headcount, the date the way a person says it. Full stops, one question.
   const head = "Hi, it's Rowling from Real Hibachi."
+  if (date) {
+    const days = daysBetween(i.todayPt, date)
+    // A day already behind us is no party date. 2026-11-26 (aaae5f5b): a quote for 30 came in at 09:33 with
+    // Nov 13 on it. The machine used to hand that to a person and tell nobody, and the customer heard
+    // nothing for 33 minutes, until the owner's App rang. Say what the form sent and ask for the real day;
+    // it is not a D-1121-04 lead (the test is for quotes with no date).
+    if (days < 0) {
+      const sent = new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
+      const quote = i.numberUnknown ? "Saw your quote." : `Saw your quote for ${guests}${place ? ` in ${place}` : ""}.`
+      return { send: true, text: `${head} ${quote} The form sent us ${sent}, which has already passed. What date are you planning for?`, dated: false, pastDate: true }
+    }
+    if (days < QUOTE_FOLLOW_UP_MIN_DAYS) return { send: false, reason: "date_within_48h" }
+  }
   const ask = !date && i.askDate ? DATE_ASK : "What's the celebration?"
   if (i.numberUnknown) return { send: true, text: `${head} Saw your quote. ${ask}`, dated: false }
   const text = date
