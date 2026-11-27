@@ -165,7 +165,7 @@ export function chainLinks(items: number[], starts: number[], drive: Array<Array
 // ---------------------------------------------------------------- 三档排法 + 多派
 
 /** safe / late_ok / late_limit = 最少几个师傅（按肯冒的迟到风险）；spread_N = 多派到 N 个师傅 */
-export type TierKey = "safe" | "late_ok" | "late_limit" | `spread_${number}`
+export type TierKey = "safe" | "late_ok" | "late_limit" | "actual" | `spread_${number}`
 
 export type TierLink = ChainLink & {
   /** 想让这条稳下来（拖满也能提前到）要挪的：分钟数、下一场推到几点、或上一场提前到几点 */
@@ -185,6 +185,48 @@ export type TierPlan = {
 }
 
 export const isSpreadKey = (k: string) => k.startsWith("spread_")
+
+/** 每段衔接要稳下来得挪多少（三档排法和"现在派的"那版共用）。 */
+function withFix(links: ChainLink[], chains: number[][], starts: number[], p: DispatchParams): TierLink[] {
+  const heads = new Set(chains.map((c) => c[0]))
+  return links.map((l) => {
+    const need = l.worstLate + p.arriveEarlyMinutes
+    return {
+      ...l,
+      fix:
+        need > 0
+          ? {
+              minutes: need,
+              // 往整 5 分钟取：没人会约 8:22 开场
+              laterStartMin: Math.ceil((starts[l.to] + need) / 5) * 5,
+              // 只有师傅当天第一台才提前得了：老板原话，第一台可以很早过去布置好，人齐了
+              // 就提前开。链中间那一场自己都可能晚开，谈不上提前。
+              earlierStartMin: heads.has(l.from) ? Math.floor((starts[l.from] - need) / 5) * 5 : null,
+            }
+          : null,
+    }
+  })
+}
+
+/**
+ * "现在派的"（老板 2026-11-26）：不是算出来的方案，是订单上现在的样子——份额页拖完单，日历这天要跟着变。
+ * 每位师傅这天手上的几台（按开场先后）是一条线；还缺人的单，缺几位就各自几条单场的线。
+ * chefs = 派了人的线数（不算缺人的空位）。
+ */
+export function actualPlan(starts: number[], drive: Array<Array<number | null>>, p: DispatchParams, lateOk: number, team: string[][], need: number[], extra?: LinkExtra): TierPlan {
+  const byChef = new Map<string, number[]>()
+  team.forEach((ids, i) => {
+    for (const id of new Set(ids)) byChef.set(id, [...(byChef.get(id) ?? []), i])
+  })
+  const chains: number[][] = [...byChef.values()].map((c) => c.sort((a, b) => starts[a] - starts[b] || a - b))
+  const chefs = chains.length
+  starts.forEach((_, i) => {
+    for (let k = new Set(team[i] ?? []).size; k < Math.max(1, need[i] ?? 1); k++) chains.push([i])
+  })
+  chains.sort((a, b) => starts[a[0]] - starts[b[0]] || a[0] - b[0] || b.length - a.length)
+  const links = chains.flatMap((c) => chainLinks(c, starts, drive, p, lateOk, extra))
+  return { key: "actual", tolerance: 0, chefs, chains, spread: false, onePerParty: false, links: withFix(links, chains, starts, p) }
+}
 
 /**
  * 稳妥 / 肯迟到 / 极限 各排一版，再加上"多派"的几版。
@@ -229,34 +271,15 @@ export function planTiers(
     }))
   }
   const byStart = (a: number[], b: number[]) => starts[a[0]] - starts[b[0]] || a[0] - b[0]
-  const build = (key: TierKey, tolerance: number, chains: number[][], links: ChainLink[], spread: boolean): TierPlan => {
-    const heads = new Set(chains.map((c) => c[0]))
-    return {
-      key,
-      tolerance,
-      chefs: chains.length,
-      chains,
-      spread,
-      onePerParty: chains.length === starts.length,
-      links: links.map((l) => {
-        const need = l.worstLate + p.arriveEarlyMinutes
-        return {
-          ...l,
-          fix:
-            need > 0
-              ? {
-                  minutes: need,
-                  // 往整 5 分钟取：没人会约 8:22 开场
-                  laterStartMin: Math.ceil((starts[l.to] + need) / 5) * 5,
-                  // 只有师傅当天第一台才提前得了：老板原话，第一台可以很早过去布置好，人齐了
-                  // 就提前开。链中间那一场自己都可能晚开，谈不上提前。
-                  earlierStartMin: heads.has(l.from) ? Math.floor((starts[l.from] - need) / 5) * 5 : null,
-                }
-              : null,
-        }
-      }),
-    }
-  }
+  const build = (key: TierKey, tolerance: number, chains: number[][], links: ChainLink[], spread: boolean): TierPlan => ({
+    key,
+    tolerance,
+    chefs: chains.length,
+    chains,
+    spread,
+    onePerParty: chains.length === starts.length,
+    links: withFix(links, chains, starts, p),
+  })
 
   const tiers: Array<{ key: TierKey; tolerance: number }> = [
     { key: "safe", tolerance: 0 },

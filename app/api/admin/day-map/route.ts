@@ -3,7 +3,7 @@ import { resolveAdminActor } from "@/lib/admin-auth"
 import { createServerSupabaseClient } from "@/lib/supabase"
 import { HOME_BASE_QUERY } from "@/config/home-base"
 import { decodePlusCode, parseLatLng, parsePlusCode, recoverPlusCode } from "@/lib/plus-code"
-import { planTiers, TABLES_EXTRA_MINUTES, type DispatchParams } from "@/lib/dispatch"
+import { actualPlan, planTiers, TABLES_EXTRA_MINUTES, type DispatchParams, type TierPlan } from "@/lib/dispatch"
 import { orderPrep, type InvoiceLite } from "@/lib/prep-bom"
 import type { SetupSelection } from "@/config/table-themes"
 import { makeResolver, streetless, type Located } from "@/lib/address-resolve"
@@ -328,6 +328,29 @@ export async function GET(request: NextRequest) {
   ])
   const partnerOf = new Map(((allocRows ?? []) as Array<{ order_id: string; partner_id: string; status: string }>).map((a) => [a.order_id, a]))
 
+  // 现在派的那版：每位师傅这天手上的几台一条线（lib/dispatch.ts actualPlan）。只算师傅，不算帮手。
+  const actualOut = stops.some((s) => (chefIdsOf.get(s.id) ?? []).length)
+    ? actualPlan(stops.map((s) => s.startMin), minutes, params, dp.late_ok_minutes, stops.map((s) => chefIdsOf.get(s.id) ?? []), stops.map((s) => s.plan.chefs), (a, b) => (stops[a].tables || stops[b].tables ? TABLES_EXTRA_MINUTES : 0))
+    : null
+  const planOut = (plan: TierPlan) => ({
+    key: plan.key,
+    tolerance: plan.tolerance,
+    chefs: plan.chefs,
+    spread: plan.spread,
+    onePerParty: plan.onePerParty,
+    chains: plan.chains.map((c) => c.map((i) => stops[i].id)),
+    links: plan.links.map((l) => ({
+      fromId: stops[l.from].id,
+      toId: stops[l.to].id,
+      minutes: l.driveMinutes,
+      extra: l.extraMinutes,
+      miles: miles[l.from][l.to],
+      bestLate: l.bestLate,
+      worstLate: l.worstLate,
+      grade: l.grade,
+      fix: l.fix ? { minutes: l.fix.minutes, laterStart: clock(l.fix.laterStartMin), earlierStart: l.fix.earlierStartMin === null ? null : clock(l.fix.earlierStartMin) } : null,
+    })),
+  })
   return NextResponse.json({
     ok: true,
     date,
@@ -367,25 +390,9 @@ export async function GET(request: NextRequest) {
     drive: minutes,
     missing: stops.filter((s) => s.lat === null).map((s) => ({ name: s.name, address: s.address })),
     home: home ? { lat: home.lat, lng: home.lng, label: "家（出发点）" } : null,
-    plans: plans.map((plan) => ({
-      key: plan.key,
-      tolerance: plan.tolerance,
-      chefs: plan.chefs,
-      spread: plan.spread,
-      onePerParty: plan.onePerParty,
-      chains: plan.chains.map((c) => c.map((i) => stops[i].id)),
-      links: plan.links.map((l) => ({
-        fromId: stops[l.from].id,
-        toId: stops[l.to].id,
-        minutes: l.driveMinutes,
-        extra: l.extraMinutes,
-        miles: miles[l.from][l.to],
-        bestLate: l.bestLate,
-        worstLate: l.worstLate,
-        grade: l.grade,
-        fix: l.fix ? { minutes: l.fix.minutes, laterStart: clock(l.fix.laterStartMin), earlierStart: l.fix.earlierStartMin === null ? null : clock(l.fix.earlierStartMin) } : null,
-      })),
-    })),
+    plans: plans.map(planOut),
+    // 现在派的（老板 2026-11-26）：订单上现在的样子，份额页拖完单日历跟着变。一个人都没派是 null。
+    actual: actualOut ? planOut(actualOut) : null,
     params: {
       busyMin: params.busyMinMinutes,
       busyMax: params.busyMaxMinutes,
