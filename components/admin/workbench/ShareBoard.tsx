@@ -75,7 +75,8 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
   const activeIds = useMemo(() => new Set([...staff.values()].filter((c) => c.active && c.canHelp).map((c) => c.id)), [staff])
   const totals = useMemo(() => weekHeads(loaded), [loaded])
 
-  // 行：派单顺序的五位在前，其余在职师傅按这周人数多少，最后是未派。这周有单但已不可派的人也列出来。
+  // 行：跟上面饼图一样按这周人数从多到少（老板 2026-11-26），一样多再按单数，再按派单顺序；最后是未派。
+  // 这周有单但已不可派的人也列出来。拖完单人数变了，行会跟着重排。
   const rows = useMemo(() => {
     const ids = new Set<string>([...activeIds, ...totals.keys()])
     const list = [...ids].filter((id) => staff.has(id))
@@ -83,7 +84,9 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
       const i = ROTATION.indexOf(nameOf(id))
       return i >= 0 ? i : ROTATION.length
     }
-    return list.sort((a, b) => rank(a) - rank(b) || (totals.get(b)?.heads ?? 0) - (totals.get(a)?.heads ?? 0) || nameOf(a).localeCompare(nameOf(b)))
+    const heads = (id: string) => totals.get(id)?.heads ?? 0
+    const parties = (id: string) => totals.get(id)?.parties ?? 0
+    return list.sort((a, b) => heads(b) - heads(a) || parties(b) - parties(a) || rank(a) - rank(b) || nameOf(a).localeCompare(nameOf(b)))
   }, [activeIds, totals, staff, nameOf])
 
   const stopsIn = (chef: string | null, date: string) => {
