@@ -127,7 +127,8 @@ export function OrdersTab({
 
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", overflowX: "auto", paddingBottom: 2 }}>
+      {/* 电脑 / iPad 换行，手机横着滑（iPad 竖屏一行放不下，「备料采购」「排序」原来被挤到屏幕外，2026-11-26）。 */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", ...(isMobile ? { overflowX: "auto" as const } : { flexWrap: "wrap" as const }), paddingBottom: 2 }}>
         {FILTERS.map(([k, label]) => (
           <Chip key={k} active={filter === k} onClick={() => setFilter(k)}>
             {label} <span style={{ opacity: 0.6 }}>{counts[k]}</span>
@@ -198,14 +199,13 @@ export function OrdersTab({
                   <td className="r" style={{ whiteSpace: "nowrap", color: r.stage === "待尾款" ? "var(--color-accent-700)" : undefined }}>
                     {r.o.balance_due_cents && r.o.balance_due_cents > 0 ? money(r.o.balance_due_cents) : "—"}
                   </td>
-                  <td style={{ whiteSpace: "nowrap" }}>
-                    <Tag cls={STAGE_TAG_CLASS[r.stage]}>{r.stage}</Tag>
-                    <Tag cls={CONFIRM_TAG_CLS[confirmState(r.o)]} style={{ marginLeft: 4 }}>{CONFIRM_LABEL[confirmState(r.o)]}</Tag>
-                    {r.changed ? (
-                      <Tag cls="tag-outline" style={{ marginLeft: 4 }}>
-                        Planner 改了
-                      </Tag>
-                    ) : null}
+                  <td style={{ width: 176 }}>
+                    {/* 标签换行：三个标签排一行会把地址那栏挤到 100px 出头（iPad 2026-11-26）。 */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                      <Tag cls={STAGE_TAG_CLASS[r.stage]}>{r.stage}</Tag>
+                      <Tag cls={CONFIRM_TAG_CLS[confirmState(r.o)]}>{CONFIRM_LABEL[confirmState(r.o)]}</Tag>
+                      {r.changed ? <Tag cls="tag-outline">Planner 改了</Tag> : null}
+                    </div>
                     <div style={{ fontSize: 11, marginTop: 4, color: pl.color }}>{pl.text}</div>
                     <PlannerPill s={liveOf(r.o.id)} project={planner.clarityProject} compact style={{ marginTop: 3 }} />
                   </td>

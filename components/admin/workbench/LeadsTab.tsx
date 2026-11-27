@@ -199,16 +199,17 @@ export function LeadsTab({
       {rows.length === 0 ? <div className="empty">这一栏没有线索。</div> : null}
 
       {!isMobile ? (
-        <table className="table">
+        // 定宽列：iPad 竖屏（内容区 ~930px）原来被城市、客户两列撑到 1100px，首响、收到两列看不到（2026-11-26）。
+        <table className="table" style={{ tableLayout: "fixed", width: "100%" }}>
           <thead>
             <tr style={{ whiteSpace: "nowrap" }}>
-              <th style={{ width: 28 }}></th>
-              <th>客户</th>
-              <th>状态 · 来源</th>
-              <th>城市 · 人数</th>
+              <th style={{ width: 36 }}></th>
+              <th style={{ width: "21%" }}>客户</th>
+              <th style={{ width: "17%" }}>状态 · 来源</th>
+              <th style={{ width: "17%" }}>城市 · 人数</th>
               <th>最后一条</th>
-              <th className="r">首响</th>
-              <th className="r">收到</th>
+              <th className="r" style={{ width: 64 }}>首响</th>
+              <th className="r" style={{ width: 76 }}>收到</th>
             </tr>
           </thead>
           <tbody>
@@ -220,11 +221,11 @@ export function LeadsTab({
                   <td onClick={(e) => e.stopPropagation()}>
                     <input type="checkbox" checked={selected.has(l.id)} onChange={() => toggle(l.id)} style={{ accentColor: "var(--color-accent)" }} aria-label="选择" />
                   </td>
-                  <td style={{ whiteSpace: "nowrap" }}>
+                  <td style={{ whiteSpace: "nowrap", overflow: "hidden" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ display: "inline-block", width: 8, height: 8, background: LEAD_DOT[l.status] ?? "var(--color-neutral-400)", flex: "none" }} />
-                      <div>
-                        <div style={{ fontWeight: 600 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}>
                           {displayName(l.full_name, l.phone)}
                           {isTestLead(l) ? <span className="tag tag-faint" style={{ marginLeft: 6 }}>测试</span> : null}
                         </div>
@@ -232,23 +233,23 @@ export function LeadsTab({
                       </div>
                     </div>
                   </td>
-                  <td style={{ whiteSpace: "nowrap" }}>
+                  <td style={{ whiteSpace: "nowrap", overflow: "hidden" }}>
                     <Tag cls={LEAD_TAG_CLASS[l.status] ?? "tag-neutral"}>{LEAD_STATUS_LABELS[l.status] ?? l.status}</Tag>
-                    <div style={{ fontSize: 11, color: "var(--color-neutral-600)", marginTop: 4, maxWidth: 200 }} className="clamp1">
+                    <div style={{ fontSize: 11, color: "var(--color-neutral-600)", marginTop: 4, maxWidth: 200, whiteSpace: "normal" }} className="clamp1">
                       {leadIsAds(l) ? "广告 · " : ""}
                       {leadKeyword(l)}
                     </div>
                     <PlannerPill s={planner.byLead[l.id]} project={planner.clarityProject} compact style={{ marginTop: 3 }} />
                   </td>
-                  <td style={{ whiteSpace: "nowrap" }}>
+                  <td>
                     {l.city_or_zip ?? "—"}{" "}
                     <span style={{ color: "var(--color-neutral-600)" }} title={guestLabel(l)?.title}>
                       · {guestLabel(l)?.text ?? "? 人"}
                     </span>
                     {l.event_hint ? <div style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>想订 {md(l.event_hint)}</div> : null}
                   </td>
-                  <td style={{ maxWidth: 0, width: "36%" }}>
-                    <div className="clamp1" style={{ color: last.color, fontWeight: last.weight }}>
+                  <td>
+                    <div className="clamp2" style={{ color: last.color, fontWeight: last.weight }}>
                       {last.prefix}
                       {last.text}
                       {last.suffix ? <span style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>{last.suffix}</span> : null}
