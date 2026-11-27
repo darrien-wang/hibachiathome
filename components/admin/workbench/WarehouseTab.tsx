@@ -9,6 +9,7 @@ import { bulkName, isBulkItem } from "@/lib/pantry"
 import { SauceCalc } from "./SauceCalc"
 import BuyListTab from "./BuyListTab"
 import StockCountAdmin from "./StockCountAdmin"
+import { itemDef, looseUnits, normalizeDecimal, toBase, unitLabel, type AmountUnit, type CustomSpec } from "@/lib/stocktake"
 
 // 虚拟仓库。两种东西两种记法，混在一起记只会两边都不准：
 //   消耗品 —— 按包记。一格 = 一个实物包装，点一下：整包 → 剩半 → 划掉。
@@ -978,10 +979,13 @@ const buyCount = (short: number, pack: BuyPack | null | undefined) => {
 }
 const r1 = (n: number) => Math.round(n * 10) / 10
 // 备货页显示单位（老板 2026-11-22「能不能切换成 lb 单位」）：库里一律记 oz，lb 只是写法。
-const LbContext = createContext(false)
-const LB_KEY = "wh-prep-lb"
+const LbContext = createContext(true)
+// 2026-11-26 老板「默认使用 lb」：换了个 key，之前切到 oz 的设备也从 lb 开始
+const LB_KEY = "wh-prep-lb2"
 /** 按当前单位写一个量：lb 模式下 oz 折成磅，别的单位（只、tbsp、份）照旧。 */
-const qtyIn = (qty: number, unit: string, lb: boolean) => (lb && unit === "oz" ? `${r1(qty / 16)} lb` : `${r1(qty)} ${unit}`)
+/** lb 模式下一个库存单位折几磅：oz ÷16；酱料黄油按 tbsp 记（1 tbsp = 0.5 oz）÷32（老板 2026-11-26「默认使用 lb」）。 */
+const LB_PER: Record<string, number> = { oz: 16, tbsp: 32 }
+const qtyIn = (qty: number, unit: string, lb: boolean) => (lb && LB_PER[unit] ? `${r1(qty / LB_PER[unit])} lb` : `${r1(qty)} ${unit}`)
 /** 实物的写法（在库、占用、可用）："3 个" / "1 盒 1 个" / "2 袋"；没有大单位就是"1.5 瓶"。 */
 function fmtCount(qty: number, pack: BuyPack | null | undefined, unit: string, lb = false): string {
   if (!pack || pack.per <= 0) return qtyIn(qty, unit, lb)
@@ -1001,18 +1005,143 @@ function fmtNeed(qty: number, pack: BuyPack | null | undefined, unit: string, lb
   return big ? `${r1(small)} ${pack.noun} ≈ ${r1(small / big.count)} ${big.noun}` : `${r1(small)} ${pack.noun}`
 }
 
+/** 备货页上某一样选的规格（老板 2026-11-26：默认不按包，想按包算才选）。存在这台设备上。 */
+type ChosenSpec = { label: string; amount: number; unit: AmountUnit }
+const SPEC_KEY = "wh-prep-spec"
+/** 选了规格 → 一包 = 多少库存基准单位；没选就 null（整页只写 lb / 个）。 */
+function specPack(id: string, spec: ChosenSpec | undefined): BuyPack | null {
+  if (!spec || !(spec.amount > 0)) return null
+  const def = itemDef(id)
+  const per = def ? toBase(def, spec.amount, spec.unit) : spec.unit === "base" ? spec.amount : null
+  return per && per > 0 ? { per, noun: "包", desc: spec.label } : null
+}
+
+/* 缺什么的一行：缺多少按 lb / 个写；选了规格再多写「≈ 买 N 包」。 */
+export function MissingRow({
+  row,
+  have,
+  avail,
+  short,
+  buy,
+  servings,
+  spec,
+  shared,
+  onChoose,
+}: {
+  row: PlanRow
+  have: number
+  avail: number
+  short: number
+  buy: number | null
+  servings?: { adults: number; kids: number }
+  spec: ChosenSpec | null
+  shared: CustomSpec[]
+  onChoose: (s: ChosenSpec | null) => void
+}) {
+  const lb = useContext(LbContext)
+  const [open, setOpen] = useState(false)
+  const def = itemDef(row.id)
+  const units: AmountUnit[] = def ? looseUnits(def) : ["base"]
+  const ul = (u: AmountUnit) => (def ? unitLabel(def, u) : row.unit)
+  const [amt, setAmt] = useState("")
+  const [unit, setUnit] = useState<AmountUnit>(units.includes("lb") ? "lb" : units[0])
+  const options: ChosenSpec[] = [...(def?.specs ?? []), ...shared].map((x) => ({ label: x.label, amount: Number(x.amount), unit: x.unit }))
+  const same = (a: ChosenSpec | null, b: ChosenSpec) => !!a && a.amount === b.amount && a.unit === b.unit && a.label === b.label
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.6fr) auto", gap: 14, alignItems: "start", padding: "10px 0", borderBottom: "1px solid var(--color-divider)" }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>{row.label}</div>
+        <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>
+          要 {qtyIn(row.qty, row.unit, lb)} · 在库 {qtyIn(have, row.unit, lb)}
+          {avail < have ? ` · 别的单占了，可用 ${qtyIn(avail, row.unit, lb)}` : ""}
+        </div>
+        {servings && servings.adults + servings.kids > 0 ? (
+          <div style={{ fontSize: 12.5, color: INK, fontWeight: 600, marginTop: 2 }}>
+            {servings.adults + servings.kids} 份（{heads(servings.adults, servings.kids)}）
+          </div>
+        ) : null}
+        {basisOf(row.id) ? <div style={{ fontSize: 11.5, color: MUTED, marginTop: 1 }}>按 {basisOf(row.id)}</div> : null}
+        <button type="button" className="btn btn-ghost btn-sm" style={{ paddingInline: 0, marginTop: 2 }} onClick={() => setOpen((o) => !o)}>
+          {spec ? `规格：${spec.label}（每包 ${spec.amount} ${ul(spec.unit)}）· 换` : "按规格算"}
+        </button>
+        {open ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: 8, background: "var(--color-neutral-100)", marginTop: 4 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              <button type="button" className="wb-chip wb-chip-sm" aria-pressed={!spec} onClick={() => (onChoose(null), setOpen(false))}>
+                不按规格（{lb && LB_PER[row.unit] ? "lb" : row.unit}）
+              </button>
+              {options.map((o, i) => (
+                <button key={i} type="button" className="wb-chip wb-chip-sm" aria-pressed={same(spec, o)} onClick={() => (onChoose(o), setOpen(false))}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", fontSize: 13 }}>
+              自定义：每包
+              <input className="input" inputMode="decimal" style={{ width: 72, textAlign: "right" }} value={amt} placeholder="3.2" onChange={(e) => setAmt(normalizeDecimal(e.target.value))} />
+              {units.map((u) => (
+                <button key={u} type="button" className="wb-chip wb-chip-sm" aria-pressed={unit === u} onClick={() => setUnit(u)}>
+                  {ul(u)}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                disabled={!(Number(amt) > 0)}
+                onClick={() => {
+                  const a = Number(amt)
+                  onChoose({ label: `${a} ${ul(unit)}/包`, amount: a, unit })
+                  setOpen(false)
+                }}
+              >
+                用这个算
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+      <div style={{ textAlign: "right" }}>
+        <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 20, color: "var(--color-accent-700)", whiteSpace: "nowrap" }}>缺 {qtyIn(short, row.unit, lb)}</div>
+        {spec && buy != null ? <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>≈ 买 {buy} 包</div> : null}
+      </div>
+    </div>
+  )
+}
+
 function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] }) {
   const [sel, setSel] = useState<Set<string>>(() => new Set(events.map((e) => e.key.replace(/^order:/, ""))))
   const [resp, setResp] = useState<PlanResp | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
-  const [lb, setLbState] = useState(false)
+  const [lb, setLbState] = useState(true)
   useEffect(() => {
     try {
-      setLbState(window.localStorage.getItem(LB_KEY) === "1")
+      setLbState(window.localStorage.getItem(LB_KEY) !== "0")
     } catch {}
   }, [])
+  // 规格（老板 2026-11-26）：默认只写 lb / 个，不写盒袋瓶；某一样要按包算，就在那一行点「按规格算」选一个或自己定一个，
+  // 记在这台设备上，那一行才多写「≈ 买 N 包」。可选的规格 = 盘点页的内置规格 + 师傅加的（/api/tools/stock）。
+  const [chosen, setChosenState] = useState<Record<string, ChosenSpec>>({})
+  const [shared, setShared] = useState<CustomSpec[]>([])
+  useEffect(() => {
+    try {
+      setChosenState(JSON.parse(window.localStorage.getItem(SPEC_KEY) ?? "{}") as Record<string, ChosenSpec>)
+    } catch {}
+    adminJson<{ specs?: CustomSpec[] }>(adminKey, "/api/tools/stock")
+      .then((d) => setShared((d.specs ?? []).map((x) => ({ ...x, amount: Number(x.amount) }))))
+      .catch(() => {})
+  }, [adminKey])
+  const choose = (id: string, spec: ChosenSpec | null) =>
+    setChosenState((cur) => {
+      const n = { ...cur }
+      if (spec) n[id] = spec
+      else delete n[id]
+      try {
+        window.localStorage.setItem(SPEC_KEY, JSON.stringify(n))
+      } catch {}
+      return n
+    })
   const setLb = (v: boolean) => {
     setLbState(v)
     try {
@@ -1079,7 +1208,6 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
   const groups = (() => {
     if (!resp) return null
     type Line = { row: PlanRow; have: number; committed: number; holders: Occupant[]; avail: number; short: number; buy: number | null; stale: boolean; ask: boolean; counted: string | null }
-    const buy: Record<string, Line[]> = {}
     const byGroup: Record<string, Line[]> = {}
     const setup: PlanRow[] = []
     // 订单另加（自定义项，老板 2026-11-21）：不在库存里记，照单备，单列一块。
@@ -1089,7 +1217,9 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
     const countedBy = new Map(resp.pantryDetail?.map((r) => [r.item_key, r.updated_by ?? null]) ?? [])
     const staleBefore = Date.now() - STALE_DAYS * 86400_000
     const bulk: string[] = []
-    for (const row of resp.totals) {
+    const short_: Line[] = []
+    for (const raw of resp.totals) {
+      const row: PlanRow = { ...raw, pack: specPack(raw.id, chosen[raw.id]) }
       if (row.group === "setup") {
         setup.push(row)
         continue
@@ -1118,18 +1248,13 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
       // 全量核对表要看到每一样东西，不管够不够 —— 老板要的就是能发现"账上说够、
       // 实际早没了"这种漏更新，只显示缺口栏会把这类问题挡在外面。
       ;(byGroup[row.group] = byGroup[row.group] ?? []).push(line)
-      if (short > 0) {
-        // 去哪买 = 这一项在仓库里记的"补货渠道"，记了收据会自动更新成最近一次实际买的地方
-        // （老板 2026-10-16：不要硬塞到 Walmart，按我们现在实际在哪买分）。
-        const store = resp.stores[row.id]?.channel?.trim() || "还没定在哪买"
-        ;(buy[store] = buy[store] ?? []).push(line)
-      }
+      // 老板 2026-11-26：不分渠道（Costco / Walmart …），只写缺什么
+      if (short > 0) short_.push(line)
     }
-    const order = ["Costco", "Walmart", "Restaurant Depot", "Instacart", "Amazon", "还没定在哪买"]
-    const storeKeys = Object.keys(buy).sort((a, b) => (order.indexOf(a) + 99) - (order.indexOf(b) + 99) || a.localeCompare(b))
     const GROUP_ORDER: PrepGroup[] = ["protein", "produce", "frozen", "pantry"]
     const all = GROUP_ORDER.flatMap((g) => byGroup[g] ?? [])
-    return { buy, storeKeys, setup, custom, bulk, ask: all.filter((l) => l.ask), trusted: all.filter((l) => !l.ask) }
+    const missing = GROUP_ORDER.flatMap((g) => short_.filter((l) => l.row.group === g))
+    return { missing, setup, custom, bulk, ask: all.filter((l) => l.ask), trusted: all.filter((l) => !l.ask) }
   })()
 
   // 全选 / 反选（老板 2026-09-30）
@@ -1157,7 +1282,7 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
             ))}
           </span>
         </div>
-        <div style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>勾上要备的订单，一键算出"买什么、买几瓶、去哪买"。差多少一律往上取整到整瓶整盒——最小采购单位就是一瓶，剩多少是师傅现场的事。</div>
+        <div style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>勾上要备的订单，一键算出缺什么、缺多少（按 lb / 个）。哪一样想按包算，点那一行的「按规格算」。</div>
       </div>
 
       {events.length === 0 ? <div style={{ color: MUTED, fontSize: 13 }}>未来 10 天没有订单。</div> : null}
@@ -1210,35 +1335,17 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
             })()}
           </div>
 
-          {groups.storeKeys.length === 0 ? <div className="notice">都够，不用买。</div> : null}
-          {groups.storeKeys.map((store) => (
-            <section key={store}>
+          {groups.missing.length === 0 ? <div className="notice">都够，不用买。</div> : (
+            <section>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: `2px solid ${INK}`, paddingBottom: 8 }}>
-                <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 19 }}>{store}</div>
-                <div style={{ fontSize: 12.5, color: MUTED }}>{groups.buy[store].length} 项</div>
+                <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 19 }}>缺什么</div>
+                <div style={{ fontSize: 12.5, color: MUTED }}>{groups.missing.length} 项</div>
               </div>
-              {groups.buy[store].map(({ row, have, short, buy }) => (
-                <div key={row.id} style={{ display: "grid", gridTemplateColumns: "minmax(0,1.6fr) auto", gap: 14, alignItems: "center", padding: "10px 0", borderBottom: "1px solid var(--color-divider)" }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 15 }}>{row.label}</div>
-                    <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>
-                      要 {row.pack && row.pack.per !== 1 ? `${qtyIn(row.qty, row.unit, lb)}（≈ ${fmtNeed(row.qty, row.pack, row.unit, lb)}）` : fmtNeed(row.qty, row.pack, row.unit, lb)} · 在库 {fmtCount(have, row.pack, row.unit, lb)}
-                      {row.pack?.desc ? ` · ${row.pack.desc}` : ""}
-                    </div>
-                    {resp.servings?.[row.id] && resp.servings[row.id].adults + resp.servings[row.id].kids > 0 ? (
-                      <div style={{ fontSize: 12.5, color: INK, fontWeight: 600, marginTop: 2 }}>
-                        {resp.servings[row.id].adults + resp.servings[row.id].kids} 份（{heads(resp.servings[row.id].adults, resp.servings[row.id].kids)}）
-                      </div>
-                    ) : null}
-                    {basisOf(row.id) ? <div style={{ fontSize: 11.5, color: MUTED, marginTop: 1 }}>按 {basisOf(row.id)}</div> : null}
-                  </div>
-                  <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 20, color: "var(--color-accent-700)", whiteSpace: "nowrap" }}>
-                    {buy === null ? `补 ${qtyIn(short, row.unit, lb)}` : `买 ${buy} ${buyNoun(row.pack)}`}
-                  </div>
-                </div>
+              {groups.missing.map(({ row, have, avail, short, buy }) => (
+                <MissingRow key={row.id} row={row} have={have} avail={avail} short={short} buy={buy} servings={resp.servings?.[row.id]} spec={chosen[row.id] ?? null} shared={shared.filter((x) => x.item_key === row.id)} onChoose={(sp) => choose(row.id, sp)} />
               ))}
             </section>
-          ))}
+          )}
 
           {groups.setup.length ? (
             <section>
@@ -1823,7 +1930,7 @@ function CountRow({
   const [bigIn, setBigIn] = useState("")
   const [smallIn, setSmallIn] = useState("")
   const lb = useContext(LbContext)
-  const asLb = lb && row.unit === "oz"
+  const asLb = lb && !!LB_PER[row.unit]
   const count = (q: number) => fmtCount(q, pack, row.unit, lb)
 
   // 快捷按钮，值都换回 BOM 单位（oz / 只 / tbsp）存
@@ -1869,7 +1976,7 @@ function CountRow({
           {counted && !stale ? <span style={{ fontSize: 11, color: MUTED, fontWeight: 500 }}> · {counted}</span> : null}
         </div>
         <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 15, whiteSpace: "nowrap", color: short > 0 ? "var(--color-accent-700)" : "#16a34a" }}>
-          {short > 0 ? (buy === null ? `补 ${qtyIn(short, row.unit, lb)}` : `买 ${buy} ${buyNoun(pack)}`) : "够"}
+          {short > 0 ? (buy === null ? `缺 ${qtyIn(short, row.unit, lb)}` : `缺 ${qtyIn(short, row.unit, lb)} ≈ 买 ${buy} ${buyNoun(pack)}`) : "够"}
         </div>
       </div>
       <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>
@@ -1928,7 +2035,7 @@ function CountRow({
           onClick={async () => {
             const v = await askPrompt({ title: row.label, message: `实际还有多少 ${asLb ? "lb" : row.unit}？`, placeholder: asLb ? "例如 2.5" : "例如 20", inputMode: "decimal" })
             if (v === null) return
-            const n = Number(v) * (asLb ? 16 : 1)
+            const n = Number(normalizeDecimal(v)) * (asLb ? LB_PER[row.unit] : 1)
             if (!Number.isFinite(n) || n < 0) return
             onSet(Math.round(n * 100) / 100)
           }}
