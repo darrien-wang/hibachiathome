@@ -1,4 +1,6 @@
+import type { NextRequest } from "next/server"
 import type { createServerSupabaseClient } from "@/lib/supabase"
+import { resolveAdminActor } from "@/lib/admin-auth"
 import { stockLabel, stockUnit } from "@/lib/pantry"
 import { RESTOCK_CHECK, STOCK_ITEMS, cleanLine, itemDef, totalBase, type AmountUnit, type CountLine, type CustomSpec, type RestockLevel } from "@/lib/stocktake"
 
@@ -19,6 +21,20 @@ export async function staffByStockToken(supabase: Supa, token: string): Promise<
   const row = data as { id: string; display_name: string | null; full_name: string | null; status: string } | null
   if (!row || row.status !== "active") return null
   return { id: row.id, name: String(row.display_name ?? row.full_name ?? "").trim() || "师傅" }
+}
+
+export type StockWho = { staffId: string | null; name: string; via: "link" | "workbench"; owner: boolean }
+
+/** 谁在盘：带 ?t= 的是师傅；不带的认工作台登录（老板 / 坐席）。 */
+export async function stockWho(request: NextRequest, supabase: Supa): Promise<StockWho | null> {
+  const token = (request.nextUrl.searchParams.get("t") ?? "").trim()
+  if (token) {
+    const staff = await staffByStockToken(supabase, token)
+    return staff ? { staffId: staff.id, name: staff.name, via: "link", owner: false } : null
+  }
+  const actor = await resolveAdminActor(request).catch(() => null)
+  if (!actor) return null
+  return { staffId: null, name: actor.name ?? actor.alias, via: "workbench", owner: actor.role === "owner" }
 }
 
 export type ItemState = {

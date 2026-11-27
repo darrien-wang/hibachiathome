@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
+import { VoiceAssist } from "./VoiceAssist"
 import {
   RESTOCK_CHECK,
   RESTOCK_LEVEL_LABEL,
@@ -165,6 +166,21 @@ export function StockCount() {
           </>
         ) : null}
       </div>
+      <VoiceAssist
+        url={`/api/tools/stock/voice${token ? `?t=${encodeURIComponent(token)}` : ""}`}
+        draft={draft}
+        levels={levels}
+        onApply={({ items, restock, specs }) => {
+          if (specs.length) setD((cur) => (cur ? { ...cur, specs: [...cur.specs, ...specs.filter((s) => !cur.specs.some((x) => x.id === s.id))] } : cur))
+          setDraft((cur) => {
+            const n = { ...cur }
+            for (const it of items) n[it.key] = it.mode === "add" ? [...(n[it.key] ?? []), ...it.lines] : it.lines
+            return n
+          })
+          if (restock.length) setLevels((cur) => ({ ...cur, ...Object.fromEntries(restock.map((r) => [r.key, r.level])) }))
+          setDone(null)
+        }}
+      />
       {done ? <div className="notice notice-accent">{done}</div> : null}
       {restored ? <div className="notice">上次没交的已经帮你留着了。</div> : null}
       {err ? <div className="notice notice-accent">{err}</div> : null}

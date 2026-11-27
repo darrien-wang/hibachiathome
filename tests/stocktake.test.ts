@@ -67,3 +67,36 @@ test("stocktake · due: short shelf-life every PT day, frozen after 7 days", () 
   assert.equal(isDue("frozen", "2026-11-18T20:00:00Z", now), true)
   assert.equal(isDue("app", null, now), true)
 })
+
+import { normalizeAi, filledSummary } from "../lib/stocktake-ai"
+
+test("stocktake ai · model answer becomes the same lines a tap makes; unknown specs ask, new packs wait to be created", () => {
+  const custom = [{ id: "11111111-1111-1111-1111-111111111111", item_key: "edamame", label: "Costco 3 lb", amount: 3, unit: "lb" as const, created_by: "Blu" }]
+  const r = normalizeAi(
+    {
+      items: [
+        { item_key: "chicken", mode: "replace", lines: [{ kind: "pack", spec_id: "b:chicken:tray", packs: 3 }, { kind: "loose", amount: "2.5", unit: "lb" }] },
+        { item_key: "edamame", lines: [{ kind: "pack_new", amount: 20, unit: "oz", packs: 2 }, { kind: "pack_new", amount: 12, unit: "oz", packs: 4 }, { kind: "pack", spec_id: custom[0].id, packs: 1 }] },
+        { item_key: "gyoza", zero: true },
+        { item_key: "shrimp", lines: [{ kind: "pack", spec_id: "nope", packs: 2 }] },
+        { item_key: "unicorn", lines: [{ kind: "loose", amount: 1, unit: "lb" }] },
+        { item_key: "eggs", lines: [{ kind: "loose", amount: 2, unit: "lb" }] },
+      ],
+      restock: [{ item_key: "soy_sauce", level: "low" }, { item_key: "chicken", level: "out" }],
+      questions: ["虾是几袋？"],
+      say: "鸡肉 3 盘 + 散 2.5 磅",
+    },
+    custom,
+  )
+  assert.deepEqual(r.items.map((i) => i.key), ["chicken", "edamame", "gyoza"])
+  assert.deepEqual(r.items[0].lines[1], { kind: "loose", amount: 2.5, unit: "lb" })
+  // 20 oz is new -> pending; 12 oz matches the built-in spec -> a normal pack line
+  assert.equal(r.items[1].lines[0].kind, "pending")
+  assert.deepEqual(r.items[1].lines[1], { kind: "pack", specId: "b:edamame:12", specLabel: "12 oz/包", amount: 12, unit: "oz", packs: 4 })
+  assert.equal((r.items[1].lines[2] as { specLabel: string }).specLabel, "Costco 3 lb")
+  assert.deepEqual(r.items[2], { key: "gyoza", mode: "replace", lines: [] })
+  assert.deepEqual(r.restock, [{ key: "soy_sauce", level: "low" }])
+  assert.ok(r.questions.some((q) => q.includes("虾")))
+  assert.ok(r.questions.some((q) => q.includes("鸡蛋")), "eggs by weight is refused with a question")
+  assert.deepEqual(filledSummary([{ key: "gyoza", lines: [] }]), ["饺子：没有了（0 pcs）"])
+})

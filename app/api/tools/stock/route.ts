@@ -1,8 +1,7 @@
 import { randomBytes } from "node:crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerSupabaseClient } from "@/lib/supabase"
-import { resolveAdminActor } from "@/lib/admin-auth"
-import { addStockSpec, archiveStockSpec, loadStockState, recentCounts, staffByStockToken, submitStockCount } from "@/lib/stocktake-server"
+import { addStockSpec, archiveStockSpec, loadStockState, recentCounts, stockWho, submitStockCount } from "@/lib/stocktake-server"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -25,21 +24,10 @@ const deny = (status: number, error: string) => json({ ok: false, error }, statu
 const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f-]{36}$/i.test(v)
 const BASE = "https://www.realhibachi.com/tools/stock"
 
-async function who(request: NextRequest, supabase: NonNullable<ReturnType<typeof createServerSupabaseClient>>) {
-  const token = (request.nextUrl.searchParams.get("t") ?? "").trim()
-  if (token) {
-    const staff = await staffByStockToken(supabase, token)
-    return staff ? { staffId: staff.id, name: staff.name, via: "link" as const, owner: false } : null
-  }
-  const actor = await resolveAdminActor(request).catch(() => null)
-  if (!actor) return null
-  return { staffId: null, name: actor.name ?? actor.alias, via: "workbench" as const, owner: actor.role === "owner" }
-}
-
 export async function GET(request: NextRequest) {
   const supabase = createServerSupabaseClient()
   if (!supabase) return deny(500, "supabase not configured")
-  const me = await who(request, supabase)
+  const me = await stockWho(request, supabase)
   if (!me) return deny(401, "链接不对或者已经收回了，找老板要一条新的")
   if (request.nextUrl.searchParams.get("view") === "admin") {
     if (!me.owner) return deny(403, "只有老板能看")
@@ -66,7 +54,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const supabase = createServerSupabaseClient()
   if (!supabase) return deny(500, "supabase not configured")
-  const me = await who(request, supabase)
+  const me = await stockWho(request, supabase)
   if (!me) return deny(401, "链接不对或者已经收回了，找老板要一条新的")
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
 
