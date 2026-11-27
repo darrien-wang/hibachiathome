@@ -8,7 +8,7 @@ import { addDays, dowZh, md, ptToday } from "./helpers"
 import { headsText } from "@/lib/party-heads"
 import { hoursToParty } from "@/lib/dispatch-plan-order"
 import { ROTATION, TARGET_CHEFS, TARGET_MAX, TARGET_MIN } from "@/lib/chef-share"
-import { checkMove, teamsAfter, weekHeads, type BoardDay, type BoardStop, type Move, type MoveCheck } from "@/lib/share-move"
+import { checkGroupMove, teamsAfterGroup, unassignedGroups, weekHeads, type BoardDay, type BoardStop, type GroupMove, type MoveCheck } from "@/lib/share-move"
 
 // 份额页 · 拖单调人数（老板 2026-11-14「能够简单的分配每周的总人数，自主的给某些师傅加单和减单」）。
 //
@@ -17,15 +17,23 @@ import { checkMove, teamsAfter, weekHeads, type BoardDay, type BoardStop, type M
 // 换给拖出来的那位，或者放回未派；还有点名、新手、难度这些提醒。确认了才写。
 // 写的时候只改名单不发短信（quiet），最后点"通知改动"一起通知，和日历地图同一个入口。
 // 每一步都能撤销。
+// 连台（老板 2026-11-26）：一位师傅这天两台以上框成一组，未派里按路线方案把一条线上的几台框成一组；
+// 拖组上面那条"连台"就是整组一起换人，拖里面的单张还是只动这一张。
 
 type DayResp = BoardDay & {
   chefs: Array<{ id: string; name: string; active: boolean; canHelp: boolean }>
   /** 外包的单（lib/outsourced.ts）：不上这张板，只看还欠不欠"不用去"的通知。stops 里只有直营的。 */
   outsourced?: Array<Pick<BoardStop, "id" | "name" | "time" | "pending">>
+  /** 日历地图的路线方案（同一个接口），未派里成组用 */
+  plans?: Array<{ key: string; chains: string[][] }>
+  dayPlan?: { chosenKey: string | null }
 }
 
-type Drag = { orderId: string; from: string | null; date: string }
-type Proposal = { move: Move; date: string; check: MoveCheck }
+/** 这天按哪版路线成组：日历地图里定下来的那版，没定就是"稳妥" */
+const chainsOf = (d: DayResp): string[][] => (d.plans?.find((p) => p.key === d.dayPlan?.chosenKey) ?? d.plans?.find((p) => p.key === "safe") ?? d.plans?.[0])?.chains ?? []
+
+type Drag = { orderIds: string[]; from: string | null; date: string; group: boolean }
+type Proposal = { move: GroupMove; date: string; check: MoveCheck }
 type Undo = { label: string; teams: Array<{ orderId: string; team: string[] }>; dates: string[] }
 
 const UNASSIGNED = "__none__"
@@ -89,6 +97,22 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
     return list.sort((a, b) => heads(b) - heads(a) || parties(b) - parties(a) || rank(a) - rank(b) || nameOf(a).localeCompare(nameOf(b)))
   }, [activeIds, totals, staff, nameOf])
 
+  const cellBody = (chef: string | null, date: string) => {
+    const d = days[date]
+    if (!d) return null
+    if (chef !== null) {
+      const list = stopsIn(chef, date)
+      return list.length >= 2 ? chainBox(list.map((s) => s.id), chef, date, `g|${chef}|${date}`) : list.map((s) => card(s, chef, date))
+    }
+    const { groups, singles } = unassignedGroups(d, chainsOf(d))
+    return (
+      <>
+        {groups.map((g, i) => chainBox(g, null, date, `g|none|${date}|${i}`))}
+        {singles.map((id) => d.stops.find((s) => s.id === id)).filter((s): s is BoardStop => !!s).map((s) => card(s, null, date))}
+      </>
+    )
+  }
+
   const stopsIn = (chef: string | null, date: string) => {
     const d = days[date]
     if (!d) return []
@@ -96,10 +120,10 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
     return d.stops.filter((s) => s.chefIds.includes(chef))
   }
 
-  const propose = (move: Move, date: string) => {
+  const propose = (move: GroupMove, date: string) => {
     const d = days[date]
     if (!d) return
-    const check = checkMove(d, move, {
+    const check = checkGroupMove(d, move, {
       nameOf,
       activeIds,
       today,
@@ -112,22 +136,23 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
     setDrag(null)
     setOver(null)
     if (!g || g.date !== date || g.from === chef) return
-    propose({ orderId: g.orderId, from: g.from, to: chef }, date)
+    propose({ orderIds: g.orderIds, from: g.from, to: chef }, date)
   }
 
   const apply = async (resolve: "swap" | "unassign") => {
     if (!proposal || busy) return
     const d = days[proposal.date]
     if (!d) return
-    const teams = teamsAfter(d, proposal.move, proposal.check.clashes, resolve)
+    const teams = teamsAfterGroup(d, proposal.move, proposal.check.clashes, resolve)
     const before = teams.map((t) => ({ orderId: t.orderId, team: d.stops.find((s) => s.id === t.orderId)?.chefIds ?? [] }))
     setBusy(true)
     try {
       for (const t of teams) {
         await adminJson(adminKey, "/api/admin/chefs", { body: { action: "assign", quiet: true, order_id: t.orderId, staff_member_ids: t.team } })
       }
-      const s = d.stops.find((x) => x.id === proposal.move.orderId)
-      setHistory((h) => [...h, { label: `${md(proposal.date)} ${s?.time ?? ""} ${s?.name ?? ""}`, teams: before, dates: [proposal.date] }])
+      const moved = proposal.move.orderIds.map((id) => d.stops.find((x) => x.id === id)).filter((x): x is BoardStop => !!x)
+      const what = moved.length > 1 ? `连台 ${moved.map((x) => x.name.split(/\s+/)[0]).join(" + ")}` : `${moved[0]?.time ?? ""} ${moved[0]?.name ?? ""}`
+      setHistory((h) => [...h, { label: `${md(proposal.date)} ${what}`, teams: before, dates: [proposal.date] }])
       setProposal(null)
     } catch (e) {
       void tell({ title: "没改成", message: e instanceof Error ? e.message : "出错了" })
@@ -202,7 +227,7 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
   const card = (s: BoardStop, chef: string | null, date: string) => {
     const share = chef === null ? s.guests : s.guests / Math.max(1, s.chefIds.length)
     const short = Math.max(1, s.plan.chefs) - s.chefIds.length
-    const picked = drag?.orderId === s.id && drag.from === chef
+    const picked = !!drag && !drag.group && drag.orderIds[0] === s.id && drag.from === chef
     return (
       <div
         key={`${s.id}|${chef ?? ""}`}
@@ -210,7 +235,8 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
         onDragStart={(e) => {
           e.dataTransfer.effectAllowed = "move"
           e.dataTransfer.setData("text/plain", s.id)
-          setDrag({ orderId: s.id, from: chef, date })
+          e.stopPropagation()
+          setDrag({ orderIds: [s.id], from: chef, date, group: false })
         }}
         onDragEnd={() => {
           setDrag(null)
@@ -224,7 +250,7 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
             dropOn(chef, date)
             return
           }
-          setDrag((cur) => (cur && cur.orderId === s.id && cur.from === chef ? null : { orderId: s.id, from: chef, date }))
+          setDrag(picked ? null : { orderIds: [s.id], from: chef, date, group: false })
         }}
         onDoubleClick={() => onOpenOrder(s.id)}
         title={`${s.time} ${s.name} · ${s.address}\n双击打开订单`}
@@ -265,6 +291,43 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
     )
   }
 
+  // 连台框：上面一条"连台 · N 台"拖它 = 整组换人（触屏点它拿起整组）；里面的单张照旧单独拖。
+  const chainBox = (ids: string[], chef: string | null, date: string, key: string) => {
+    const d = days[date]
+    const list = ids.map((id) => d?.stops.find((s) => s.id === id)).filter((s): s is BoardStop => !!s)
+    const picked = !!drag && drag.group && drag.from === chef && drag.date === date && drag.orderIds.join() === ids.join()
+    const heads = list.reduce((n, s) => n + (chef === null ? s.guests : s.guests / Math.max(1, s.chefIds.length)), 0)
+    return (
+      <div key={key} style={{ border: picked ? "2px solid var(--color-accent)" : "1px dashed var(--color-neutral-400, #999)", padding: picked ? 2 : 3, marginBottom: 4, background: picked ? "var(--color-accent-100)" : undefined }}>
+        <div
+          draggable={!busy}
+          onDragStart={(e) => {
+            e.dataTransfer.effectAllowed = "move"
+            e.dataTransfer.setData("text/plain", ids.join(","))
+            setDrag({ orderIds: ids, from: chef, date, group: true })
+          }}
+          onDragEnd={() => {
+            setDrag(null)
+            setOver(null)
+          }}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (drag && !picked && drag.date === date && drag.from !== chef) {
+              dropOn(chef, date)
+              return
+            }
+            setDrag(picked ? null : { orderIds: ids, from: chef, date, group: true })
+          }}
+          title={`连台 ${list.length} 台：${list.map((s) => `${s.time} ${s.name}`).join("、")}\n拖这一条 = 整组一起换人；拖下面的单张只动那一张`}
+          style={{ fontSize: 11, fontWeight: 700, color: picked ? "var(--color-accent-700)" : "var(--color-neutral-600)", padding: "2px 3px 4px", cursor: busy ? "default" : "grab", userSelect: "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minHeight: 22 }}
+        >
+          ⇅ 连台 {list.length} 台 · {headsText(Math.round(heads * 10) / 10)} 人
+        </div>
+        {list.map((s) => card(s, chef, date))}
+      </div>
+    )
+  }
+
   const cell = (chef: string | null, date: string) => {
     const k = cellKey(chef, date)
     const can = !!drag && drag.date === date && drag.from !== chef
@@ -293,19 +356,20 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
           cursor: can ? "copy" : undefined,
         }}
       >
-        {stopsIn(chef, date).map((s) => card(s, chef, date))}
+        {cellBody(chef, date)}
       </td>
     )
   }
 
   const p = proposal
-  const pStop = p ? days[p.date]?.stops.find((s) => s.id === p.move.orderId) : null
+  const pStops = p ? p.move.orderIds.map((id) => days[p.date]?.stops.find((s) => s.id === id)).filter((s): s is BoardStop => !!s) : []
+  const pStop = pStops[0] ?? null
   const delta = (id: string | null) => {
     if (!p || id === null || !pStop) return null
     const now = totals.get(id)?.heads ?? 0
     const d = days[p.date]
     if (!d) return null
-    const teams = teamsAfter(d, p.move, p.check.clashes, p.check.swap?.ok ? "swap" : "unassign")
+    const teams = teamsAfterGroup(d, p.move, p.check.clashes, p.check.swap?.ok ? "swap" : "unassign")
     let after = now
     for (const t of teams) {
       const s = d.stops.find((x) => x.id === t.orderId)
@@ -323,7 +387,7 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
         <div style={{ fontWeight: 700, fontSize: 15 }}>{only ? `${nameOf(only)} · 这周排班` : "拖单调人数"}</div>
         {only ? null : (
           <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-            {isMobile ? "先点一张单，再点同一天要给的那一格" : "把单拖到同一天另一位师傅那一格；触屏上先点单再点格子"} · 点一下单能打开订单 · 改完先不发短信
+            {isMobile ? "先点一张单，再点同一天要给的那一格" : "把单拖到同一天另一位师傅那一格；触屏上先点单再点格子"} · 拖「连台」那条 = 整组一起换人 · 点一下单能打开订单 · 改完先不发短信
           </div>
         )}
         <span style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
@@ -394,8 +458,11 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
       {p && pStop ? (
         <Dialog onClose={() => !busy && setProposal(null)} width={520}>
           <DialogHead
-            title={`${md(p.date)} ${pStop.time} ${pStop.name}`}
-            lines={[`${headsText(pStop.guests)} 人 · ${p.move.from ? nameOf(p.move.from) : "未派"} → ${p.move.to ? nameOf(p.move.to) : "未派"}`]}
+            title={pStops.length > 1 ? `${md(p.date)} 连台 ${pStops.length} 台` : `${md(p.date)} ${pStop.time} ${pStop.name}`}
+            lines={[
+              ...(pStops.length > 1 ? pStops.map((s) => `${s.time} ${s.name} · ${headsText(s.guests)} 人`) : [`${headsText(pStop.guests)} 人`]),
+              `${p.move.from ? nameOf(p.move.from) : "未派"} → ${p.move.to ? nameOf(p.move.to) : "未派"}${pStops.length > 1 ? "（整组）" : ""}`,
+            ]}
             onClose={() => !busy && setProposal(null)}
           />
           <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 14 }}>
@@ -453,7 +520,7 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
           </div>
         </Dialog>
       ) : null}
-      {drag && !proposal ? <Tag cls="tag-ink" style={{ alignSelf: "flex-start" }}>已选中，点同一天要给的那一格；再点一下这张单取消</Tag> : null}
+      {drag && !proposal ? <Tag cls="tag-ink" style={{ alignSelf: "flex-start" }}>{drag.group ? `已选中连台 ${drag.orderIds.length} 台，点同一天要给的那一格；再点一下"连台"那条取消` : "已选中，点同一天要给的那一格；再点一下这张单取消"}</Tag> : null}
     </div>
   )
 }

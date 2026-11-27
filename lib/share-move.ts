@@ -158,11 +158,97 @@ export function checkMove(day: BoardDay, m: Move, ctx: { nameOf: (id: string) =>
  * 返回每单的新师傅名单（不含帮手）。
  */
 export function teamsAfter(day: BoardDay, m: Move, clashes: string[], resolve: "swap" | "unassign"): Array<{ orderId: string; team: string[] }> {
+  return teamsAfterGroup(day, { orderIds: [m.orderId], from: m.from, to: m.to }, clashes, resolve)
+}
+
+// ---- 连台整组拖（老板 2026-11-26「连台是组合一起拖动」）：一位师傅这天手上的几台、或者未派里路线
+// 排成一条线的几台，当一组换人。比如 11/28 Dave + Sylvia 一条线、Ashlyn + Sylvia 一条线，两组分别拖给
+// Eason 和 Blu，这三台就派完了。判断和单张一样：目标师傅接不接得上、谁得让出来、能不能互换。
+
+export type GroupMove = { orderIds: string[]; from: string | null; to: string | null }
+
+export function checkGroupMove(day: BoardDay, m: GroupMove, ctx: { nameOf: (id: string) => string; activeIds: Set<string>; started: (s: BoardStop) => boolean; today: string }): MoveCheck {
+  if (m.orderIds.length === 1) return checkMove(day, { orderId: m.orderIds[0], from: m.from, to: m.to }, ctx)
+  const none: MoveCheck = { block: null, clashes: [], worstLate: null, warnings: [], swap: null }
+  const stops = m.orderIds.map((id) => day.stops.find((s) => s.id === id))
+  if (!m.orderIds.length || stops.some((s) => !s)) return { ...none, block: "这一天找不到这几单，刷新一下" }
+  const group = stops as BoardStop[]
+  const label = (list: BoardStop[]) => list.map((s) => `${s.time} ${s.name}`).join("、")
+  if (m.from === m.to) return { ...none, block: "没有变" }
+  const began = group.filter((s) => ctx.started(s))
+  if (began.length) return { ...none, block: `${label(began)} 已经开始或者做完了，不能再换人` }
+  if (m.from !== null) {
+    const gone = group.filter((s) => !s.chefIds.includes(m.from!))
+    if (gone.length) return { ...none, block: `${ctx.nameOf(m.from)} 已经不在 ${label(gone)} 上了，刷新一下` }
+  } else {
+    const full = group.filter((s) => s.chefIds.length >= Math.max(1, s.plan.chefs))
+    if (full.length) return { ...none, block: `${label(full)} 师傅已经派够了` }
+  }
+  if (m.to !== null) {
+    const on = group.filter((s) => s.chefIds.includes(m.to!))
+    if (on.length) return { ...none, block: `${ctx.nameOf(m.to)} 已经在 ${label(on)} 上了` }
+    if (!ctx.activeIds.has(m.to)) return { ...none, block: `${ctx.nameOf(m.to)} 现在不在可派名单里` }
+    // 这几台自己连起来一个人跑不跑得过来（未派里的组是路线算好的，一般跑得过来）
+    const own = chainOf(day, m.orderIds)
+    if (own.links.some((l) => l.worstLate > day.params.lateLimit)) return { ...none, block: `这 ${group.length} 台连起来一个人跑不过来（拖满迟到超过 ${day.params.lateLimit} 分），分开拖` }
+  }
+
+  const warnings: string[] = []
+  let clashes: string[] = []
+  let worstLate: number | null = null
+  let swap: MoveCheck["swap"] = null
+
+  if (m.to !== null) {
+    const toName = ctx.nameOf(m.to)
+    clashes = clashesFor(day, ordersOf(day, m.to), m.orderIds)
+    const after = chainOf(day, [...ordersOf(day, m.to).filter((id) => !clashes.includes(id)), ...m.orderIds])
+    worstLate = after.worst
+    if (after.unknownDrive) warnings.push("有一场地址没定位到，那段车程按 0 分钟算，实际可能更紧")
+    if (worstLate !== null && worstLate > day.params.lateOk) warnings.push(`${toName} 这天拖满的话会迟到 ${worstLate} 分（超过 ${day.params.lateOk} 分，按规矩要给客人补偿）`)
+    else if (worstLate !== null && worstLate > 0) warnings.push(`${toName} 这天拖满的话会迟到 ${worstLate} 分`)
+    for (const s of group) {
+      if (NOVICE_NAMES.includes(toName) && (s.difficulty?.score ?? 0) >= 3) warnings.push(`${s.time} ${s.name} 难 ${s.difficulty!.score}，派给新手 ${toName}`)
+      if (toName === "John" && SAN_DIEGO.test(s.address)) warnings.push(`John 不去圣地亚哥（${s.time} ${s.name}）`)
+      if (toName === "Eason" && s.guests > 15) warnings.push(`Eason 只接 15 人以下（${s.time} ${s.name} ${s.guests} 人）`)
+      if ((s.helperIds ?? []).includes(m.to)) warnings.push(`${toName} 原来是 ${s.time} ${s.name} 的帮手，会改成师傅`)
+    }
+    if (toName === "易非") warnings.push("易非只当帮手")
+
+    // 冲突的单换给拖出来的那位：他少了这一组，再接这几单接不接得上。
+    if (clashes.length) {
+      if (m.from === null) swap = { ok: false, reason: "从未派拖过来的，没有人可以换" }
+      else {
+        const fromKeep = ordersOf(day, m.from).filter((id) => !m.orderIds.includes(id))
+        const already = clashes.filter((id) => day.stops.find((s) => s.id === id)?.chefIds.includes(m.from!))
+        if (already.length) swap = { ok: false, reason: `${ctx.nameOf(m.from)} 已经在那单上了` }
+        else {
+          const back = clashesFor(day, fromKeep, clashes)
+          swap = back.length ? { ok: false, reason: `换过去 ${ctx.nameOf(m.from)} 也接不上` } : { ok: true, reason: null }
+        }
+      }
+    }
+  }
+
+  if (m.from !== null) for (const s of group) if (s.requestedChefId && s.requestedChefId === m.from) warnings.push(`${s.time} ${s.name} 客人点名要 ${ctx.nameOf(m.from)}`)
+  if (m.to === null) {
+    for (const s of group) {
+      const left = s.chefIds.length - 1
+      warnings.push(left <= 0 ? `${s.time} ${s.name} 拿掉后没有师傅了` : `${s.time} ${s.name} 要 ${Math.max(1, s.plan.chefs)} 位师傅，拿掉后剩 ${left} 位`)
+    }
+  }
+  if (day.date === ctx.today) warnings.push("今天的单，原来的师傅可能已经在备料了")
+  return { block: null, clashes, worstLate, warnings, swap }
+}
+
+/** 整组换人之后每单的师傅名单：组里每单 from 换成 to；冲突的单按选择换给 from 或者拿掉 to。 */
+export function teamsAfterGroup(day: BoardDay, m: GroupMove, clashes: string[], resolve: "swap" | "unassign"): Array<{ orderId: string; team: string[] }> {
   const teamOf = (id: string) => day.stops.find((s) => s.id === id)?.chefIds ?? []
   const out: Array<{ orderId: string; team: string[] }> = []
-  const main = teamOf(m.orderId).filter((id) => id !== m.from)
-  if (m.to !== null) main.push(m.to)
-  out.push({ orderId: m.orderId, team: main })
+  for (const oid of m.orderIds) {
+    const main = teamOf(oid).filter((id) => id !== m.from)
+    if (m.to !== null && !main.includes(m.to)) main.push(m.to)
+    out.push({ orderId: oid, team: main })
+  }
   for (const cid of clashes) {
     const t = teamOf(cid).filter((id) => id !== m.to)
     if (resolve === "swap" && m.from !== null && !t.includes(m.from)) t.push(m.from)
@@ -186,4 +272,26 @@ export function weekHeads(days: BoardDay[]): Map<string, { heads: number; partie
     }
   }
   return out
+}
+
+/**
+ * 未派那一格怎么成组：按这天的路线方案（日历地图里定下来的那版，没定就是"稳妥"）一条线一条线看，
+ * 线上还缺人的单凑成一组（两台以上才算连台）。要两位师傅的单会在两条线上，各占一个空位；
+ * 一单缺几位最多出现几次。剩下没成组的单张显示。
+ */
+export function unassignedGroups(day: BoardDay, chains: string[][]): { groups: string[][]; singles: string[] } {
+  const left = new Map<string, number>()
+  for (const s of day.stops) {
+    const short = Math.max(1, s.plan.chefs) - s.chefIds.length
+    if (short > 0) left.set(s.id, short)
+  }
+  const groups: string[][] = []
+  for (const c of chains) {
+    const members = c.filter((id) => (left.get(id) ?? 0) > 0)
+    if (members.length < 2) continue
+    groups.push(members)
+    for (const id of members) left.set(id, (left.get(id) ?? 0) - 1)
+  }
+  const singles = day.stops.filter((s) => (left.get(s.id) ?? 0) > 0).map((s) => s.id)
+  return { groups, singles }
 }

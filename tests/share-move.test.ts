@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { checkMove, clashesFor, teamsAfter, weekHeads, type BoardDay, type BoardStop } from "../lib/share-move"
+import { checkGroupMove, checkMove, clashesFor, teamsAfter, teamsAfterGroup, unassignedGroups, weekHeads, type BoardDay, type BoardStop } from "../lib/share-move"
 
 // 份额页拖单（老板 2026-11-14）：同一天换人，接不上的要让出来。
 
@@ -96,4 +96,55 @@ test("week heads split a two-chef party evenly, kids already weighted", () => {
   assert.equal(h.get("blu")!.heads, 26.25)
   assert.equal(h.get("gary")!.heads, 16.25)
   assert.equal(h.get("blu")!.parties, 2)
+})
+
+// ---- 连台整组拖（老板 2026-11-26）
+
+test("unassigned parties group by route line; a two-chef party fills one slot on each line", () => {
+  // 11/28 的样子：Dave 1PM + Sylvia 6PM 一条线、Ashlyn 3PM + Sylvia 6PM 一条线，Sylvia 要 2 位
+  const d = day([stop("dave", "13:00", []), stop("ash", "15:00", []), stop("syl", "18:00", [], { plan: { chefs: 2 } }), stop("solo", "19:00", [])])
+  const g = unassignedGroups(d, [["dave", "syl"], ["ash", "syl"], ["solo"]])
+  assert.deepEqual(g.groups, [["dave", "syl"], ["ash", "syl"]])
+  assert.deepEqual(g.singles, ["solo"])
+  // 第一组派给了 Eason 之后：Dave 满了，Sylvia 还缺 1 -> 只剩第二组
+  const d2 = day([stop("dave", "13:00", ["eason"]), stop("ash", "15:00", []), stop("syl", "18:00", ["eason"], { plan: { chefs: 2 } }), stop("solo", "19:00", [])])
+  assert.deepEqual(unassignedGroups(d2, [["dave", "syl"], ["ash", "syl"], ["solo"]]), { groups: [["ash", "syl"]], singles: ["solo"] })
+})
+
+test("dragging a whole line from unassigned puts the chef on every party of it", () => {
+  const d = day([stop("dave", "13:00", []), stop("ash", "15:00", []), stop("syl", "18:00", [], { plan: { chefs: 2 } })])
+  const m = { orderIds: ["dave", "syl"], from: null, to: "eason" }
+  const c = checkGroupMove(d, m, ctx)
+  assert.equal(c.block, null)
+  assert.deepEqual(c.clashes, [])
+  assert.deepEqual(teamsAfterGroup(d, m, c.clashes, "unassign"), [
+    { orderId: "dave", team: ["eason"] },
+    { orderId: "syl", team: ["eason"] },
+  ])
+})
+
+test("a chef's whole day dropped on another chef's day swaps the two", () => {
+  const d = day([stop("a", "12:00", ["blu"]), stop("b", "17:00", ["blu"]), stop("x", "12:00", ["gary"]), stop("y", "17:00", ["gary"])])
+  const m = { orderIds: ["a", "b"], from: "blu", to: "gary" }
+  const c = checkGroupMove(d, m, ctx)
+  assert.deepEqual(c.clashes, ["x", "y"])
+  assert.deepEqual(c.swap, { ok: true, reason: null })
+  assert.deepEqual(teamsAfterGroup(d, m, c.clashes, "swap"), [
+    { orderId: "a", team: ["gary"] },
+    { orderId: "b", team: ["gary"] },
+    { orderId: "x", team: ["blu"] },
+    { orderId: "y", team: ["blu"] },
+  ])
+})
+
+test("a group is blocked when the target chef is already on one of its parties", () => {
+  const d = day([stop("dave", "13:00", []), stop("syl", "18:00", ["eason"], { plan: { chefs: 2 } })])
+  const c = checkGroupMove(d, { orderIds: ["dave", "syl"], from: null, to: "eason" }, ctx)
+  assert.match(c.block ?? "", /Eason 已经在 18:00 syl 上了/)
+})
+
+test("a group one person cannot run is blocked instead of half-assigned", () => {
+  const d = day([stop("a", "17:00", []), stop("b", "17:30", [])])
+  const c = checkGroupMove(d, { orderIds: ["a", "b"], from: null, to: "blu" }, ctx)
+  assert.match(c.block ?? "", /跑不过来/)
 })
