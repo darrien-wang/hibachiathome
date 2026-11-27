@@ -982,6 +982,20 @@ def jeffrey(fixed: bool) -> dict:  # RH-20261107-5825, 11/14 Valencia
                     address="1 Test Way, Valencia, CA 91354")
 
 
+JACOB_NOTE = ("[data] 18:39 Jacob：不要桌子了（'we will not be needing the tables'），期待周五。他自己在派对页提交了：订单现在 12 大 + Landon（小）、"
+              "13 人全带餐具、无桌椅、Val 开心果过敏、Heather 三样、2 位面、Guest 8 双份鸡")
+
+
+def jacob_indio(renamed: bool) -> dict:  # RH-20261014-0314, 11/27 Indio: the note was written while the 8th guest was still "Guest 8"
+    eighth = pc_guest("Amy", "chicken", "chicken", "shrimp", ut=True) if renamed else pc_guest("Guest 8", "chicken", "shrimp", ut=True)
+    guests = [pc_guest("Jacob", "chicken", "steak", ut=True), pc_guest("Val", "chicken", "steak", allergy="Pistachios (Other types of nuts ok)", ut=True),
+              pc_guest("Kyle", "chicken", "steak", ut=True), pc_guest("Rob", "steak", "shrimp", ut=True), pc_guest("Hazel", "steak", "chicken", ut=True),
+              pc_guest("Jason", "chicken", "steak", ut=True), pc_guest("Jocelyn", "shrimp", "steak", ut=True), eighth,
+              pc_guest("Heather Hughes", "chicken", "steak", "shrimp", ut=True)]
+    return pc_party("RH-20261014-0314", "2026-11-28T02:00:00+00:00", name="Jacob Test", guests=guests,
+                    lead_notes=[("2026-11-25T02:41:00Z", JACOB_NOTE)], address="1 Test Way, Indio, CA 92201")
+
+
 def verlener(fixed: bool) -> dict:  # RH-20261111-9315, 11/12 Corona
     guests = [pc_guest(n, "steak", "shrimp") for n in ("Demarii", "Meelah", "Vee", "Michael", "Zoey", "Onie")]
     return pc_party("RH-20261111-9315", "2026-11-12T19:00:00+00:00", name="Verlener Test", guests=guests, notes="Birthday party." if fixed else "",
@@ -1034,6 +1048,13 @@ def party_check_checks() -> None:
           not any(x["kind"] in ("allergy", "setup") or x["kind"].startswith("diet") for x in g))
     check("  Jeffrey now (Alon two salmon, birthday in the notes): nothing - Dov's birthday next to Alon's double is not Dov's double",
           pc_kinds(jeffrey(True)) == [])
+
+    g = party_check.gaps_of(jacob_indio(True))
+    check("party check · Jacob (RH-20261014-0314): 'Val 开心果过敏、…、Guest 8 双份鸡' after Guest 8 became Amy (chicken, chicken): no double warning, Val is an earlier item",
+          not any(x["kind"] == "double" for x in g))
+    g = party_check.gaps_of(jacob_indio(False))
+    check("  the same note while the row is still 'Guest 8' with one chicken: Guest 8 is in the double's own clause and warns",
+          [x["title"] for x in g if x["kind"] == "double"] == ["Guest 8 要双份 chicken，名单上他那行只有 1 份：备货清单少算 1 份"])
 
     check("party check · Verlener (RH-20261111-9315) before: [occasion] birthday only in the lead's notes warns",
           pc_kinds(verlener(False)) == [("warn", "occasion:birthday")])

@@ -122,6 +122,9 @@ PROTEINS: dict[str, tuple[str, str]] = {  # id -> (english, chinese)
     "tofu": ("tofu", "豆腐"),
 }
 DOUBLE = re.compile(r"double\s+(?P<en>" + "|".join(v[0] for v in PROTEINS.values()) + r")\b|(?:两份|双份)(?P<zh>" + "|".join(v[1] for v in PROTEINS.values()) + ")", re.I)
+# Where a clause ends, for finding whose "double" it is: the guest's name sits in the same clause.
+# Not ":" - "Alon: double salmon" names Alon.
+CLAUSE_BREAK = re.compile(r"[、，,；;。！？!?\n|]|\.\s")
 
 BRING: dict[str, tuple[str, str]] = {  # key -> (label, pattern)
     "rice": ("多带炒饭", r"extra (?:fried )?rice|more (?:fried )?rice|(?:多带|多做|多加|加)(?:点|些)?炒饭|炒饭(?:多带|多做|加量)"),
@@ -708,7 +711,9 @@ def warn_gaps(party: dict, srcs: list[dict], carr: list[dict], everything: list[
             gaps.append(_gap("warn", "spectators", "有人只看不吃：订单备注里没有", "写进订单备注（几位、坐哪），人数照订单", hits))
 
     # "double X" for a guest whose row has X once: the prep list counts the row. The guest is the name
-    # written just before "double" in the same sentence ("Alon: double salmon", "Alon 两份三文鱼").
+    # written just before "double" in the same clause ("Alon: double salmon", "Alon 两份三文鱼"). A name
+    # in an earlier item of a list is someone else: in "Val 开心果过敏、Heather 三样、2 位面、Guest 8 双份鸡"
+    # the double is Guest 8's, renamed Amy on the party page since, not Val's (RH-20261014-0314, 11-26).
     guests = [g for g in invoice_of(order).get("guests") or [] if isinstance(g, dict) and len(str(g.get("name") or "").strip()) >= 2]
     flagged: set[str] = set()
     carrier_clauses = [{"src": "carrier", "label": "订单备注" if c["kind"] == "notes" else "备货备注" if c["kind"] == "prep_note" else "派对页留言",
@@ -721,11 +726,12 @@ def warn_gaps(party: dict, srcs: list[dict], carr: list[dict], everything: list[
             pid = next((k for k, (en, zh) in PROTEINS.items() if re.fullmatch(en, word, re.I) or word == zh), None)
             if not pid:
                 continue
-            before = s["text"][: m.start()]
+            start = max((b.end() for b in CLAUSE_BREAK.finditer(s["text"], 0, m.start())), default=0)
+            before = s["text"][start: m.start()]
             named = []
             for g in guests:
                 name = str(g["name"]).strip()
-                hits = [h.end() for h in re.finditer(r"(?<![A-Za-z])" + re.escape(name) + r"(?![A-Za-z])", before, re.I)]
+                hits = [start + h.end() for h in re.finditer(r"(?<![A-Za-z])" + re.escape(name) + r"(?![A-Za-z])", before, re.I)]
                 if hits and m.start() - hits[-1] <= 40:
                     named.append((hits[-1], g))
             if not named:
