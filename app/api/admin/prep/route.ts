@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
   // 装备库存（桌椅桌布餐具气罐）：跟需求放在一张清单里对着看。
   const { data: stock } = await supabase.from("equipment_stock").select("item_key, label, unit, qty, low_at, note, updated_at").order("item_key")
   // 食材库存：收据入库进来的，备料时拿来和需求对着看（"还差多少"）。
-  const { data: pantryRows } = await supabase.from("pantry_stock").select("item_key, qty, unit, updated_at, counted_at")
+  const { data: pantryRows } = await supabase.from("pantry_stock").select("item_key, qty, unit, updated_at, counted_at, updated_by")
   const pantry: Record<string, number> = {}
   for (const r of (pantryRows ?? []) as Array<{ item_key: string; qty: number }>) pantry[r.item_key] = Number(r.qty) || 0
   // 清单把四样蔬菜合成一行，所以库存也合起来比。

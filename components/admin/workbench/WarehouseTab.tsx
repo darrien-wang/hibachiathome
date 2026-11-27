@@ -8,6 +8,7 @@ import { basisOf, type PrepGroup } from "@/lib/prep-bom"
 import { bulkName, isBulkItem } from "@/lib/pantry"
 import { SauceCalc } from "./SauceCalc"
 import BuyListTab from "./BuyListTab"
+import StockCountAdmin from "./StockCountAdmin"
 
 // 虚拟仓库。两种东西两种记法，混在一起记只会两边都不准：
 //   消耗品 —— 按包记。一格 = 一个实物包装，点一下：整包 → 剩半 → 划掉。
@@ -68,7 +69,7 @@ const INK = "var(--color-text)"
 const MUTED = "var(--color-neutral-700)"
 const fmt = (n: number) => String(Math.round(n * 10) / 10)
 
-type Tab = "stock" | "prep" | "buy" | "sauce" | "in" | "out" | "chef" | "re" | "kit"
+type Tab = "stock" | "prep" | "count" | "buy" | "sauce" | "in" | "out" | "chef" | "re" | "kit"
 type Layout = "A" | "B" | "C"
 
 /* ---------- 小件 ---------- */
@@ -316,6 +317,7 @@ export default function WarehouseTab({ adminKey, isMobile }: { adminKey: string;
 
   const tabs: Array<[Tab, string, string]> = [
     ["prep", "备货", ""],
+    ["count", "盘点", ""],
     ["buy", "下单", ""],
     ["sauce", "自制酱", ""],
     ["stock", "库存 · 只读", ""],
@@ -550,6 +552,8 @@ export default function WarehouseTab({ adminKey, isMobile }: { adminKey: string;
       ) : null}
 
       {tab === "prep" ? <PrepPlanner adminKey={adminKey} events={d.events} /> : null}
+
+      {tab === "count" ? <StockCountAdmin adminKey={adminKey} /> : null}
 
       {tab === "buy" ? <BuyListTab adminKey={adminKey} /> : null}
 
@@ -946,7 +950,7 @@ type PlanResp = {
   committed: Record<string, number>
   /** 占着的是哪几单、各占多少（老板 2026-09-30："我怎么知道是哪一单占用的"） */
   committedBy?: Record<string, Occupant[]>
-  pantryDetail: Array<{ item_key: string; qty: number; counted_at: string | null }>
+  pantryDetail: Array<{ item_key: string; qty: number; counted_at: string | null; updated_by?: string | null }>
   stores: Record<string, { channel: string | null; pack: string | null }>
   warnings: string[]
   guestTotal: number
@@ -1074,13 +1078,15 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
 
   const groups = (() => {
     if (!resp) return null
-    type Line = { row: PlanRow; have: number; committed: number; holders: Occupant[]; avail: number; short: number; buy: number | null; stale: boolean; ask: boolean }
+    type Line = { row: PlanRow; have: number; committed: number; holders: Occupant[]; avail: number; short: number; buy: number | null; stale: boolean; ask: boolean; counted: string | null }
     const buy: Record<string, Line[]> = {}
     const byGroup: Record<string, Line[]> = {}
     const setup: PlanRow[] = []
     // 订单另加（自定义项，老板 2026-11-21）：不在库存里记，照单备，单列一块。
     const custom: PlanRow[] = []
     const countedAt = new Map(resp.pantryDetail?.map((r) => [r.item_key, r.counted_at]) ?? [])
+    // 谁、几点盘的（师傅盘点 2026-11-26 起，在库的数多半是师傅盘的，要看得出是谁）
+    const countedBy = new Map(resp.pantryDetail?.map((r) => [r.item_key, r.updated_by ?? null]) ?? [])
     const staleBefore = Date.now() - STALE_DAYS * 86400_000
     const bulk: string[] = []
     for (const row of resp.totals) {
@@ -1107,7 +1113,8 @@ function PrepPlanner({ adminKey, events }: { adminKey: string; events: Holder[] 
       // 要不要麻烦你走一趟冰箱：不够的必须看，太久没盘的也该看一眼。
       // 够、而且最近盘过的，默认信它——这正是"我不在乎有什么"。
       const ask = short > 0 || stale
-      const line = { row, have, committed, holders: resp.committedBy?.[row.id] ?? [], avail, short, buy: buyCount(short, row.pack), stale, ask }
+      const counted = c ? `${countedBy.get(row.id) ?? ""} ${new Date(c).toLocaleString("zh-CN", { timeZone: "America/Los_Angeles", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })} 盘`.trim() : null
+      const line = { row, have, committed, holders: resp.committedBy?.[row.id] ?? [], avail, short, buy: buyCount(short, row.pack), stale, ask, counted }
       // 全量核对表要看到每一样东西，不管够不够 —— 老板要的就是能发现"账上说够、
       // 实际早没了"这种漏更新，只显示缺口栏会把这类问题挡在外面。
       ;(byGroup[row.group] = byGroup[row.group] ?? []).push(line)
@@ -1801,12 +1808,12 @@ function CountRow({
   onSet,
   onRelease,
 }: {
-  line: { row: PlanRow; have: number; committed: number; holders: Occupant[]; avail: number; short: number; buy: number | null; stale: boolean }
+  line: { row: PlanRow; have: number; committed: number; holders: Occupant[]; avail: number; short: number; buy: number | null; stale: boolean; counted?: string | null }
   busy: boolean
   onSet: (qty: number) => void
   onRelease?: (h: Occupant) => void
 }) {
-  const { row, have, committed, holders, avail, short, buy, stale } = line
+  const { row, have, committed, holders, avail, short, buy, stale, counted } = line
   const pack = row.pack ?? null
   const per = pack?.per ?? 0
   const noun = pack?.noun ?? ""
@@ -1859,6 +1866,7 @@ function CountRow({
         <div style={{ fontSize: 14, fontWeight: 700 }}>
           {row.label}
           {stale ? <span style={{ fontSize: 11, color: MUTED, fontWeight: 600 }}> · 有阵子没盘了</span> : null}
+          {counted && !stale ? <span style={{ fontSize: 11, color: MUTED, fontWeight: 500 }}> · {counted}</span> : null}
         </div>
         <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 15, whiteSpace: "nowrap", color: short > 0 ? "var(--color-accent-700)" : "#16a34a" }}>
           {short > 0 ? (buy === null ? `补 ${qtyIn(short, row.unit, lb)}` : `买 ${buy} ${buyNoun(pack)}`) : "够"}
