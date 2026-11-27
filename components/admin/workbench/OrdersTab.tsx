@@ -199,9 +199,9 @@ export function OrdersTab({
                   <td className="r" style={{ whiteSpace: "nowrap", color: r.stage === "待尾款" ? "var(--color-accent-700)" : undefined }}>
                     {r.o.balance_due_cents && r.o.balance_due_cents > 0 ? money(r.o.balance_due_cents) : "—"}
                   </td>
-                  <td style={{ width: 176 }}>
-                    {/* 标签换行：三个标签排一行会把地址那栏挤到 100px 出头（iPad 2026-11-26）。 */}
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  <td>
+                    {/* 标签换行：三个标签排一行会把地址那栏挤到 100px 出头；至少放得下两个（iPad 2026-11-26）。 */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, minWidth: 150, maxWidth: 220 }}>
                       <Tag cls={STAGE_TAG_CLASS[r.stage]}>{r.stage}</Tag>
                       <Tag cls={CONFIRM_TAG_CLS[confirmState(r.o)]}>{CONFIRM_LABEL[confirmState(r.o)]}</Tag>
                       {r.changed ? <Tag cls="tag-outline">Planner 改了</Tag> : null}
