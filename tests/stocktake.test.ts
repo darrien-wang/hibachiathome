@@ -100,3 +100,13 @@ test("stocktake ai · model answer becomes the same lines a tap makes; unknown s
   assert.ok(r.questions.some((q) => q.includes("鸡蛋")), "eggs by weight is refused with a question")
   assert.deepEqual(filledSummary([{ key: "gyoza", lines: [] }]), ["饺子：没有了（0 pcs）"])
 })
+
+import { normalizeDecimal } from "../lib/stocktake"
+
+test("stocktake · decimals can be typed: '2.' stays, Chinese 。and comma are a decimal point (owner 2026-11-26)", () => {
+  assert.equal(normalizeDecimal("25."), "25.")
+  assert.equal(normalizeDecimal("2。5"), "2.5")
+  assert.equal(normalizeDecimal("2,5"), "2.5")
+  assert.equal(normalizeDecimal("1.2.3"), "1.23")
+  assert.equal(normalizeDecimal("3 lb"), "3")
+})

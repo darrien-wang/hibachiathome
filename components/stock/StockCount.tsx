@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react"
 import { useSearchParams } from "next/navigation"
 import { VoiceAssist } from "./VoiceAssist"
 import {
@@ -13,6 +13,7 @@ import {
   isDue,
   lineText,
   looseUnits,
+  normalizeDecimal,
   specAmountText,
   totalBase,
   unitLabel,
@@ -346,14 +347,7 @@ function ItemCard({
               ) : (
                 <>
                   <div style={{ fontWeight: 600, width: 44 }}>散的</div>
-                  <input
-                    className="input"
-                    inputMode="decimal"
-                    value={l.amount ? String(l.amount) : ""}
-                    placeholder="0"
-                    onChange={(e) => patch(i, { amount: Math.max(0, Number(e.target.value.replace(/[^\d.]/g, "")) || 0) })}
-                    style={{ width: 96, fontSize: 18, minHeight: 44, textAlign: "right" }}
-                  />
+                  <DecimalInput value={l.amount} onChange={(v) => patch(i, { amount: v })} placeholder="0" style={{ width: 96, fontSize: 18, minHeight: 44, textAlign: "right" }} />
                   <div style={{ display: "flex" }}>
                     {looseUnits(def).map((u) => (
                       <button key={u} type="button" className="wb-chip" aria-pressed={l.unit === u ? "true" : "false"} style={{ minHeight: 44, marginLeft: -1 }} onClick={() => patch(i, { unit: u })}>
@@ -412,26 +406,35 @@ function ItemCard({
   )
 }
 
+function DecimalInput({ value, onChange, placeholder, style, label }: { value: number; onChange: (v: number) => void; placeholder?: string; style?: CSSProperties; label?: string }) {
+  const [text, setText] = useState(value ? String(value) : "")
+  // 外面改了数（点 + / −、照上次填、助手填）才覆盖；自己正在打的 "2." 和外面的 2 是一回事，不动它
+  useEffect(() => setText((t) => (Number(t || 0) === value ? t : value ? String(value) : "")), [value])
+  return (
+    <input
+      className="input"
+      inputMode="decimal"
+      value={text}
+      placeholder={placeholder}
+      aria-label={label}
+      onChange={(e) => {
+        const t = normalizeDecimal(e.target.value)
+        setText(t)
+        const v = Number(t || 0)
+        if (Number.isFinite(v) && v >= 0) onChange(v)
+      }}
+      style={style}
+    />
+  )
+}
+
 function Stepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const [text, setText] = useState(String(value))
-  useEffect(() => setText(String(value)), [value])
   return (
     <div style={{ display: "flex", alignItems: "center" }}>
       <button type="button" className="wb-chip" style={{ minHeight: 44, minWidth: 44, justifyContent: "center", fontSize: 18 }} onClick={() => onChange(Math.max(0, r1(value - 1)))} aria-label="少一包">
         −
       </button>
-      <input
-        className="input"
-        inputMode="decimal"
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value)
-          const v = Number(e.target.value)
-          if (Number.isFinite(v) && v >= 0) onChange(v)
-        }}
-        style={{ width: 58, minHeight: 44, fontSize: 18, textAlign: "center", marginLeft: -1, marginRight: -1 }}
-        aria-label="几包"
-      />
+      <DecimalInput value={value} onChange={onChange} label="几包" placeholder="0" style={{ width: 58, minHeight: 44, fontSize: 18, textAlign: "center", marginLeft: -1, marginRight: -1 }} />
       <button type="button" className="wb-chip" style={{ minHeight: 44, minWidth: 44, justifyContent: "center", fontSize: 18 }} onClick={() => onChange(r1(value + 1))} aria-label="多一包">
         +
       </button>
@@ -451,7 +454,7 @@ function NewSpec({ def, onAdd, onCancel }: { def: StockItemDef; onAdd: (amount: 
     <div style={{ background: "var(--color-neutral-100)", padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ fontSize: 13, fontWeight: 700 }}>新规格：一包多少？</div>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <input className="input" inputMode="decimal" placeholder="16" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ""))} style={{ width: 96, fontSize: 18, minHeight: 44, textAlign: "right" }} />
+        <input className="input" inputMode="decimal" placeholder="16" value={amount} onChange={(e) => setAmount(normalizeDecimal(e.target.value))} style={{ width: 96, fontSize: 18, minHeight: 44, textAlign: "right" }} />
         <div style={{ display: "flex" }}>
           {units.map((u) => (
             <button key={u} type="button" className="wb-chip" aria-pressed={unit === u ? "true" : "false"} style={{ minHeight: 44, marginLeft: -1 }} onClick={() => setUnit(u)}>

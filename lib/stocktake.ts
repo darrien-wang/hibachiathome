@@ -189,3 +189,10 @@ export function cleanLine(def: StockItemDef, raw: unknown): CountLine | null {
   if (o.kind === "loose") return { kind: "loose", amount, unit }
   return null
 }
+
+/** 打字过程中的样子（"2."、"0.") 原样留着，能读成数才往上报；中文键盘的「。」「，」也当小数点（2026-11-26 老板：没法输小数点）。 */
+export function normalizeDecimal(raw: string): string {
+  const t = raw.replace(/[。．，,]/g, ".").replace(/[^\d.]/g, "")
+  const i = t.indexOf(".")
+  return i < 0 ? t : t.slice(0, i + 1) + t.slice(i + 1).replace(/\./g, "")
+}
