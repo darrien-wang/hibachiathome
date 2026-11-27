@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Dialog } from "./ui"
+import { isPlainEnter } from "./helpers"
 
 // 确认 / 输入 / 提示 — the workbench's own replacement for window.confirm,
 // window.prompt and window.alert (2026-09-21: those showed up as the browser's
@@ -98,7 +99,7 @@ function AskDialog({ req, onDone }: { req: Req; onDone: () => void }) {
             inputMode={req.inputMode === "decimal" ? "decimal" : undefined}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.nativeEvent.isComposing) settle(true)
+              if (isPlainEnter(e)) settle(true)
             }}
           />
         ) : null}

@@ -31,6 +31,7 @@ import {
   type OrderRow,
   type UpdateRequest,
   lockLabel,
+  isPlainEnter,
 } from "./helpers"
 import type { ChefSummary, OrderAssignment } from "./chef-types"
 import { PlannerPill, stepLabel, type PlannerSession } from "./planner-live"
@@ -867,7 +868,7 @@ export function OrderDialog({
                 onChange={(e) => setPrepNote(e.target.value)}
                 onBlur={() => void savePrepNote()}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") (e.target as HTMLInputElement).blur()
+                  if (isPlainEnter(e)) (e.target as HTMLInputElement).blur()
                 }}
               />
               {prepNote.trim() !== prepNoteSaved.trim() ? <span style={{ color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>没保存</span> : prepNoteSaved ? <span style={{ color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>已保存</span> : null}

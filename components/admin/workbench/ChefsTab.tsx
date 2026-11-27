@@ -435,7 +435,25 @@ function MediaLibrary({ adminKey, isMobile }: { adminKey: string; isMobile: bool
     setSaved(d.picks ?? ids)
   }
   const download = () => {
-    for (const i of shown.filter((x) => picks.has(x.id))) if (i.url) window.open(i.url, "_blank", "noopener")
+    const urls = shown.filter((x) => picks.has(x.id) && x.url).map((x) => ({ url: x.url as string, video: x.type === "video" }))
+    if (urls.length <= 1) {
+      if (urls[0]) window.open(urls[0].url, "_blank", "noopener")
+      return
+    }
+    // Safari（iPad）一次点击只放行一个新窗口：选了好几个就开一页把它们都列出来，在那页上长按存图（2026-11-26）。
+    const w = window.open("", "_blank")
+    if (!w) {
+      window.open(urls[0].url, "_blank", "noopener")
+      return
+    }
+    const esc = (u: string) => u.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;")
+    w.document.write(
+      `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>选中的 ${urls.length} 个</title>` +
+        `<body style="margin:0;padding:12px;font-family:system-ui;background:#111;color:#eee"><p>长按图片存到相册；视频点开后用分享按钮存。</p>` +
+        urls.map((u) => (u.video ? `<p><video src="${esc(u.url)}" controls playsinline style="width:100%"></video><br><a style="color:#9cf" href="${esc(u.url)}">打开视频</a></p>` : `<p><a href="${esc(u.url)}"><img src="${esc(u.url)}" style="width:100%"></a></p>`)).join("") +
+        `</body>`,
+    )
+    w.document.close()
   }
 
   return (
@@ -533,6 +551,20 @@ function MediaLibrary({ adminKey, isMobile }: { adminKey: string; isMobile: bool
                   {m.url && m.type === "video" ? <video src={m.url} muted playsInline preload="metadata" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} /> : null}
                   {m.type === "video" ? <span style={{ position: "absolute", top: 6, left: 6, background: "var(--color-text)", color: "var(--color-bg)", fontSize: 10, padding: "2px 6px", fontWeight: 600 }}>▶ 视频</span> : null}
                   {picked ? <span style={{ position: "absolute", top: 6, right: 6, background: "var(--color-accent)", color: "var(--color-bg)", fontSize: 11, width: 20, height: 20, display: "grid", placeItems: "center", fontWeight: 800 }}>✓</span> : null}
+                  {m.url ? (
+                    // 触屏没有双击：右下角一个「放大」（iPad 2026-11-26）。
+                    <span
+                      role="button"
+                      aria-label="放大"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        window.open(m.url as string, "_blank", "noopener")
+                      }}
+                      style={{ position: "absolute", bottom: 26, right: 6, background: "var(--color-bg)", color: "var(--color-text)", fontSize: 12, padding: "4px 8px", fontWeight: 700, zIndex: 1 }}
+                    >
+                      放大
+                    </span>
+                  ) : null}
                   {showSaved ? (
                     <span
                       role="button"
@@ -555,7 +587,7 @@ function MediaLibrary({ adminKey, isMobile }: { adminKey: string; isMobile: bool
           </div>
         </div>
       ))}
-      <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>师傅端传的派对照片自动进来；点一下选中，双击放大。选材夹是给营销挑图用的，链接 1 小时有效，下载原片时重新打开。</div>
+      <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>师傅端传的派对照片自动进来；点一下选中，点右下角「放大」看原图（电脑上也可以双击）。选材夹是给营销挑图用的，链接 1 小时有效，下载原片时重新打开。</div>
     </>
   )
 }

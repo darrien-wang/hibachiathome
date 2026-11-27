@@ -599,3 +599,14 @@ export function operatorName(): string {
     return "staff"
   }
 }
+
+/**
+ * A plain Enter press - not the Enter that confirms a pinyin / IME word. Safari (iPad, Mac) fires that
+ * confirming keydown with isComposing already false but keyCode 229, so `!isComposing` alone lets a
+ * half-typed Chinese note submit (2026-11-26).
+ */
+export function isPlainEnter(e: { key: string; keyCode?: number; nativeEvent?: { isComposing?: boolean }; isComposing?: boolean }): boolean {
+  if (e.key !== "Enter") return false
+  if (e.isComposing || e.nativeEvent?.isComposing) return false
+  return e.keyCode !== 229
+}

@@ -215,7 +215,12 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
         }}
         onClick={(e) => {
           e.stopPropagation()
-          // 手机没有拖：先点单，再点同一天要给的那一格。再点一下取消。
+          // 手机/iPad 没有拖：先点单，再点同一天要给的那一格。再点一下取消。
+          // 已经拿起一张单时点到另一格里的单，算点那一格（iPad 2026-11-26：格子被单占满就没处点了）。
+          if (drag && !picked && drag.date === date && drag.from !== chef) {
+            dropOn(chef, date)
+            return
+          }
           setDrag((cur) => (cur && cur.orderId === s.id && cur.from === chef ? null : { orderId: s.id, from: chef, date }))
         }}
         onDoubleClick={() => onOpenOrder(s.id)}
@@ -239,6 +244,20 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
           {s.difficulty && s.difficulty.score >= 3 ? <span style={{ color: s.difficulty.score >= 4 ? "var(--color-accent)" : undefined }}> · 难{s.difficulty.score}</span> : null}
           {chef === null && s.chefIds.length > 0 ? <span style={{ color: "var(--color-accent)" }}> · 缺{short}</span> : null}
         </div>
+        {picked ? (
+          // 触屏没有双击：拿起来的单多一个「打开订单」（iPad 2026-11-26）。
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setDrag(null)
+              onOpenOrder(s.id)
+            }}
+            style={{ marginTop: 4, width: "100%", minHeight: 30, border: "1px solid var(--color-accent)", background: "var(--color-surface)", color: "var(--color-accent-700)", font: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+          >
+            打开订单
+          </button>
+        ) : null}
       </div>
     )
   }
@@ -301,13 +320,13 @@ export function ShareBoard({ adminKey, week, isMobile, onOpenOrder, onChanged }:
         <div style={{ fontWeight: 700, fontSize: 15 }}>{only ? `${nameOf(only)} · 这周排班` : "拖单调人数"}</div>
         {only ? null : (
           <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
-            {isMobile ? "先点一张单，再点同一天要给的那一格" : "把单拖到同一天另一位师傅那一格；手机上先点单再点格子"} · 双击打开订单 · 改完先不发短信
+            {isMobile ? "先点一张单，再点同一天要给的那一格" : "把单拖到同一天另一位师傅那一格；触屏上先点单再点格子"} · 点一下单能打开订单 · 改完先不发短信
           </div>
         )}
         <span style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
           <label style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }} title="截图给师傅看：只留他这一行">
             只看
-            <select value={only ?? ""} onChange={(e) => setOnly(e.target.value || null)} style={{ font: "inherit", fontSize: 12, padding: "2px 4px" }}>
+            <select value={only ?? ""} onChange={(e) => setOnly(e.target.value || null)} style={{ font: "inherit", fontSize: 13, padding: "4px 6px", minHeight: 32 }}>
               <option value="">全部师傅</option>
               {rows.map((id) => (
                 <option key={id} value={id}>

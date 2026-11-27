@@ -40,10 +40,36 @@ export type WorkbenchData = {
   applySettings: (s: WorkbenchSettings, meta?: Record<string, { updated_at: string; updated_by: string | null }>) => void
 }
 
-function beep(times: number) {
+// 一个页面只开一个 AudioContext。iPad / iPhone 的 Safari 只让用户点过之后的声音响：
+// 第一次碰屏幕时把它解锁，之后轮询发现新询盘才能叫出声（2026-11-26，原来每次 new 一个，iPad 上永远静音）。
+let audioCtx: AudioContext | null = null
+function audio(): AudioContext | null {
+  if (audioCtx) return audioCtx
   try {
     const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-    const ctx = new Ctx()
+    audioCtx = new Ctx()
+  } catch {}
+  return audioCtx
+}
+if (typeof window !== "undefined") {
+  const unlock = () => {
+    const ctx = audio()
+    if (!ctx) return
+    void ctx.resume().catch(() => {})
+    if (ctx.state === "running") {
+      window.removeEventListener("pointerdown", unlock, true)
+      window.removeEventListener("keydown", unlock, true)
+    }
+  }
+  window.addEventListener("pointerdown", unlock, true)
+  window.addEventListener("keydown", unlock, true)
+}
+
+function beep(times: number) {
+  try {
+    const ctx = audio()
+    if (!ctx) return
+    if (ctx.state !== "running") void ctx.resume().catch(() => {})
     for (let i = 0; i < times; i++) {
       const osc = ctx.createOscillator()
       const gain = ctx.createGain()

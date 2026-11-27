@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useSoftphone } from "@/components/admin/SoftphoneProvider"
 import { useIsMobile } from "@/components/admin/SoftphoneMobileDrawer"
+import { TouchTitle } from "./touch-title"
 import { adminJson, loginUrl, useAdminKey } from "./api"
 import { useWorkbenchData } from "./use-workbench-data"
 import { BoardTab } from "./BoardTab"
@@ -56,6 +57,8 @@ export default function Workbench() {
   const { key, ready, clearKey } = useAdminKey()
   const data = useWorkbenchData(key, ready)
   const isMobile = useIsMobile("(max-width: 760px)")
+  // iPad 拿桌面版布局但没有键盘快捷键和鼠标悬停（2026-11-26）。
+  const touch = useIsMobile("(pointer: coarse)")
   const phone = useSoftphone()
 
   const tab = ((sp.get("tab") as Tab) || "leads") as Tab
@@ -242,8 +245,10 @@ export default function Workbench() {
 
   return (
     <div className="wb">
+      {touch ? <TouchTitle /> : null}
       {!isMobile ? (
-        <header style={{ display: "flex", alignItems: "center", gap: 24, padding: "0 24px", borderBottom: "2px solid var(--color-divider)", background: "var(--color-bg)", position: "sticky", top: 0, zIndex: 20 }}>
+        // iPad 竖屏（1024px）放不下品牌 + 11 个 tab + 搜索 + 电话：放不下时搜索和电话自动换到第二行（2026-11-26）。
+        <header style={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 24, rowGap: 0, padding: "0 24px", borderBottom: "2px solid var(--color-divider)", background: "var(--color-bg)", position: "sticky", top: 0, zIndex: 20 }}>
           <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 16, letterSpacing: "-0.01em", whiteSpace: "nowrap", flex: "none" }}>Real Hibachi</div>
           <nav style={{ display: "flex", gap: 20, flex: "none" }}>
             {tabs.map(([t, label]) => (
@@ -252,17 +257,17 @@ export default function Workbench() {
               </button>
             ))}
           </nav>
-          <label className="wb-search" style={{ marginLeft: "auto", flex: "1 1 200px", maxWidth: 380 }}>
+          <label className="wb-search" style={{ marginLeft: "auto", flex: "1 1 260px", maxWidth: 380, marginBlock: 8 }}>
             {SearchIcon}
-            <input ref={searchRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜姓名 / 电话 / 单号 / 城市 · 订单+线索（按 / 聚焦）" />
+            <input ref={searchRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder={touch ? "搜姓名 / 电话 / 单号 / 城市 · 订单+线索" : "搜姓名 / 电话 / 单号 / 城市 · 订单+线索（按 / 聚焦）"} />
             {q ? (
-              <button type="button" onClick={() => setQ("")} style={{ border: 0, background: "transparent", cursor: "pointer", fontSize: 12, color: "var(--color-accent-700)", padding: 0 }}>
+              <button type="button" onClick={() => setQ("")} style={{ border: 0, background: "transparent", cursor: "pointer", fontSize: 12, color: "var(--color-accent-700)", padding: touch ? "10px 4px" : 0 }}>
                 清除
               </button>
             ) : null}
           </label>
           {showPhoneChip ? (
-            <button type="button" className="wb-chip" aria-pressed={phoneOn ? "true" : "false"} onClick={togglePhone} style={{ height: 36, flex: "none" }} title={phone.message ?? undefined}>
+            <button type="button" className="wb-chip" aria-pressed={phoneOn ? "true" : "false"} onClick={togglePhone} style={{ height: touch ? 40 : 36, flex: "none" }} title={phone.message ?? undefined}>
               {PhoneIcon} {phoneLabel}
             </button>
           ) : null}

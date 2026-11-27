@@ -19,7 +19,9 @@ export function markPasskeyRegistered() {
 
 export function deviceLabel(): string {
   const ua = navigator.userAgent
-  const os = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android" : /Mac/.test(ua) ? "Mac" : /Windows/.test(ua) ? "Windows" : "设备"
+  // iPad 的 Safari 默认报 Mac 的 UA，靠触点数认出来（Mac 没有触屏，maxTouchPoints 是 0）。
+  const ipad = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
+  const os = /iPhone/.test(ua) ? "iPhone" : ipad ? "iPad" : /Android/.test(ua) ? "Android" : /Mac/.test(ua) ? "Mac" : /Windows/.test(ua) ? "Windows" : "设备"
   const browser = /CriOS|Chrome/.test(ua) && !/Edg/.test(ua) ? "Chrome" : /Edg/.test(ua) ? "Edge" : /Safari/.test(ua) ? "Safari" : /Firefox|FxiOS/.test(ua) ? "Firefox" : ""
   return [os, browser].filter(Boolean).join(" · ")
 }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { adminJson } from "./api"
 import { Tag } from "./ui"
 import { askConfirm } from "./ask"
+import { isPlainEnter } from "./helpers"
 
 // 排班计算器的分享链接（老板 2026-09-29）：发给认识的人，对方粘一天的「时间 + 地址」
 // 算最少几个师傅。这里发链接、看每个链接用了多少、随时收回。
@@ -126,7 +127,7 @@ export function ScheduleLinksSection({ adminKey }: { adminKey: string }) {
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-        <input className="input" style={{ flex: "1 1 200px" }} placeholder="发给谁，比如「Tony · 同行」" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void create()} />
+        <input className="input" style={{ flex: "1 1 200px" }} placeholder="发给谁，比如「Tony · 同行」" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => isPlainEnter(e) && void create()} />
         <span style={{ fontSize: 13, display: "inline-flex", gap: 6, alignItems: "center" }}>
           每天
           <input className="input" inputMode="numeric" style={{ width: 64, textAlign: "center" }} value={limit} onChange={(e) => setLimit(e.target.value.replace(/\D/g, "").slice(0, 4))} />次

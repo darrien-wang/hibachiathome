@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { adminJson } from "./api"
 import { tell } from "./ask"
 import { Chip, Dialog, DialogHead, Kicker, Tag } from "./ui"
-import { addDays, dowZh, md, ptToday } from "./helpers"
+import { addDays, dowZh, md, ptToday, isPlainEnter } from "./helpers"
 import { PREP_GROUP_TITLES, type PrepGroup, type PrepItem } from "@/lib/prep-bom"
 import { coolerSheetHtml, type CoolerParty } from "@/lib/cooler-sheet"
 import { isRestockItem } from "@/lib/pantry"
@@ -346,7 +346,7 @@ function StockSection({ adminKey, owner, stock, need, onSaved }: { adminKey: str
                   placeholder="盘点数"
                   value={edit[row.item_key] ?? ""}
                   onChange={(e) => setEdit((x) => ({ ...x, [row.item_key]: e.target.value }))}
-                  onKeyDown={(e) => e.key === "Enter" && void save(row)}
+                  onKeyDown={(e) => isPlainEnter(e) && void save(row)}
                   style={{ width: 72, minHeight: 32, padding: "3px 8px" }}
                 />
                 <button type="button" className="btn btn-ghost btn-sm" disabled={busy === row.item_key || !(edit[row.item_key] ?? "").trim()} onClick={() => void save(row)}>

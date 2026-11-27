@@ -466,10 +466,16 @@ export function ChefDialog({
     }
   }
   const viewFile = async (f: ChefFile) => {
+    // Safari（iPad）只放行点击当下开的窗口：先开空白页，拿到链接再跳过去（2026-11-26）。
+    const w = window.open("", "_blank")
+    if (w) w.opener = null
     try {
       const r = await adminJson<{ ok: boolean; url?: string }>(adminKey, `/api/admin/chefs?file=${encodeURIComponent(f.id)}`)
-      if (r.url) window.open(r.url, "_blank", "noopener")
+      if (r.url && w) w.location.href = r.url
+      else if (r.url) window.open(r.url, "_blank", "noopener")
+      else w?.close()
     } catch (e) {
+      w?.close()
       setMsg(e instanceof Error ? e.message : "打不开")
     }
   }

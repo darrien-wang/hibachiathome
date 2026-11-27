@@ -30,6 +30,7 @@ import {
   type LeadRow,
   type OrderRow,
   guestLabel,
+  isPlainEnter,
 } from "./helpers"
 import { SmsThreadPanel } from "@/components/admin/sms-thread-panel"
 import { PlannerPill, type PlannerSession } from "./planner-live"
@@ -603,7 +604,7 @@ export function LeadDialog({
               ))}
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-              <input className="input" placeholder="记一条承诺，如：送餐具，10/15 前订" value={promiseDraft} onChange={(e) => setPromiseDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && promiseDraft.trim() && void patch({ action: "add_note", note: `${PROMISE_PREFIX} ${promiseDraft.trim()}` }, "promise").then(() => setPromiseDraft(""))} />
+              <input className="input" placeholder="记一条承诺，如：送餐具，10/15 前订" value={promiseDraft} onChange={(e) => setPromiseDraft(e.target.value)} onKeyDown={(e) => isPlainEnter(e) && promiseDraft.trim() && void patch({ action: "add_note", note: `${PROMISE_PREFIX} ${promiseDraft.trim()}` }, "promise").then(() => setPromiseDraft(""))} />
               <button type="button" className="btn btn-secondary" disabled={!promiseDraft.trim() || !!busy} onClick={() => void patch({ action: "add_note", note: `${PROMISE_PREFIX} ${promiseDraft.trim()}` }, "promise").then(() => setPromiseDraft(""))}>
                 记下
               </button>
@@ -738,7 +739,7 @@ export function LeadDialog({
           <div>
             <Kicker>备注</Kicker>
             <div style={{ display: "flex", gap: 8 }}>
-              <input className="input" placeholder="内部备注（[occasion] / [why] 也记这里）" value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && noteDraft.trim() && void patch({ action: "add_note", note: noteDraft.trim() }, "note").then(() => setNoteDraft(""))} />
+              <input className="input" placeholder="内部备注（[occasion] / [why] 也记这里）" value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} onKeyDown={(e) => isPlainEnter(e) && noteDraft.trim() && void patch({ action: "add_note", note: noteDraft.trim() }, "note").then(() => setNoteDraft(""))} />
               <button type="button" className="btn btn-secondary" disabled={!noteDraft.trim() || !!busy} onClick={() => void patch({ action: "add_note", note: noteDraft.trim() }, "note").then(() => setNoteDraft(""))}>
                 记下
               </button>

@@ -238,3 +238,47 @@
 .wb .notice { border: 1px solid var(--color-divider); padding: 8px 10px; font-size: 13px; background: var(--color-surface); }
 .wb .notice-accent { border: 2px solid var(--color-accent); }
 .wb .empty { font-size: 13px; color: var(--color-neutral-600); padding: 12px 0; }
+
+/* — 触屏（iPad / 手机，2026-11-26）——
+   iPad 拿的是桌面版布局（宽于 760px），但手指比鼠标粗：按钮、筛选、勾选框放大到能一指点准。
+   手机版（≤760px）本来就是按手指排的，不动它。
+   Safari 碰过的元素会一直停在 :hover，背景色就卡住了，所以 hover 只在真有鼠标时生效（见下面的还原）。 */
+@media (pointer: coarse) and (min-width: 761px) {
+  .wb .btn { min-height: 40px; }
+  .wb .btn-sm { min-height: 36px; padding: 6px 12px; font-size: 13px; }
+  .wb .btn-icon { width: 40px; height: 40px; }
+  .wb .input { min-height: 40px; }
+  .wb .check { min-height: 36px; }
+  .wb .check input { width: 22px; height: 22px; }
+  .wb input[type="checkbox"], .wb input[type="radio"] { min-width: 20px; min-height: 20px; }
+  .wb-chip { min-height: 36px; padding: 8px 14px; }
+  .wb-chip-sm { min-height: 32px; font-size: 13px; padding: 6px 12px; }
+  .wb-search { height: 40px; }
+  .wb-search input { font-size: 15px; }
+  .wb select { min-height: 32px; }
+  .wb { -webkit-tap-highlight-color: transparent; }
+}
+@media (hover: none) {
+  .wb .btn-secondary:hover:not(:disabled), .wb .btn-ghost:hover:not(:disabled), .wb-chip:hover { background: transparent; }
+  .wb .btn-primary:hover:not(:disabled) { background: var(--color-accent); }
+  .wb-chip[aria-pressed="true"]:hover { background: var(--color-text); }
+  .wb .input:hover { border-color: var(--color-divider); }
+  .wb .table tbody tr:hover { background: transparent; }
+  .wb-ev:hover { filter: none; }
+}
+/* Safari 的 vh 算的是工具栏收起时的高度，弹窗底部会被地址栏盖住；dvh 跟着实际可见高度走。 */
+@supports (height: 100dvh) {
+  .wb { min-height: 100dvh; }
+  .wb .dialog { max-height: 92dvh; }
+}
+@media (max-width: 760px) {
+  @supports (height: 100dvh) {
+    .wb .dialog { max-height: 100dvh; height: 100dvh; }
+  }
+}
+/* 长按 / 点一下看 title 提示（触屏没有鼠标悬停，components/admin/workbench/touch-title.tsx）。 */
+.wb-touch-tip {
+  position: fixed; z-index: 400; max-width: min(360px, calc(100vw - 24px)); padding: 8px 12px;
+  background: var(--color-text); color: var(--color-bg); font-size: 13px; line-height: 1.45; white-space: pre-line;
+  box-shadow: var(--shadow-lg); pointer-events: none;
+}

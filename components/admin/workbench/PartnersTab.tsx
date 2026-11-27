@@ -47,7 +47,8 @@ type Row = {
 type Resp = { ok: boolean; partners: Partner[]; rows: Row[] }
 
 const NONE = "none"
-const COLS = "22px 84px minmax(160px,1fr) 140px 76px 96px 84px 190px"
+// iPad 竖屏内容区 ~900px：列宽合计 + 间距要放得下（2026-11-26，原来 908px 溢出）。
+const COLS = "22px 80px minmax(140px,1fr) 130px 70px 90px 80px 170px"
 const METHOD_LABEL: Record<string, string> = { zelle: "Zelle", cash: "现金", check: "支票", other: "其他" }
 const guestsText = (r: Pick<Row, "adults" | "kids">) => `${r.adults} 大${r.kids ? ` ${r.kids} 小` : ""}`
 const netColor = (c: number) => (c > 0 ? "var(--color-accent-700)" : c < 0 ? "#1f7a4d" : "var(--color-neutral-600)")
