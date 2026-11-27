@@ -47,6 +47,8 @@
 
 12. **客人说了喜事，第一句先替他高兴**（11-01，D-1101-02，盲评 58 段对话：改版前 29 段里 11 段有这句，改版后 3 段）。`Wedding` → `Congratulations on the wedding!`；`My husband's 75th` → `Happy 75th to your husband!`。`Got it.` 接不住人家的喜事。他问了问题也一样：先一句高兴，马上答。说完再谈下一件事。**只祝贺喜事本身，不要把他说的话换个说法夸回去**（老板 11-03：「ai文风太重的一个就是重复对方的话」）。Kande 说场地外面有地方做菜，还有玻璃窗能互相看到，稿子写成 `The Catalina Room sounds great, and with those windows everyone can watch the cooking.`，老板说「这句太ai了 删掉再发吧」。`A whole sorority, that sounds like a great night!` 也属于这种，不用。
 
+13. **不复述客人刚说的话**（老板 11-27：「为啥还是一直重复别人的话 特别像是AI」）。客人报了菜单、改了安排、说了要求，我们记进订单就行，短信里不再念一遍给他听。`Got it, Gaetana: Jamie will have the fried rice with everyone else, so no need to make his brown rice.` → `Sounds good, Gaetana. Happy early birthday to Jamie!`；`Got it, Heather: chicken and steak for Ryan, Emily and you.` → `Got it, thank you. I'll add the others as they come in.` 要说就说他不知道的：改了以后总价变没变、还差什么、下一步是什么。`desk send` 会拦：一句话里至少 4 个实词、六成以上是他刚说过的词。
+
 **长度**：客人在闲聊（`Thank you!`、`Ok still trying to decide`），我们的回复不超过他那条的两倍长。客人问了正事，照 SKILL §1.2（≤3 句、≤320 字符）。
 
 **一个人一个人写**：跟进不批量套句子。每条从他最后说的那句话写起（SKILL §3"一次只处理一个人"），连着写几个人时，句子开头和结构要换，不能五条都是 `figured you're still ___`。
@@ -165,6 +167,7 @@
 - **✗ 拦**（不发，exit 2）：长破折号、2 个以上 `!`、2 个以上 emoji、情绪词开头（`Perfect`/`Absolutely`/`Of course`/`Totally`/`Good news`/`Love that`…）、光秃秃的 `your 17`、§3 和 SKILL §8 的词、不带 please 的命令句（§2 第 11 条：句首或 `If ...,` 后面直接是 `Tell`、`Text`、`Send`、`Reply`、`Pick`、`Add`、`Lock`、`Let me know` 这类动词，`, just text me` 也算）、已经报过名字还在对话中间 `Hi, it's Rowling`、同一句（`nothing is charged today` 等）对这个客人说第二次（网站自动报价那条不算）。改了再发；这句确实就该这么写（比如引用客人的话），带 `--voice-ok`。
 - **· 提醒**（照发）：2 个以上 ` - `、`No rush - ` 这类反应词 + 短横开头、括号、和我上一条开头一样（打招呼的 Hi 不算）、`Want me to`（写 `Would you like me to`）。偶尔可以，条条都这样就像机器。
 - **✗ 拦，11-01 加**：隔了 2 小时以上才回的客气话（`Anytime`、`You're welcome` 开头）。SKILL §1.6 早就写了不补，这几天我还是发了，隔天的 `Anytime.` 读起来像机器在清队列。
+- **✗ 拦，11-27 加**：复述客人的话（§2 第 13 条）。按句号、冒号、分号断句，一句里去掉虚词后至少 4 个词、其中六成以上出现在他上次我们说话之后发的消息里，就拦。拿 11-26/27 的真短信试过：Gaetana 炒饭那句、Heather 念菜单那句会拦，答桌椅、答 6 位能不能做那几条不拦（`scripts/desk/selfcheck.py`）。确实要核对一个数时带 `--voice-ok`。
 - **· 提醒，11-01 加**（照发）：`Anytime` 开头（写 `You're very welcome`）；他刚说了喜事，我们第一句没接（§2 第 12 条）；`Happy ...`、`Congratulations ...` 后面是句号。
 - **· 提醒，10-29 加**（照发，不拦）：
   - **同一个开头发给多位客人**：去掉打招呼和名字后的前三个词，24 小时内本机已经发给 2 位别的客人（读本机的 `~/.realhibachi/desk-voice.jsonl`）。上周 `figured you're still` 发了 22 次。看到就换一个从他最后那句话写起的开头。

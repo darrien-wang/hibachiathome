@@ -2602,6 +2602,22 @@ def main() -> int:
     check("  and is quiet when we are glad for them", not any("替他高兴" in x for x in lines("Happy 75th to your husband! What city will it be in?", said("my husbands 75th", 0.1))))
     check("voice notes a congratulation with a full stop", any("句号" in x for x in lines("Congratulations on the wedding. Is it an evening event?", said("Wedding", 0.1))))
 
+    # Saying their message back (owner 2026-11-27: 「为啥还是一直重复别人的话 特别像是AI」). Real texts from 11-26/27.
+    echoed = lambda text, theirs: any("客人刚说过的" in x for x in lines(text, said(theirs, 0.1)))
+    gaetana = ("Hi Rowling- My husband Jamie does want to do fried rice. So I'm not doing his brown rice. You can cook it with "
+               "everyone's else's. That's going to be his splurge for the night. Thank you")
+    check("voice stops a reply that re-says their message (Gaetana's fried rice)",
+          echoed("Got it, Gaetana: Jamie will have the fried rice with everyone else, so no need to make his brown rice.", gaetana))
+    check("  and lets the plain answer through", not echoed("Sounds good, Gaetana. Happy early birthday to Jamie!", gaetana))
+    check("voice stops reading a menu back (Heather's three picks)",
+          echoed("Got it, Heather: chicken and steak for Ryan, Emily and you. I'll add the others as they come in.",
+                 "These are the three orders from our family. Ryan = chicken and steak Emily = chicken and steak Heather = chicken and steak"))
+    check("  an answer to their question may use its words (tables, 6 guests): not an echo",
+          not echoed("Yes, we bring tables, chairs and black tablecloths for $10 a guest. What's the celebration?",
+                     "Hi Rowling, it will be for 25-30 people 12/12/26 South El Monte Did you provide tables and tablecloths ?")
+          and not echoed("Yes, 6 guests is no problem. There's no guest minimum, just a $599 minimum, so it's $641 with travel.",
+                         "I see you guys have a 10 guest minimum. Will you guys allow 6 guest for you guys come out and service us?"))
+
     # Nicole Weston 11-11: 7 adults + 1 kid in Indio ($449.20 food, $65 travel) with the $50 thank-you.
     indio = {"foodSubtotal": 449.2, "travelFee": 65}
     check("price: upgrades swapped into all 16 picks stay at the $599 minimum ($664 with travel)",

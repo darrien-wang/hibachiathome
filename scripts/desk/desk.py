@@ -1282,6 +1282,51 @@ def _voice_words(text: str) -> list[str]:
     return re.findall(r"[a-z0-9']+", (text or "").lower())
 
 
+# Saying the customer's own message back to them (owner 2026-11-27: 「你的对话风格检查去哪里了 为啥还是一直重复别人的话
+# 特别像是AI」, on "Got it, Gaetana: Jamie will have the fried rice with everyone else, so no need to make his brown rice"
+# and "Got it, Heather: chicken and steak for Ryan, Emily and you"). A sentence of ours echoes when at least
+# VOICE_ECHO_MIN of its words carry meaning and VOICE_ECHO_SHARE of those are words the customer just wrote.
+VOICE_ECHO_MIN = 4
+VOICE_ECHO_SHARE = 0.6
+VOICE_ECHO_SKIP = VOICE_FILLER | frozenset(
+    "got sounds good sure all set yes okay ok i'll we'll he'll she'll they'll it'll his her him she he we us me my "
+    "is be so no not too very really still now today tonight tomorrow here".split())
+
+
+def _echo_stem(word: str) -> str:
+    w = re.sub(r"'s$", "", word.strip("'"))
+    return w[:-1] if len(w) > 4 and w.endswith("s") and not w.endswith("ss") else w
+
+
+def _echo_words(text: str) -> list[str]:
+    return [_echo_stem(w) for w in _voice_words(text) if len(w) > 2 and not w.isdigit() and w not in VOICE_ECHO_SKIP]
+
+
+def voice_echo(body: str, msgs: list[dict]) -> tuple[str, int, int] | None:
+    """(sentence, words from them, words) for the first sentence of ours that mostly re-says the customer's last
+    message; None when nothing does. Their last message = what they sent after our last text (not tapbacks), or
+    their newest one when we are the ones writing again."""
+    last_ours = max((i for i, m in enumerate(msgs) if m.get("direction") == "outbound"), default=-1)
+    theirs = [(m.get("body") or "").strip() for m in msgs[last_ours + 1:] if m.get("direction") == "inbound"]
+    if not theirs:
+        theirs = [(m.get("body") or "").strip() for m in msgs if m.get("direction") == "inbound"][-1:]
+    theirs = [t for t in theirs if not VOICE_TAPBACK.match(t)]
+    # An answer to a question uses its words ("There's no guest minimum" to "you have a 10 guest minimum, will you do
+    # 6?"): only a message that tells us something - picks, a change - gets said back the way the owner means.
+    if any(VOICE_ASKED.search(VOICE_URL.sub(" ", t)) for t in theirs):
+        return None
+    heard = {w for t in theirs for w in _echo_words(t)}
+    if not heard:
+        return None
+    for seg in re.split(r"[.!?:;]+\s*|\s-\s", VOICE_URL.sub(" ", body or "")):
+        words = _echo_words(seg)
+        if len(words) >= VOICE_ECHO_MIN:
+            k = sum(1 for w in words if w in heard)
+            if k / len(words) >= VOICE_ECHO_SHARE:
+                return seg.strip(), k, len(words)
+    return None
+
+
 def voice_unanswered(body: str, msgs: list[dict]) -> tuple[str, str] | None:
     """(their question, our first sentence) when that sentence does not look like the answer; None when it does,
     or nothing was asked since our last text."""
@@ -1403,6 +1448,10 @@ def voice_check(body: str, msgs: list[dict], now: _dt.datetime, others: list[dic
     miss = voice_unanswered(b, msgs)
     if miss:
         note(f"他问了「{miss[0][:60]}」，你第一句是「{miss[1][:60]}」：第一句先答他问的（voice.md §2 第 1 条）")
+    echo = voice_echo(b, msgs)
+    if echo:
+        stop(f"「{echo[0][:70]}」{echo[1]}/{echo[2]} 个词是客人刚说过的：不复述他的话，回 Sounds good. / Got it, thank you. "
+             f"再加一句他不知道的（voice.md §2 第 13 条，老板 11-27）")
     first = re.split(r"(?<=[.!?])\s", b, maxsplit=1)[0]
     if re.match(r"(?:happy|congrat)", first, re.I) and first.endswith("."):
         note("恭喜的话用 !，句号读起来是冷的（voice.md §2 第 4 条）")
