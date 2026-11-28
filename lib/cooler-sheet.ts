@@ -41,6 +41,8 @@ export type CoolerParty = {
   baseHeads?: number
   menuKnown: boolean
   work: CoolerWork
+  /** 这一场要用的全部东西（/api/admin/prep 的用料行；菜单没定时不含蛋白）。全量单（lib/full-stock-sheet.ts）合这个。 */
+  items?: PrepItem[]
 }
 
 /** 饭和洋葱碎按几个人做：答应多带的按备餐人数，否则按订的人数。 */

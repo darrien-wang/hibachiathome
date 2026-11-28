@@ -127,7 +127,8 @@ export async function GET(request: NextRequest) {
         custom: customItemsOf(r.invoice_data).map((it) => ({ id: customItemRowId(it.name), name: it.nameZh || it.name, qty: it.qty })),
       },
       // 后勤备货单：这一单要提前处理的量（切肉、切菜、切豆腐、煮饭），打印时几场合成一张。
-      cooler: { time: zhTime(r.event_start as string), customer: head.name, chef: null as string | null, owner: null as string | null, note: (r.prep_note ?? "").trim() || null, adults: prep.adults, kids: prep.kids, ...(prep.prepFor ? { baseHeads: prep.prepFor.guests } : {}), menuKnown: prep.menuKnown, work: coolerWork(prep.items, prep.menuKnown) },
+      // items = 这一单要用的全部东西（和合计同一套，菜单没定不算蛋白），全量单拿它合（老板 2026-11-27「当天应该有的所有东西」）。
+      cooler: { time: zhTime(r.event_start as string), customer: head.name, chef: null as string | null, owner: null as string | null, note: (r.prep_note ?? "").trim() || null, adults: prep.adults, kids: prep.kids, ...(prep.prepFor ? { baseHeads: prep.prepFor.guests } : {}), menuKnown: prep.menuKnown, work: coolerWork(prep.items, prep.menuKnown), items: mine },
     }
   })
   // 我们自己备的（外包的不备）：同一批对象，下面写的厨师和负责人就写在 orders 里。

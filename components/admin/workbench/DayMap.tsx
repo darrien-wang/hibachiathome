@@ -8,6 +8,7 @@ import { operatorName } from "./helpers"
 import { headsText } from "@/lib/party-heads"
 import { TileMap } from "@/components/schedule/TileMap"
 import { coolerSheetHtml, type CoolerParty } from "@/lib/cooler-sheet"
+import { fullStockSheetHtml } from "@/lib/full-stock-sheet"
 import { dayMapTitle } from "@/lib/outsourced"
 
 // 一天几场摆到地图上，并算出最少要几个师傅、谁接谁（老板 2026-09-29）。
@@ -161,8 +162,9 @@ export function DayMap({ adminKey, date, onClose, onOpenOrder }: { adminKey: str
     }
     return Array.from(by.entries())
   }, [coolersPicked])
-  const printCoolers = (parties: CoolerParty[], who?: string) => {
-    const html = coolerSheetHtml(date, parties, who)
+  // full = 全量备货单（当天要用的全部东西，老板 2026-11-27「避免当天临时少东西」）；不传就是阿姨切配单。
+  const printCoolers = (parties: CoolerParty[], who?: string, full = false) => {
+    const html = full ? fullStockSheetHtml(date, parties, who) : coolerSheetHtml(date, parties, who)
     const w = window.open("", "_blank")
     if (w) {
       w.document.open()
@@ -957,9 +959,14 @@ ${s.difficulty.note}` : ""}` : "还没打难度分，点一下打"}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <div style={{ fontWeight: 800, fontSize: 15 }}>打印后勤备货单</div>
                 {coolers && coolers.length ? (
-                  <button type="button" className="btn btn-primary btn-sm" disabled={!coolersPicked.length} onClick={() => printCoolers(coolersPicked)}>
-                    {coolersPicked.length === coolers.length ? `全部合成一张（${coolers.length} 场）` : `勾的合成一张（${coolersPicked.length} 场）`}
-                  </button>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <button type="button" className="btn btn-primary btn-sm" disabled={!coolersPicked.length} onClick={() => printCoolers(coolersPicked)}>
+                      {coolersPicked.length === coolers.length ? `全部合成一张（${coolers.length} 场）` : `勾的合成一张（${coolersPicked.length} 场）`}
+                    </button>
+                    <button type="button" className="btn btn-secondary btn-sm" disabled={!coolersPicked.length} onClick={() => printCoolers(coolersPicked, undefined, true)} title="勾上的几场要用的全部东西：肉海鲜、菜蛋沙拉、前菜面、饭和酱、订单另加的、桌椅装备">
+                      全量单（{coolersPicked.length} 场）
+                    </button>
+                  </div>
                 ) : null}
               </div>
               {coolers && coolers.length ? (
@@ -1000,7 +1007,7 @@ ${s.difficulty.note}` : ""}` : "还没打难度分，点一下打"}
                   ))}
                 </div>
               ) : null}
-              <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 6 }}>几场合成一张：切多少肉、菜、豆腐，煮多少饭；每场分多少师傅自己拿。负责人在订单弹窗"备货负责人"里选。</div>
+              <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 6 }}>几场合成一张：切多少肉、菜、豆腐，煮多少饭；每场分多少师傅自己拿。全量单：勾上的几场一共要用的全部东西，对着冰箱和货架逐样勾，免得当天少东西。负责人在订单弹窗"备货负责人"里选。</div>
             </div>
 
             <div style={{ marginTop: 14, border: "2px solid var(--color-text)", padding: 12 }}>
