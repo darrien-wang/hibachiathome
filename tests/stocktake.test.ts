@@ -51,6 +51,16 @@ test("stocktake · counted by the piece: shrimp 只, lobster tails 6 oz, salmon 
   assert.deepEqual(looseUnits(def("eggs")), ["piece"])
 })
 
+test("stocktake · scallops are kept and counted by the piece since 2026-11-28 (6 a guest); weighed ones go at 1 oz a scallop", () => {
+  const s = def("scallops")
+  assert.equal(STOCK_UNITS.scallops, "pcs")
+  assert.deepEqual(looseUnits(s), ["piece", "lb", "oz"])
+  assert.equal(totalBase(s, [{ kind: "loose", amount: 30, unit: "piece" }]), 30)
+  assert.equal(describeTotal(s, 30), "30 个 · ≈ 5 人份")
+  assert.equal(totalBase(s, [{ kind: "loose", amount: 1, unit: "lb" }]), 16)
+  assert.deepEqual(s.specs, [], "no whole-bag spec until the owner says how many a bag holds")
+})
+
 test("stocktake · nothing left is an empty list = 0; junk lines are refused", () => {
   assert.equal(totalBase(def("gyoza"), []), 0)
   assert.equal(cleanLine(def("eggs"), { kind: "loose", amount: 2, unit: "lb" }), null, "eggs cannot be weighed")

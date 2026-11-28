@@ -38,6 +38,8 @@ test("纸上的数按拿的东西写", () => {
   assert.equal(fullAmount({ id: "fried_rice_seasoning", qty: 138.4, unit: "tbsp" }), "6 包")
   assert.equal(fullAmount({ id: "oil", qty: 173, unit: "tbsp" }), "173 汤匙")
   assert.equal(fullAmount({ id: "lime", qty: 8.5, unit: "pcs" }), "9 个")
+  // 带子 2026-11-28 起清单上就是个数（每人 6 个），不再从 oz 折。
+  assert.equal(fullAmount({ id: "scallops", qty: 21, unit: "pcs" }), "21 个")
 })
 
 test("菜单没定的场提示肉没算进去", () => {

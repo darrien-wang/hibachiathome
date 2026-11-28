@@ -1,8 +1,9 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { BUY_UNITS, aggregatePrep, orderPrep, setupCountsOf } from "../lib/prep-bom"
+import { BUY_UNITS, aggregatePrep, basisOf, orderPrep, setupCountsOf } from "../lib/prep-bom"
 import { tableChairCents } from "../lib/chef-pay"
+import { STOCK_UNITS } from "../lib/pantry"
 
 // A party where everyone has steak: `adults` adult servings, `kids` kid servings.
 const steakLine = (adults: number, kids = 0) => {
@@ -175,4 +176,24 @@ test("prep · noodles show how many guests ordered them next to the oz, summed a
   const day = aggregatePrep([...orderPrep(inv as never, "2026-11-20T00:00:00Z", 0, 0).items, ...two]).find((i) => i.id === "noodles")
   assert.ok(day)
   assert.match(day.alt ?? "", /^7 人点了（含小孩 1）/)
+})
+
+test("prep · scallops are counted like shrimp: 6 an adult, 3 a kid, size 10/20, bought by the piece (owner, 2026-11-28)", () => {
+  const guests = [{ proteins: ["scallops", "steak"] }, { proteins: ["scallops", "chicken"] }, { proteins: ["scallops", "chicken"], isChild: true }]
+  const inv = { mode: "detailed", adultCount: 2, childCount: 1, guests, partyExtras: [{ id: "side_scallops", qty: 1 }] }
+  const line = orderPrep(inv as never, "2026-11-28T00:00:00Z", 0, 0).items.find((i) => i.id === "scallops")
+  assert.ok(line)
+  // (2 adults + 1 table side) x 6 + 1 kid x 3
+  assert.deepEqual([line.qty, line.unit, line.alt], [21, "pcs", "21 个（10/20 规格，每人 6 个，小孩 3 个）"])
+  assert.equal(aggregatePrep([line, line]).find((i) => i.id === "scallops")?.alt, "42 个（10/20 规格，每人 6 个，小孩 3 个）")
+  assert.deepEqual(BUY_UNITS.scallops, { per: 1, noun: "个", desc: "10/20 规格，按个买，每人 6 个（小孩 3 个）" }, "no bag: the owner has not said how many a bag holds")
+  assert.equal(basisOf("scallops"), "每份 6 个，小孩 3（10/20 规格）")
+})
+
+test("prep · every stocked protein is kept in the unit the list asks for, or 在库 vs 需求 compares oz with pieces", () => {
+  const ids = ["chicken", "steak", "shrimp", "salmon", "tofu", "scallops", "filet_mignon", "lobster_tail", "ribeye"]
+  const inv = { mode: "detailed", adultCount: ids.length, childCount: 0, guests: ids.map((p) => ({ proteins: [p] })) }
+  const lines = orderPrep(inv as never, "2026-11-28T00:00:00Z", 0, 0).items.filter((i) => i.group === "protein" && i.id in STOCK_UNITS)
+  assert.ok(lines.some((i) => i.id === "scallops"))
+  for (const i of lines) assert.equal(STOCK_UNITS[i.id], i.unit, i.id)
 })

@@ -9,7 +9,7 @@
 // 一样东西可以记好几行：
 //   整包：选一个规格 × 几包（毛豆 12oz/包 × 4 + 16oz/包 × 2）。规格分系统自带的和师傅自己加的（stock_specs，加了就能用）。
 //   散的：拆开了的，称重（lb / oz）或者数个数（虾几只、龙虾几条）。
-// 每行最后都换算成库存基准单位（lib/pantry.ts STOCK_UNITS：肉菜按 oz、虾按只、前菜按个、沙拉毛豆按份）。
+// 每行最后都换算成库存基准单位（lib/pantry.ts STOCK_UNITS：肉菜按 oz、虾按只、带子和前菜按个、沙拉毛豆按份）。
 
 import { STOCK_UNITS } from "@/lib/pantry"
 
@@ -61,7 +61,9 @@ export const STOCK_ITEMS: StockItemDef[] = [
   { key: "shrimp", codes: ["shrimp", "虾"], label: "虾", en: "Shrimp 16/20", group: "frozen", ozPerBase: 16 / 18, piece: { noun: "只", base: 1 }, looseBy: "piece", perGuest: 5, specs: [{ id: "b:shrimp:bag", label: "一袋 ≈32 只", amount: 32, unit: "piece" }] },
   { key: "salmon", codes: ["salmon", "三文鱼"], label: "三文鱼", en: "Salmon", group: "frozen", ozPerBase: 1, piece: { noun: "块", base: 8 }, looseBy: "piece", perGuest: 4, specs: [{ id: "b:salmon:piece", label: "分装 1 块 = 8 oz", amount: 1, unit: "piece" }] },
   { key: "lobster_tail", codes: ["lobster", "龙虾", "龙虾尾"], label: "龙虾", en: "Lobster Tail", group: "frozen", ozPerBase: 1, piece: { noun: "条", base: 6 }, looseBy: "piece", perGuest: 6, specs: [{ id: "b:lobster:box", label: "一盒 2 条", amount: 2, unit: "piece" }] },
-  { key: "scallops", codes: ["scallop", "scallops", "扇贝", "带子"], label: "扇贝", en: "Scallops", group: "frozen", ozPerBase: 1, piece: { noun: "个", base: 1 }, looseBy: "weight", perGuest: 4, specs: [{ id: "b:scallops:5lb", label: "RD 一袋 5 lb", amount: 5, unit: "lb" }] },
+  // 带子 2026-11-28 起按个（老板：每份 6 个，10/20 规格），库存记个数，默认数个数。称重还能用，按 09-24 的 1 个 ≈ 1 oz 折
+  // （10/20 是一磅 10–20 个，一个 0.8–1.6 oz，称出来的个数是估的）。原来的整袋规格「RD 一袋 5 lb」拿掉了：一袋多少个老板没给。
+  { key: "scallops", codes: ["scallop", "scallops", "扇贝", "带子"], label: "扇贝", en: "Scallops 10/20", group: "frozen", ozPerBase: 1, piece: { noun: "个", base: 1 }, looseBy: "piece", perGuest: 6, specs: [] },
   // —— 前菜 ——
   { key: "gyoza", codes: ["gyoza", "饺子", "煎饺"], label: "饺子", en: "Gyoza", group: "app", ozPerBase: 46.5 / 40, piece: { noun: "个", base: 1 }, looseBy: "piece", specs: [{ id: "b:gyoza:bag", label: "一袋 ≈40 个", amount: 40, unit: "piece" }] },
   { key: "spring_rolls", codes: ["spring roll", "springroll", "春卷"], label: "春卷", en: "Spring Roll", group: "app", ozPerBase: 24.5 / 8, piece: { noun: "个", base: 1 }, looseBy: "piece", specs: [{ id: "b:spring:box", label: "一盒 ≈8 个", amount: 8, unit: "piece" }] },

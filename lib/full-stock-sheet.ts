@@ -24,7 +24,7 @@ const up = (n: number) => Math.max(1, Math.ceil(n - 1e-9))
 export function fullAmount(it: Pick<PrepItem, "id" | "qty" | "unit">): string {
   const { id, qty, unit } = it
   if (id === "lobster_tail") return `${up(qty / 6)} 只` // 一只 6 oz
-  if (id === "scallops") return `${up(qty)} 个` // 一个 ≈ 1 oz
+  // 带子 2026-11-28 起清单上就按个数（pcs），走下面 pcs 那一行，不再从 oz 折。
   if (id === "tofu") return `${up(qty / 16)} 盒` // 16 oz 一盒
   if (unit === "tbsp") {
     if (id === "ginger_sauce" || id === "ginger_dressing") return `${up(qty / 32)} 瓶` // 16 oz 瓶 = 32 汤匙

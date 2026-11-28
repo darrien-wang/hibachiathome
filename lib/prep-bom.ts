@@ -50,7 +50,8 @@ const PROTEIN_PORTIONS: Record<string, { adult: number; child: number; unit: str
   shrimp: { adult: 5, child: 3, unit: "pcs" },
   salmon: { adult: 4, child: 2, unit: "oz" },
   tofu: { adult: 5, child: 2.5, unit: "oz" },
-  scallops: { adult: 4, child: 2, unit: "oz" },
+  // 带子按个数（老板 2026-11-28「Scallop的口径，现在是每份要六个 10-20大小的」）：每人 6 个、小孩 3 个，10/20 规格；原来每人 4 oz。
+  scallops: { adult: 6, child: 3, unit: "pcs" },
   filet_mignon: { adult: 4.5, child: 2.25, unit: "oz" },
   lobster_tail: { adult: 6, child: 3, unit: "oz" },
   // Staff-only upgrade (owner 2026-09-28, +$5 a head incl. kids). Not on the
@@ -145,8 +146,9 @@ function alt(id: string, qty: number, unit: string): string | undefined {
   // 酱料按瓶（用户 09-24 定）：16 oz/瓶；Yum Yum 每人 2 oz = 8 人/瓶，姜汁酱每人 1 oz = 16 人/瓶
   if (id === "ginger_sauce") return `≈ ${Math.round((qty / 2) * 10) / 10} oz，带 ${Math.max(1, Math.ceil(qty / 32))} 瓶（16oz/瓶 ≈ 8 人）`
   if (id === "ginger_dressing") return `≈ ${Math.round((qty / 2) * 10) / 10} oz，带 ${Math.max(1, Math.ceil(qty / 32))} 瓶（16oz/瓶 ≈ 16 人）`
-  // 带子（用户 09-24 定）：每人 4 个 = 4 oz，即 1 个 ≈ 1 oz
-  if (id === "scallops") return `≈ ${Math.ceil(qty)} 个（每人 4 个，1 个 ≈ 1 oz）`
+  // 带子按个数买（老板 2026-11-28）：10/20 规格，每人 6 个、小孩 3 个。一袋多少个老板没给，不写袋数。
+  // （原来 09-24 的口径是每人 4 个 = 4 oz，1 个 ≈ 1 oz。）
+  if (id === "scallops") return `${Math.ceil(qty)} 个（10/20 规格，每人 ${PROTEIN_PORTIONS.scallops.adult} 个，小孩 ${PROTEIN_PORTIONS.scallops.child} 个）`
   // 黄油按根带（用户 09-24 定）：1 根 = 8 oz = 16 tbsp 是最小携带单位，1 盒 = 2 根
   if (id === "garlic_butter") return `≈ ${Math.round((qty / 2) * 10) / 10} oz，带 ${Math.max(1, Math.ceil(qty / 16))} 根（8oz/根，1 盒 = 2 根）`
   // 龙虾尾盒装 2 只/盒（用户 09-24 定），每只 ≈ 1 个选龙虾的客人（6 oz）
@@ -499,7 +501,8 @@ export const BUY_UNITS: Record<string, BuyUnit> = {
   filet_mignon: { per: FILET_PACK_OZ / BUFFER, noun: "盒", desc: "Costco Tenderloin ≈2.3lb/盒" },
   salmon: { per: SALMON_PACK_OZ / BUFFER, noun: "盒", desc: "Costco Atlantic Salmon Fillet ≈2.57lb/盒" },
   lobster_tail: { per: 6, noun: "个", desc: "1 个 = 1 位客人，1 盒 = 2 个", big: { noun: "盒", count: 2 } },
-  scallops: { per: 1, noun: "个", desc: "1 个 ≈ 1 oz，每人 4 个；RD 5lb 袋 ≈ 20 人份", big: { noun: "袋", count: 80 } },
+  // 带子按个买（老板 2026-11-28）。一袋多少个老板没给，先不设大单位；原来"RD 5lb 袋 ≈ 20 人份 = 80 个"是按 1 个 ≈ 1 oz、每人 4 个推的，作废。
+  scallops: { per: 1, noun: "个", desc: `10/20 规格，按个买，每人 ${PROTEIN_PORTIONS.scallops.adult} 个（小孩 ${PROTEIN_PORTIONS.scallops.child} 个）` },
   shrimp: { per: 1, noun: "只", desc: "16/20 规格，1 袋 ≈ 32–40 只（按 32 算）", big: { noun: "袋", count: SHRIMP_PER_BAG } },
   tofu: { per: 15, noun: "盒", desc: "16oz 盒 ≈ 3 人份" },
   // 生鲜
@@ -576,7 +579,8 @@ export function splitVeg(item: PrepItem): PrepItem[] {
  */
 export function basisOf(id: string): string | null {
   const p = PROTEIN_PORTIONS[id]
-  if (p) return `每份 ${p.adult} ${p.unit === "pcs" ? "只" : p.unit}，小孩 ${p.child}${id === "shrimp" ? "" : ""}`
+  // 按个数的：虾论只，带子论个（10/20 规格，老板 2026-11-28）。
+  if (p) return `每份 ${p.adult} ${p.unit === "pcs" ? (id === "scallops" ? "个" : "只") : p.unit}，小孩 ${p.child}${id === "scallops" ? "（10/20 规格）" : ""}`
   if (id === "mixed_vege") return `上桌每人 5 oz 净重；算的是去皮去头尾前的毛重，每人 ${VEGE_OZ.adult} oz（小孩一半）`
   const mix = VEGE_MIX.find((v) => v.id === id)
   if (mix) return `蔬菜毛重每人 ${VEGE_OZ.adult} oz 里占 ${Math.round(mix.ratio * 100)}%（每人约 ${r1(VEGE_OZ.adult * mix.ratio)} oz）`
